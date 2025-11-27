@@ -1,0 +1,117 @@
+{
+  "$schema": "https://prompt-stack.dev/schemas/registry-v1.json",
+  "version": "1.0.0",
+  "name": "Prompt Stack Community Registry",
+  "description": "Official and community-contributed tools and prompts for Prompt Stack",
+  "maintainer": "prompt-stack",
+  "repository": "https://github.com/prompt-stack/registry",
+  "lastUpdated": "2025-01-27T00:00:00Z",
+
+  "tools": {
+    "official": [
+      {
+        "id": "reddit-extractor",
+        "name": "Reddit Extractor",
+        "version": "1.0.0",
+        "description": "Extract posts and comments from Reddit threads",
+        "path": "tools/official/reddit-extractor",
+        "runtime": "python",
+        "category": "data-extraction",
+        "tags": ["reddit", "web-scraping", "data"],
+        "requiresSecrets": ["REDDIT_CLIENT_ID", "REDDIT_CLIENT_SECRET"]
+      },
+      {
+        "id": "deploy-vercel",
+        "name": "Deploy to Vercel",
+        "version": "1.1.0",
+        "description": "Deploy web apps to Vercel",
+        "path": "tools/official/deploy-vercel",
+        "runtime": "node",
+        "category": "deployment",
+        "tags": ["deploy", "vercel", "hosting"],
+        "requiresSecrets": ["VERCEL_TOKEN"]
+      },
+      {
+        "id": "db-neon",
+        "name": "Neon Database",
+        "version": "1.0.0",
+        "description": "Create serverless Postgres databases on Neon",
+        "path": "tools/official/db-neon",
+        "runtime": "node",
+        "category": "database",
+        "tags": ["database", "postgres", "neon", "serverless"],
+        "requiresSecrets": ["NEON_API_KEY"]
+      },
+      {
+        "id": "git-manager",
+        "name": "Git Manager",
+        "version": "1.0.0",
+        "description": "Initialize repos, commit changes, and push to GitHub",
+        "path": "tools/official/git-manager",
+        "runtime": "node",
+        "category": "source-control",
+        "tags": ["git", "github", "version-control", "repo"],
+        "requiresSecrets": ["GITHUB_TOKEN"]
+      },
+      {
+        "id": "youtube-transcript-extractor",
+        "name": "YouTube Transcript Extractor",
+        "version": "2.0.0",
+        "description": "Extract transcripts from YouTube videos",
+        "path": "tools/official/youtube-transcript-extractor",
+        "runtime": "node",
+        "category": "content-extraction",
+        "tags": ["youtube", "transcript", "video", "captions"],
+        "requiresSecrets": []
+      },
+      {
+        "id": "pdf-creator",
+        "name": "PDF Creator",
+        "version": "1.0.0",
+        "description": "Convert HTML files to PDF documents",
+        "path": "tools/official/pdf-creator",
+        "runtime": "python",
+        "category": "document-processing",
+        "tags": ["pdf", "conversion", "html"],
+        "requiresSecrets": []
+      },
+      {
+        "id": "react-app-builder",
+        "name": "React App Builder",
+        "version": "1.0.0",
+        "description": "Create and bundle React apps with TypeScript and Tailwind",
+        "path": "tools/official/react-app-builder",
+        "runtime": "shell",
+        "category": "frontend",
+        "tags": ["react", "tailwind", "shadcn", "frontend"],
+        "requiresSecrets": []
+      }
+    ],
+    "community": []
+  },
+
+  "prompts": {
+    "official": [],
+    "community": []
+  },
+
+  "categories": {
+    "tools": [
+      { "id": "data-extraction", "name": "Data Extraction", "icon": "database" },
+      { "id": "deployment", "name": "Deployment", "icon": "rocket" },
+      { "id": "database", "name": "Database", "icon": "server" },
+      { "id": "source-control", "name": "Source Control", "icon": "git-branch" },
+      { "id": "content-extraction", "name": "Content Extraction", "icon": "file-text" },
+      { "id": "document-processing", "name": "Document Processing", "icon": "file" },
+      { "id": "frontend", "name": "Frontend", "icon": "layout" },
+      { "id": "ai-tools", "name": "AI Tools", "icon": "cpu" },
+      { "id": "utilities", "name": "Utilities", "icon": "tool" }
+    ],
+    "prompts": [
+      { "id": "coding", "name": "Coding", "icon": "code" },
+      { "id": "writing", "name": "Writing", "icon": "edit" },
+      { "id": "analysis", "name": "Analysis", "icon": "bar-chart" },
+      { "id": "creative", "name": "Creative", "icon": "palette" }
+    ]
+  }
+}

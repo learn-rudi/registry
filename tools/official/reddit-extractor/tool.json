@@ -1,0 +1,54 @@
+{
+  "id": "reddit-extractor",
+  "name": "Reddit Extractor",
+  "version": "1.0.0",
+  "description": "Extract posts and comments from Reddit threads",
+  "author": "Prompt Stack",
+  "license": "MIT",
+  "runtime": "python",
+  "entrypoint": "extract.py",
+  "inputs": [
+    {
+      "name": "url",
+      "type": "string",
+      "description": "Reddit thread URL",
+      "required": true
+    },
+    {
+      "name": "max_comments",
+      "type": "number",
+      "description": "Maximum comments to extract",
+      "required": false,
+      "default": 100
+    }
+  ],
+  "outputs": [
+    {
+      "name": "json_path",
+      "type": "file",
+      "description": "Path to extracted data (JSON)"
+    }
+  ],
+  "secrets": [
+    {
+      "key": "REDDIT_CLIENT_ID",
+      "label": "Reddit Client ID",
+      "description": "OAuth App ID from reddit.com/prefs/apps",
+      "helpUrl": "https://www.reddit.com/prefs/apps",
+      "required": true
+    },
+    {
+      "key": "REDDIT_CLIENT_SECRET",
+      "label": "Reddit Client Secret",
+      "description": "OAuth App Secret from reddit.com/prefs/apps",
+      "helpUrl": "https://www.reddit.com/prefs/apps",
+      "required": true
+    }
+  ],
+  "dependencies": {
+    "python": ["praw", "requests"]
+  },
+  "tags": ["reddit", "web-scraping", "data"],
+  "category": "data-extraction",
+  "icon": "🔴"
+}

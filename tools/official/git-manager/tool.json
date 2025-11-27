@@ -1,0 +1,67 @@
+{
+  "id": "git-manager",
+  "name": "Git Manager",
+  "version": "1.0.0",
+  "description": "Initialize repos, commit changes, and push to GitHub. Supports creating new GitHub repos automatically.",
+  "author": "Prompt Stack",
+  "license": "MIT",
+  "runtime": "node",
+  "entrypoint": "git-manager.js",
+  "inputs": [
+    {
+      "name": "action",
+      "type": "string",
+      "description": "Action to perform: init, commit, push, create-repo, status",
+      "required": true
+    },
+    {
+      "name": "project_path",
+      "type": "string",
+      "description": "Path to the project directory",
+      "required": true
+    },
+    {
+      "name": "message",
+      "type": "string",
+      "description": "Commit message (required for 'commit' action)",
+      "required": false
+    },
+    {
+      "name": "repo_name",
+      "type": "string",
+      "description": "GitHub repository name (for 'create-repo' or 'push' to new repo)",
+      "required": false
+    },
+    {
+      "name": "private",
+      "type": "boolean",
+      "description": "Make the GitHub repo private (default: false, creates public repo)",
+      "required": false,
+      "default": false
+    }
+  ],
+  "outputs": [
+    {
+      "name": "repo_url",
+      "type": "string",
+      "description": "GitHub repository URL"
+    },
+    {
+      "name": "commit_sha",
+      "type": "string",
+      "description": "Commit SHA (for commit action)"
+    }
+  ],
+  "secrets": [
+    {
+      "key": "GITHUB_TOKEN",
+      "label": "GitHub Personal Access Token",
+      "description": "Token with repo scope for creating repos and pushing code",
+      "helpUrl": "https://github.com/settings/tokens",
+      "required": true
+    }
+  ],
+  "tags": ["git", "github", "version-control", "repo"],
+  "category": "source-control",
+  "icon": "🐙"
+}

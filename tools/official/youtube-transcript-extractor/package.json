@@ -1,0 +1,28 @@
+{
+  "name": "youtube-extractor-suite",
+  "version": "2.0.0",
+  "type": "module",
+  "description": "Extract transcripts from YouTube using intelligent fallback methods (API → HTML → yt-dlp)",
+  "main": "youtube-transcript-api.js",
+  "scripts": {
+    "transcript": "node youtube-transcript-api.js",
+    "transcript-old": "node youtube-extractor.js",
+    "download": "node youtube-downloader.js",
+    "test": "node youtube-transcript-api.js https://www.youtube.com/watch?v=dQw4w9WgXcQ test-output.md",
+    "install-ytdlp": "echo 'Run: brew install yt-dlp' && echo '(Optional fallback for Method 3)'"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2",
+    "youtube-transcript": "^1.2.1"
+  },
+  "keywords": [
+    "youtube",
+    "transcript",
+    "captions",
+    "subtitles",
+    "extraction",
+    "api"
+  ],
+  "author": "",
+  "license": "ISC"
+}

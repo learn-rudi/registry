@@ -1,0 +1,60 @@
+{
+  "id": "youtube-transcript-extractor",
+  "name": "YouTube Transcript Extractor",
+  "version": "2.0.0",
+  "description": "Extract transcripts from YouTube videos using intelligent fallback methods (API → HTML → yt-dlp). Supports multiple languages and formats.",
+  "runtime": "node",
+  "entrypoint": "youtube-transcript-api.js",
+  "inputs": [
+    {
+      "id": "url",
+      "name": "YouTube URL",
+      "description": "YouTube video URL (e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ)",
+      "type": "string",
+      "required": true
+    },
+    {
+      "id": "output",
+      "name": "Output File",
+      "description": "Path to save the transcript (optional, defaults to stdout)",
+      "type": "string",
+      "required": false
+    },
+    {
+      "id": "lang",
+      "name": "Language",
+      "description": "Transcript language code (e.g., 'en', 'es', 'fr'). Defaults to video's primary language.",
+      "type": "string",
+      "required": false
+    }
+  ],
+  "outputs": [
+    {
+      "id": "transcript",
+      "name": "Video Transcript",
+      "description": "Extracted transcript text with timestamps",
+      "type": "string"
+    }
+  ],
+  "tags": ["youtube", "transcript", "video", "captions", "subtitles", "extraction"],
+  "category": "content-extraction",
+  "author": "Brandon Hoff",
+  "examples": [
+    {
+      "name": "Extract transcript to file",
+      "description": "Extract transcript and save to markdown file",
+      "inputs": {
+        "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        "output": "transcript.md"
+      }
+    },
+    {
+      "name": "Extract Spanish transcript",
+      "description": "Extract transcript in Spanish language",
+      "inputs": {
+        "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        "lang": "es"
+      }
+    }
+  ]
+}
