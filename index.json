@@ -238,6 +238,33 @@
           "description": "Cloud storage sync and management",
           "category": "tool",
           "platforms": ["darwin-arm64", "darwin-x64"]
+        },
+        {
+          "id": "runtime:claude",
+          "name": "Claude Code",
+          "version": "latest",
+          "description": "Anthropic Claude Code CLI",
+          "category": "agent",
+          "npmPackage": "@anthropic-ai/claude-code",
+          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
+        },
+        {
+          "id": "runtime:codex",
+          "name": "OpenAI Codex",
+          "version": "latest",
+          "description": "OpenAI Codex CLI",
+          "category": "agent",
+          "npmPackage": "@openai/codex",
+          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
+        },
+        {
+          "id": "runtime:gemini",
+          "name": "Gemini CLI",
+          "version": "latest",
+          "description": "Google Gemini CLI",
+          "category": "agent",
+          "npmPackage": "@google/gemini-cli",
+          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
         }
       ],
       "community": []
