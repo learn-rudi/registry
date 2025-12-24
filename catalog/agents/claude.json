@@ -1,0 +1,13 @@
+{
+  "id": "claude",
+  "name": "Claude Code",
+  "version": "latest",
+  "description": "Anthropic Claude Code CLI",
+  "bundled": false,
+  "installType": "npm",
+  "npmPackage": "@anthropic-ai/claude-code",
+  "binary": "claude/node_modules/.bin/claude",
+  "installDir": "claude",
+  "requiresAuth": true,
+  "authInstructions": "Run 'claude login' to authenticate with your Anthropic account"
+}

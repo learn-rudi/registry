@@ -1,0 +1,13 @@
+{
+  "id": "codex",
+  "name": "OpenAI Codex",
+  "version": "latest",
+  "description": "OpenAI Codex CLI",
+  "bundled": false,
+  "installType": "npm",
+  "npmPackage": "@openai/codex",
+  "binary": "codex/node_modules/.bin/codex",
+  "installDir": "codex",
+  "requiresAuth": true,
+  "authInstructions": "Run 'codex auth' to authenticate with your OpenAI account"
+}

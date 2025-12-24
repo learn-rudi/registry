@@ -1,0 +1,12 @@
+{
+  "id": "sqlite",
+  "name": "SQLite",
+  "version": "3.44",
+  "description": "Lightweight database for local data storage",
+  "bundled": false,
+  "binary": "sqlite/sqlite3",
+  "download": {
+    "darwin-arm64": "sqlite-3.44-darwin-arm64.tar.gz",
+    "darwin-x64": "sqlite-3.44-darwin-x64.tar.gz"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "id": "flyio",
+  "name": "Fly.io CLI",
+  "version": "latest",
+  "description": "Deploy to Fly.io (edge hosting)",
+  "bundled": false,
+  "installType": "npm",
+  "npmPackage": "flyctl",
+  "binary": "flyio/node_modules/.bin/flyctl",
+  "installDir": "flyio",
+  "requiresAuth": true,
+  "authInstructions": "Run 'fly auth login' to authenticate"
+}

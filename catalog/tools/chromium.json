@@ -1,0 +1,13 @@
+{
+  "id": "chromium",
+  "name": "Chromium",
+  "version": "131",
+  "description": "Browser automation for Puppeteer/Playwright",
+  "bundled": false,
+  "binary": "chromium/Chromium.app/Contents/MacOS/Chromium",
+  "format": "zip",
+  "download": {
+    "darwin-arm64": "chromium-131-darwin-arm64.zip",
+    "darwin-x64": "chromium-131-darwin-x64.zip"
+  }
+}

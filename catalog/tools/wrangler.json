@@ -1,0 +1,13 @@
+{
+  "id": "wrangler",
+  "name": "Cloudflare Wrangler",
+  "version": "latest",
+  "description": "Deploy to Cloudflare Workers/Pages",
+  "bundled": false,
+  "installType": "npm",
+  "npmPackage": "wrangler",
+  "binary": "wrangler/node_modules/.bin/wrangler",
+  "installDir": "wrangler",
+  "requiresAuth": true,
+  "authInstructions": "Run 'wrangler login' to authenticate"
+}

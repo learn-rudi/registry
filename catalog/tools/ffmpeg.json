@@ -1,0 +1,12 @@
+{
+  "id": "ffmpeg",
+  "name": "FFmpeg",
+  "version": "6.0",
+  "description": "Audio/video processing",
+  "bundled": false,
+  "binary": "ffmpeg/ffmpeg",
+  "download": {
+    "darwin-arm64": "ffmpeg-6.0-darwin-arm64.tar.gz",
+    "darwin-x64": "ffmpeg-6.0-darwin-x64.tar.gz"
+  }
+}

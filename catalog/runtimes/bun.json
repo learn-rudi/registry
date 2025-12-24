@@ -1,0 +1,12 @@
+{
+  "id": "bun",
+  "name": "Bun",
+  "version": "1.0",
+  "description": "Fast JavaScript runtime and package manager",
+  "bundled": false,
+  "binary": "bun/bun",
+  "download": {
+    "darwin-arm64": "bun-1.0-darwin-arm64.tar.gz",
+    "darwin-x64": "bun-1.0-darwin-x64.tar.gz"
+  }
+}

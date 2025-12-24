@@ -1,0 +1,12 @@
+{
+  "id": "ytdlp",
+  "name": "yt-dlp",
+  "version": "2024.01",
+  "description": "Video downloader for YouTube and other sites",
+  "bundled": false,
+  "binary": "ytdlp/yt-dlp",
+  "download": {
+    "darwin-arm64": "ytdlp-2024.01-darwin-arm64.tar.gz",
+    "darwin-x64": "ytdlp-2024.01-darwin-x64.tar.gz"
+  }
+}

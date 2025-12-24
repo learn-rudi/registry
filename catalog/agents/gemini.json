@@ -1,0 +1,13 @@
+{
+  "id": "gemini",
+  "name": "Gemini CLI",
+  "version": "latest",
+  "description": "Google Gemini CLI",
+  "bundled": false,
+  "installType": "npm",
+  "npmPackage": "@google/gemini-cli",
+  "binary": "gemini/node_modules/.bin/gemini",
+  "installDir": "gemini",
+  "requiresAuth": true,
+  "authInstructions": "Run 'gemini' to authenticate with your Google account"
+}

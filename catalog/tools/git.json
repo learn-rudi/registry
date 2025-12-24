@@ -1,0 +1,14 @@
+{
+  "id": "git",
+  "name": "Git",
+  "version": "2.43",
+  "description": "Version control for cloning repos and stacks",
+  "bundled": false,
+  "binary": "git/bin/git",
+  "download": {
+    "darwin-arm64": "git-2.43-darwin-arm64.tar.gz",
+    "darwin-x64": "git-2.43-darwin-x64.tar.gz"
+  },
+  "fallbackCheck": "git --version",
+  "fallbackInstructions": "Or use system git: xcode-select --install"
+}

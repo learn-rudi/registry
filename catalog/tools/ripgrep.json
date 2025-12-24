@@ -1,0 +1,15 @@
+{
+  "id": "ripgrep",
+  "name": "ripgrep",
+  "version": "14.0",
+  "description": "Fast text search",
+  "bundled": true,
+  "binary": {
+    "darwin-arm64": "ripgrep/arm64/rg",
+    "darwin-x64": "ripgrep/x64/rg"
+  },
+  "download": {
+    "darwin-arm64": "ripgrep-14.0-darwin-arm64.tar.gz",
+    "darwin-x64": "ripgrep-14.0-darwin-x64.tar.gz"
+  }
+}

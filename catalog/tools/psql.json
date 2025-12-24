@@ -1,0 +1,9 @@
+{
+  "id": "psql",
+  "name": "PostgreSQL Client",
+  "version": "16",
+  "description": "PostgreSQL client for database connections",
+  "managed": false,
+  "checkCommand": "psql --version",
+  "instructions": "Install via Homebrew: brew install libpq && brew link libpq --force"
+}

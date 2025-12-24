@@ -1,0 +1,14 @@
+{
+  "id": "rclone",
+  "name": "rclone",
+  "version": "1.68",
+  "description": "Cloud storage CLI (Google Drive, S3, Dropbox, 40+ providers)",
+  "bundled": false,
+  "binary": "rclone/rclone",
+  "download": {
+    "darwin-arm64": "rclone-1.68-darwin-arm64.tar.gz",
+    "darwin-x64": "rclone-1.68-darwin-x64.tar.gz"
+  },
+  "requiresAuth": true,
+  "authInstructions": "Run 'rclone config' to set up cloud storage providers"
+}

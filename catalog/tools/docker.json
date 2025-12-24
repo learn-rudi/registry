@@ -1,0 +1,8 @@
+{
+  "id": "docker",
+  "name": "Docker",
+  "description": "Container runtime",
+  "managed": false,
+  "checkCommand": "docker --version",
+  "instructions": "Docker is not installed.\n\nTo install Docker:\n  1. Download Docker Desktop: https://docker.com/download\n  2. Install and start Docker Desktop\n\nOr install via Homebrew:\n  brew install --cask docker"
+}

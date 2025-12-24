@@ -1,0 +1,12 @@
+{
+  "id": "pandoc",
+  "name": "Pandoc",
+  "version": "3.5",
+  "description": "Document conversion (markdown, docx, pdf)",
+  "bundled": false,
+  "binary": "pandoc/pandoc",
+  "download": {
+    "darwin-arm64": "pandoc-3.5-darwin-arm64.tar.gz",
+    "darwin-x64": "pandoc-3.5-darwin-x64.tar.gz"
+  }
+}

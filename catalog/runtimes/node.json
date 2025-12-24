@@ -1,0 +1,14 @@
+{
+  "id": "node",
+  "name": "Node.js",
+  "version": "20.10.0",
+  "description": "JavaScript runtime for agents and stacks",
+  "bundled": true,
+  "binary": "node/bin/node",
+  "download": {
+    "darwin-arm64": "node-20.10.0-darwin-arm64.tar.gz",
+    "darwin-x64": "node-20.10.0-darwin-x64.tar.gz",
+    "linux-x64": "node-20.10.0-linux-x64.tar.gz",
+    "linux-arm64": "node-20.10.0-linux-arm64.tar.gz"
+  }
+}

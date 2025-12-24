@@ -1,0 +1,12 @@
+{
+  "id": "python",
+  "name": "Python",
+  "version": "3.12",
+  "description": "Python runtime with data/ML packages (pandas, numpy, openai, anthropic)",
+  "bundled": false,
+  "binary": "python/bin/python3",
+  "download": {
+    "darwin-arm64": "python-3.12-darwin-arm64.tar.gz",
+    "darwin-x64": "python-3.12-darwin-x64.tar.gz"
+  }
+}

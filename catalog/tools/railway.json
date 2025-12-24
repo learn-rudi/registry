@@ -1,0 +1,13 @@
+{
+  "id": "railway",
+  "name": "Railway CLI",
+  "version": "latest",
+  "description": "Deploy to Railway (simple cloud hosting)",
+  "bundled": false,
+  "installType": "npm",
+  "npmPackage": "@railway/cli",
+  "binary": "railway/node_modules/.bin/railway",
+  "installDir": "railway",
+  "requiresAuth": true,
+  "authInstructions": "Run 'railway login' to authenticate"
+}

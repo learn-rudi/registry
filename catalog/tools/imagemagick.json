@@ -1,0 +1,12 @@
+{
+  "id": "imagemagick",
+  "name": "ImageMagick",
+  "version": "7.1",
+  "description": "Image processing",
+  "bundled": false,
+  "binary": "imagemagick/magick",
+  "download": {
+    "darwin-arm64": "imagemagick-7.1-darwin-arm64.tar.gz",
+    "darwin-x64": "imagemagick-7.1-darwin-x64.tar.gz"
+  }
+}

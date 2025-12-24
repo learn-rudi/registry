@@ -1,0 +1,9 @@
+{
+  "id": "tesseract",
+  "name": "Tesseract OCR",
+  "version": "5.3",
+  "description": "OCR text extraction from images",
+  "managed": false,
+  "checkCommand": "tesseract --version",
+  "instructions": "Install via Homebrew: brew install tesseract"
+}

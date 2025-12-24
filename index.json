@@ -2,10 +2,10 @@
   "$schema": "https://prompt-stack.dev/schemas/registry-v2.json",
   "version": "2.0.0",
   "name": "Prompt Stack Registry",
-  "description": "Official and community-contributed stacks, prompts, and runtimes for Prompt Stack",
+  "description": "Official and community-contributed stacks, prompts, runtimes, tools, and agents for Prompt Stack",
   "maintainer": "prompt-stack",
   "repository": "https://github.com/prompt-stack/registry",
-  "lastUpdated": "2025-12-23T00:00:00Z",
+  "lastUpdated": "2025-12-24T00:00:00Z",
 
   "packages": {
     "stacks": {
@@ -15,100 +15,85 @@
           "name": "Reddit Extractor",
           "version": "1.0.0",
           "description": "Extract posts and comments from Reddit threads",
-          "path": "catalog/stacks/official/reddit-extractor",
+          "path": "catalog/stacks/reddit-extractor",
           "runtime": "runtime:python",
           "category": "data-extraction",
           "tags": ["reddit", "web-scraping", "data"],
-          "requires": {
-            "secrets": ["REDDIT_CLIENT_ID", "REDDIT_CLIENT_SECRET"]
-          }
+          "requires": { "secrets": ["REDDIT_CLIENT_ID", "REDDIT_CLIENT_SECRET"] }
         },
         {
           "id": "stack:deploy-vercel",
           "name": "Deploy to Vercel",
           "version": "1.1.0",
           "description": "Deploy web apps to Vercel",
-          "path": "catalog/stacks/official/deploy-vercel",
+          "path": "catalog/stacks/deploy-vercel",
           "runtime": "runtime:node",
           "category": "deployment",
           "tags": ["deploy", "vercel", "hosting"],
-          "requires": {
-            "secrets": ["VERCEL_TOKEN"]
-          }
+          "requires": { "secrets": ["VERCEL_TOKEN"] }
         },
         {
           "id": "stack:db-neon",
           "name": "Neon Database",
           "version": "1.0.0",
           "description": "Create serverless Postgres databases on Neon",
-          "path": "catalog/stacks/official/db-neon",
+          "path": "catalog/stacks/db-neon",
           "runtime": "runtime:node",
           "category": "database",
           "tags": ["database", "postgres", "neon", "serverless"],
-          "requires": {
-            "secrets": ["NEON_API_KEY"]
-          }
+          "requires": { "secrets": ["NEON_API_KEY"] }
         },
         {
           "id": "stack:git-manager",
           "name": "Git Manager",
           "version": "1.0.0",
           "description": "Initialize repos, commit changes, and push to GitHub",
-          "path": "catalog/stacks/official/git-manager",
+          "path": "catalog/stacks/git-manager",
           "runtime": "runtime:node",
           "category": "source-control",
           "tags": ["git", "github", "version-control", "repo"],
-          "requires": {
-            "secrets": ["GITHUB_TOKEN"]
-          }
+          "requires": { "secrets": ["GITHUB_TOKEN"] }
         },
         {
           "id": "stack:youtube-transcript-extractor",
           "name": "YouTube Transcript Extractor",
           "version": "2.0.0",
           "description": "Extract transcripts from YouTube videos",
-          "path": "catalog/stacks/official/youtube-transcript-extractor",
+          "path": "catalog/stacks/youtube-transcript-extractor",
           "runtime": "runtime:node",
           "category": "content-extraction",
-          "tags": ["youtube", "transcript", "video", "captions"],
-          "requires": {
-            "secrets": []
-          }
+          "tags": ["youtube", "transcript", "video", "captions"]
         },
         {
           "id": "stack:pdf-creator",
           "name": "PDF Creator",
           "version": "1.0.0",
           "description": "Convert HTML files to PDF documents",
-          "path": "catalog/stacks/official/pdf-creator",
+          "path": "catalog/stacks/pdf-creator",
           "runtime": "runtime:python",
           "entry": "create_pdf.py",
           "category": "document-processing",
-          "tags": ["pdf", "conversion", "html"],
-          "requires": {
-            "secrets": []
-          }
+          "tags": ["pdf", "conversion", "html"]
         },
         {
           "id": "stack:artifacts-builder",
           "name": "Artifacts Builder",
           "version": "1.0.0",
           "description": "Build and package project artifacts",
-          "path": "catalog/stacks/official/artifacts-builder",
+          "path": "catalog/stacks/artifacts-builder",
           "runtime": "runtime:node",
           "category": "utilities",
-          "tags": ["build", "artifacts", "packaging"],
-          "requires": {
-            "secrets": []
-          }
+          "tags": ["build", "artifacts", "packaging"]
         }
       ],
       "community": []
     },
+
     "prompts": {
       "official": [],
       "community": []
     },
+
     "runtimes": {
       "official": [
         {
@@ -116,7 +101,8 @@
           "name": "Node.js",
           "version": "20.10.0",
           "description": "JavaScript runtime built on Chrome's V8 engine",
-          "category": "core",
+          "path": "catalog/runtimes/node.json",
+          "bundled": true,
           "platforms": ["darwin-arm64", "darwin-x64", "linux-x64", "win32-x64"]
         },
         {
@@ -124,227 +110,262 @@
           "name": "Python",
           "version": "3.12",
           "description": "Python interpreter for data science and scripting",
-          "category": "core",
+          "path": "catalog/runtimes/python.json",
           "platforms": ["darwin-arm64", "darwin-x64", "linux-x64", "win32-x64"]
-        },
-        {
-          "id": "runtime:bun",
-          "name": "Bun",
-          "version": "1.0",
-          "description": "Fast all-in-one JavaScript runtime and toolkit",
-          "category": "core",
-          "platforms": ["darwin-arm64", "darwin-x64"]
         },
         {
           "id": "runtime:deno",
           "name": "Deno",
           "version": "1.40",
           "description": "Secure runtime for JavaScript and TypeScript",
-          "category": "core",
+          "path": "catalog/runtimes/deno.json",
           "platforms": ["darwin-arm64", "darwin-x64"]
         },
         {
-          "id": "runtime:git",
-          "name": "Git",
-          "version": "2.51",
-          "description": "Distributed version control system",
-          "category": "tool",
-          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64", "win32-x64"]
-        },
-        {
-          "id": "runtime:ffmpeg",
-          "name": "FFmpeg",
-          "version": "6.0",
-          "description": "Audio and video processing toolkit",
-          "category": "tool",
-          "platforms": ["darwin-arm64", "darwin-x64"]
-        },
-        {
-          "id": "runtime:whisper",
-          "name": "Whisper",
+          "id": "runtime:bun",
+          "name": "Bun",
           "version": "1.0",
-          "description": "OpenAI speech recognition model",
-          "category": "ai",
+          "description": "Fast all-in-one JavaScript runtime and toolkit",
+          "path": "catalog/runtimes/bun.json",
           "platforms": ["darwin-arm64", "darwin-x64"]
-        },
+        }
+      ],
+      "community": []
+    },
+
+    "tools": {
+      "official": [
         {
-          "id": "runtime:ollama",
-          "name": "Ollama",
-          "version": "0.5",
-          "description": "Run large language models locally",
-          "category": "ai",
-          "platforms": ["darwin-arm64", "darwin-x64"]
-        },
-        {
-          "id": "runtime:chromium",
-          "name": "Chromium",
-          "version": "131",
-          "description": "Headless browser for automation and scraping",
-          "category": "tool",
-          "platforms": ["darwin-arm64", "darwin-x64"]
-        },
-        {
-          "id": "runtime:imagemagick",
-          "name": "ImageMagick",
-          "version": "7.1",
-          "description": "Image manipulation and conversion",
-          "category": "tool",
-          "platforms": ["darwin-arm64", "darwin-x64"]
-        },
-        {
-          "id": "runtime:pandoc",
-          "name": "Pandoc",
-          "version": "3.5",
-          "description": "Universal document converter",
-          "category": "tool",
-          "platforms": ["darwin-arm64", "darwin-x64"]
-        },
-        {
-          "id": "runtime:jq",
-          "name": "jq",
-          "version": "1.7",
-          "description": "Command-line JSON processor",
-          "category": "tool",
-          "platforms": ["darwin-arm64", "darwin-x64"]
-        },
-        {
-          "id": "runtime:yq",
-          "name": "yq",
-          "version": "4.40",
-          "description": "Command-line YAML processor",
-          "category": "tool",
-          "platforms": ["darwin-arm64", "darwin-x64"]
-        },
-        {
-          "id": "runtime:sqlite",
-          "name": "SQLite",
-          "version": "3.44",
-          "description": "Embedded SQL database engine",
-          "category": "tool",
-          "platforms": ["darwin-arm64", "darwin-x64"]
-        },
-        {
-          "id": "runtime:yt-dlp",
-          "name": "yt-dlp",
-          "version": "2024.11",
-          "description": "Video downloader for YouTube and other sites",
-          "category": "tool",
-          "platforms": ["darwin-arm64", "darwin-x64"]
-        },
-        {
-          "id": "runtime:rclone",
-          "name": "rclone",
-          "version": "1.68",
-          "description": "Cloud storage sync and management",
-          "category": "tool",
-          "platforms": ["darwin-arm64", "darwin-x64"]
-        },
-        {
-          "id": "runtime:claude",
-          "name": "Claude Code",
-          "version": "latest",
-          "description": "Anthropic Claude Code CLI",
-          "category": "agent",
-          "npmPackage": "@anthropic-ai/claude-code",
-          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
-        },
-        {
-          "id": "runtime:codex",
-          "name": "OpenAI Codex",
-          "version": "latest",
-          "description": "OpenAI Codex CLI",
-          "category": "agent",
-          "npmPackage": "@openai/codex",
-          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
-        },
-        {
-          "id": "runtime:gemini",
-          "name": "Gemini CLI",
-          "version": "latest",
-          "description": "Google Gemini CLI",
-          "category": "agent",
-          "npmPackage": "@google/gemini-cli",
-          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
-        },
-        {
-          "id": "runtime:copilot",
-          "name": "GitHub Copilot",
-          "version": "latest",
-          "description": "GitHub Copilot CLI",
-          "category": "agent",
-          "npmPackage": "@githubnext/github-copilot-cli",
-          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
-        },
-        {
-          "id": "runtime:aider",
-          "name": "Aider",
-          "version": "latest",
-          "description": "AI pair programming in your terminal",
-          "category": "agent",
-          "pipPackage": "aider-chat",
-          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
-        },
-        {
-          "id": "runtime:supabase",
-          "name": "Supabase CLI",
-          "version": "latest",
-          "description": "Supabase local development and deployment",
-          "category": "cloud",
-          "npmPackage": "supabase",
-          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
-        },
-        {
-          "id": "runtime:vercel",
-          "name": "Vercel CLI",
-          "version": "latest",
-          "description": "Deploy to Vercel",
-          "category": "cloud",
-          "npmPackage": "vercel",
-          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
-        },
-        {
-          "id": "runtime:netlify",
-          "name": "Netlify CLI",
-          "version": "latest",
-          "description": "Deploy to Netlify",
-          "category": "cloud",
-          "npmPackage": "netlify-cli",
-          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
-        },
-        {
-          "id": "runtime:wrangler",
-          "name": "Cloudflare Wrangler",
-          "version": "latest",
-          "description": "Deploy to Cloudflare Workers/Pages",
-          "category": "cloud",
-          "npmPackage": "wrangler",
-          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
-        },
-        {
-          "id": "runtime:railway",
-          "name": "Railway CLI",
-          "version": "latest",
-          "description": "Deploy to Railway",
-          "category": "cloud",
-          "npmPackage": "@railway/cli",
-          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
-        },
-        {
-          "id": "runtime:flyio",
-          "name": "Fly.io CLI",
-          "version": "latest",
-          "description": "Deploy to Fly.io edge hosting",
-          "category": "cloud",
-          "npmPackage": "flyctl",
-          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
-        },
-        {
-          "id": "runtime:ripgrep",
+          "id": "tool:ripgrep",
           "name": "ripgrep",
           "version": "14.0",
           "description": "Fast text search (used by agents)",
-          "category": "tool",
+          "path": "catalog/tools/ripgrep.json",
+          "bundled": true,
           "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
+        },
+        {
+          "id": "tool:git",
+          "name": "Git",
+          "version": "2.43",
+          "description": "Distributed version control system",
+          "path": "catalog/tools/git.json",
+          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64", "win32-x64"]
+        },
+        {
+          "id": "tool:ffmpeg",
+          "name": "FFmpeg",
+          "version": "6.0",
+          "description": "Audio and video processing toolkit",
+          "path": "catalog/tools/ffmpeg.json",
+          "platforms": ["darwin-arm64", "darwin-x64"]
+        },
+        {
+          "id": "tool:imagemagick",
+          "name": "ImageMagick",
+          "version": "7.1",
+          "description": "Image manipulation and conversion",
+          "path": "catalog/tools/imagemagick.json",
+          "platforms": ["darwin-arm64", "darwin-x64"]
+        },
+        {
+          "id": "tool:pandoc",
+          "name": "Pandoc",
+          "version": "3.5",
+          "description": "Universal document converter",
+          "path": "catalog/tools/pandoc.json",
+          "platforms": ["darwin-arm64", "darwin-x64"]
+        },
+        {
+          "id": "tool:chromium",
+          "name": "Chromium",
+          "version": "131",
+          "description": "Headless browser for automation and scraping",
+          "path": "catalog/tools/chromium.json",
+          "platforms": ["darwin-arm64", "darwin-x64"]
+        },
+        {
+          "id": "tool:jq",
+          "name": "jq",
+          "version": "1.7",
+          "description": "Command-line JSON processor",
+          "path": "catalog/tools/jq.json",
+          "platforms": ["darwin-arm64", "darwin-x64"]
+        },
+        {
+          "id": "tool:yq",
+          "name": "yq",
+          "version": "4.40",
+          "description": "Command-line YAML processor",
+          "path": "catalog/tools/yq.json",
+          "platforms": ["darwin-arm64", "darwin-x64"]
+        },
+        {
+          "id": "tool:sqlite",
+          "name": "SQLite",
+          "version": "3.44",
+          "description": "Embedded SQL database engine",
+          "path": "catalog/tools/sqlite.json",
+          "platforms": ["darwin-arm64", "darwin-x64"]
+        },
+        {
+          "id": "tool:ytdlp",
+          "name": "yt-dlp",
+          "version": "2024.01",
+          "description": "Video downloader for YouTube and other sites",
+          "path": "catalog/tools/ytdlp.json",
+          "platforms": ["darwin-arm64", "darwin-x64"]
+        },
+        {
+          "id": "tool:rclone",
+          "name": "rclone",
+          "version": "1.68",
+          "description": "Cloud storage sync and management",
+          "path": "catalog/tools/rclone.json",
+          "platforms": ["darwin-arm64", "darwin-x64"]
+        },
+        {
+          "id": "tool:vercel",
+          "name": "Vercel CLI",
+          "version": "latest",
+          "description": "Deploy to Vercel",
+          "path": "catalog/tools/vercel.json",
+          "installType": "npm",
+          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
+        },
+        {
+          "id": "tool:netlify",
+          "name": "Netlify CLI",
+          "version": "latest",
+          "description": "Deploy to Netlify",
+          "path": "catalog/tools/netlify.json",
+          "installType": "npm",
+          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
+        },
+        {
+          "id": "tool:supabase",
+          "name": "Supabase CLI",
+          "version": "latest",
+          "description": "Supabase local development and deployment",
+          "path": "catalog/tools/supabase.json",
+          "installType": "npm",
+          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
+        },
+        {
+          "id": "tool:wrangler",
+          "name": "Cloudflare Wrangler",
+          "version": "latest",
+          "description": "Deploy to Cloudflare Workers/Pages",
+          "path": "catalog/tools/wrangler.json",
+          "installType": "npm",
+          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
+        },
+        {
+          "id": "tool:railway",
+          "name": "Railway CLI",
+          "version": "latest",
+          "description": "Deploy to Railway",
+          "path": "catalog/tools/railway.json",
+          "installType": "npm",
+          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
+        },
+        {
+          "id": "tool:flyio",
+          "name": "Fly.io CLI",
+          "version": "latest",
+          "description": "Deploy to Fly.io edge hosting",
+          "path": "catalog/tools/flyio.json",
+          "installType": "npm",
+          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
+        },
+        {
+          "id": "tool:docker",
+          "name": "Docker",
+          "description": "Container runtime",
+          "path": "catalog/tools/docker.json",
+          "managed": false
+        },
+        {
+          "id": "tool:psql",
+          "name": "PostgreSQL Client",
+          "version": "16",
+          "description": "PostgreSQL client for database connections",
+          "path": "catalog/tools/psql.json",
+          "managed": false
+        },
+        {
+          "id": "tool:httpie",
+          "name": "HTTPie",
+          "version": "3.2",
+          "description": "Modern HTTP client for API testing",
+          "path": "catalog/tools/httpie.json",
+          "managed": false
+        },
+        {
+          "id": "tool:tesseract",
+          "name": "Tesseract OCR",
+          "version": "5.3",
+          "description": "OCR text extraction from images",
+          "path": "catalog/tools/tesseract.json",
+          "managed": false
+        }
+      ],
+      "community": []
+    },
+
+    "agents": {
+      "official": [
+        {
+          "id": "agent:claude",
+          "name": "Claude Code",
+          "version": "latest",
+          "description": "Anthropic Claude Code CLI",
+          "path": "catalog/agents/claude.json",
+          "installType": "npm",
+          "npmPackage": "@anthropic-ai/claude-code",
+          "requiresAuth": true,
+          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
+        },
+        {
+          "id": "agent:codex",
+          "name": "OpenAI Codex",
+          "version": "latest",
+          "description": "OpenAI Codex CLI",
+          "path": "catalog/agents/codex.json",
+          "installType": "npm",
+          "npmPackage": "@openai/codex",
+          "requiresAuth": true,
+          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
+        },
+        {
+          "id": "agent:gemini",
+          "name": "Gemini CLI",
+          "version": "latest",
+          "description": "Google Gemini CLI",
+          "path": "catalog/agents/gemini.json",
+          "installType": "npm",
+          "npmPackage": "@google/gemini-cli",
+          "requiresAuth": true,
+          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
+        },
+        {
+          "id": "agent:copilot",
+          "name": "GitHub Copilot",
+          "version": "latest",
+          "description": "GitHub Copilot CLI",
+          "path": "catalog/agents/copilot.json",
+          "installType": "npm",
+          "npmPackage": "@githubnext/github-copilot-cli",
+          "requiresAuth": true,
+          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
+        },
+        {
+          "id": "agent:ollama",
+          "name": "Ollama",
+          "version": "0.5",
+          "description": "Run local LLMs (Llama, Mistral, CodeLlama, etc.)",
+          "path": "catalog/agents/ollama.json",
+          "platforms": ["darwin-arm64", "darwin-x64"]
         }
       ],
       "community": []

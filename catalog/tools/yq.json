@@ -1,0 +1,12 @@
+{
+  "id": "yq",
+  "name": "yq",
+  "version": "4.40",
+  "description": "YAML processor (like jq but for YAML)",
+  "bundled": false,
+  "binary": "yq/yq",
+  "download": {
+    "darwin-arm64": "yq-4.40-darwin-arm64.tar.gz",
+    "darwin-x64": "yq-4.40-darwin-x64.tar.gz"
+  }
+}

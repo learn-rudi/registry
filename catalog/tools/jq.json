@@ -1,0 +1,12 @@
+{
+  "id": "jq",
+  "name": "jq",
+  "version": "1.7",
+  "description": "JSON processor for parsing API responses",
+  "bundled": false,
+  "binary": "jq/jq",
+  "download": {
+    "darwin-arm64": "jq-1.7-darwin-arm64.tar.gz",
+    "darwin-x64": "jq-1.7-darwin-x64.tar.gz"
+  }
+}

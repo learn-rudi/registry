@@ -1,0 +1,13 @@
+{
+  "id": "netlify",
+  "name": "Netlify CLI",
+  "version": "latest",
+  "description": "Deploy to Netlify",
+  "bundled": false,
+  "installType": "npm",
+  "npmPackage": "netlify-cli",
+  "binary": "netlify/node_modules/.bin/netlify",
+  "installDir": "netlify",
+  "requiresAuth": true,
+  "authInstructions": "Run 'netlify login' to authenticate"
+}

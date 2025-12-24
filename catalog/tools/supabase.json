@@ -1,0 +1,13 @@
+{
+  "id": "supabase",
+  "name": "Supabase CLI",
+  "version": "latest",
+  "description": "Supabase local development and deployment",
+  "bundled": false,
+  "installType": "npm",
+  "npmPackage": "supabase",
+  "binary": "supabase/node_modules/.bin/supabase",
+  "installDir": "supabase",
+  "requiresAuth": false,
+  "authInstructions": "Run 'supabase login' to authenticate"
+}

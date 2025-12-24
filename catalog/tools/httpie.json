@@ -1,0 +1,9 @@
+{
+  "id": "httpie",
+  "name": "HTTPie",
+  "version": "3.2",
+  "description": "Modern HTTP client for API testing",
+  "managed": false,
+  "checkCommand": "http --version",
+  "instructions": "Install via Homebrew: brew install httpie"
+}
