@@ -1,164 +1,236 @@
-# Prompt Stack Community Registry
+# Prompt Stack Registry
 
-The official repository of tools and prompts for [Prompt Stack](https://github.com/prompt-stack/studio).
+Community-maintained collection of stacks and prompts for Prompt Stack.
+
+Stacks are executable workflows that combine prompts, tools, and configuration. Prompts are reusable instruction templates.
+
+## Security Notice
+
+**Never include API keys, passwords, or secrets in stack files.** Stacks only DECLARE what secrets are needed; users provide their own values locally. Anyone who submits a stack with hardcoded secrets will be rejected and may face restrictions on future contributions.
 
 ## Installation
 
-Install tools directly from this registry:
+Search for stacks:
 
 ```bash
-# From Prompt Stack Studio
-Settings > Tools > Browse Registry
-
-# Or via CLI (coming soon)
-prompt-stack install github:prompt-stack/registry/tools/official/reddit-extractor
+pstack search youtube
 ```
 
-## Structure
+Install a stack:
 
-```
-registry/
-  registry.json          # Master index of all tools and prompts
-  tools/
-    official/            # Maintained by Prompt Stack team
-      reddit-extractor/
-      deploy-vercel/
-      ...
-    community/           # Community contributions
-      your-tool/
-  prompts/
-    official/            # Official prompt templates
-    community/           # Community prompts
+```bash
+pstack install youtube-summarizer
 ```
 
-## Contributing a Tool
+Run a stack:
 
-### 1. Fork this repository
-
-### 2. Create your tool folder
-
-```
-tools/community/your-tool-name/
-  tool.json           # Required: Tool manifest
-  entrypoint.py       # Your main script (or .js, .sh)
-  README.md           # Documentation
+```bash
+pstack run youtube-summarizer --url "https://youtube.com/watch?v=..."
 ```
 
-### 3. Define your tool.json
+## Repository Structure
 
-```json
-{
-  "id": "your-tool-name",
-  "name": "Your Tool Name",
-  "version": "1.0.0",
-  "description": "What your tool does",
-  "author": "Your Name",
-  "license": "MIT",
-  "runtime": "python",
-  "entrypoint": "entrypoint.py",
-  "inputs": [
-    {
-      "name": "input_name",
-      "type": "string",
-      "description": "Description of the input",
-      "required": true
-    }
-  ],
-  "outputs": [
-    {
-      "name": "output_name",
-      "type": "string",
-      "description": "What gets returned"
-    }
-  ],
-  "secrets": [
-    {
-      "key": "YOUR_API_KEY",
-      "label": "Your Service API Key",
-      "description": "Get this from your-service.com/settings",
-      "helpUrl": "https://your-service.com/settings",
-      "required": true
-    }
-  ],
-  "dependencies": {
-    "python": ["requests", "beautifulsoup4"]
-  },
-  "tags": ["tag1", "tag2"],
-  "category": "data-extraction"
+```
+packages/
+├── stacks/
+│   └── youtube-summarizer/
+│       ├── stack.yaml          # Required: Stack manifest
+│       ├── prompt.md           # Prompt instructions
+│       └── scripts/            # Optional: Runtime scripts
+└── prompts/
+    └── code-reviewer/
+        └── prompt.md           # Prompt content
+```
+
+## Creating a Stack
+
+### 1. Create Directory
+
+```bash
+mkdir -p packages/stacks/my-stack
+cd packages/stacks/my-stack
+```
+
+### 2. Write Manifest
+
+File: `stack.yaml`
+
+**Important: Never include actual secrets or API keys in this file. Only declare what secrets the stack needs.**
+
+```yaml
+id: my-stack
+kind: stack
+name: My Stack
+version: 1.0.0
+description: Brief description of what this stack does
+
+requires:
+  runtimes:
+    - node
+    - python
+  secrets:
+    - name: OPENAI_API_KEY
+      required: true
+      description: "OpenAI API key (get from https://platform.openai.com/api-keys)"
+
+inputs:
+  - name: input_file
+    type: path
+    description: Path to input file
+    required: true
+  - name: options
+    type: string
+    description: Processing options
+    required: false
+
+outputs:
+  - name: result
+    type: string
+    description: Processing result
+
+entrypoint: process.js
+```
+
+**Users who want to run this stack will provide their own API key locally:**
+
+```bash
+pstack secrets set OPENAI_API_KEY
+# Prompts user to enter their key (not echoed)
+# Stored encrypted in ~/.prompt-stack/secrets.json
+```
+
+### 2. Write Prompt
+
+File: `prompt.md`
+
+```markdown
+# My Stack
+
+You are an expert in processing data.
+
+## Inputs
+- Input file: {{input_file}}
+- Options: {{options}}
+
+## Task
+1. Read and analyze the input file
+2. Apply processing logic
+3. Output structured results
+
+## Output Format
+Return results as JSON with clear structure.
+```
+
+### 3. Implement Script
+
+File: `process.js`
+
+```javascript
+import { readFile } from 'fs/promises';
+
+async function main() {
+  const inputFile = process.env.INPUT_FILE;
+  const content = await readFile(inputFile, 'utf-8');
+
+  // Process content
+  const result = {
+    processed: true,
+    length: content.length
+  };
+
+  console.log(JSON.stringify(result));
 }
+
+main().catch(err => {
+  console.error(err);
+  process.exit(1);
+});
 ```
 
-### 4. Submit a Pull Request
+### 4. Submit
 
-- Ensure your tool works locally first
-- Include a README with usage examples
-- Never commit API keys or secrets
+Open a pull request with:
 
-## Secret Management
-
-**Tools declare WHAT secrets they need. Users provide VALUES locally.**
-
-Your `tool.json` defines secret requirements:
-```json
-"secrets": [
-  {
-    "key": "TWITTER_API_KEY",
-    "label": "Twitter API Key",
-    "description": "Create at developer.twitter.com",
-    "helpUrl": "https://developer.twitter.com/en/portal/dashboard",
-    "required": true
-  }
-]
-```
-
-Users configure these in Prompt Stack:
-- **Settings > Cloud & Secrets** in the app
-- Stored encrypted at `~/Library/Application Support/Prompt Stack/secrets.json`
-- Never committed to git
-
-## Tool Categories
-
-| Category | Description |
-|----------|-------------|
-| `data-extraction` | Scraping, API fetching, data collection |
-| `deployment` | Deploy apps to cloud platforms |
-| `database` | Database creation and management |
-| `source-control` | Git, GitHub, version control |
-| `content-extraction` | Extract content from videos, docs, etc. |
-| `document-processing` | PDF, Word, file conversion |
-| `frontend` | React, Vue, frontend scaffolding |
-| `ai-tools` | LLM wrappers, embeddings, AI utilities |
-| `utilities` | General purpose helpers |
+1. Your stack directory
+2. Description of what it does
+3. Example usage and output
+4. Any special setup required
 
 ## Contributing a Prompt
 
-Prompts are markdown files with optional frontmatter:
+Prompts are instruction templates for AI models.
 
-```
-prompts/community/your-prompt/
-  prompt.md           # The prompt content
-  metadata.json       # Optional: extra metadata
+### 1. Create Directory
+
+```bash
+mkdir -p packages/prompts/my-prompt
+cd packages/prompts/my-prompt
 ```
 
-### prompt.md format
+### 2. Create Prompt File
+
+File: `prompt.md`
 
 ```markdown
----
-name: Code Reviewer
-description: Strict TypeScript code reviewer
-author: Your Name
-tags: [typescript, code-review]
-category: coding
----
+# Code Reviewer
 
-You are a strict TypeScript code reviewer. When reviewing code:
+You are an expert code reviewer specializing in {{language}}.
 
-1. Check for type safety issues
-2. Look for potential null/undefined errors
-3. Suggest improvements for readability
-...
+Your task is to review the provided code and:
+
+1. Identify potential bugs or logic errors
+2. Suggest performance improvements
+3. Check for security vulnerabilities
+4. Ensure code style consistency
+
+Provide detailed feedback with specific line numbers and suggestions.
 ```
+
+### 3. Submit
+
+Open a pull request with your prompt directory.
+
+## Quality Standards
+
+Contributions should:
+
+- Have a clear, specific purpose
+- Include proper YAML/markdown formatting
+- Avoid hardcoded secrets (declare in manifest)
+- Include examples of inputs and outputs
+- Be tested before submission
+- Include documentation
+
+## Secret Management
+
+Stacks declare what secrets they require. Users configure them locally:
+
+```bash
+pstack secrets set OPENAI_API_KEY
+pstack secrets list
+```
+
+Secrets are stored encrypted at `~/.prompt-stack/secrets.json` and never committed to git.
+
+## Registry Maintenance
+
+The `index.json` file is auto-generated from the directory structure. Do not edit manually.
+
+Regenerate index:
+
+```bash
+npm run generate-index
+```
+
+## Contributing
+
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for:
+
+- Code of conduct
+- Pull request process
+- Commit message conventions
+- Review checklist
 
 ## License
 
-MIT - See individual tools for their specific licenses.
+MIT - Each stack/prompt retains its own license as specified
