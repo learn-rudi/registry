@@ -265,6 +265,86 @@
           "category": "agent",
           "npmPackage": "@google/gemini-cli",
           "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
+        },
+        {
+          "id": "runtime:copilot",
+          "name": "GitHub Copilot",
+          "version": "latest",
+          "description": "GitHub Copilot CLI",
+          "category": "agent",
+          "npmPackage": "@githubnext/github-copilot-cli",
+          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
+        },
+        {
+          "id": "runtime:aider",
+          "name": "Aider",
+          "version": "latest",
+          "description": "AI pair programming in your terminal",
+          "category": "agent",
+          "pipPackage": "aider-chat",
+          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
+        },
+        {
+          "id": "runtime:supabase",
+          "name": "Supabase CLI",
+          "version": "latest",
+          "description": "Supabase local development and deployment",
+          "category": "cloud",
+          "npmPackage": "supabase",
+          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
+        },
+        {
+          "id": "runtime:vercel",
+          "name": "Vercel CLI",
+          "version": "latest",
+          "description": "Deploy to Vercel",
+          "category": "cloud",
+          "npmPackage": "vercel",
+          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
+        },
+        {
+          "id": "runtime:netlify",
+          "name": "Netlify CLI",
+          "version": "latest",
+          "description": "Deploy to Netlify",
+          "category": "cloud",
+          "npmPackage": "netlify-cli",
+          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
+        },
+        {
+          "id": "runtime:wrangler",
+          "name": "Cloudflare Wrangler",
+          "version": "latest",
+          "description": "Deploy to Cloudflare Workers/Pages",
+          "category": "cloud",
+          "npmPackage": "wrangler",
+          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
+        },
+        {
+          "id": "runtime:railway",
+          "name": "Railway CLI",
+          "version": "latest",
+          "description": "Deploy to Railway",
+          "category": "cloud",
+          "npmPackage": "@railway/cli",
+          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
+        },
+        {
+          "id": "runtime:flyio",
+          "name": "Fly.io CLI",
+          "version": "latest",
+          "description": "Deploy to Fly.io edge hosting",
+          "category": "cloud",
+          "npmPackage": "flyctl",
+          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
+        },
+        {
+          "id": "runtime:ripgrep",
+          "name": "ripgrep",
+          "version": "14.0",
+          "description": "Fast text search (used by agents)",
+          "category": "tool",
+          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
         }
       ],
       "community": []
