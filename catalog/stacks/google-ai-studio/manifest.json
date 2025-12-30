@@ -1,0 +1,70 @@
+{
+  "id": "google-ai-studio",
+  "name": "Google AI Suite",
+  "version": "1.0.0",
+  "description": "Access Google's complete AI suite: generate images (Gemini, Imagen 4), videos (Veo 3.1), and text (Gemini models)",
+  "author": "CO-LLAB",
+  "license": "MIT",
+  "runtime": "node",
+  "entrypoint": "src/commands/generateImage.js",
+  "inputs": [
+    {
+      "name": "prompt",
+      "type": "string",
+      "description": "Text description or prompt for generation",
+      "required": true
+    },
+    {
+      "name": "type",
+      "type": "string",
+      "description": "Generation type: image, video, or text",
+      "required": false,
+      "default": "image",
+      "options": ["image", "video", "text"]
+    },
+    {
+      "name": "model",
+      "type": "string",
+      "description": "Model to use",
+      "required": false,
+      "default": "nano-banana",
+      "options": ["nano-banana", "nano-banana-pro", "imagen4-ultra", "imagen4-standard", "imagen4-fast", "gemini-2.5-flash", "gemini-3-pro"]
+    },
+    {
+      "name": "aspect",
+      "type": "string",
+      "description": "Aspect ratio (image/video only)",
+      "required": false,
+      "default": "16:9",
+      "options": ["1:1", "3:4", "4:3", "9:16", "16:9"]
+    },
+    {
+      "name": "output",
+      "type": "string",
+      "description": "Output file path",
+      "required": false
+    }
+  ],
+  "outputs": [
+    {
+      "name": "file_path",
+      "type": "file",
+      "description": "Path to generated image, video, or text file"
+    }
+  ],
+  "dependencies": {
+    "node": ">=18.0.0"
+  },
+  "secrets": [
+    {
+      "key": "GOOGLE_AI_API_KEY",
+      "label": "Google AI API Key",
+      "description": "API key for accessing Google AI models (Gemini, Imagen, Veo)",
+      "helpUrl": "https://makersuite.google.com/app/apikey",
+      "required": true
+    }
+  ],
+  "tags": ["ai", "google-ai", "gemini", "imagen", "veo", "image-generation", "video-generation", "text-generation", "multimodal"],
+  "category": "ai-generation",
+  "icon": "🤖"
+}

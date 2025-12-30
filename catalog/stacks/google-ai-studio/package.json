@@ -1,0 +1,31 @@
+{
+  "name": "@co-llab/google-ai",
+  "version": "1.0.0",
+  "description": "Complete access to Google's AI suite for image, video, and text generation",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node --test __tests__/",
+    "test:unit": "node --test __tests__/unit/",
+    "test:integration": "node --test __tests__/integration/",
+    "generate:image": "node src/commands/generateImage.js",
+    "generate:video": "node src/commands/generateVideo.js",
+    "test:models": "node src/commands/testModels.js"
+  },
+  "keywords": [
+    "google-ai",
+    "imagen",
+    "veo",
+    "gemini",
+    "image-generation",
+    "video-generation",
+    "text-generation",
+    "multimodal",
+    "ai-generation"
+  ],
+  "author": "CO-LLAB",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
