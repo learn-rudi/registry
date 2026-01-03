@@ -1,0 +1,35 @@
+{
+  "name": "zoho-mail",
+  "version": "1.0.0",
+  "description": "Zoho Mail integration - send, search, and manage emails",
+  "runtime": "python",
+  "icon": "📧",
+  "author": "Prompt Stack",
+  "license": "MIT",
+  "tags": ["email", "zoho", "mail", "automation"],
+  "category": "productivity",
+  "mcp": {
+    "server": "mcp_server.py",
+    "tools": [
+      "zoho_send_email",
+      "zoho_create_draft",
+      "zoho_search_email",
+      "zoho_list_emails",
+      "zoho_get_email",
+      "zoho_list_folders"
+    ]
+  },
+  "config": {
+    "required": [
+      "ZOHO_CLIENT_ID",
+      "ZOHO_CLIENT_SECRET"
+    ],
+    "optional": [
+      "ZOHO_REGION"
+    ]
+  },
+  "dependencies": {
+    "python": ">=3.9",
+    "packages": ["requests", "python-dotenv"]
+  }
+}

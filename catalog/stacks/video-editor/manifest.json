@@ -1,0 +1,32 @@
+{
+  "id": "video-editor",
+  "name": "Video Editor",
+  "version": "1.0.0",
+  "description": "Edit videos with ffmpeg - trim, speed up, extract clips, remove silence, and more",
+  "author": "CO-LLAB",
+  "license": "MIT",
+  "runtimes": ["node"],
+  "mcp": {
+    "runtime": "node",
+    "entry": "node/src/index.ts",
+    "command": "npx",
+    "args": ["tsx", "node/src/index.ts"]
+  },
+  "dependencies": {
+    "tools": ["ffmpeg"]
+  },
+  "secrets": [],
+  "tools": [
+    "video_info",
+    "video_trim",
+    "video_speed",
+    "video_extract_audio",
+    "video_remove_silence",
+    "video_resize",
+    "video_compress",
+    "video_concat"
+  ],
+  "tags": ["video", "ffmpeg", "editing", "media"],
+  "category": "media",
+  "icon": "🎬"
+}

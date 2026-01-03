@@ -1,0 +1,19 @@
+{
+  "name": "video-editor",
+  "version": "1.0.0",
+  "description": "Video editing MCP - trim, speed up, extract audio, remove silence, and more",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "npx tsx src/index.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.3.0"
+  }
+}

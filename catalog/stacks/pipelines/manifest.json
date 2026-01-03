@@ -1,0 +1,83 @@
+{
+  "id": "pipelines",
+  "name": "Pipeline Orchestrator",
+  "version": "1.0.0",
+  "description": "Chain AI stacks together into powerful workflows. Combine Anthropic agents, Google AI generation, and Google Workspace automation.",
+  "author": "CO-LLAB",
+  "license": "MIT",
+  "runtime": "python",
+  "entrypoint": "run.py",
+  "inputs": [
+    {
+      "name": "pipeline",
+      "type": "string",
+      "description": "Pipeline to run",
+      "required": true,
+      "options": ["content", "newsletter"]
+    },
+    {
+      "name": "topic",
+      "type": "string",
+      "description": "Topic or subject for the pipeline",
+      "required": true
+    },
+    {
+      "name": "type",
+      "type": "string",
+      "description": "Content type (for content pipeline)",
+      "required": false,
+      "default": "blog post"
+    },
+    {
+      "name": "spreadsheet",
+      "type": "string",
+      "description": "Google Sheets ID for data source",
+      "required": false
+    },
+    {
+      "name": "to",
+      "type": "string",
+      "description": "Recipient email for drafts",
+      "required": false
+    }
+  ],
+  "outputs": [
+    {
+      "name": "results",
+      "type": "object",
+      "description": "Pipeline execution results"
+    },
+    {
+      "name": "cost",
+      "type": "number",
+      "description": "Total AI cost in USD"
+    }
+  ],
+  "dependencies": {
+    "python": ">=3.10",
+    "stacks": ["anthropic-stack", "google-ai-studio", "google-workspace"]
+  },
+  "secrets": [
+    {
+      "key": "ANTHROPIC_API_KEY",
+      "label": "Anthropic API Key",
+      "description": "Required for Claude AI agents",
+      "required": true
+    },
+    {
+      "key": "GOOGLE_AI_API_KEY",
+      "label": "Google AI API Key",
+      "description": "Required for image/video generation",
+      "required": true
+    },
+    {
+      "key": "GOOGLE_CREDENTIALS",
+      "label": "Google OAuth Credentials",
+      "description": "Required for Workspace features",
+      "required": true
+    }
+  ],
+  "tags": ["pipeline", "orchestrator", "workflow", "automation", "ai", "anthropic", "google", "integration"],
+  "category": "orchestration",
+  "icon": "🔗"
+}

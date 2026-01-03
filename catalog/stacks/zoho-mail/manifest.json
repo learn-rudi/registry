@@ -1,0 +1,34 @@
+{
+  "id": "zoho-mail",
+  "name": "Zoho Mail",
+  "version": "1.0.0",
+  "description": "Send, search, and manage emails via Zoho Mail",
+  "author": "CO-LLAB",
+  "license": "MIT",
+  "runtimes": ["python", "node"],
+  "mcp": {
+    "runtime": "node",
+    "entry": "node/src/index.ts",
+    "command": "npx",
+    "args": ["tsx", "node/src/index.ts"]
+  },
+  "secrets": [
+    {
+      "key": "ZOHO_CLIENT_ID",
+      "label": "Zoho Client ID",
+      "description": "OAuth Client ID from Zoho API Console",
+      "helpUrl": "https://api-console.zoho.com/",
+      "required": true
+    },
+    {
+      "key": "ZOHO_CLIENT_SECRET",
+      "label": "Zoho Client Secret",
+      "description": "OAuth Client Secret from Zoho API Console",
+      "required": true
+    }
+  ],
+  "tools": ["zoho_send_email", "zoho_list_emails", "zoho_get_email", "zoho_search_email", "zoho_list_folders", "zoho_create_draft"],
+  "tags": ["zoho", "email", "mail"],
+  "category": "productivity",
+  "icon": "📬"
+}

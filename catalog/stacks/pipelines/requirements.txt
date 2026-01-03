@@ -1,0 +1,15 @@
+# Pipeline Orchestrator Dependencies
+# Note: Also requires dependencies from linked stacks
+
+# Core
+asyncio-compat>=0.1.0
+
+# From anthropic-stack
+claude-agent-sdk>=0.1.17
+anyio>=4.0.0
+
+# From google-workspace
+google-auth-oauthlib>=1.2.0
+google-auth-httplib2>=0.2.0
+google-api-python-client>=2.100.0
+python-dotenv>=1.0.0

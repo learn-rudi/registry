@@ -1,0 +1,83 @@
+{
+  "id": "anthropic-stack",
+  "name": "Anthropic Agent SDK",
+  "version": "1.0.0",
+  "description": "Build autonomous AI agents with Claude. Access Opus 4.5, Sonnet 4.5, and Haiku 4.5 models with built-in tools for file operations, web search, and custom MCP tools.",
+  "author": "CO-LLAB",
+  "license": "MIT",
+  "runtime": "multi",
+  "runtimes": ["python", "node"],
+  "entrypoints": {
+    "python": "python/api.py",
+    "node": "typescript/api.ts"
+  },
+  "inputs": [
+    {
+      "name": "prompt",
+      "type": "string",
+      "description": "The prompt or task for the agent",
+      "required": true
+    },
+    {
+      "name": "model",
+      "type": "string",
+      "description": "Claude model to use",
+      "required": false,
+      "default": "claude-sonnet-4-5-20250929",
+      "options": ["claude-opus-4-5-20251101", "claude-sonnet-4-5-20250929", "claude-haiku-4-5-20251001"]
+    },
+    {
+      "name": "tools",
+      "type": "array",
+      "description": "Tools the agent can use (Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch)",
+      "required": false,
+      "default": []
+    },
+    {
+      "name": "max_turns",
+      "type": "number",
+      "description": "Maximum conversation turns for the agent",
+      "required": false,
+      "default": 10
+    },
+    {
+      "name": "system_prompt",
+      "type": "string",
+      "description": "Custom system prompt for the agent",
+      "required": false
+    }
+  ],
+  "outputs": [
+    {
+      "name": "text",
+      "type": "string",
+      "description": "Agent response text"
+    },
+    {
+      "name": "cost",
+      "type": "number",
+      "description": "Total cost in USD"
+    },
+    {
+      "name": "usage",
+      "type": "object",
+      "description": "Token usage statistics"
+    }
+  ],
+  "dependencies": {
+    "python": ">=3.10",
+    "node": ">=18.0.0"
+  },
+  "secrets": [
+    {
+      "key": "ANTHROPIC_API_KEY",
+      "label": "Anthropic API Key",
+      "description": "API key for accessing Claude models",
+      "helpUrl": "https://console.anthropic.com/settings/keys",
+      "required": true
+    }
+  ],
+  "tags": ["ai", "anthropic", "claude", "agent", "sdk", "opus", "sonnet", "haiku", "mcp", "tools", "autonomous"],
+  "category": "ai-agents",
+  "icon": "🤖"
+}

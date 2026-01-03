@@ -1,0 +1,28 @@
+{
+  "id": "notion-workspace",
+  "name": "Notion Workspace",
+  "version": "1.0.0",
+  "description": "Search, create, and manage Notion pages and databases",
+  "author": "CO-LLAB",
+  "license": "MIT",
+  "runtimes": ["python", "node"],
+  "mcp": {
+    "runtime": "node",
+    "entry": "node/src/index.ts",
+    "command": "npx",
+    "args": ["tsx", "node/src/index.ts"]
+  },
+  "secrets": [
+    {
+      "key": "NOTION_API_KEY",
+      "label": "Notion Integration Token",
+      "description": "Internal integration token from Notion",
+      "helpUrl": "https://www.notion.so/my-integrations",
+      "required": true
+    }
+  ],
+  "tools": ["notion_search", "notion_get_page", "notion_get_page_content", "notion_create_page", "notion_append_content", "notion_delete_page", "notion_list_databases", "notion_query_database", "notion_create_database", "notion_add_database_row"],
+  "tags": ["notion", "productivity", "notes", "databases", "wiki"],
+  "category": "productivity",
+  "icon": "📝"
+}

@@ -1,0 +1,14 @@
+# Tokens and credentials
+token.json
+config/credentials.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv/
+
+# IDE
+.idea/
+.vscode/

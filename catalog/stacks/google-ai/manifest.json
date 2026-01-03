@@ -1,0 +1,28 @@
+{
+  "id": "google-ai",
+  "name": "Google AI Suite",
+  "version": "1.0.0",
+  "description": "Generate images (Gemini, Imagen 4) and videos (Veo 3.1) using Google AI",
+  "author": "CO-LLAB",
+  "license": "MIT",
+  "runtimes": ["python", "node"],
+  "mcp": {
+    "runtime": "node",
+    "entry": "node/src/index.ts",
+    "command": "npx",
+    "args": ["tsx", "node/src/index.ts"]
+  },
+  "secrets": [
+    {
+      "key": "GOOGLE_AI_API_KEY",
+      "label": "Google AI API Key",
+      "description": "API key for Google AI (Gemini, Imagen, Veo)",
+      "helpUrl": "https://makersuite.google.com/app/apikey",
+      "required": true
+    }
+  ],
+  "tools": ["generate_image", "generate_video"],
+  "tags": ["ai", "google-ai", "gemini", "imagen", "veo", "image-generation", "video-generation"],
+  "category": "ai-generation",
+  "icon": "🎨"
+}

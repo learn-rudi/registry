@@ -1,0 +1,76 @@
+{
+  "id": "google-workspace",
+  "name": "Google Workspace Tools",
+  "version": "1.0.0",
+  "description": "Workflow-focused tools for Gmail, Google Sheets, Docs, Slides, Drive, and Calendar. Draft emails, send from markdown files, manage spreadsheets, and more.",
+  "author": "CO-LLAB",
+  "license": "MIT",
+  "runtime": "python",
+  "entrypoint": "workflows/draft_email.py",
+  "inputs": [
+    {
+      "name": "action",
+      "type": "string",
+      "description": "Action to perform",
+      "required": true,
+      "options": ["draft_email", "send_email", "reply", "read_sheet", "write_sheet", "create_doc", "upload_drive"]
+    },
+    {
+      "name": "to",
+      "type": "string",
+      "description": "Recipient name or email (for email actions)",
+      "required": false
+    },
+    {
+      "name": "subject",
+      "type": "string",
+      "description": "Email subject",
+      "required": false
+    },
+    {
+      "name": "body",
+      "type": "string",
+      "description": "Email body or file path",
+      "required": false
+    },
+    {
+      "name": "spreadsheet_id",
+      "type": "string",
+      "description": "Google Sheets spreadsheet ID",
+      "required": false
+    },
+    {
+      "name": "range",
+      "type": "string",
+      "description": "Sheet range (e.g., Sheet1!A1:B10)",
+      "required": false
+    }
+  ],
+  "outputs": [
+    {
+      "name": "result",
+      "type": "string",
+      "description": "Operation result or data"
+    },
+    {
+      "name": "id",
+      "type": "string",
+      "description": "Created resource ID (email, doc, file)"
+    }
+  ],
+  "dependencies": {
+    "python": ">=3.8"
+  },
+  "secrets": [
+    {
+      "key": "GOOGLE_CREDENTIALS",
+      "label": "Google OAuth Credentials",
+      "description": "OAuth 2.0 credentials.json from Google Cloud Console",
+      "helpUrl": "https://console.cloud.google.com/apis/credentials",
+      "required": true
+    }
+  ],
+  "tags": ["google", "gmail", "sheets", "docs", "drive", "calendar", "slides", "email", "automation", "workspace"],
+  "category": "api-integrations",
+  "icon": "📧"
+}

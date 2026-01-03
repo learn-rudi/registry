@@ -1,0 +1,16 @@
+# Credentials (NEVER commit these)
+credentials.json
+config/credentials.json
+token.json
+.env
+
+# Python
+venv/
+*.pyc
+__pycache__/
+.pytest_cache/
+
+# Logs & OS
+*.log
+.DS_Store
+sent_emails_log.json

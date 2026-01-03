@@ -1,0 +1,27 @@
+{
+  "name": "slack",
+  "version": "1.0.0",
+  "description": "MCP server for Slack messaging",
+  "runtime": "node",
+  "command": ["node", "dist/index.js"],
+  "env": {
+    "SLACK_BOT_TOKEN": {
+      "description": "Slack Bot OAuth Token (xoxb-...)",
+      "required": true
+    },
+    "SLACK_CHANNEL_ID": {
+      "description": "Default channel ID for messages",
+      "required": false
+    }
+  },
+  "tools": [
+    {"name": "slack_send_message", "description": "Send a message to a channel or user"},
+    {"name": "slack_list_channels", "description": "List available channels"},
+    {"name": "slack_read_channel", "description": "Read recent messages from a channel"},
+    {"name": "slack_search", "description": "Search for messages"},
+    {"name": "slack_update_message", "description": "Update an existing message"},
+    {"name": "slack_add_reaction", "description": "Add emoji reaction to a message"},
+    {"name": "slack_upload_file", "description": "Upload a file to a channel"},
+    {"name": "slack_get_user", "description": "Get user info by ID or email"}
+  ]
+}

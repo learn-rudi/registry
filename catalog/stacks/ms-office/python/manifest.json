@@ -1,0 +1,27 @@
+{
+  "name": "ms-office",
+  "version": "1.0.0",
+  "description": "MCP server for reading and editing Microsoft Office documents (Word, Excel)",
+  "runtime": "python",
+  "command": ["python", "server.py"],
+  "tools": {
+    "word": [
+      {"name": "docx_read", "description": "Read a Word document as markdown"},
+      {"name": "docx_replace_text", "description": "Find and replace text"},
+      {"name": "docx_edit_table", "description": "Edit a specific table cell"},
+      {"name": "docx_update_table_column", "description": "Rename a table column header"},
+      {"name": "docx_delete_table_column", "description": "Delete a table column"},
+      {"name": "docx_list_tables", "description": "List all tables with structure"},
+      {"name": "docx_insert_paragraphs", "description": "Insert paragraphs after a marker"},
+      {"name": "docx_create", "description": "Create a new Word document"}
+    ],
+    "excel": [
+      {"name": "xlsx_read", "description": "Read Excel data as markdown table"},
+      {"name": "xlsx_list_sheets", "description": "List all sheets in workbook"},
+      {"name": "xlsx_write_cell", "description": "Write value to a cell"},
+      {"name": "xlsx_write_row", "description": "Write values to a row"},
+      {"name": "xlsx_append_row", "description": "Append a new row"},
+      {"name": "xlsx_create", "description": "Create a new Excel workbook"}
+    ]
+  }
+}
