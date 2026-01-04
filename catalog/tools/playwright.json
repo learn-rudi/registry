@@ -1,0 +1,13 @@
+{
+  "id": "playwright",
+  "name": "Playwright",
+  "version": "1.49.0",
+  "description": "Browser automation for screenshots, scraping, and testing",
+  "npmPackage": "playwright",
+  "postInstall": "npx playwright install chromium",
+  "binaries": ["playwright"],
+  "commands": {
+    "screenshot": "npx playwright screenshot",
+    "codegen": "npx playwright codegen"
+  }
+}

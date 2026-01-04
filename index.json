@@ -316,6 +316,17 @@
           "description": "OCR text extraction from images",
           "path": "catalog/tools/tesseract.json",
           "managed": false
+        },
+        {
+          "id": "tool:playwright",
+          "name": "Playwright",
+          "version": "1.49.0",
+          "description": "Browser automation for screenshots, scraping, and testing",
+          "path": "catalog/tools/playwright.json",
+          "installType": "npm",
+          "npmPackage": "playwright",
+          "postInstall": "npx playwright install chromium",
+          "platforms": ["darwin-arm64", "darwin-x64", "linux-x64"]
         }
       ],
       "community": []
