@@ -1,0 +1,34 @@
+{
+  "id": "postgres",
+  "name": "PostgreSQL",
+  "version": "1.0.0",
+  "description": "Query and manage PostgreSQL databases. Works with Neon, Railway, Supabase, and any PostgreSQL connection.",
+  "author": "Prompt Stack",
+  "license": "MIT",
+  "runtimes": ["node"],
+  "mcp": {
+    "runtime": "node",
+    "entry": "node/src/index.ts",
+    "command": "npx",
+    "args": ["tsx", "node/src/index.ts"]
+  },
+  "secrets": [
+    {
+      "key": "DATABASE_URL",
+      "label": "Database URL",
+      "description": "PostgreSQL connection string (postgresql://user:pass@host:port/db)",
+      "helpUrl": "https://neon.tech/docs/connect/connection-string",
+      "required": true
+    }
+  ],
+  "tools": [
+    "pg_query",
+    "pg_execute",
+    "pg_list_tables",
+    "pg_describe_table",
+    "pg_list_schemas"
+  ],
+  "tags": ["postgres", "postgresql", "database", "sql", "neon", "railway", "supabase"],
+  "category": "data",
+  "icon": "🐘"
+}

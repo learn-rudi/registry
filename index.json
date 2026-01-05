@@ -137,6 +137,17 @@
           "category": "ai-local",
           "tags": ["whisper", "transcription", "audio", "local", "offline", "speech-to-text"],
           "requires": { "runtimes": ["runtime:python"] }
+        },
+        {
+          "id": "stack:postgres",
+          "name": "PostgreSQL",
+          "version": "1.0.0",
+          "description": "Query and manage PostgreSQL databases. Works with Neon, Railway, Supabase.",
+          "path": "catalog/stacks/postgres",
+          "runtime": "runtime:node",
+          "category": "data",
+          "tags": ["postgres", "postgresql", "database", "sql", "neon", "railway", "supabase"],
+          "requires": { "secrets": ["DATABASE_URL"] }
         }
       ],
       "community": []

@@ -81,6 +81,21 @@ catalog/
 
 4. Add entry to `index.json` under `packages.stacks.official`
 
+### Secrets Flow
+
+When users install a stack with secrets:
+
+1. `pstack install my-stack` creates `~/.prompt-stack/stacks/my-stack/.env` with placeholders
+2. User edits `.env` to add their API keys
+3. MCP registration reads from `.env` and injects into agent configs (Claude, Codex, Gemini)
+
+Example `.env` created on install:
+```bash
+# API Key for My Stack
+# Get yours: https://example.com/api-keys
+MY_API_KEY=
+```
+
 ## Creating a Prompt
 
 1. Create file: `catalog/prompts/{prompt-id}.md`
@@ -159,7 +174,7 @@ Example tool manifest (`catalog/tools/jq.json`):
 
 ## Security
 
-**Never include API keys or secrets in files.** Stacks declare what secrets are needed in `manifest.json`. Users provide values locally via `pstack secrets set`.
+**Never include API keys or secrets in the registry.** Stacks declare required secrets in `manifest.json`. When installed, a `.env` file is created at `~/.prompt-stack/stacks/<id>/.env` where users add their keys locally.
 
 ## URLs
 
