@@ -1,236 +1,171 @@
 # Prompt Stack Registry
 
-Community-maintained collection of stacks and prompts for Prompt Stack.
+Official registry for stacks, tools, agents, runtimes, and prompts.
 
-Stacks are executable workflows that combine prompts, tools, and configuration. Prompts are reusable instruction templates.
+## Package Types
 
-## Security Notice
-
-**Never include API keys, passwords, or secrets in stack files.** Stacks only DECLARE what secrets are needed; users provide their own values locally. Anyone who submits a stack with hardcoded secrets will be rejected and may face restrictions on future contributions.
+| Type | Description | Location |
+|------|-------------|----------|
+| **Stack** | MCP servers with tools | `catalog/stacks/{id}/` |
+| **Tool** | Standalone binaries/CLIs | `catalog/tools/{id}.json` |
+| **Agent** | AI coding assistants | `catalog/agents/{id}.json` |
+| **Runtime** | Language interpreters | `catalog/runtimes/{id}.json` |
+| **Prompt** | System prompt templates | `catalog/prompts/{id}.md` |
 
 ## Installation
 
-Search for stacks:
-
 ```bash
-pstack search youtube
-```
+# Search for packages
+pstack search whisper
 
-Install a stack:
+# Install packages
+pstack install stack:whisper
+pstack install tool:ffmpeg
+pstack install prompt:code-review
 
-```bash
-pstack install youtube-summarizer
-```
-
-Run a stack:
-
-```bash
-pstack run youtube-summarizer --url "https://youtube.com/watch?v=..."
+# List installed
+pstack list
 ```
 
 ## Repository Structure
 
 ```
-packages/
-├── stacks/
-│   └── youtube-summarizer/
-│       ├── stack.yaml          # Required: Stack manifest
-│       ├── prompt.md           # Prompt instructions
-│       └── scripts/            # Optional: Runtime scripts
-└── prompts/
-    └── code-reviewer/
-        └── prompt.md           # Prompt content
+index.json                    # Package index (all metadata)
+
+catalog/
+├── stacks/                   # MCP server stacks
+│   └── {stack-id}/
+│       ├── manifest.json     # Stack metadata
+│       └── node/src/ or python/src/
+│
+├── prompts/                  # Prompt templates
+│   └── {prompt-id}.md        # Markdown with YAML frontmatter
+│
+├── tools/                    # Tool manifests
+│   └── {tool-id}.json
+│
+├── agents/                   # Agent manifests
+│   └── {agent-id}.json
+│
+└── runtimes/                 # Runtime manifests
+    └── {runtime-id}.json
 ```
 
 ## Creating a Stack
 
-### 1. Create Directory
+1. Create folder: `catalog/stacks/{stack-id}/`
 
-```bash
-mkdir -p packages/stacks/my-stack
-cd packages/stacks/my-stack
-```
-
-### 2. Write Manifest
-
-File: `stack.yaml`
-
-**Important: Never include actual secrets or API keys in this file. Only declare what secrets the stack needs.**
-
-```yaml
-id: my-stack
-kind: stack
-name: My Stack
-version: 1.0.0
-description: Brief description of what this stack does
-
-requires:
-  runtimes:
-    - node
-    - python
-  secrets:
-    - name: OPENAI_API_KEY
-      required: true
-      description: "OpenAI API key (get from https://platform.openai.com/api-keys)"
-
-inputs:
-  - name: input_file
-    type: path
-    description: Path to input file
-    required: true
-  - name: options
-    type: string
-    description: Processing options
-    required: false
-
-outputs:
-  - name: result
-    type: string
-    description: Processing result
-
-entrypoint: process.js
-```
-
-**Users who want to run this stack will provide their own API key locally:**
-
-```bash
-pstack secrets set OPENAI_API_KEY
-# Prompts user to enter their key (not echoed)
-# Stored encrypted in ~/.prompt-stack/secrets.json
-```
-
-### 2. Write Prompt
-
-File: `prompt.md`
-
-```markdown
-# My Stack
-
-You are an expert in processing data.
-
-## Inputs
-- Input file: {{input_file}}
-- Options: {{options}}
-
-## Task
-1. Read and analyze the input file
-2. Apply processing logic
-3. Output structured results
-
-## Output Format
-Return results as JSON with clear structure.
-```
-
-### 3. Implement Script
-
-File: `process.js`
-
-```javascript
-import { readFile } from 'fs/promises';
-
-async function main() {
-  const inputFile = process.env.INPUT_FILE;
-  const content = await readFile(inputFile, 'utf-8');
-
-  // Process content
-  const result = {
-    processed: true,
-    length: content.length
-  };
-
-  console.log(JSON.stringify(result));
+2. Add `manifest.json`:
+```json
+{
+  "id": "my-stack",
+  "name": "My Stack",
+  "version": "1.0.0",
+  "description": "What it does",
+  "runtimes": ["node"],
+  "mcp": {
+    "runtime": "node",
+    "command": "npx",
+    "args": ["tsx", "node/src/index.ts"]
+  },
+  "secrets": [
+    { "key": "MY_API_KEY", "label": "API Key", "required": true }
+  ],
+  "tools": ["my_tool_1", "my_tool_2"],
+  "category": "productivity",
+  "tags": ["example"]
 }
-
-main().catch(err => {
-  console.error(err);
-  process.exit(1);
-});
 ```
 
-### 4. Submit
+3. Add MCP server code in `node/src/index.ts` or `python/src/server.py`
 
-Open a pull request with:
+4. Add entry to `index.json` under `packages.stacks.official`
 
-1. Your stack directory
-2. Description of what it does
-3. Example usage and output
-4. Any special setup required
+## Creating a Prompt
 
-## Contributing a Prompt
+1. Create file: `catalog/prompts/{prompt-id}.md`
 
-Prompts are instruction templates for AI models.
-
-### 1. Create Directory
-
-```bash
-mkdir -p packages/prompts/my-prompt
-cd packages/prompts/my-prompt
-```
-
-### 2. Create Prompt File
-
-File: `prompt.md`
-
+2. Add YAML frontmatter + content:
 ```markdown
-# Code Reviewer
+---
+name: My Prompt
+description: What this prompt does
+category: coding
+tags:
+  - example
+icon: "🔍"
+author: Your Name
+---
 
-You are an expert code reviewer specializing in {{language}}.
+# Prompt Title
 
-Your task is to review the provided code and:
-
-1. Identify potential bugs or logic errors
-2. Suggest performance improvements
-3. Check for security vulnerabilities
-4. Ensure code style consistency
-
-Provide detailed feedback with specific line numbers and suggestions.
+Your system prompt content here...
 ```
 
-### 3. Submit
+3. Add entry to `index.json` under `packages.prompts.official`
 
-Open a pull request with your prompt directory.
+## Adding a Tool
 
-## Quality Standards
+Tools use install types to determine how they're installed:
 
-Contributions should:
+| Install Type | Source | Examples |
+|--------------|--------|----------|
+| `binary` | Upstream URL | ffmpeg, jq |
+| `npm` | npm registry | vercel, wrangler |
+| `pip` | PyPI | httpie |
+| `system` | User installs | docker, git |
 
-- Have a clear, specific purpose
-- Include proper YAML/markdown formatting
-- Avoid hardcoded secrets (declare in manifest)
-- Include examples of inputs and outputs
-- Be tested before submission
-- Include documentation
-
-## Secret Management
-
-Stacks declare what secrets they require. Users configure them locally:
-
-```bash
-pstack secrets set OPENAI_API_KEY
-pstack secrets list
+Example tool manifest (`catalog/tools/jq.json`):
+```json
+{
+  "id": "tool:jq",
+  "name": "jq",
+  "version": "1.7.1",
+  "description": "JSON processor",
+  "installType": "binary",
+  "binary": "jq",
+  "upstream": {
+    "darwin-arm64": "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-macos-arm64",
+    "darwin-x64": "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-macos-amd64",
+    "linux-x64": "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64"
+  }
+}
 ```
 
-Secrets are stored encrypted at `~/.prompt-stack/secrets.json` and never committed to git.
+## Categories
 
-## Registry Maintenance
+**Stacks:** ai-generation, ai-local, productivity, communication, social-media, data-extraction, document-processing, media, deployment, utilities
 
-The `index.json` file is auto-generated from the directory structure. Do not edit manually.
+**Tools:** media, data, devops, utilities, ai-ml, version-control
 
-Regenerate index:
+**Prompts:** coding, writing, creative, utilities, general
 
-```bash
-npm run generate-index
-```
+## Current Stacks
 
-## Contributing
+| Stack | Description | Auth |
+|-------|-------------|------|
+| whisper | Local audio transcription | None |
+| google-workspace | Gmail, Sheets, Docs, Drive, Calendar | OAuth |
+| google-ai | Gemini, Imagen, Veo | API Key |
+| openai | DALL-E, Whisper, TTS, Sora | API Key |
+| notion-workspace | Pages, databases, search | API Key |
+| slack | Messages, channels, files | Bot Token |
+| zoho-mail | Email via Zoho | OAuth |
+| content-extractor | YouTube, Reddit, TikTok, articles | None |
+| video-editor | ffmpeg-based editing | None |
+| web-export | HTML to PNG/PDF | None |
+| ms-office | Read .docx/.xlsx | None |
+| social-media | Twitter, LinkedIn, Facebook, Instagram | OAuth |
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for:
+## Security
 
-- Code of conduct
-- Pull request process
-- Commit message conventions
-- Review checklist
+**Never include API keys or secrets in files.** Stacks declare what secrets are needed in `manifest.json`. Users provide values locally via `pstack secrets set`.
+
+## URLs
+
+- **Index:** `https://raw.githubusercontent.com/prompt-stack/registry/main/index.json`
+- **Stacks:** `https://raw.githubusercontent.com/prompt-stack/registry/main/catalog/stacks/{id}/`
 
 ## License
 
-MIT - Each stack/prompt retains its own license as specified
+MIT

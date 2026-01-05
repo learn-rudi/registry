@@ -1,0 +1,22 @@
+{
+  "id": "whisper",
+  "name": "Local Whisper",
+  "version": "1.0.0",
+  "description": "Transcribe audio locally with faster-whisper. No API key needed - runs on your machine.",
+  "author": "Prompt Stack",
+  "license": "MIT",
+  "runtimes": ["python"],
+  "requires": ["runtime:python"],
+  "mcp": {
+    "runtime": "python",
+    "entry": "python/src/server.py",
+    "command": "python",
+    "args": ["python/src/server.py"],
+    "venv": true
+  },
+  "secrets": [],
+  "tools": ["whisper_transcribe", "whisper_list_models"],
+  "tags": ["whisper", "transcription", "audio", "local", "offline", "speech-to-text"],
+  "category": "ai-local",
+  "icon": "🎙️"
+}

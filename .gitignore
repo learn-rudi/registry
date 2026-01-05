@@ -21,6 +21,9 @@ secrets.json
 .env.local
 *.key
 *.pem
+token.json
+state.json
+credentials.json
 
 # Build artifacts
 dist/

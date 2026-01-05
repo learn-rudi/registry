@@ -126,13 +126,97 @@
           "category": "productivity",
           "tags": ["zoho", "email", "mail"],
           "requires": { "secrets": ["ZOHO_CLIENT_ID", "ZOHO_CLIENT_SECRET"] }
+        },
+        {
+          "id": "stack:whisper",
+          "name": "Local Whisper",
+          "version": "1.0.0",
+          "description": "Transcribe audio locally with faster-whisper. No API key needed.",
+          "path": "catalog/stacks/whisper",
+          "runtime": "runtime:python",
+          "category": "ai-local",
+          "tags": ["whisper", "transcription", "audio", "local", "offline", "speech-to-text"],
+          "requires": { "runtimes": ["runtime:python"] }
         }
       ],
       "community": []
     },
 
     "prompts": {
-      "official": [],
+      "official": [
+        {
+          "id": "prompt:getting-started",
+          "name": "Getting Started",
+          "version": "1.0.0",
+          "description": "Welcome guide for new Prompt Stack users",
+          "path": "catalog/prompts/getting-started.md",
+          "category": "general",
+          "tags": ["welcome", "onboarding", "tutorial"]
+        },
+        {
+          "id": "prompt:explain",
+          "name": "Explain",
+          "version": "1.0.0",
+          "description": "Break down complex code or concepts clearly",
+          "path": "catalog/prompts/explain.md",
+          "category": "coding",
+          "tags": ["learning", "education", "concepts"]
+        },
+        {
+          "id": "prompt:code-review",
+          "name": "Code Review",
+          "version": "1.0.0",
+          "description": "Review code for bugs, style, and improvements",
+          "path": "catalog/prompts/code-review.md",
+          "category": "coding",
+          "tags": ["review", "quality", "feedback"]
+        },
+        {
+          "id": "prompt:fix-error",
+          "name": "Fix Error",
+          "version": "1.0.0",
+          "description": "Debug and resolve errors systematically",
+          "path": "catalog/prompts/fix-error.md",
+          "category": "coding",
+          "tags": ["debug", "error", "troubleshooting"]
+        },
+        {
+          "id": "prompt:summarize",
+          "name": "Summarize",
+          "version": "1.0.0",
+          "description": "Condense documents, code, or conversations",
+          "path": "catalog/prompts/summarize.md",
+          "category": "writing",
+          "tags": ["summary", "condensing", "tldr"]
+        },
+        {
+          "id": "prompt:brainstorm",
+          "name": "Brainstorm",
+          "version": "1.0.0",
+          "description": "Generate creative ideas and explore possibilities",
+          "path": "catalog/prompts/brainstorm.md",
+          "category": "creative",
+          "tags": ["ideas", "creativity", "exploration"]
+        },
+        {
+          "id": "prompt:write-email",
+          "name": "Write Email",
+          "version": "1.0.0",
+          "description": "Draft professional, clear emails",
+          "path": "catalog/prompts/write-email.md",
+          "category": "writing",
+          "tags": ["email", "communication", "professional"]
+        },
+        {
+          "id": "prompt:organize-files",
+          "name": "Organize Files",
+          "version": "1.0.0",
+          "description": "Help organize and structure files and folders",
+          "path": "catalog/prompts/organize-files.md",
+          "category": "utilities",
+          "tags": ["files", "organization", "structure"]
+        }
+      ],
       "community": []
     },
 
@@ -436,6 +520,7 @@
   "categories": {
     "stacks": [
       { "id": "ai-generation", "name": "AI Generation", "icon": "sparkles" },
+      { "id": "ai-local", "name": "AI Local", "icon": "cpu" },
       { "id": "productivity", "name": "Productivity", "icon": "briefcase" },
       { "id": "communication", "name": "Communication", "icon": "message-circle" },
       { "id": "social-media", "name": "Social Media", "icon": "share-2" },
@@ -446,10 +531,11 @@
       { "id": "utilities", "name": "Utilities", "icon": "tool" }
     ],
     "prompts": [
+      { "id": "general", "name": "General", "icon": "star" },
       { "id": "coding", "name": "Coding", "icon": "code" },
       { "id": "writing", "name": "Writing", "icon": "edit" },
-      { "id": "analysis", "name": "Analysis", "icon": "bar-chart" },
-      { "id": "creative", "name": "Creative", "icon": "palette" }
+      { "id": "creative", "name": "Creative", "icon": "palette" },
+      { "id": "utilities", "name": "Utilities", "icon": "tool" }
     ]
   }
 }

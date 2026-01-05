@@ -40,8 +40,27 @@ config({ path: join(__dirname, "..", ".env") });
 
 const ACCOUNTS_DIR = join(__dirname, "..", "accounts");
 const TOKEN_FILE = join(__dirname, "..", "token.json");
+const STATE_FILE = join(__dirname, "..", "state.json");
 
-let currentAccount: string | null = null;
+// Load persisted account on startup
+function loadCurrentAccount(): string | null {
+  if (existsSync(STATE_FILE)) {
+    try {
+      const state = JSON.parse(readFileSync(STATE_FILE, "utf-8"));
+      if (state.currentAccount && existsSync(join(ACCOUNTS_DIR, state.currentAccount, "token.json"))) {
+        return state.currentAccount;
+      }
+    } catch {}
+  }
+  return null;
+}
+
+// Save current account to disk
+function saveCurrentAccount(account: string | null) {
+  writeFileSync(STATE_FILE, JSON.stringify({ currentAccount: account }, null, 2));
+}
+
+let currentAccount: string | null = loadCurrentAccount();
 
 function getAvailableAccounts(): string[] {
   if (!existsSync(ACCOUNTS_DIR)) return [];
@@ -430,6 +449,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           };
         }
         currentAccount = account;
+        saveCurrentAccount(account);  // Persist to disk
         return { content: [{ type: "text", text: `Switched to account: ${account}` }] };
       }
 
