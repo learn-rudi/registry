@@ -12,15 +12,11 @@
     "command": "npx",
     "args": ["tsx", "node/src/index.ts"]
   },
-  "secrets": [
-    {
-      "key": "GOOGLE_CREDENTIALS",
-      "label": "Google OAuth Credentials",
-      "description": "OAuth 2.0 credentials from Google Cloud Console",
-      "helpUrl": "https://console.cloud.google.com/apis/credentials",
-      "required": true
-    }
-  ],
+  "setup": {
+    "description": "Authenticate with your Google account using OAuth",
+    "command": "pstack auth google-workspace",
+    "helpUrl": "https://console.cloud.google.com/apis/credentials"
+  },
   "tools": [
     {
       "name": "account_list",
