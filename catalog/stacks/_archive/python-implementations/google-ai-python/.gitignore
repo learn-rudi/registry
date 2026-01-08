@@ -1,7 +1,0 @@
-.env
-*.png
-*.jpg
-*.mp4
-output/
-node_modules/
-archive/
