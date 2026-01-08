@@ -830,6 +830,19 @@
             "darwin-x64",
             "linux-x64"
           ]
+        },
+        {
+          "id": "binary:uv",
+          "name": "uv",
+          "version": "0.9.22",
+          "description": "Extremely fast Python package and project manager",
+          "path": "catalog/binaries/uv.json",
+          "platforms": [
+            "darwin-arm64",
+            "darwin-x64",
+            "linux-x64",
+            "linux-arm64"
+          ]
         }
       ],
       "community": []
