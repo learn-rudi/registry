@@ -31,7 +31,7 @@ import matplotlib.pyplot as plt
 # CONFIGURATION
 # ============================================================================
 
-DEFAULT_OUTPUT_DIR = Path.home() / ".rudi" / "output" / "charts"
+DEFAULT_OUTPUT_DIR = Path.home() / ".rudi" / "outputs"
 MAX_ROWS_DISPLAY = 50  # Max rows to show in text output
 
 # In-memory dataframe storage
