@@ -1,5 +1,5 @@
 #!/bin/bash
-# Update stack manifests to use new command format
+# Update stack manifests to run TypeScript directly with npx tsx
 
 cd "$(dirname "$0")/.."
 
@@ -16,16 +16,15 @@ for stackdir in catalog/stacks/*/; do
     continue
   fi
 
-  # Check if it has dist directory (Node stack with build)
-  if [[ -d "${stackdir}dist" ]]; then
-    echo "Updating $name to use node dist/index.js"
-    tmp=$(mktemp)
-    jq '. + {runtime: "node", command: ["node", "dist/index.js"]}' "$manifest" > "$tmp" && mv "$tmp" "$manifest"
-  elif [[ -d "${stackdir}src" ]]; then
-    # Has src but no dist - use npx tsx
+  # Check if it has TypeScript source
+  if [[ -f "${stackdir}src/index.ts" ]]; then
     echo "Updating $name to use npx tsx src/index.ts"
     tmp=$(mktemp)
     jq '. + {runtime: "node", command: ["npx", "tsx", "src/index.ts"]}' "$manifest" > "$tmp" && mv "$tmp" "$manifest"
+  elif [[ -f "${stackdir}src/index.js" ]]; then
+    echo "Updating $name to use node src/index.js"
+    tmp=$(mktemp)
+    jq '. + {runtime: "node", command: ["node", "src/index.js"]}' "$manifest" > "$tmp" && mv "$tmp" "$manifest"
   fi
 done
 

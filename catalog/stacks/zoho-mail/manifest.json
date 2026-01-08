@@ -5,8 +5,9 @@
   "description": "Send, search, and manage emails via Zoho Mail",
   "runtime": "node",
   "command": [
-    "node",
-    "dist/index.js"
+    "npx",
+    "tsx",
+    "src/index.ts"
   ],
   "provides": {
     "tools": [

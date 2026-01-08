@@ -5,8 +5,9 @@
   "description": "Generate images (Gemini, Imagen 4) and videos (Veo 3.1) using Google AI",
   "runtime": "node",
   "command": [
-    "node",
-    "dist/index.js"
+    "npx",
+    "tsx",
+    "src/index.ts"
   ],
   "provides": {
     "tools": [

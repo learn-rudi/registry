@@ -5,8 +5,9 @@
   "description": "Workflow-focused tools for Gmail, Google Sheets, Docs, Slides, Drive, and Calendar. Draft emails, send from markdown files, manage spreadsheets, and more.",
   "runtime": "node",
   "command": [
-    "node",
-    "dist/index.js"
+    "npx",
+    "tsx",
+    "src/index.ts"
   ],
   "provides": {
     "tools": []

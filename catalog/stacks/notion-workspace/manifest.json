@@ -5,8 +5,9 @@
   "description": "Search, create, and manage Notion pages and databases",
   "runtime": "node",
   "command": [
-    "node",
-    "dist/index.js"
+    "npx",
+    "tsx",
+    "src/index.ts"
   ],
   "provides": {
     "tools": [

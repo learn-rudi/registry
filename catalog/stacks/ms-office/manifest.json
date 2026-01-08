@@ -5,8 +5,9 @@
   "description": "Read and extract content from Microsoft Word (.docx) and Excel (.xlsx) documents",
   "runtime": "node",
   "command": [
-    "node",
-    "dist/index.js"
+    "npx",
+    "tsx",
+    "src/index.ts"
   ],
   "provides": {
     "tools": [

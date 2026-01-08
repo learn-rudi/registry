@@ -220,7 +220,8 @@
   "icon": "💬",
   "runtime": "node",
   "command": [
-    "node",
-    "dist/index.js"
+    "npx",
+    "tsx",
+    "src/index.ts"
   ]
 }
