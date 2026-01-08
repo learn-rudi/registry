@@ -1,8 +1,8 @@
 {
   "id": "python",
   "name": "Python",
-  "version": "3.12",
-  "description": "Python runtime with data/ML packages (pandas, numpy, openai, anthropic)",
+  "version": "3.12.12",
+  "description": "Lean Python runtime - stack dependencies installed on demand",
   "bundled": true,
   "binary": "bin/python3",
   "download": {
