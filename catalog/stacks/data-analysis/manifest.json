@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "Analyze data with Python, pandas, numpy, and matplotlib. Generate charts and insights.",
   "runtime": "python",
-  "command": ["python", "python/src/server.py"],
+  "command": ["python", "src/server.py"],
   "provides": {
     "tools": [
       "data_load_csv",
