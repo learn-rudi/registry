@@ -1,0 +1,49 @@
+{
+  "id": "vercel",
+  "name": "Vercel",
+  "version": "1.0.0",
+  "description": "Deploy to Vercel, manage environment variables, and monitor deployments",
+  "runtime": "node",
+  "command": ["node", "dist/index.js"],
+  "provides": {
+    "tools": [
+      "vercel_list_projects",
+      "vercel_get_project",
+      "vercel_set_env_variable",
+      "vercel_get_env_variables",
+      "vercel_remove_env_variable",
+      "vercel_list_deployments",
+      "vercel_get_deployment",
+      "vercel_deploy",
+      "vercel_promote_deployment",
+      "vercel_get_logs",
+      "vercel_list_domains"
+    ]
+  },
+  "requires": {
+    "binaries": [],
+    "secrets": [
+      {
+        "name": "VERCEL_TOKEN",
+        "label": "Vercel API Token",
+        "description": "Personal access token from your Vercel account",
+        "link": "https://vercel.com/account/tokens",
+        "required": true
+      },
+      {
+        "name": "VERCEL_ORG_ID",
+        "label": "Vercel Organization ID (Optional)",
+        "description": "Your team/org ID if using a team account (optional for personal)",
+        "link": "https://vercel.com/account/settings",
+        "required": false
+      }
+    ]
+  },
+  "meta": {
+    "author": "RUDI",
+    "license": "MIT",
+    "category": "deployment",
+    "tags": ["vercel", "deployment", "serverless", "env-vars", "hosting"],
+    "icon": "⚡"
+  }
+}

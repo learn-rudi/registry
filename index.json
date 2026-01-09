@@ -400,6 +400,27 @@
               "ALPHA_VANTAGE_API_KEY"
             ]
           }
+        },
+        {
+          "id": "stack:vercel",
+          "name": "Vercel",
+          "version": "1.0.0",
+          "description": "Deploy to Vercel, manage environment variables, and monitor deployments",
+          "path": "catalog/stacks/vercel",
+          "runtime": "runtime:node",
+          "category": "deployment",
+          "tags": [
+            "vercel",
+            "deployment",
+            "serverless",
+            "env-vars",
+            "hosting"
+          ],
+          "requires": {
+            "secrets": [
+              "VERCEL_TOKEN"
+            ]
+          }
         }
       ],
       "community": []
@@ -714,6 +735,8 @@
           "description": "Deploy to Vercel",
           "path": "catalog/binaries/vercel.json",
           "installType": "npm",
+          "npmPackage": "vercel",
+          "bins": ["vercel", "vc"],
           "platforms": [
             "darwin-arm64",
             "darwin-x64",

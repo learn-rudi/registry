@@ -6,7 +6,7 @@
   "category": "devops",
   "installType": "npm",
   "npmPackage": "vercel",
-  "binary": "vercel",
+  "bins": ["vercel", "vc"],
   "requiresAuth": true,
   "authCommand": "vercel login"
 }
