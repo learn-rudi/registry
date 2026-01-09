@@ -1,6 +1,6 @@
-# Prompt Stack Registry
+# RUDI Registry
 
-Official registry for stacks, binaries, agents, runtimes, and prompts.
+Official registry of MCP stacks, binaries, agents, runtimes, and prompts for the RUDI CLI.
 
 ## Package Types
 
@@ -12,19 +12,21 @@ Official registry for stacks, binaries, agents, runtimes, and prompts.
 | **Runtime** | Language interpreters | `catalog/runtimes/{id}.json` |
 | **Prompt** | System prompt templates | `catalog/prompts/{id}.md` |
 
-## Installation
+## Usage
+
+Packages are consumed by the [RUDI CLI](https://github.com/learn-rudi/cli):
 
 ```bash
 # Search for packages
-pstack search whisper
+rudi search whisper
 
 # Install packages
-pstack install stack:whisper
-pstack install binary:ffmpeg
-pstack install prompt:code-review
+rudi install whisper
+rudi install ffmpeg
+rudi install node
 
 # List installed
-pstack list
+rudi list
 ```
 
 ## Repository Structure
@@ -49,6 +51,11 @@ catalog/
 │
 └── runtimes/                 # Runtime manifests
     └── {runtime-id}.json
+
+dist/                         # GitHub Releases (binaries)
+├── node-20.10.0-darwin-arm64.tar.gz
+├── python-3.12-darwin-arm64.tar.gz
+└── ffmpeg-6.0-darwin-arm64.tar.gz
 ```
 
 ## Creating a Stack
@@ -56,6 +63,7 @@ catalog/
 1. Create folder: `catalog/stacks/{stack-id}/`
 
 2. Add `manifest.json`:
+
 ```json
 {
   "id": "my-stack",
@@ -90,22 +98,16 @@ catalog/
 
 When users install a stack with secrets:
 
-1. `pstack install my-stack` creates `~/.rudi/stacks/my-stack/.env` with placeholders
-2. User edits `.env` to add their API keys
-3. MCP registration reads from `.env` and injects into agent configs (Claude, Codex, Gemini)
-
-Example `.env` created on install:
-```bash
-# API Key for My Stack
-# Get yours: https://example.com/api-keys
-MY_API_KEY=
-```
+1. `rudi install my-stack` creates `~/.rudi/stacks/my-stack/.env` with placeholders
+2. User runs `rudi secrets set MY_API_KEY` to add their key
+3. MCP registration reads secrets and injects into agent configs (Claude, Codex, Gemini)
 
 ## Creating a Prompt
 
 1. Create file: `catalog/prompts/{prompt-id}.md`
 
 2. Add YAML frontmatter + content:
+
 ```markdown
 ---
 name: My Prompt
@@ -113,7 +115,6 @@ description: What this prompt does
 category: coding
 tags:
   - example
-icon: "🔍"
 author: Your Name
 ---
 
@@ -136,9 +137,10 @@ Binaries use install types to determine how they're installed:
 | `system` | User installs | docker, git |
 
 Example binary manifest (`catalog/binaries/jq.json`):
+
 ```json
 {
-  "id": "binary:jq",
+  "id": "jq",
   "name": "jq",
   "version": "1.7.1",
   "description": "JSON processor",
@@ -152,15 +154,7 @@ Example binary manifest (`catalog/binaries/jq.json`):
 }
 ```
 
-## Categories
-
-**Stacks:** ai-generation, ai-local, productivity, communication, social-media, data-extraction, document-processing, media, deployment, utilities
-
-**Binaries:** media, data, devops, utilities, ai-ml, version-control
-
-**Prompts:** coding, writing, creative, utilities, general
-
-## Current Stacks
+## Available Stacks
 
 | Stack | Description | Auth |
 |-------|-------------|------|
@@ -176,15 +170,30 @@ Example binary manifest (`catalog/binaries/jq.json`):
 | web-export | HTML to PNG/PDF | None |
 | ms-office | Read .docx/.xlsx | None |
 | social-media | Twitter, LinkedIn, Facebook, Instagram | OAuth |
+| postgres | PostgreSQL database queries | Connection URL |
+| sqlite | SQLite database queries | File path |
 
-## Security
+## Categories
 
-**Never include API keys or secrets in the registry.** Stacks declare required secrets in `manifest.json` under `requires.secrets`. When installed, a `.env` file is created at `~/.rudi/stacks/<id>/.env` where users add their keys locally.
+**Stacks:** ai-generation, ai-local, productivity, communication, social-media, data-extraction, document-processing, media, deployment, utilities
+
+**Binaries:** media, data, devops, utilities, ai-ml, version-control
+
+**Prompts:** coding, writing, creative, utilities, general
 
 ## URLs
 
 - **Index:** `https://raw.githubusercontent.com/learn-rudi/registry/main/index.json`
 - **Stacks:** `https://raw.githubusercontent.com/learn-rudi/registry/main/catalog/stacks/{id}/`
+- **Binaries:** `https://github.com/learn-rudi/registry/releases/download/v1.0.0/`
+
+## Security
+
+Never include API keys or secrets in the registry. Stacks declare required secrets in `manifest.json` under `requires.secrets`. When installed, secrets are stored locally in `~/.rudi/secrets.json` with file permissions `0600`.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on adding packages to the registry.
 
 ## License
 
