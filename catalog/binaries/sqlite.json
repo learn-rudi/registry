@@ -1,12 +1,14 @@
 {
-  "id": "sqlite",
+  "id": "binary:sqlite",
   "name": "SQLite",
-  "version": "3.44",
-  "description": "Lightweight database for local data storage",
-  "bundled": false,
-  "binary": "sqlite/sqlite3",
-  "download": {
-    "darwin-arm64": "sqlite-3.44-darwin-arm64.tar.gz",
-    "darwin-x64": "sqlite-3.44-darwin-x64.tar.gz"
+  "version": "system",
+  "description": "Embedded SQL database engine (pre-installed on macOS)",
+  "category": "database",
+  "installType": "system",
+  "binary": "sqlite3",
+  "checkCommand": "sqlite3 --version",
+  "installInstructions": {
+    "darwin": "Pre-installed on macOS. No action needed.",
+    "linux": "sudo apt install sqlite3"
   }
 }
