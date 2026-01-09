@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "Deploy to Vercel, manage environment variables, and monitor deployments",
   "runtime": "node",
-  "command": ["node", "dist/index.js"],
+  "command": ["npx", "tsx", "src/index.ts"],
   "provides": {
     "tools": [
       "vercel_list_projects",
