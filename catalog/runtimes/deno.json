@@ -4,7 +4,10 @@
   "version": "1.40",
   "description": "Secure JavaScript/TypeScript runtime",
   "bundled": false,
-  "binary": "deno/deno",
+  "binary": "deno",
+  "commands": [
+    { "name": "deno", "bin": "deno" }
+  ],
   "download": {
     "darwin-arm64": "deno-1.40-darwin-arm64.tar.gz",
     "darwin-x64": "deno-1.40-darwin-x64.tar.gz"

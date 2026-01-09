@@ -6,8 +6,12 @@
   "bundled": false,
   "installType": "npm",
   "npmPackage": "@githubnext/github-copilot-cli",
-  "binary": "copilot/node_modules/.bin/github-copilot-cli",
+  "binary": "node_modules/.bin/github-copilot-cli",
   "installDir": "copilot",
+  "commands": [
+    { "name": "copilot", "bin": "node_modules/.bin/github-copilot-cli" },
+    { "name": "github-copilot-cli", "bin": "node_modules/.bin/github-copilot-cli" }
+  ],
   "requiresAuth": true,
   "authInstructions": "Run 'github-copilot-cli auth' to authenticate with GitHub"
 }

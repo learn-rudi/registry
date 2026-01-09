@@ -5,6 +5,11 @@
   "description": "JavaScript runtime for agents and stacks",
   "bundled": true,
   "binary": "bin/node",
+  "commands": [
+    { "name": "node", "bin": "bin/node" },
+    { "name": "npm", "bin": "bin/npm" },
+    { "name": "npx", "bin": "bin/npx" }
+  ],
   "download": {
     "darwin-arm64": "https://github.com/learn-rudi/registry/releases/download/v1.0.0/node-20.10.0-darwin-arm64.tar.gz",
     "darwin-x64": "https://github.com/learn-rudi/registry/releases/download/v1.0.0/node-20.10.0-darwin-x64.tar.gz",

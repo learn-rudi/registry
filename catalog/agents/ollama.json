@@ -4,7 +4,11 @@
   "version": "0.5",
   "description": "Run local LLMs (Llama, Mistral, CodeLlama, etc.)",
   "bundled": false,
-  "binary": "ollama/ollama",
+  "binary": "ollama",
+  "installDir": "ollama",
+  "commands": [
+    { "name": "ollama", "bin": "ollama" }
+  ],
   "download": {
     "darwin-arm64": "ollama-0.5-darwin-arm64.tar.gz",
     "darwin-x64": "ollama-0.5-darwin-x64.tar.gz"

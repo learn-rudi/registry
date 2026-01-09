@@ -6,6 +6,7 @@
   "bundled": false,
   "installType": "npm",
   "npmPackage": "netlify-cli",
+  "bins": ["netlify", "ntl"],
   "binary": "netlify/node_modules/.bin/netlify",
   "installDir": "netlify",
   "requiresAuth": true,

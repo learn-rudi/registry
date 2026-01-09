@@ -6,8 +6,11 @@
   "bundled": false,
   "installType": "npm",
   "npmPackage": "@anthropic-ai/claude-code",
-  "binary": "claude/node_modules/.bin/claude",
+  "binary": "node_modules/.bin/claude",
   "installDir": "claude",
+  "commands": [
+    { "name": "claude", "bin": "node_modules/.bin/claude" }
+  ],
   "requiresAuth": true,
   "authInstructions": "Run 'claude login' to authenticate with your Anthropic account"
 }

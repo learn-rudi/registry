@@ -6,6 +6,7 @@
   "bundled": false,
   "installType": "npm",
   "npmPackage": "supabase",
+  "bins": ["supabase"],
   "binary": "supabase/node_modules/.bin/supabase",
   "installDir": "supabase",
   "requiresAuth": false,

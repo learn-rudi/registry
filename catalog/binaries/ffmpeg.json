@@ -5,7 +5,7 @@
   "description": "Audio/video processing toolkit",
   "category": "media",
   "installType": "binary",
-  "binaries": [
+  "bins": [
     "ffmpeg",
     "ffprobe"
   ],

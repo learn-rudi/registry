@@ -6,8 +6,11 @@
   "bundled": false,
   "installType": "npm",
   "npmPackage": "@google/gemini-cli",
-  "binary": "gemini/node_modules/.bin/gemini",
+  "binary": "node_modules/.bin/gemini",
   "installDir": "gemini",
+  "commands": [
+    { "name": "gemini", "bin": "node_modules/.bin/gemini" }
+  ],
   "requiresAuth": true,
   "authInstructions": "Run 'gemini' to authenticate with your Google account"
 }

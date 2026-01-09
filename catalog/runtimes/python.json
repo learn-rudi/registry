@@ -5,6 +5,12 @@
   "description": "Lean Python runtime - stack dependencies installed on demand",
   "bundled": true,
   "binary": "bin/python3",
+  "commands": [
+    { "name": "python", "bin": "bin/python3" },
+    { "name": "python3", "bin": "bin/python3" },
+    { "name": "pip", "bin": "bin/python3", "args": ["-m", "pip"] },
+    { "name": "pip3", "bin": "bin/python3", "args": ["-m", "pip"] }
+  ],
   "download": {
     "darwin-arm64": "https://github.com/learn-rudi/registry/releases/download/v1.0.0/python-3.12-darwin-arm64.tar.gz",
     "darwin-x64": "https://github.com/learn-rudi/registry/releases/download/v1.0.0/python-3.12-darwin-x64.tar.gz"
