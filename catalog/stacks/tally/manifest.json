@@ -1,0 +1,43 @@
+{
+  "id": "tally",
+  "name": "Tally Forms",
+  "version": "1.0.0",
+  "description": "Create, manage, and analyze Tally forms and submissions",
+  "runtime": "node",
+  "command": ["node", "dist/index.js"],
+  "provides": {
+    "tools": [
+      "tally_list_forms",
+      "tally_get_form",
+      "tally_create_form",
+      "tally_update_form",
+      "tally_delete_form",
+      "tally_list_fields",
+      "tally_list_submissions",
+      "tally_get_submission",
+      "tally_filter_submissions",
+      "tally_export_submissions",
+      "tally_generate_prefill_url",
+      "tally_get_analytics"
+    ]
+  },
+  "requires": {
+    "binaries": [],
+    "secrets": [
+      {
+        "name": "TALLY_API_KEY",
+        "label": "Tally API Key",
+        "description": "OAuth token from Tally developer settings",
+        "link": "https://tally.so/help/api",
+        "required": true
+      }
+    ]
+  },
+  "meta": {
+    "author": "RUDI",
+    "license": "MIT",
+    "category": "productivity",
+    "tags": ["tally", "forms", "surveys", "data-collection", "feedback"],
+    "icon": "📋"
+  }
+}

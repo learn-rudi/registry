@@ -1,0 +1,23 @@
+{
+  "name": "@rudi/tally-mcp",
+  "version": "1.0.0",
+  "description": "Tally Forms MCP server for RUDI",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc && chmod +x dist/index.js",
+    "dev": "tsx src/index.ts",
+    "watch": "tsc --watch"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "bin": {
+    "tally-mcp": "./dist/index.js"
+  }
+}

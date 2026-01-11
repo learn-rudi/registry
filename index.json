@@ -421,6 +421,27 @@
               "VERCEL_TOKEN"
             ]
           }
+        },
+        {
+          "id": "stack:tally",
+          "name": "Tally Forms",
+          "version": "1.0.0",
+          "description": "Create, manage, and analyze Tally forms and submissions",
+          "path": "catalog/stacks/tally",
+          "runtime": "runtime:node",
+          "category": "productivity",
+          "tags": [
+            "tally",
+            "forms",
+            "surveys",
+            "data-collection",
+            "feedback"
+          ],
+          "requires": {
+            "secrets": [
+              "TALLY_API_KEY"
+            ]
+          }
         }
       ],
       "community": []
