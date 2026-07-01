@@ -19,6 +19,24 @@
         "label": "Supadata API Key",
         "required": false,
         "helpUrl": "https://supadata.ai"
+      },
+      {
+        "key": "REDDIT_BEARER_TOKEN",
+        "label": "Reddit Bearer Token",
+        "required": false,
+        "helpUrl": "https://www.reddit.com/prefs/apps"
+      },
+      {
+        "key": "REDDIT_CLIENT_ID",
+        "label": "Reddit Client ID",
+        "required": false,
+        "helpUrl": "https://www.reddit.com/prefs/apps"
+      },
+      {
+        "key": "REDDIT_CLIENT_SECRET",
+        "label": "Reddit Client Secret",
+        "required": false,
+        "helpUrl": "https://www.reddit.com/prefs/apps"
       }
     ]
   },

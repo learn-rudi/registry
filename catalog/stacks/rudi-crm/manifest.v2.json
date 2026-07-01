@@ -1,0 +1,71 @@
+{
+  "id": "stack:rudi-crm",
+  "kind": "stack",
+  "name": "RUDI CRM",
+  "version": "0.1.0",
+
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/rudi-crm"
+  },
+
+  "runtime": "node",
+  "requires": {
+    "binaries": [],
+    "secrets": [
+      {
+        "key": "RUDI_CRM_DATABASE_URL",
+        "label": "RUDI CRM Database URL",
+        "required": true
+      }
+    ]
+  },
+  "provides": {
+    "tools": [
+      "rudi_crm_config_status",
+      "rudi_crm_setup_status",
+      "rudi_crm_record_discovery_observations",
+      "rudi_crm_log_ingest_batch",
+      "rudi_crm_upsert_interaction",
+      "rudi_crm_record_finance_event",
+      "rudi_crm_run_validators",
+      "rudi_crm_list_people",
+      "rudi_crm_list_organizations",
+      "rudi_crm_list_engagements",
+      "rudi_crm_get_activity_feed",
+      "rudi_crm_get_attention_brief",
+      "rudi_crm_list_triage_queue",
+      "rudi_crm_get_unknown_discovery_domains",
+      "rudi_crm_get_engagement_context",
+      "rudi_crm_get_latest_correspondence"
+    ]
+  },
+  "mcp": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": [
+      "tsx",
+      "src/index.ts"
+    ],
+    "cwd": "."
+  },
+
+  "meta": {
+    "description": "Controlled MCP interface for RUDI CRM engagement memory, discovery, triage, validators, and correspondence context.",
+    "author": "RUDI",
+    "license": "MIT",
+    "category": "business",
+    "tags": [
+      "crm",
+      "engagements",
+      "postgres",
+      "supabase",
+      "mcp",
+      "audit"
+    ],
+    "icon": "rudi-crm",
+    "boundary": "RUDI CRM exposes a controlled write/read contract over existing Postgres functions and views. It does not expose raw table writes or generic SQL execution.",
+    "secretGuidance": "Use a scoped server-side Postgres credential in RUDI_CRM_DATABASE_URL. Never expose this value to clients or agents."
+  }
+}

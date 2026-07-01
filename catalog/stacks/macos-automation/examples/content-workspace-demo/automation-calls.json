@@ -1,0 +1,61 @@
+{
+  "workflow": "content_workspace_setup_demo",
+  "description": "Example calls a private recipe could make through the macOS Automation stack.",
+  "steps": [
+    {
+      "tool": "macos_status",
+      "arguments": {}
+    },
+    {
+      "tool": "macos_get_selected_finder_items",
+      "arguments": {}
+    },
+    {
+      "tool": "macos_reveal_in_finder",
+      "arguments": {
+        "path": "/absolute/path/to/content-workspace-demo"
+      }
+    },
+    {
+      "tool": "macos_run_shortcut",
+      "arguments": {
+        "name": "RUDI Vault",
+        "input_path": "/absolute/path/to/source-video.mov",
+        "confirm_run": false
+      }
+    },
+    {
+      "tool": "macos_create_reminder",
+      "arguments": {
+        "title": "Review demo content workspace",
+        "notes": "Check script.md, assets.md, and publish-checklist.md.",
+        "due_at": "2026-06-28T09:00:00-04:00",
+        "confirm_create": false
+      }
+    },
+    {
+      "tool": "macos_show_notification",
+      "arguments": {
+        "title": "Workspace ready",
+        "message": "The content workspace is prepared for review."
+      }
+    },
+    {
+      "tool": "macos_install_launch_agent",
+      "arguments": {
+        "label": "dev.rudi.content-workspace-review",
+        "command": [
+          "/usr/bin/shortcuts",
+          "run",
+          "RUDI Vault"
+        ],
+        "schedule": {
+          "type": "daily",
+          "hour": 9,
+          "minute": 0
+        },
+        "confirm_install": false
+      }
+    }
+  ]
+}

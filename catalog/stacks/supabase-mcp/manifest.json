@@ -1,0 +1,65 @@
+{
+  "id": "supabase-mcp",
+  "name": "Supabase MCP",
+  "version": "0.1.0",
+  "description": "Connect agents to Supabase's hosted OAuth MCP server for database, project, Edge Functions, docs, and development tools.",
+  "runtime": "node",
+  "command": [
+    "node",
+    "src/index.js"
+  ],
+  "provides": {
+    "tools": [
+      "list_tables",
+      "list_extensions",
+      "list_migrations",
+      "apply_migration",
+      "execute_sql",
+      "get_logs",
+      "get_advisors",
+      "get_project_url",
+      "get_publishable_keys",
+      "generate_typescript_types",
+      "list_edge_functions",
+      "get_edge_function",
+      "deploy_edge_function",
+      "list_projects",
+      "get_project",
+      "create_project",
+      "pause_project",
+      "restore_project",
+      "list_organizations",
+      "get_organization",
+      "get_cost",
+      "confirm_cost",
+      "search_docs",
+      "create_branch",
+      "list_branches",
+      "delete_branch",
+      "merge_branch",
+      "reset_branch",
+      "rebase_branch",
+      "list_storage_buckets",
+      "get_storage_config",
+      "update_storage_config"
+    ]
+  },
+  "requires": {
+    "binaries": [],
+    "secrets": []
+  },
+  "meta": {
+    "author": "RUDI",
+    "license": "MIT",
+    "category": "data",
+    "tags": [
+      "supabase",
+      "postgres",
+      "database",
+      "mcp",
+      "oauth",
+      "remote"
+    ],
+    "icon": "supabase"
+  }
+}

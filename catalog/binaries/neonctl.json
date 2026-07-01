@@ -1,0 +1,17 @@
+{
+  "id": "neonctl",
+  "name": "Neon CLI",
+  "version": "latest",
+  "description": "Manage Neon projects, branches, auth, and MCP setup from the terminal",
+  "category": "database",
+  "installType": "npm",
+  "npmPackage": "neonctl",
+  "bins": ["neonctl", "neon"],
+  "requiresAuth": true,
+  "authCommand": "neon auth",
+  "platforms": [
+    "darwin-arm64",
+    "darwin-x64",
+    "linux-x64"
+  ]
+}

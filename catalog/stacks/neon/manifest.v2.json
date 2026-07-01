@@ -1,0 +1,59 @@
+{
+  "id": "stack:neon",
+  "kind": "stack",
+  "name": "Neon",
+  "version": "0.1.0",
+
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/neon"
+  },
+
+  "runtime": "node",
+  "requires": {
+    "binaries": ["binary:neonctl"],
+    "secrets": [
+      {
+        "key": "NEON_API_KEY",
+        "label": "Neon API Key",
+        "required": true,
+        "helpUrl": "https://console.neon.tech/app/settings/api-keys"
+      },
+      {
+        "key": "NEON_API_BASE_URL",
+        "label": "Neon API Base URL",
+        "required": false
+      }
+    ]
+  },
+  "provides": {
+    "tools": [
+      "neon_config_status",
+      "neon_list_orgs",
+      "neon_list_projects",
+      "neon_create_project",
+      "neon_get_connection_string",
+      "neon_create_branch",
+      "neon_list_branches",
+      "neon_generate_mcp_config",
+      "neon_generate_cli_workflow"
+    ]
+  },
+  "mcp": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["tsx", "src/index.ts"],
+    "cwd": "."
+  },
+
+  "meta": {
+    "description": "Guarded Neon platform operations for projects, branches, connection URI retrieval, and MCP config generation.",
+    "author": "RUDI",
+    "license": "MIT",
+    "category": "data",
+    "tags": ["neon", "postgres", "database", "branching", "mcp", "platform"],
+    "boundary": "Use stack:neon for Neon platform operations and stack:postgres for SQL querying via DATABASE_URL.",
+    "mcpSafety": "Neon MCP is intended for development and testing. Do not connect MCP agents freely to production databases."
+  }
+}

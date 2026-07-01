@@ -1,0 +1,10 @@
+{
+  "tool": "macos_get_selected_finder_items",
+  "example_result": {
+    "paths": [
+      "/absolute/path/to/source-video.mov",
+      "/absolute/path/to/source-notes.md",
+      "/absolute/path/to/thumbnail-reference.png"
+    ]
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "binary:neonctl",
+  "kind": "binary",
+  "name": "Neon CLI",
+  "version": "latest",
+
+  "delivery": "remote",
+  "install": {
+    "source": "npm",
+    "package": "neonctl"
+  },
+
+  "bins": ["neonctl", "neon"],
+
+  "detect": {
+    "command": "neonctl --version",
+    "expectExitCode": 0
+  },
+
+  "auth": {
+    "required": true,
+    "command": "neon auth",
+    "instructions": "Run 'neon auth' or set NEON_API_KEY in RUDI secrets to authenticate Neon operations"
+  },
+
+  "meta": {
+    "description": "Manage Neon projects, branches, auth, and MCP setup from the terminal",
+    "category": "database",
+    "tags": ["neon", "postgres", "database", "branching", "mcp"]
+  }
+}

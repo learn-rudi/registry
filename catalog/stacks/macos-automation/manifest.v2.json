@@ -1,0 +1,73 @@
+{
+  "id": "stack:macos-automation",
+  "kind": "stack",
+  "name": "macOS Automation",
+  "version": "0.1.0",
+
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/macos-automation"
+  },
+
+  "runtime": "node",
+  "requires": {
+    "binaries": [],
+    "secrets": []
+  },
+  "provides": {
+    "tools": [
+      "macos_status",
+      "macos_check_accessibility",
+      "macos_get_frontmost_app",
+      "macos_list_windows",
+      "macos_open_url",
+      "macos_open_app",
+      "macos_focus_app",
+      "macos_show_notification",
+      "macos_list_shortcuts",
+      "macos_run_shortcut",
+      "macos_create_reminder",
+      "macos_get_selected_finder_items",
+      "macos_reveal_in_finder",
+      "macos_keep_awake_start",
+      "macos_keep_awake_status",
+      "macos_keep_awake_stop",
+      "macos_install_launch_agent",
+      "macos_list_launch_agents",
+      "macos_remove_launch_agent",
+      "macos_run_launch_agent_now"
+    ]
+  },
+  "mcp": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["tsx", "src/index.ts"],
+    "cwd": "."
+  },
+
+  "meta": {
+    "description": "Guarded macOS automation tools for apps, Finder, Reminders, Shortcuts, notifications, and System Events permission checks.",
+    "author": "RUDI",
+    "license": "MIT",
+    "category": "local-automation",
+    "tags": [
+      "macos",
+      "apple-script",
+      "shortcuts",
+      "reminders",
+      "finder",
+      "caffeinate",
+      "launchd",
+      "productivity",
+      "automation",
+      "mcp"
+    ],
+    "platforms": ["darwin"],
+    "permissions": [
+      "Accessibility for System Events tools",
+      "Automation for Finder, Reminders, and target app control"
+    ],
+    "icon": "⌘"
+  }
+}
