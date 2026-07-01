@@ -776,12 +776,13 @@
         },
         {
           "id": "skill:swe-compliance-checklist",
-          "name": "SWE Compliance Checklist",
+          "name": "RUDI SWE Compliance Checklist",
           "version": "1.0.0",
-          "description": "Create and execute phase-gated SWE Operating Manual compliance checklists for software changes",
+          "description": "Create and execute RUDI phase-gated SWE Operating Manual compliance checklists for software changes",
           "path": "catalog/skills/swe-compliance-checklist.md",
           "category": "coding",
           "tags": [
+            "rudi",
             "swe",
             "compliance",
             "checklist",
@@ -1110,6 +1111,136 @@
             "adr",
             "documentation",
             "grill-me"
+          ]
+        },
+        {
+          "id": "skill:reddit-saved-link-enrichment",
+          "name": "Reddit Saved Link Enrichment",
+          "version": "1.0.0",
+          "description": "Enrich Reddit rows from a saved-links database by extracting posts and comment discussion, drafting a concise database note, and preparing a full page body before any explicit Notion write",
+          "path": "catalog/skills/reddit-saved-link-enrichment.md",
+          "category": "research",
+          "tags": [
+            "reddit",
+            "notion",
+            "saved-links",
+            "enrichment",
+            "research",
+            "comments"
+          ],
+          "requires": {
+            "stacks": [
+              "content-extractor",
+              "notion-workspace"
+            ]
+          }
+        },
+        {
+          "id": "skill:repo-red-team-review",
+          "name": "RUDI Repo Red-Team Review",
+          "version": "1.0.0",
+          "description": "Run RUDI evidence-backed LLM-led red-team reviews of software repositories with attack-surface mapping, verified findings, and checklist documentation",
+          "path": "catalog/skills/repo-red-team-review.md",
+          "category": "security",
+          "tags": [
+            "rudi",
+            "security",
+            "red-team",
+            "threat-modeling",
+            "code-review",
+            "auth",
+            "webhooks",
+            "llm-tools"
+          ]
+        },
+        {
+          "id": "skill:rudi-ai-policy-assessor",
+          "name": "RUDI AI Policy Assessor",
+          "version": "1.0.0",
+          "description": "Assess, score, and upgrade organizational AI acceptable-use policies using RUDI's completeness rubric",
+          "path": "catalog/skills/rudi-ai-policy-assessor.md",
+          "category": "business",
+          "tags": [
+            "rudi",
+            "ai-policy",
+            "governance",
+            "compliance",
+            "risk",
+            "training",
+            "connectors"
+          ]
+        },
+        {
+          "id": "skill:rudi-swe-issue-loop",
+          "name": "RUDI SWE Issue Loop",
+          "version": "1.0.0",
+          "description": "Create and execute a GitHub issue and PR ledger for RUDI or Codex engineering work using the SWE checklist skill",
+          "path": "catalog/skills/rudi-swe-issue-loop.md",
+          "category": "coding",
+          "tags": [
+            "rudi",
+            "github",
+            "swe",
+            "issues",
+            "pull-requests",
+            "ci",
+            "checklist"
+          ]
+        },
+        {
+          "id": "skill:shortform-social-publish-package",
+          "name": "Shortform Social Publish Package",
+          "version": "1.0.0",
+          "description": "Generate platform-ready social publishing packages for short-form story folders before using social-media-publisher",
+          "path": "catalog/skills/shortform-social-publish-package.md",
+          "category": "marketing",
+          "tags": [
+            "video",
+            "shortform",
+            "social-media",
+            "publishing",
+            "captions",
+            "youtube",
+            "instagram",
+            "tiktok"
+          ],
+          "requires": {
+            "stacks": [
+              "cloudinary",
+              "social-media-publisher"
+            ]
+          }
+        },
+        {
+          "id": "skill:site-zoning-envelope-review",
+          "name": "Site Zoning Envelope Review",
+          "version": "1.0.0",
+          "description": "Run a site-engine workflow from address, parcel key, rollup, or saved site-record through zoning and buildable envelope review",
+          "path": "catalog/skills/site-zoning-envelope-review.md",
+          "category": "real-estate",
+          "tags": [
+            "zoning",
+            "site-engine",
+            "envelope",
+            "frontage",
+            "parcels",
+            "feasibility"
+          ]
+        },
+        {
+          "id": "skill:synthetic-cadence-editor",
+          "name": "Synthetic Cadence Editor",
+          "version": "1.0.0",
+          "description": "Write or revise analytical prose without synthetic thought-leadership cadence by grounding claims in actors, mechanisms, and consequences",
+          "path": "catalog/skills/synthetic-cadence-editor.md",
+          "category": "writing",
+          "tags": [
+            "writing",
+            "editing",
+            "prose",
+            "style",
+            "analysis",
+            "captions"
           ]
         }
       ],
