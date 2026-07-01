@@ -420,7 +420,30 @@
             "tiktok",
             "youtube",
             "marketing"
-          ]
+          ],
+          "provides": {
+            "tools": [
+              "social_list_supported_platforms",
+              "social_validate_post",
+              "social_check_publish_ready",
+              "social_publish_direct",
+              "twitter_post",
+              "twitter_thread",
+              "linkedin_post",
+              "facebook_post",
+              "facebook_list_pages",
+              "instagram_post",
+              "instagram_reel_create_container",
+              "instagram_container_status",
+              "instagram_publish_container",
+              "instagram_list_accounts",
+              "tiktok_creator_info",
+              "tiktok_direct_post",
+              "tiktok_video_upload",
+              "tiktok_fetch_status",
+              "youtube_video_upload"
+            ]
+          }
         },
         {
           "id": "stack:video-editor",
