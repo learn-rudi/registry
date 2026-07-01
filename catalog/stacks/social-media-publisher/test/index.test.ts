@@ -1,5 +1,10 @@
 import assert from "node:assert/strict";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
+
+import axios from "axios";
 
 import {
   socialCheckPublishReady,
@@ -33,6 +38,45 @@ function withEnv<T>(overrides: Record<string, string | undefined>, fn: () => T):
       }
     }
   }
+}
+
+async function withEnvAsync<T>(overrides: Record<string, string | undefined>, fn: () => Promise<T>): Promise<T> {
+  const previous: Record<string, string | undefined> = {};
+  for (const key of Object.keys(overrides)) {
+    previous[key] = process.env[key];
+    if (overrides[key] === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = overrides[key];
+    }
+  }
+
+  try {
+    return await fn();
+  } finally {
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+  }
+}
+
+function mockAxios(methods: Partial<Pick<typeof axios, "get" | "post">>): () => void {
+  const original = {
+    get: axios.get,
+    post: axios.post,
+  };
+
+  if (methods.get) axios.get = methods.get;
+  if (methods.post) axios.post = methods.post;
+
+  return () => {
+    axios.get = original.get;
+    axios.post = original.post;
+  };
 }
 
 test("socialListSupportedPlatforms exposes the unified publisher adapters", () => {
@@ -110,6 +154,147 @@ test("socialCheckPublishReady accepts LinkedIn refresh credentials", () => {
   assert.equal(result.platforms[0].platform, "linkedin");
   assert.equal(result.platforms[0].configured, true);
   assert.deepEqual(result.platforms[0].missing, []);
+});
+
+test("socialCheckPublishReady can validate YouTube auth without publishing media", async () => {
+  const restoreAxios = mockAxios({
+    post: async () => ({ data: { access_token: "access-token" } }),
+    get: async () => ({
+      data: {
+        items: [
+          {
+            id: "UC123456",
+            snippet: { title: "Hoff Digital" },
+          },
+        ],
+      },
+    }),
+  });
+
+  try {
+    const result = await withEnvAsync(
+      {
+        YOUTUBE_REFRESH_TOKEN: "refresh-token",
+        GOOGLE_CLIENT_ID: "google-client-id",
+        GOOGLE_CLIENT_SECRET: "google-client-secret",
+      },
+      async () => JSON.parse(await socialCheckPublishReady({ platform: "youtube", validateAuth: true }))
+    );
+
+    assert.equal(result.platforms[0].platform, "youtube");
+    assert.equal(result.platforms[0].configured, true);
+    assert.equal(result.platforms[0].auth.checked, true);
+    assert.equal(result.platforms[0].auth.ok, true);
+    assert.equal(result.platforms[0].auth.provider_account_id, "UC123456");
+    assert.equal(result.platforms[0].auth.display_name, "Hoff Digital");
+  } finally {
+    restoreAxios();
+  }
+});
+
+test("socialCheckPublishReady reports invalid YouTube refresh tokens without exposing secrets", async () => {
+  const restoreAxios = mockAxios({
+    post: async () => {
+      const error = new Error("Request failed with status code 400") as Error & {
+        response?: { status: number; data: Record<string, string> };
+      };
+      error.response = {
+        status: 400,
+        data: {
+          error: "invalid_grant",
+          error_description: "Token has been expired or revoked.",
+        },
+      };
+      throw error;
+    },
+  });
+
+  try {
+    const result = await withEnvAsync(
+      {
+        YOUTUBE_REFRESH_TOKEN: "refresh-token-secret",
+        GOOGLE_CLIENT_ID: "google-client-id",
+        GOOGLE_CLIENT_SECRET: "google-client-secret",
+      },
+      async () => JSON.parse(await socialCheckPublishReady({ platform: "youtube", validateAuth: true }))
+    );
+
+    assert.equal(result.platforms[0].platform, "youtube");
+    assert.equal(result.platforms[0].configured, false);
+    assert.equal(result.platforms[0].auth.checked, true);
+    assert.equal(result.platforms[0].auth.ok, false);
+    assert.equal(result.platforms[0].auth.code, "youtube_invalid_grant");
+    assert.equal(result.platforms[0].auth.message, "Token has been expired or revoked.");
+    assert.equal(result.platforms[0].auth.retryable, false);
+    assert.equal(JSON.stringify(result).includes("refresh-token-secret"), false);
+  } finally {
+    restoreAxios();
+  }
+});
+
+test("socialCheckPublishReady reloads stack env values written after module startup", async () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "social-publisher-env-"));
+  const stackEnvPath = join(tempDir, "social-media-publisher.env");
+  writeFileSync(
+    stackEnvPath,
+    [
+      "YOUTUBE_REFRESH_TOKEN=old-refresh-token",
+      "GOOGLE_CLIENT_ID=google-client-id",
+      "GOOGLE_CLIENT_SECRET=google-client-secret",
+      "",
+    ].join("\n")
+  );
+
+  const restoreAxios = mockAxios({
+    post: async (_url, body) => {
+      assert.equal(typeof body?.get, "function");
+      assert.equal(body.get("refresh_token"), "new-refresh-token");
+      return { data: { access_token: "access-token" } };
+    },
+    get: async () => ({
+      data: {
+        items: [
+          {
+            id: "UC123456",
+            snippet: { title: "Hoff Digital" },
+          },
+        ],
+      },
+    }),
+  });
+
+  try {
+    await withEnvAsync(
+      {
+        SOCIAL_MEDIA_PUBLISHER_STACK_ENV_PATH: stackEnvPath,
+        YOUTUBE_REFRESH_TOKEN: undefined,
+        GOOGLE_CLIENT_ID: undefined,
+        GOOGLE_CLIENT_SECRET: undefined,
+      },
+      async () => {
+        const moduleUrl = `../src/index.ts?stack-env-refresh=${Date.now()}`;
+        const publisher = await import(moduleUrl);
+
+        writeFileSync(
+          stackEnvPath,
+          [
+            "YOUTUBE_REFRESH_TOKEN=new-refresh-token",
+            "GOOGLE_CLIENT_ID=google-client-id",
+            "GOOGLE_CLIENT_SECRET=google-client-secret",
+            "",
+          ].join("\n")
+        );
+
+        const result = JSON.parse(await publisher.socialCheckPublishReady({ platform: "youtube", validateAuth: true }));
+
+        assert.equal(result.platforms[0].configured, true);
+        assert.equal(result.platforms[0].auth.ok, true);
+      }
+    );
+  } finally {
+    restoreAxios();
+    rmSync(tempDir, { recursive: true, force: true });
+  }
 });
 
 test("socialPublishDirect supports adapter-backed dry runs without credentials", async () => {

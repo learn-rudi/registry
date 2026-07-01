@@ -21,7 +21,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { TwitterApi } from "twitter-api-v2";
 import axios from "axios";
-import { config } from "dotenv";
+import { parse } from "dotenv";
 import { chmodSync, readFileSync, existsSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -31,9 +31,55 @@ import { fetchTikTokPublishStatus, queryTikTokCreatorInfo } from "./adapters/tik
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const RUDI_STACK_ENV_PATH = join(homedir(), ".rudi", "secrets", "social-media-publisher.env");
+const RUDI_STACK_ENV_PATH =
+  process.env.SOCIAL_MEDIA_PUBLISHER_STACK_ENV_PATH || join(homedir(), ".rudi", "secrets", "social-media-publisher.env");
 const X_OAUTH2_TOKEN_ENDPOINT = "https://api.x.com/2/oauth2/token";
 const LINKEDIN_TOKEN_ENDPOINT = "https://www.linkedin.com/oauth/v2/accessToken";
+const trackedStackEnvValues = new Map<string, string>();
+
+function loadEnvFile(envPath: string): void {
+  if (!existsSync(envPath)) {
+    return;
+  }
+
+  const parsed = parse(readFileSync(envPath, "utf8"));
+  for (const [key, value] of Object.entries(parsed)) {
+    if (process.env[key] === undefined) {
+      process.env[key] = value;
+      if (envPath === RUDI_STACK_ENV_PATH) {
+        trackedStackEnvValues.set(key, value);
+      }
+    }
+  }
+}
+
+function refreshStackEnvValues(names: string[]): void {
+  const parsed = existsSync(RUDI_STACK_ENV_PATH) ? parse(readFileSync(RUDI_STACK_ENV_PATH, "utf8")) : {};
+
+  for (const name of names) {
+    const previousStackValue = trackedStackEnvValues.get(name);
+    const currentValue = process.env[name];
+    const nextValue = parsed[name];
+    const canRefresh = currentValue === undefined || (previousStackValue !== undefined && currentValue === previousStackValue);
+
+    if (typeof nextValue === "string") {
+      if (canRefresh) {
+        process.env[name] = nextValue;
+        trackedStackEnvValues.set(name, nextValue);
+      }
+      continue;
+    }
+
+    if (previousStackValue !== undefined && currentValue === previousStackValue) {
+      delete process.env[name];
+    }
+    trackedStackEnvValues.delete(name);
+  }
+}
+
+function refreshYouTubeEnv(): void {
+  refreshStackEnvValues(["YOUTUBE_REFRESH_TOKEN", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "YOUTUBE_TOKEN_URI", "YOUTUBE_SCOPES"]);
+}
 
 // Load .env from multiple locations
 const envPaths = [
@@ -43,9 +89,7 @@ const envPaths = [
   join(homedir(), ".rudi", "secrets", "social-media.env"),
 ];
 for (const envPath of envPaths) {
-  if (existsSync(envPath)) {
-    config({ path: envPath });
-  }
+  loadEnvFile(envPath);
 }
 
 // Config file paths. Package installs are disposable; local account config lives in RUDI state.
@@ -74,6 +118,11 @@ type DirectPublishArgs = ValidationArgs & {
   page?: string;
   pageId?: string;
   account?: string;
+};
+
+type PublishReadyArgs = {
+  platform?: string;
+  validateAuth?: boolean;
 };
 
 type PublishResult = {
@@ -164,6 +213,8 @@ function isSelfTarget(target: SocialTarget): boolean {
 }
 
 function getYouTubeCredential(): string {
+  refreshYouTubeEnv();
+
   const refreshToken = envString("YOUTUBE_REFRESH_TOKEN");
   if (!refreshToken) {
     throw new Error("YOUTUBE_REFRESH_TOKEN is required for direct YouTube publishing");
@@ -544,6 +595,8 @@ function platformReadiness(platform: string): Record<string, unknown> {
     }
     notes.push("Inbox upload supports local video files; direct post may require app audit or private-account sandbox limits.");
   } else if (platform === "youtube") {
+    refreshYouTubeEnv();
+
     configured = Boolean(envString("YOUTUBE_REFRESH_TOKEN") && envString("GOOGLE_CLIENT_ID") && envString("GOOGLE_CLIENT_SECRET"));
     if (!envString("YOUTUBE_REFRESH_TOKEN")) missing.push("YOUTUBE_REFRESH_TOKEN");
     if (!envString("GOOGLE_CLIENT_ID")) missing.push("GOOGLE_CLIENT_ID");
@@ -561,9 +614,77 @@ function platformReadiness(platform: string): Record<string, unknown> {
   };
 }
 
-export function socialCheckPublishReady(args: { platform?: string } = {}): string {
+function adapterErrorPayload(error: any, fallbackCode: string): Record<string, unknown> {
+  return {
+    checked: true,
+    ok: false,
+    code: typeof error?.code === "string" ? error.code : fallbackCode,
+    message: typeof error?.message === "string" ? error.message : "Authentication validation failed",
+    retryable: Boolean(error?.retryable),
+    details: asRecord(error?.details),
+  };
+}
+
+async function platformReadinessWithAuth(platform: string): Promise<Record<string, unknown>> {
+  const readiness = platformReadiness(platform);
+
+  if (platform !== "youtube") {
+    return readiness;
+  }
+
+  if (!readiness.configured) {
+    return {
+      ...readiness,
+      auth: {
+        checked: false,
+        ok: false,
+        message: "YouTube auth validation was skipped because required local credentials are missing.",
+      },
+    };
+  }
+
+  try {
+    const adapter = getPlatformAdapter("youtube") as any;
+    const auth = await adapter.checkAuth({
+      target: { asset_type: "channel", platform_asset_id: "self" },
+      token: getYouTubeCredential(),
+    });
+
+    return {
+      ...readiness,
+      configured: true,
+      auth: {
+        checked: true,
+        ok: true,
+        provider_account_id: auth.provider_account_id,
+        display_name: auth.display_name,
+      },
+    };
+  } catch (error: any) {
+    return {
+      ...readiness,
+      configured: false,
+      missing: [...((readiness.missing as string[] | undefined) ?? []), "valid YouTube OAuth refresh token"],
+      auth: adapterErrorPayload(error, "youtube_auth_check_failed"),
+    };
+  }
+}
+
+export function socialCheckPublishReady(args: PublishReadyArgs = {}): string | Promise<string> {
   const requestedPlatform = optionalString(args.platform);
   const platforms = requestedPlatform ? [requestedPlatform] : listSupportedPlatforms();
+
+  if (args.validateAuth) {
+    return Promise.all(platforms.map((platform) => platformReadinessWithAuth(platform))).then((readiness) =>
+      JSON.stringify(
+        {
+          platforms: readiness,
+        },
+        null,
+        2
+      )
+    );
+  }
 
   return JSON.stringify(
     {
@@ -1352,6 +1473,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             enum: ["twitter", "linkedin", "facebook", "instagram", "tiktok", "youtube"],
             description: "Optional single platform to check",
           },
+          validateAuth: {
+            type: "boolean",
+            description: "When true, performs a live auth check for supported platforms without publishing media",
+          },
         },
       },
     },
@@ -1602,7 +1727,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         result = socialValidatePost((args ?? {}) as ValidationArgs);
         break;
       case "social_check_publish_ready":
-        result = socialCheckPublishReady((args ?? {}) as { platform?: string });
+        result = await socialCheckPublishReady((args ?? {}) as PublishReadyArgs);
         break;
       case "social_publish_direct":
         result = await socialPublishDirect((args ?? {}) as DirectPublishArgs);

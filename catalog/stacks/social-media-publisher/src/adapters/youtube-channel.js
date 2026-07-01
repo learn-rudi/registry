@@ -59,17 +59,20 @@ function mapYouTubeError(error, fallbackCode) {
   const status = error.response?.status;
   const body = error.response?.data;
   const googleError = body?.error;
+  const oauthError = typeof googleError === 'string' ? googleError : undefined;
+  const oauthMessage = typeof body?.error_description === 'string' ? body.error_description : undefined;
   const reason = googleError?.errors?.[0]?.reason;
-  const message = googleError?.message || error.message || 'YouTube API request failed';
+  const message = oauthMessage || googleError?.message || error.message || 'YouTube API request failed';
   const retryableStatuses = new Set([408, 429, 500, 502, 503, 504]);
-  const retryableReasons = new Set(['backendError', 'internalError', 'rateLimitExceeded']);
+  const retryableReasons = new Set(['backendError', 'internalError', 'rateLimitExceeded', 'temporarily_unavailable']);
+  const mappedReason = oauthError || reason;
 
-  return new PlatformAdapterError(reason ? `youtube_${reason}` : fallbackCode, message, {
-    retryable: retryableStatuses.has(status) || retryableReasons.has(reason),
+  return new PlatformAdapterError(mappedReason ? `youtube_${mappedReason}` : fallbackCode, message, {
+    retryable: retryableStatuses.has(status) || retryableReasons.has(mappedReason),
     details: {
       status,
-      reason,
-      code: googleError?.code,
+      reason: mappedReason,
+      code: typeof googleError === 'object' ? googleError?.code : undefined,
     },
   });
 }
@@ -687,8 +690,10 @@ export const youtubeChannelAdapter = Object.freeze({
   async checkAuth({ target, token }) {
     try {
       const channel = await withAccessToken(token, (accessToken) => getChannelInfo(accessToken));
+      const targetId = target?.platform_asset_id;
+      const allowsSelfTarget = ['self', 'me', 'preview', ''].includes(targetId);
 
-      if (channel.id !== target.platform_asset_id) {
+      if (!allowsSelfTarget && channel.id !== targetId) {
         throw new PlatformAdapterError(
           'token_asset_mismatch',
           'YouTube token returned a different channel than the target asset',

@@ -245,6 +245,41 @@ test('youtube adapter deletes a video by id', async () => {
   }
 });
 
+test('youtube adapter maps OAuth invalid_grant token refresh errors to actionable auth errors', async () => {
+  const previousEnv = setGoogleEnv();
+  const restoreAxios = mockAxios({
+    post: async () => {
+      const error = new Error('Request failed with status code 400');
+      error.response = {
+        status: 400,
+        data: {
+          error: 'invalid_grant',
+          error_description: 'Token has been expired or revoked.',
+        },
+      };
+      throw error;
+    },
+  });
+
+  try {
+    await assert.rejects(
+      () => youtubeChannelAdapter.checkAuth({ target, token }),
+      (error) => {
+        assert.equal(error.name, 'PlatformAdapterError');
+        assert.equal(error.code, 'youtube_invalid_grant');
+        assert.equal(error.message, 'Token has been expired or revoked.');
+        assert.equal(error.retryable, false);
+        assert.equal(error.details.status, 400);
+        assert.equal(error.details.reason, 'invalid_grant');
+        return true;
+      },
+    );
+  } finally {
+    restoreAxios();
+    restoreGoogleEnv(previousEnv);
+  }
+});
+
 test('youtube adapter updates thumbnails with hosted image media', async () => {
   const previousEnv = setGoogleEnv();
   let uploadedThumbnailVideoId;
