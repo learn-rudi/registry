@@ -137,6 +137,16 @@ instagram
 
 If a platform is not configured, the readiness result reports the missing key group without exposing token values.
 
+## Instagram Reel Processing
+
+Instagram Reel media containers can take longer to process than a single MCP tool call should wait. Use the staged tools for timeout-safe Reel publishing:
+
+1. `instagram_reel_create_container` creates the Meta media container and returns `platformContainerId`.
+2. `instagram_container_status` checks that container without creating another one.
+3. `instagram_publish_container` publishes the same container after `status_code` is `FINISHED`.
+
+Live container creation requires `confirmCreate=true`. Live publishing requires `confirmPost=true`. If a create call returns a container id, retry status or publish with that id; do not retry create unless a duplicate container is intentional.
+
 ## Token Lifecycle
 
 - TikTok, X/Twitter OAuth2, and YouTube can use refresh-token flows.
