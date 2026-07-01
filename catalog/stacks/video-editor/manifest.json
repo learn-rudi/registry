@@ -58,6 +58,13 @@
     ],
     "secrets": []
   },
+  "related": {
+    "skills": [
+      "skill:rudi-video-editor",
+      "skill:shortform-your-words-script",
+      "skill:shortform-publish-copy"
+    ]
+  },
   "meta": {
     "author": "CO-LLAB",
     "license": "MIT",

@@ -444,7 +444,9 @@
           },
           "related": {
             "skills": [
-              "skill:shortform-your-words-script"
+              "skill:rudi-video-editor",
+              "skill:shortform-your-words-script",
+              "skill:shortform-publish-copy"
             ]
           }
         },
@@ -1053,6 +1055,28 @@
             "github",
             "handoff"
           ]
+        },
+        {
+          "id": "skill:rudi-video-editor",
+          "name": "RUDI Video Editor",
+          "version": "1.0.0",
+          "description": "Use RUDI video editing stack tools to inspect, trim, caption, render, and verify edited video from a user prompt",
+          "path": "catalog/skills/rudi-video-editor.md",
+          "category": "creative",
+          "tags": [
+            "rudi",
+            "video",
+            "editing",
+            "captions",
+            "ffmpeg",
+            "rendering",
+            "qa"
+          ],
+          "requires": {
+            "stacks": [
+              "video-editor"
+            ]
+          }
         },
         {
           "id": "skill:shortform-your-words-script",
