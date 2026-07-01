@@ -22,11 +22,32 @@
     "binaries": [],
     "secrets": [
       {
-        "description": "Optional - Supadata API for faster YouTube transcript extraction",
+        "description": "Optional but recommended - required for reliable YouTube transcript extraction",
         "label": "Supadata API Key",
         "link": "https://supadata.ai",
         "required": false,
         "name": "SUPA_DATA_API"
+      },
+      {
+        "description": "Optional - Reddit OAuth bearer token used when public JSON access is blocked",
+        "label": "Reddit Bearer Token",
+        "link": "https://www.reddit.com/prefs/apps",
+        "required": false,
+        "name": "REDDIT_BEARER_TOKEN"
+      },
+      {
+        "description": "Optional - Reddit app client ID for client-credentials fallback",
+        "label": "Reddit Client ID",
+        "link": "https://www.reddit.com/prefs/apps",
+        "required": false,
+        "name": "REDDIT_CLIENT_ID"
+      },
+      {
+        "description": "Optional - Reddit app client secret for client-credentials fallback",
+        "label": "Reddit Client Secret",
+        "link": "https://www.reddit.com/prefs/apps",
+        "required": false,
+        "name": "REDDIT_CLIENT_SECRET"
       }
     ]
   },

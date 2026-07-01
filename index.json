@@ -558,7 +558,7 @@
           "id": "stack:github",
           "name": "GitHub",
           "version": "1.0.0",
-          "description": "Manage GitHub repos, PRs, issues, and code search",
+          "description": "Manage GitHub repositories, branches, contents, collaborators, issues, pull requests, releases, Actions, artifacts, and direct REST API calls",
           "path": "catalog/stacks/github",
           "runtime": "runtime:node",
           "category": "development",
@@ -568,7 +568,9 @@
             "repos",
             "prs",
             "issues",
-            "code"
+            "code",
+            "releases",
+            "actions"
           ],
           "requires": {
             "secrets": [
@@ -720,6 +722,100 @@
               "TALLY_API_KEY"
             ]
           }
+        },
+        {
+          "id": "stack:macos-automation",
+          "name": "macOS Automation",
+          "version": "0.1.0",
+          "description": "Guarded macOS automation tools for apps, Finder, Reminders, Shortcuts, notifications, and System Events permission checks",
+          "path": "catalog/stacks/macos-automation",
+          "runtime": "runtime:node",
+          "category": "local-automation",
+          "tags": [
+            "macos",
+            "apple-script",
+            "shortcuts",
+            "reminders",
+            "finder",
+            "productivity",
+            "automation",
+            "mcp"
+          ]
+        },
+        {
+          "id": "stack:neon",
+          "name": "Neon",
+          "version": "0.1.0",
+          "description": "Guarded Neon platform operations for projects, branches, connection URI retrieval, and MCP config generation",
+          "path": "catalog/stacks/neon",
+          "runtime": "runtime:node",
+          "category": "data",
+          "tags": [
+            "neon",
+            "postgres",
+            "database",
+            "branching",
+            "mcp",
+            "platform"
+          ],
+          "requires": {
+            "binaries": [
+              "neonctl"
+            ],
+            "secrets": [
+              "NEON_API_KEY"
+            ]
+          },
+          "related": {
+            "stacks": [
+              "stack:postgres"
+            ],
+            "binaries": [
+              "binary:neonctl"
+            ]
+          }
+        },
+        {
+          "id": "stack:rudi-crm",
+          "name": "RUDI CRM",
+          "version": "0.1.0",
+          "description": "Controlled MCP interface for RUDI CRM engagement memory, discovery, triage, validators, and correspondence context",
+          "path": "catalog/stacks/rudi-crm",
+          "runtime": "runtime:node",
+          "category": "business",
+          "tags": [
+            "crm",
+            "engagements",
+            "postgres",
+            "supabase",
+            "mcp",
+            "audit"
+          ],
+          "requires": {
+            "secrets": [
+              "RUDI_CRM_DATABASE_URL"
+            ]
+          }
+        },
+        {
+          "id": "stack:supabase-mcp",
+          "name": "Supabase MCP",
+          "version": "0.1.0",
+          "description": "Connect agents to Supabase's hosted OAuth MCP server for database, project, Edge Functions, docs, and development tools",
+          "path": "catalog/stacks/supabase-mcp",
+          "runtime": "runtime:node",
+          "category": "data",
+          "tags": [
+            "supabase",
+            "postgres",
+            "database",
+            "mcp",
+            "oauth",
+            "remote"
+          ],
+          "requires": {
+            "secrets": []
+          }
         }
       ],
       "community": [
@@ -731,7 +827,13 @@
           "path": "catalog/stacks/codebase-memory",
           "runtime": "binary",
           "category": "development",
-          "tags": ["codebase", "graph", "indexing", "code-search", "knowledge-graph"]
+          "tags": [
+            "codebase",
+            "graph",
+            "indexing",
+            "code-search",
+            "knowledge-graph"
+          ]
         }
       ]
     },
@@ -1490,7 +1592,10 @@
           "path": "catalog/binaries/vercel.json",
           "installType": "npm",
           "npmPackage": "vercel",
-          "bins": ["vercel", "vc"],
+          "bins": [
+            "vercel",
+            "vc"
+          ],
           "platforms": [
             "darwin-arm64",
             "darwin-x64",
@@ -1629,6 +1734,24 @@
             "darwin-x64",
             "linux-x64",
             "linux-arm64"
+          ]
+        },
+        {
+          "id": "binary:neonctl",
+          "name": "Neon CLI",
+          "version": "latest",
+          "description": "Manage Neon projects, branches, auth, and MCP setup from the terminal",
+          "path": "catalog/binaries/neonctl.json",
+          "installType": "npm",
+          "npmPackage": "neonctl",
+          "bins": [
+            "neonctl",
+            "neon"
+          ],
+          "platforms": [
+            "darwin-arm64",
+            "darwin-x64",
+            "linux-x64"
           ]
         }
       ],

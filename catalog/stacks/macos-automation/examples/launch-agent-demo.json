@@ -1,0 +1,54 @@
+{
+  "description": "Examples of LaunchAgent schedules supported by the macOS Automation stack. All examples are dry-run by default.",
+  "daily_brief": {
+    "tool": "macos_install_launch_agent",
+    "arguments": {
+      "label": "dev.rudi.daily-brief",
+      "command": [
+        "/usr/bin/shortcuts",
+        "run",
+        "RUDI Vault"
+      ],
+      "schedule": {
+        "type": "daily",
+        "hour": 8,
+        "minute": 30
+      },
+      "confirm_install": false
+    }
+  },
+  "hourly_followups": {
+    "tool": "macos_install_launch_agent",
+    "arguments": {
+      "label": "dev.rudi.hourly-followups",
+      "command": [
+        "/usr/bin/shortcuts",
+        "run",
+        "Ask Claude"
+      ],
+      "schedule": {
+        "type": "interval",
+        "seconds": 3600
+      },
+      "confirm_install": false
+    }
+  },
+  "watch_recordings_folder": {
+    "tool": "macos_install_launch_agent",
+    "arguments": {
+      "label": "dev.rudi.watch-recordings",
+      "command": [
+        "/usr/bin/shortcuts",
+        "run",
+        "Air RUDI"
+      ],
+      "schedule": {
+        "type": "watch_paths",
+        "paths": [
+          "/absolute/path/to/recordings"
+        ]
+      },
+      "confirm_install": false
+    }
+  }
+}

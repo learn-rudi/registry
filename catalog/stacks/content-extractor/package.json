@@ -6,6 +6,7 @@
   "main": "src/index.ts",
   "scripts": {
     "start": "npx tsx src/index.ts",
+    "test": "tsx --test tests/*.test.mjs",
     "build": "tsc"
   },
   "dependencies": {

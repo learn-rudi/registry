@@ -1,0 +1,57 @@
+{
+  "id": "rudi-crm",
+  "name": "RUDI CRM",
+  "version": "0.1.0",
+  "description": "Controlled MCP interface for RUDI CRM engagement memory, discovery, triage, validators, and correspondence context.",
+  "runtime": "node",
+  "command": [
+    "npx",
+    "tsx",
+    "src/index.ts"
+  ],
+  "provides": {
+    "tools": [
+      "rudi_crm_config_status",
+      "rudi_crm_setup_status",
+      "rudi_crm_record_discovery_observations",
+      "rudi_crm_log_ingest_batch",
+      "rudi_crm_upsert_interaction",
+      "rudi_crm_record_finance_event",
+      "rudi_crm_run_validators",
+      "rudi_crm_list_people",
+      "rudi_crm_list_organizations",
+      "rudi_crm_list_engagements",
+      "rudi_crm_get_activity_feed",
+      "rudi_crm_get_attention_brief",
+      "rudi_crm_list_triage_queue",
+      "rudi_crm_get_unknown_discovery_domains",
+      "rudi_crm_get_engagement_context",
+      "rudi_crm_get_latest_correspondence"
+    ]
+  },
+  "requires": {
+    "binaries": [],
+    "secrets": [
+      {
+        "name": "RUDI_CRM_DATABASE_URL",
+        "label": "RUDI CRM Database URL",
+        "description": "Postgres connection string for the RUDI CRM database. Use a scoped server-side credential; never expose it to clients.",
+        "required": true
+      }
+    ]
+  },
+  "meta": {
+    "author": "RUDI",
+    "license": "MIT",
+    "category": "business",
+    "tags": [
+      "crm",
+      "engagements",
+      "postgres",
+      "supabase",
+      "mcp",
+      "audit"
+    ],
+    "icon": "rudi-crm"
+  }
+}
