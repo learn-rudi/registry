@@ -1,13 +1,13 @@
 ---
-name: SWE Compliance Checklist
-description: Create and execute a phase-gated engineering checklist for software changes that must comply with the SWE Operating Manual, including scope, tests, proof commands, smoke checks, documentation gates, accepted debt, and Definition of Done
+name: RUDI SWE Compliance Checklist
+description: Create and execute a RUDI phase-gated engineering checklist for software changes that must comply with the SWE Operating Manual, including scope, tests, proof commands, smoke checks, documentation gates, accepted debt, and Definition of Done
 version: 1.0.0
 category: coding
 icon: ✅
-tags: [swe, compliance, checklist, testing, verification, engineering]
+tags: [rudi, swe, compliance, checklist, testing, verification, engineering]
 ---
 
-# SWE Compliance Checklist
+# RUDI SWE Compliance Checklist
 
 ## Purpose
 
