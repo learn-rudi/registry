@@ -130,6 +130,26 @@ test("socialPublishDirect supports adapter-backed dry runs without credentials",
   assert.equal(result.validation.mode, "video");
 });
 
+test("instagramReelCreateContainer supports dry runs before creating a Meta container", async () => {
+  const publisher = await import("../src/index.ts");
+
+  assert.equal(typeof publisher.instagramReelCreateContainer, "function");
+
+  const result = JSON.parse(
+    await publisher.instagramReelCreateContainer({
+      videoUrl: "https://cdn.example.com/reel.mp4",
+      caption: "Caption",
+      dryRun: true,
+    })
+  );
+
+  assert.equal(result.dryRun, true);
+  assert.equal(result.platform, "instagram");
+  assert.equal(result.action, "create_reel_container");
+  assert.equal(result.validation.ok, true);
+  assert.equal(result.validation.mode, "reel");
+});
+
 test("socialPublishDirect requires explicit confirmation outside dry runs", async () => {
   await assert.rejects(
     () =>

@@ -170,10 +170,21 @@ MCP tools:
 ```text
 social_check_publish_ready
 social_publish_direct
+instagram_reel_create_container
+instagram_container_status
+instagram_publish_container
 youtube_video_upload
 ```
 
 `social_publish_direct` uses the same adapter contract as the queued publisher. It accepts `platform`, `body`, optional `title`, optional `target`, `media`, platform-keyed `metadata`, and requires `confirmPost=true` for live publishing. Use `dryRun=true` first to validate payload shape without credentials or network posting.
+
+For Instagram Reels, prefer the staged tools when media processing may outlive a single MCP tool call:
+
+1. `instagram_reel_create_container` with `confirmCreate=true`
+2. `instagram_container_status` until `status_code` is `FINISHED`
+3. `instagram_publish_container` with `confirmPost=true`
+
+Retry status/publish with the returned container id. Do not retry container creation after a container id is returned unless you intentionally want a new container.
 
 For video workflows:
 

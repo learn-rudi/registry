@@ -216,7 +216,7 @@ async function createContainer(target, token, params) {
   }
 }
 
-async function getContainerStatus(containerId, token) {
+async function fetchContainerStatus(containerId, token) {
   const response = await axios.get(`${GRAPH_BASE_URL}/${containerId}`, {
     params: {
       fields: 'id,status_code,status',
@@ -228,6 +228,18 @@ async function getContainerStatus(containerId, token) {
   return response.data;
 }
 
+function describeContainerStatus(containerId, status) {
+  const statusCode = status.status_code ?? null;
+
+  return {
+    id: status.id ?? containerId,
+    status_code: statusCode,
+    status: status.status ?? null,
+    finished: statusCode === 'FINISHED',
+    terminal: TERMINAL_CONTAINER_FAILURES.has(statusCode),
+  };
+}
+
 async function waitForContainer(containerId, token, options = {}) {
   const attempts = options.attempts ?? 24;
   const intervalMs = options.intervalMs ?? 5_000;
@@ -235,7 +247,7 @@ async function waitForContainer(containerId, token, options = {}) {
   for (let attempt = 1; attempt <= attempts; attempt++) {
     let status;
     try {
-      status = await getContainerStatus(containerId, token);
+      status = await fetchContainerStatus(containerId, token);
     } catch (error) {
       throw mapGraphError(error, 'instagram_container_status_failed');
     }
@@ -266,7 +278,7 @@ async function waitForContainer(containerId, token, options = {}) {
   );
 }
 
-async function publishContainer(target, token, creationId) {
+async function publishMediaContainer(target, token, creationId) {
   try {
     const response = await axios.post(`${GRAPH_BASE_URL}/${target.platform_asset_id}/media_publish`, {
       creation_id: creationId,
@@ -313,21 +325,7 @@ function getMediaUrl(media) {
   return assertHttpsUrl(media.source_url, 'Instagram media URL');
 }
 
-async function publishImage(target, token, post, media) {
-  const containerId = await createContainer(target, token, {
-    image_url: getMediaUrl(media[0]),
-    caption: post.body,
-  });
-  await waitForContainer(containerId, token);
-  const mediaId = await publishContainer(target, token, containerId);
-
-  return {
-    mediaId,
-    containerIds: [containerId],
-  };
-}
-
-async function publishReel(target, token, post, media) {
+function buildReelContainerParams(post, media) {
   const options = getInstagramOptions(post);
   const params = {
     media_type: 'REELS',
@@ -344,9 +342,45 @@ async function publishReel(target, token, post, media) {
     params.thumb_offset = Number.parseInt(options.thumb_offset, 10);
   }
 
-  const containerId = await createContainer(target, token, params);
+  return params;
+}
+
+function assertReelValidation(validation) {
+  if (!validation.ok) {
+    throw new PlatformAdapterError(
+      validation.errors[0].code,
+      validation.errors[0].message,
+      { retryable: false, details: { validation_errors: validation.errors } },
+    );
+  }
+
+  if (validation.mode !== 'reel') {
+    throw new PlatformAdapterError(
+      'instagram_reel_required',
+      'This operation only supports Instagram Reel video containers',
+      { retryable: false },
+    );
+  }
+}
+
+async function publishImage(target, token, post, media) {
+  const containerId = await createContainer(target, token, {
+    image_url: getMediaUrl(media[0]),
+    caption: post.body,
+  });
   await waitForContainer(containerId, token);
-  const mediaId = await publishContainer(target, token, containerId);
+  const mediaId = await publishMediaContainer(target, token, containerId);
+
+  return {
+    mediaId,
+    containerIds: [containerId],
+  };
+}
+
+async function publishReel(target, token, post, media) {
+  const containerId = await createContainer(target, token, buildReelContainerParams(post, media));
+  await waitForContainer(containerId, token);
+  const mediaId = await publishMediaContainer(target, token, containerId);
 
   return {
     mediaId,
@@ -384,7 +418,7 @@ async function publishCarousel(target, token, post, media) {
     children: childIds.join(','),
   });
   await waitForContainer(parentId, token);
-  const mediaId = await publishContainer(target, token, parentId);
+  const mediaId = await publishMediaContainer(target, token, parentId);
 
   return {
     mediaId,
@@ -437,6 +471,76 @@ export const instagramProfileAdapter = Object.freeze({
 
       throw mapGraphError(error, 'instagram_auth_check_failed');
     }
+  },
+
+  async createReelContainer({ post, target, media, token }) {
+    const validation = this.validatePost({ post, target, media });
+    assertReelValidation(validation);
+
+    const containerId = await createContainer(target, token, buildReelContainerParams(post, media));
+
+    return {
+      platformContainerId: containerId,
+      containerIds: [containerId],
+      platformResponse: {
+        id: containerId,
+        status: 'container_created',
+        status_check_required: true,
+      },
+    };
+  },
+
+  async getContainerStatus({ platformContainerId, token }) {
+    try {
+      const status = await fetchContainerStatus(platformContainerId, token);
+
+      return {
+        platformContainerId,
+        platformResponse: describeContainerStatus(platformContainerId, status),
+      };
+    } catch (error) {
+      throw mapGraphError(error, 'instagram_container_status_failed');
+    }
+  },
+
+  async publishContainer({ target, platformContainerId, token }) {
+    let status;
+    try {
+      status = await fetchContainerStatus(platformContainerId, token);
+    } catch (error) {
+      throw mapGraphError(error, 'instagram_container_status_failed');
+    }
+
+    const describedStatus = describeContainerStatus(platformContainerId, status);
+
+    if (describedStatus.terminal) {
+      throw new PlatformAdapterError(
+        'instagram_container_failed',
+        `Instagram container ${platformContainerId} finished with status ${describedStatus.status_code}`,
+        { retryable: false, details: { status: describedStatus.status } },
+      );
+    }
+
+    if (!describedStatus.finished) {
+      throw new PlatformAdapterError(
+        'instagram_container_not_ready',
+        `Instagram container ${platformContainerId} is not ready to publish`,
+        { retryable: true, details: describedStatus },
+      );
+    }
+
+    const mediaId = await publishMediaContainer(target, token, platformContainerId);
+    const permalink = await getPermalink(mediaId, token);
+
+    return {
+      platformPostId: mediaId,
+      permalinkUrl: permalink,
+      platformResponse: {
+        id: mediaId,
+        container_id: platformContainerId,
+        permalink,
+      },
+    };
   },
 
   async publish({ post, target, media, token }) {

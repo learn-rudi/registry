@@ -936,6 +936,166 @@ export async function instagramPost(
   return `**Instagram Post Published**\n\n**Account:** @${account.instagram_username}\n**Caption:** ${caption.slice(0, 100)}${caption.length > 100 ? "..." : ""}\n**Media ID:** ${mediaId}`;
 }
 
+export async function instagramReelCreateContainer(
+  options: {
+    videoUrl?: string;
+    caption?: string;
+    mimeType?: string;
+    coverUrl?: string;
+    thumbOffset?: number;
+    shareToFeed?: boolean;
+    account?: string;
+    confirmCreate?: boolean;
+    dryRun?: boolean;
+  } = {}
+): Promise<string> {
+  const videoUrl = optionalString(options.videoUrl);
+  if (!videoUrl) {
+    throw new Error("videoUrl is required");
+  }
+
+  const post = {
+    body: options.caption ?? "",
+    metadata: {
+      instagram: {
+        media_type: "reels",
+        cover_url: options.coverUrl,
+        thumb_offset: options.thumbOffset,
+        share_to_feed: options.shareToFeed,
+      },
+    },
+  };
+  const media = [
+    {
+      media_kind: "video",
+      source_url: videoUrl,
+      mime_type: options.mimeType,
+    },
+  ];
+  const dryRunTarget = { asset_type: "profile", platform_asset_id: "preview" };
+  const adapter = getPlatformAdapter("instagram") as any;
+  const validation = adapter.validatePost({ post, target: dryRunTarget, media });
+
+  if (options.dryRun) {
+    return JSON.stringify(
+      {
+        dryRun: true,
+        platform: "instagram",
+        action: "create_reel_container",
+        target: dryRunTarget,
+        validation,
+        note: "Live container creation requires confirmCreate=true. Use instagram_container_status before instagram_publish_container.",
+      },
+      null,
+      2
+    );
+  }
+
+  if (!validation.ok) {
+    throw new Error(validation.errors[0]?.message ?? "Instagram Reel container payload is invalid");
+  }
+
+  if (options.confirmCreate !== true) {
+    throw new Error("confirmCreate must be true for live Instagram Reel container creation");
+  }
+
+  const target: SocialTarget = { asset_type: "profile", platform_asset_id: "self" };
+  const credential = await getDirectPublishCredential("instagram", target, { account: options.account });
+  const result = await adapter.createReelContainer({
+    post,
+    target: credential.target,
+    media,
+    token: credential.token,
+  });
+
+  return JSON.stringify(
+    {
+      platform: "instagram",
+      action: "create_reel_container",
+      status: "container_created",
+      target: credential.target,
+      platformContainerId: result.platformContainerId,
+      containerIds: result.containerIds,
+      platformResponse: result.platformResponse,
+      next: "Call instagram_container_status until status_code is FINISHED, then call instagram_publish_container.",
+    },
+    null,
+    2
+  );
+}
+
+export async function instagramContainerStatus(
+  options: {
+    containerId?: string;
+    account?: string;
+  } = {}
+): Promise<string> {
+  const containerId = optionalString(options.containerId);
+  if (!containerId) {
+    throw new Error("containerId is required");
+  }
+
+  const target: SocialTarget = { asset_type: "profile", platform_asset_id: "self" };
+  const credential = await getDirectPublishCredential("instagram", target, { account: options.account });
+  const adapter = getPlatformAdapter("instagram") as any;
+  const result = await adapter.getContainerStatus({
+    platformContainerId: containerId,
+    token: credential.token,
+  });
+
+  return JSON.stringify(
+    {
+      platform: "instagram",
+      action: "container_status",
+      target: credential.target,
+      platformContainerId: result.platformContainerId,
+      platformResponse: result.platformResponse,
+    },
+    null,
+    2
+  );
+}
+
+export async function instagramPublishContainer(
+  options: {
+    containerId?: string;
+    account?: string;
+    confirmPost?: boolean;
+  } = {}
+): Promise<string> {
+  const containerId = optionalString(options.containerId);
+  if (!containerId) {
+    throw new Error("containerId is required");
+  }
+
+  if (options.confirmPost !== true) {
+    throw new Error("confirmPost must be true for live Instagram container publishing");
+  }
+
+  const target: SocialTarget = { asset_type: "profile", platform_asset_id: "self" };
+  const credential = await getDirectPublishCredential("instagram", target, { account: options.account });
+  const adapter = getPlatformAdapter("instagram") as any;
+  const result = await adapter.publishContainer({
+    target: credential.target,
+    platformContainerId: containerId,
+    token: credential.token,
+  });
+
+  return JSON.stringify(
+    {
+      platform: "instagram",
+      action: "publish_container",
+      status: "published",
+      target: credential.target,
+      platformPostId: result.platformPostId,
+      permalinkUrl: result.permalinkUrl,
+      platformResponse: result.platformResponse,
+    },
+    null,
+    2
+  );
+}
+
 // =============================================================================
 // TIKTOK
 // =============================================================================
@@ -1489,6 +1649,51 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     {
+      name: "instagram_reel_create_container",
+      description:
+        "Create an Instagram Reel media container from a hosted HTTPS video without publishing it. Requires confirmCreate=true for live container creation.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          videoUrl: { type: "string", description: "Public HTTPS URL of the Reel video" },
+          caption: { type: "string", description: "Reel caption" },
+          mimeType: { type: "string", description: "Optional video MIME type" },
+          coverUrl: { type: "string", description: "Optional public HTTPS cover image URL" },
+          thumbOffset: { type: "number", description: "Optional cover frame timestamp offset" },
+          shareToFeed: { type: "boolean", description: "Whether to share the Reel to feed; defaults to true" },
+          account: { type: "string", description: "Instagram username (e.g., '@engineermarketing')" },
+          confirmCreate: { type: "boolean", description: "Must be true for live container creation" },
+          dryRun: { type: "boolean", description: "Validate and preview without creating a container" },
+        },
+        required: ["videoUrl"],
+      },
+    },
+    {
+      name: "instagram_container_status",
+      description: "Check an Instagram media container status by container id without creating or publishing media.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          containerId: { type: "string", description: "Instagram media container id returned by instagram_reel_create_container" },
+          account: { type: "string", description: "Instagram username (e.g., '@engineermarketing')" },
+        },
+        required: ["containerId"],
+      },
+    },
+    {
+      name: "instagram_publish_container",
+      description: "Publish an existing Instagram media container after its status_code is FINISHED. Requires confirmPost=true.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          containerId: { type: "string", description: "Instagram media container id to publish" },
+          account: { type: "string", description: "Instagram username (e.g., '@engineermarketing')" },
+          confirmPost: { type: "boolean", description: "Must be true for live publishing" },
+        },
+        required: ["containerId"],
+      },
+    },
+    {
       name: "instagram_list_accounts",
       description: "List all available Instagram accounts",
       inputSchema: {
@@ -1637,6 +1842,32 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         result = await instagramPost(args?.imageUrl as string, args?.caption as string, {
           account: args?.account as string,
           dryRun: args?.dryRun as boolean,
+        });
+        break;
+      case "instagram_reel_create_container":
+        result = await instagramReelCreateContainer({
+          videoUrl: args?.videoUrl as string,
+          caption: args?.caption as string,
+          mimeType: args?.mimeType as string,
+          coverUrl: args?.coverUrl as string,
+          thumbOffset: args?.thumbOffset as number,
+          shareToFeed: args?.shareToFeed as boolean,
+          account: args?.account as string,
+          confirmCreate: args?.confirmCreate as boolean,
+          dryRun: args?.dryRun as boolean,
+        });
+        break;
+      case "instagram_container_status":
+        result = await instagramContainerStatus({
+          containerId: args?.containerId as string,
+          account: args?.account as string,
+        });
+        break;
+      case "instagram_publish_container":
+        result = await instagramPublishContainer({
+          containerId: args?.containerId as string,
+          account: args?.account as string,
+          confirmPost: args?.confirmPost as boolean,
         });
         break;
       case "instagram_list_accounts":
