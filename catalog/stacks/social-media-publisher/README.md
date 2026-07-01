@@ -173,6 +173,8 @@ social_publish_direct
 youtube_video_upload
 ```
 
+Use `social_check_publish_ready` without options for a local credentials/config presence check. Use `social_check_publish_ready` with `{"platform":"youtube","validateAuth":true}` to perform a live YouTube token refresh and channel lookup without publishing media. This validation returns structured auth status and does not include secret values.
+
 `social_publish_direct` uses the same adapter contract as the queued publisher. It accepts `platform`, `body`, optional `title`, optional `target`, `media`, platform-keyed `metadata`, and requires `confirmPost=true` for live publishing. Use `dryRun=true` first to validate payload shape without credentials or network posting.
 
 For video workflows:

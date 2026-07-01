@@ -116,6 +116,14 @@ Use the MCP readiness tool after configuring credentials:
 social_check_publish_ready
 ```
 
+For YouTube, use validated readiness after OAuth setup or token refresh:
+
+```json
+{"platform":"youtube","validateAuth":true}
+```
+
+Validated readiness refreshes the local stack env values, asks Google for an access token, and looks up the authorized channel without uploading or publishing media. The response includes structured auth status and does not include secret values.
+
 Expected fully configured platform set:
 
 ```text
