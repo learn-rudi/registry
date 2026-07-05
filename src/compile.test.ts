@@ -8,6 +8,8 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 
 // =============================================================================
 // Helpers
@@ -18,9 +20,24 @@ async function readJson(file: string): Promise<unknown> {
   return JSON.parse(raw);
 }
 
+const execFileAsync = promisify(execFile);
+
 function hashObject(obj: unknown): string {
   const json = JSON.stringify(obj, null, 2);
   return crypto.createHash("sha256").update(json).digest("hex");
+}
+
+async function runCompiler(): Promise<void> {
+  const tsxBin = path.join(
+    process.cwd(),
+    "node_modules",
+    ".bin",
+    process.platform === "win32" ? "tsx.cmd" : "tsx"
+  );
+  await execFileAsync(tsxBin, ["src/compile.ts"], {
+    cwd: process.cwd(),
+    maxBuffer: 20 * 1024 * 1024,
+  });
 }
 
 // =============================================================================
@@ -259,6 +276,33 @@ describe("catalog hash", () => {
       (f) => f.includes("manifest") && f.endsWith(".json")
     );
     expect(hasManifests).toBe(true);
+  });
+
+  it("should exclude stack runtime artifacts from the hash tree", async () => {
+    const runtimeArtifact = path.join(
+      "catalog",
+      "stacks",
+      "video-editor",
+      "runs",
+      "__compile-test__",
+      "leak.json"
+    );
+
+    await fs.mkdir(path.dirname(runtimeArtifact), { recursive: true });
+    await fs.writeFile(runtimeArtifact, JSON.stringify({ shouldNotShip: true }) + "\n");
+
+    try {
+      await runCompiler();
+
+      const hash = (await readJson("dist/catalog.sha256.json")) as {
+        files: Record<string, string>;
+      };
+
+      expect(hash.files).not.toHaveProperty(runtimeArtifact);
+    } finally {
+      await fs.rm(path.dirname(runtimeArtifact), { recursive: true, force: true });
+      await runCompiler();
+    }
   });
 });
 

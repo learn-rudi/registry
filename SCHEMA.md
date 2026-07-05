@@ -54,7 +54,7 @@ binary:ffmpeg
 binary:vercel
 agent:claude
 stack:video-editor
-skill:code-review
+skill:grill-with-docs
 ```
 
 ### `kind` (required)
@@ -113,9 +113,11 @@ For `source: "catalog"`, the payload lives inside the registry itself:
 - Installing = sync from registry cache → local install directory
 - If `path` omitted, derived from `id`:
   - `stack:video-editor` → `catalog/stacks/video-editor`
-  - `skill:code-review` → `catalog/skills/code-review.md`
+  - `skill:grill-with-docs` → `catalog/skills/grill-with-docs.md`
   - `prompt:code-review` → `catalog/prompts/code-review.md`
 - Integrity handled at registry-release artifact level (no per-file checksum)
+
+Catalog source must remain portable. Do not publish generated runtime state, local account state, dependency installs, downloaded media, rendered outputs, browser profiles, or private workflow artifacts under `catalog/`. Stack state belongs under `~/.rudi/state/stacks/{stack-id}` by default, and registry checks exclude forbidden stack-local paths such as `node_modules`, `runs`, `downloads`, `tmp`, `.chrome-profiles`, `.test-rudi`, `clips`, `output`, `outputs`, and `composer/public/media`.
 
 ### Skill Markdown Packages
 

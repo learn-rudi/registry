@@ -233,14 +233,14 @@ describe("schema validation - valid manifests", () => {
 
   it("should accept minimal skill manifest", () => {
     const manifest = {
-      id: "skill:code-review",
+      id: "skill:grill-with-docs",
       kind: "skill",
-      name: "Code Review",
+      name: "Grill With Docs",
       version: "1.0.0",
       delivery: "remote",
       install: {
         source: "catalog",
-        path: "catalog/skills/code-review.md",
+        path: "catalog/skills/grill-with-docs.md",
       },
     };
 

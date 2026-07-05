@@ -242,9 +242,9 @@ describe("resolve", () => {
 
     it("should derive skill path from id when omitted", () => {
       const pkg: Package = {
-        id: "skill:code-review",
+        id: "skill:grill-with-docs",
         kind: "skill",
-        name: "Code Review",
+        name: "Grill With Docs",
         version: "1.0.0",
         delivery: "remote",
         install: { source: "catalog" },
@@ -252,7 +252,7 @@ describe("resolve", () => {
       const ctx: ResolveContext = { os: "darwin", arch: "arm64" };
       const resolved = resolve(pkg, ctx);
 
-      expect(resolved.install.path).toBe("catalog/skills/code-review.md");
+      expect(resolved.install.path).toBe("catalog/skills/grill-with-docs.md");
     });
 
     it("should not override explicit path", () => {

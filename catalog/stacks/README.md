@@ -24,7 +24,6 @@ MCP (Model Context Protocol) servers that extend agents with tools for external 
 |-------|-------------|------------------|
 | `google-workspace` | Gmail, Sheets, Docs, Drive, Calendar | `GOOGLE_CREDENTIALS` |
 | `notion-workspace` | Pages, databases, search | `NOTION_API_KEY` |
-| `airtable` | Query and manage Airtable bases and records | `AIRTABLE_API_KEY` |
 | `ms-office` | Read Word/Excel documents | - |
 
 ### Development
@@ -44,7 +43,6 @@ MCP (Model Context Protocol) servers that extend agents with tools for external 
 |-------|-------------|------------------|
 | `data-analysis` | Python/pandas analysis, charts, visualization | - |
 | `rudi-processor` | Local file metadata extraction, workspace audit, and indexed content search | optional LLM provider keys |
-| `finance` | Stock market data, crypto prices, portfolio tracking | `ALPHA_VANTAGE_API_KEY` (optional) |
 
 ### Content & Media
 | Stack | Description | Secrets Required |
@@ -66,6 +64,13 @@ rudi integrate claude
 ```
 
 Installed to: `~/.rudi/stacks/{stack-id}/`
+
+Runtime state is separate from the installed stack source. Generated run folders,
+downloads, temporary files, browser profiles, rendered outputs, QA media, and
+dependency installs must not be committed under `catalog/stacks/{stack-id}` or
+published in registry packages. Stack state belongs under
+`~/.rudi/state/stacks/{stack-id}` by default, with stack-specific environment
+variables available when a stack documents an override.
 
 ## Stack Structure
 

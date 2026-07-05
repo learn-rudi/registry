@@ -1,4 +1,5 @@
 import fs from 'fs/promises';
+import os from 'os';
 import path from 'path';
 import {
   cloneDefaultArtifacts,
@@ -43,6 +44,61 @@ function resolveSlug(sourcePath, slugArg) {
     throw new Error('Unable to derive run slug');
   }
   return slug;
+}
+
+function sourceLinkFor(sourcePath) {
+  return `source${path.extname(sourcePath).toLowerCase() || '.mov'}`;
+}
+
+function downloadsRoot() {
+  return path.resolve(process.env.RUDI_VIDEO_EDITOR_DOWNLOADS_DIR || path.join(os.homedir(), 'Downloads'));
+}
+
+function isSameOrInside(childPath, parentPath) {
+  const relative = path.relative(parentPath, childPath);
+  return relative === '' || (relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative));
+}
+
+async function canonicalPath(filePath) {
+  try {
+    return await fs.realpath(filePath);
+  } catch {
+    return path.resolve(filePath);
+  }
+}
+
+async function isDownloadsSource(sourcePath) {
+  const [sourceRealPath, downloadsRealPath] = await Promise.all([
+    canonicalPath(sourcePath),
+    canonicalPath(downloadsRoot())
+  ]);
+  return isSameOrInside(sourceRealPath, downloadsRealPath);
+}
+
+async function removeDownloadsOriginal(originalPath, importedPath) {
+  const [originalRealPath, importedRealPath] = await Promise.all([
+    canonicalPath(originalPath),
+    canonicalPath(importedPath)
+  ]);
+
+  if (originalRealPath === importedRealPath) {
+    return;
+  }
+
+  const [originalStat, importedStat] = await Promise.all([
+    fs.stat(originalPath),
+    fs.stat(importedPath)
+  ]);
+
+  if (!originalStat.isFile() || !importedStat.isFile()) {
+    throw new Error('Refusing to remove Downloads source because import paths are not regular files');
+  }
+
+  if (originalStat.size !== importedStat.size) {
+    throw new Error('Refusing to remove Downloads source because imported file size does not match');
+  }
+
+  await fs.unlink(originalPath);
 }
 
 function rebasePath(filePath, fromDir, toDir) {
@@ -138,16 +194,16 @@ function buildComposition(project) {
   };
 }
 
-async function scaffoldRunDir(runDir, sourcePath, slug) {
+async function scaffoldRunDir(runDir, sourcePath, slug, options = {}) {
   await fs.mkdir(path.join(runDir, 'renders'), { recursive: true });
   await fs.mkdir(path.join(runDir, 'qa', 'frames'), { recursive: true });
 
-  const sourceLink = `source${path.extname(sourcePath).toLowerCase() || '.mov'}`;
+  const sourceLink = sourceLinkFor(sourcePath);
   await fs.copyFile(sourcePath, path.join(runDir, sourceLink));
 
   const createdAt = new Date().toISOString();
   const project = buildProject({
-    sourcePath,
+    sourcePath: options.projectSourcePath || sourcePath,
     slug,
     sourceLink,
     createdAt
@@ -224,22 +280,36 @@ export async function initRun(sourceArg, slugArg, options = {}) {
 
   await fs.mkdir(runsRoot, { recursive: true });
   const stagingDir = await fs.mkdtemp(path.join(runsRoot, `.${target.slug}.init-`));
+  const moveDownloadsSource = options.moveDownloadsSource === true &&
+    await isDownloadsSource(target.sourcePath);
+  const finalSourcePath = path.join(target.runDir, sourceLinkFor(target.sourcePath));
   let currentStep = 'scaffold';
 
   try {
-    const { project } = await scaffoldRunDir(stagingDir, target.sourcePath, target.slug);
+    const { project } = await scaffoldRunDir(stagingDir, target.sourcePath, target.slug, {
+      projectSourcePath: moveDownloadsSource ? finalSourcePath : target.sourcePath
+    });
     currentStep = 'probe';
     await probeRun(stagingDir);
     currentStep = 'about';
     const aboutResult = await aboutRun(stagingDir);
     currentStep = 'commit';
     await replaceRunDir(stagingDir, target.runDir, mode);
+    currentStep = 'downloads cleanup';
+    if (moveDownloadsSource) {
+      await removeDownloadsOriginal(target.sourcePath, finalSourcePath);
+    }
 
     return {
       runDir: target.runDir,
       project,
       about: rebaseAboutResult(aboutResult, stagingDir, target.runDir),
-      state: RunState.IMPORTED
+      state: RunState.IMPORTED,
+      intake: {
+        movedFromDownloads: moveDownloadsSource,
+        originalPath: target.sourcePath,
+        sourcePath: path.join(target.runDir, project.sourceLink)
+      }
     };
   } catch (error) {
     await fs.rm(stagingDir, { recursive: true, force: true });

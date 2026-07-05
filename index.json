@@ -449,7 +449,7 @@
           "id": "stack:video-editor",
           "name": "Video Editor",
           "version": "1.0.0",
-          "description": "Edit videos with ffmpeg - trim, speed up, extract clips, remove silence, extract slides, and more",
+          "description": "Comprehensive local video editing stack for quick ffmpeg operations, structured runs, captions, rendering, and QA.",
           "path": "catalog/stacks/video-editor",
           "runtime": "runtime:node",
           "category": "media",
@@ -457,12 +457,21 @@
             "video",
             "ffmpeg",
             "editing",
+            "silence",
+            "transcript",
             "slides",
+            "captions",
+            "remotion",
+            "templates",
+            "qa",
             "media"
           ],
           "requires": {
             "binaries": [
-              "ffmpeg"
+              "ffmpeg",
+              "ffprobe",
+              "whisper",
+              "chromium"
             ]
           },
           "related": {
@@ -602,26 +611,6 @@
           }
         },
         {
-          "id": "stack:airtable",
-          "name": "Airtable",
-          "version": "1.0.0",
-          "description": "Query and manage Airtable bases, tables, and records",
-          "path": "catalog/stacks/airtable",
-          "runtime": "runtime:node",
-          "category": "productivity",
-          "tags": [
-            "airtable",
-            "database",
-            "spreadsheet",
-            "no-code"
-          ],
-          "requires": {
-            "secrets": [
-              "AIRTABLE_API_KEY"
-            ]
-          }
-        },
-        {
           "id": "stack:stripe",
           "name": "Stripe",
           "version": "1.0.0",
@@ -681,28 +670,6 @@
             "charts",
             "visualization"
           ]
-        },
-        {
-          "id": "stack:finance",
-          "name": "Finance",
-          "version": "1.0.0",
-          "description": "Stock market data, crypto prices, financial analysis, and portfolio tracking",
-          "path": "catalog/stacks/finance",
-          "runtime": "runtime:python",
-          "category": "finance",
-          "tags": [
-            "stocks",
-            "crypto",
-            "finance",
-            "market",
-            "portfolio",
-            "trading"
-          ],
-          "requires": {
-            "secrets": [
-              "ALPHA_VANTAGE_API_KEY"
-            ]
-          }
         },
         {
           "id": "stack:vercel",
@@ -841,66 +808,10 @@
           }
         }
       ],
-      "community": [
-        {
-          "id": "stack:codebase-memory",
-          "name": "Codebase Memory MCP",
-          "version": "0.4.6",
-          "description": "Graph-based codebase indexer that builds a knowledge graph of your code for intelligent retrieval",
-          "path": "catalog/stacks/codebase-memory",
-          "runtime": "binary",
-          "category": "development",
-          "tags": [
-            "codebase",
-            "graph",
-            "indexing",
-            "code-search",
-            "knowledge-graph"
-          ]
-        }
-      ]
+      "community": []
     },
     "skills": {
       "official": [
-        {
-          "id": "skill:getting-started",
-          "name": "Getting Started",
-          "version": "1.0.0",
-          "description": "Welcome guide for new RUDI users",
-          "path": "catalog/skills/getting-started.md",
-          "category": "general",
-          "tags": [
-            "welcome",
-            "onboarding",
-            "tutorial"
-          ]
-        },
-        {
-          "id": "skill:explain",
-          "name": "Explain",
-          "version": "1.0.0",
-          "description": "Break down complex code or concepts clearly",
-          "path": "catalog/skills/explain.md",
-          "category": "coding",
-          "tags": [
-            "learning",
-            "education",
-            "concepts"
-          ]
-        },
-        {
-          "id": "skill:code-review",
-          "name": "Code Review",
-          "version": "1.0.0",
-          "description": "Review code for bugs, style, and improvements",
-          "path": "catalog/skills/code-review.md",
-          "category": "coding",
-          "tags": [
-            "review",
-            "quality",
-            "feedback"
-          ]
-        },
         {
           "id": "skill:swe-compliance-checklist",
           "name": "RUDI SWE Compliance Checklist",
@@ -917,254 +828,6 @@
             "verification",
             "engineering"
           ]
-        },
-        {
-          "id": "skill:fix-error",
-          "name": "Fix Error",
-          "version": "1.0.0",
-          "description": "Debug and resolve errors systematically",
-          "path": "catalog/skills/fix-error.md",
-          "category": "coding",
-          "tags": [
-            "debug",
-            "error",
-            "troubleshooting"
-          ]
-        },
-        {
-          "id": "skill:summarize",
-          "name": "Summarize",
-          "version": "1.0.0",
-          "description": "Condense documents, code, or conversations",
-          "path": "catalog/skills/summarize.md",
-          "category": "writing",
-          "tags": [
-            "summary",
-            "condensing",
-            "tldr"
-          ]
-        },
-        {
-          "id": "skill:brainstorm",
-          "name": "Brainstorm",
-          "version": "1.0.0",
-          "description": "Generate creative ideas and explore possibilities",
-          "path": "catalog/skills/brainstorm.md",
-          "category": "creative",
-          "tags": [
-            "ideas",
-            "creativity",
-            "exploration"
-          ]
-        },
-        {
-          "id": "skill:write-email",
-          "name": "Write Email",
-          "version": "1.0.0",
-          "description": "Draft professional, clear emails",
-          "path": "catalog/skills/write-email.md",
-          "category": "writing",
-          "tags": [
-            "email",
-            "communication",
-            "professional"
-          ],
-          "requires": {
-            "stacks": [
-              "google-workspace"
-            ]
-          }
-        },
-        {
-          "id": "skill:organize-files",
-          "name": "Organize Files",
-          "version": "1.0.0",
-          "description": "Help organize and structure files and folders",
-          "path": "catalog/skills/organize-files.md",
-          "category": "utilities",
-          "tags": [
-            "files",
-            "organization",
-            "structure"
-          ]
-        },
-        {
-          "id": "skill:meeting-prep",
-          "name": "Meeting Prep",
-          "version": "1.0.0",
-          "description": "Prepare for meetings by reviewing emails, calendar events, and creating agendas",
-          "path": "catalog/skills/meeting-prep.md",
-          "category": "productivity",
-          "tags": [
-            "meetings",
-            "preparation",
-            "agenda"
-          ],
-          "requires": {
-            "stacks": [
-              "google-workspace",
-              "content-extractor"
-            ]
-          }
-        },
-        {
-          "id": "skill:create-report",
-          "name": "Create Report",
-          "version": "1.0.0",
-          "description": "Analyze data and generate professional reports with charts and visualizations",
-          "path": "catalog/skills/create-report.md",
-          "category": "analysis",
-          "tags": [
-            "reports",
-            "data",
-            "analysis",
-            "visualization"
-          ],
-          "requires": {
-            "stacks": [
-              "data-analysis",
-              "web-export"
-            ]
-          }
-        },
-        {
-          "id": "skill:transcribe-meeting",
-          "name": "Transcribe Meeting",
-          "version": "1.0.0",
-          "description": "Transcribe audio recordings and create structured meeting notes with action items",
-          "path": "catalog/skills/transcribe-meeting.md",
-          "category": "productivity",
-          "tags": [
-            "transcription",
-            "meetings",
-            "notes",
-            "audio"
-          ],
-          "requires": {
-            "stacks": [
-              "whisper",
-              "google-workspace"
-            ]
-          }
-        },
-        {
-          "id": "skill:deploy-app",
-          "name": "Deploy App",
-          "version": "1.0.0",
-          "description": "Deploy applications to Vercel with environment setup and domain configuration",
-          "path": "catalog/skills/deploy-app.md",
-          "category": "development",
-          "tags": [
-            "deployment",
-            "vercel",
-            "hosting",
-            "devops"
-          ],
-          "requires": {
-            "stacks": [
-              "vercel"
-            ]
-          }
-        },
-        {
-          "id": "skill:competitive-analysis",
-          "name": "Competitive Analysis",
-          "version": "1.0.0",
-          "description": "Research competitors by extracting content from their websites, analyzing data, and generating comparison reports",
-          "path": "catalog/skills/competitive-analysis.md",
-          "category": "business",
-          "tags": [
-            "research",
-            "competitors",
-            "analysis",
-            "market"
-          ],
-          "requires": {
-            "stacks": [
-              "content-extractor",
-              "data-analysis",
-              "web-export"
-            ]
-          }
-        },
-        {
-          "id": "skill:seo-audit",
-          "name": "SEO Audit",
-          "version": "1.0.0",
-          "description": "Audit website pages for SEO issues and generate optimization reports",
-          "path": "catalog/skills/seo-audit.md",
-          "category": "marketing",
-          "tags": [
-            "seo",
-            "audit",
-            "marketing",
-            "optimization"
-          ],
-          "requires": {
-            "stacks": [
-              "content-extractor",
-              "web-export"
-            ]
-          }
-        },
-        {
-          "id": "skill:weekly-digest",
-          "name": "Weekly Digest",
-          "version": "1.0.0",
-          "description": "Compile a weekly summary of emails, calendar events, and action items",
-          "path": "catalog/skills/weekly-digest.md",
-          "category": "productivity",
-          "tags": [
-            "email",
-            "calendar",
-            "summary",
-            "weekly"
-          ],
-          "requires": {
-            "stacks": [
-              "google-workspace"
-            ]
-          }
-        },
-        {
-          "id": "skill:invoice-clients",
-          "name": "Invoice Clients",
-          "version": "1.0.0",
-          "description": "Generate and send professional invoices to clients via email",
-          "path": "catalog/skills/invoice-clients.md",
-          "category": "business",
-          "tags": [
-            "invoicing",
-            "billing",
-            "finance",
-            "clients"
-          ],
-          "requires": {
-            "stacks": [
-              "google-workspace",
-              "web-export"
-            ]
-          }
-        },
-        {
-          "id": "skill:form-to-crm",
-          "name": "Form to CRM",
-          "version": "1.0.0",
-          "description": "Process Tally form submissions and sync data to Google Sheets or email",
-          "path": "catalog/skills/form-to-crm.md",
-          "category": "automation",
-          "tags": [
-            "forms",
-            "crm",
-            "automation",
-            "tally"
-          ],
-          "requires": {
-            "stacks": [
-              "tally",
-              "google-workspace"
-            ]
-          }
         },
         {
           "id": "skill:client-engagement-intake",
@@ -1260,6 +923,39 @@
             "adr",
             "documentation",
             "grill-me"
+          ]
+        },
+        {
+          "id": "skill:grill-with-docs-loop",
+          "name": "Grill With Docs Loop",
+          "version": "1.0.0",
+          "description": "Complete a repo-first, multi-agent grill-with-docs loop that resolves contract and design questions from repository evidence, updates CONTEXT.md and ADRs, and asks the human only for true product or domain decisions",
+          "path": "catalog/skills/grill-with-docs-loop.md",
+          "category": "coding",
+          "tags": [
+            "architecture",
+            "domain-modeling",
+            "glossary",
+            "adr",
+            "documentation",
+            "multi-agent",
+            "repo-analysis"
+          ]
+        },
+        {
+          "id": "skill:trace-feature-lineage",
+          "name": "Trace Feature Lineage",
+          "version": "1.0.0",
+          "description": "Trace user-visible features through runtime layers and data lineage to expose contracts, live-data evidence, gaps, and fix options",
+          "path": "catalog/skills/trace-feature-lineage.md",
+          "category": "coding",
+          "tags": [
+            "feature-trace",
+            "data-lineage",
+            "debugging",
+            "architecture",
+            "testing",
+            "repo-analysis"
           ]
         },
         {

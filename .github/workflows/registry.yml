@@ -38,6 +38,9 @@ jobs:
       - name: Validate v2 manifests
         run: npm run validate:v2
 
+      - name: Validate public readiness
+        run: npm run validate:public -- --json
+
       - name: Compile registry index
         run: npm run compile
 
@@ -73,6 +76,9 @@ jobs:
       - name: Build registry
         run: npm run build
 
+      - name: Validate public readiness
+        run: npm run validate:public -- --json
+
       - name: Get version and date
         id: version
         run: |
@@ -86,6 +92,16 @@ jobs:
         run: |
           mkdir -p release
           tar -czf release/registry-v2.tgz \
+            --exclude='*/node_modules/*' \
+            --exclude='*/runs/*' \
+            --exclude='*/downloads/*' \
+            --exclude='*/tmp/*' \
+            --exclude='*/.chrome-profiles/*' \
+            --exclude='*/.test-rudi/*' \
+            --exclude='*/composer/public/media/*' \
+            --exclude='*/clips/*' \
+            --exclude='*/output/*' \
+            --exclude='*/outputs/*' \
             catalog/ \
             schemas/ \
             dist/ \

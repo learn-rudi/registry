@@ -1,6 +1,6 @@
 # Composer
 
-Remotion app for rendering `runs/<slug>/composition.json`.
+Remotion app for rendering `~/.rudi/state/stacks/video-editor/runs/<slug>/composition.json`.
 
 ## Render
 
@@ -15,6 +15,10 @@ The render script:
 2. Symlinks the run's `working.mp4` into `public/media/<slug>/working.mp4`.
 3. Writes `render-props.json` into the run folder.
 4. Runs `remotion render` and writes into the run's `renders/` folder.
+
+Slug lookup uses `RUDI_VIDEO_EDITOR_STATE_DIR` when set, otherwise `RUDI_HOME`,
+and finally `~/.rudi/state/stacks/video-editor`. Passing an absolute run path
+still works for ad hoc local debugging.
 
 Current renderer support:
 

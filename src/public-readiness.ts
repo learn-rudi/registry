@@ -4,6 +4,10 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import fg from "fast-glob";
+import {
+  CATALOG_PACKAGE_ARTIFACT_EXCLUDES,
+  isForbiddenCatalogArtifact,
+} from "./catalog-artifacts.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -447,6 +451,22 @@ async function validatePackageJson(root: string, issues: PublicReadinessIssue[])
       "package.json must define a publish allowlist in files[] before public npm packaging.",
       "package.json"
     ));
+    return;
+  }
+
+  const packageFiles = packageJson.files.filter((item): item is string => typeof item === "string");
+  const missingArtifactExcludes = CATALOG_PACKAGE_ARTIFACT_EXCLUDES.filter(
+    (pattern) => !packageFiles.includes(pattern)
+  );
+
+  if (missingArtifactExcludes.length > 0) {
+    issues.push(issue(
+      "error",
+      "package-artifact-excludes-missing",
+      "package.json files[] must explicitly exclude generated stack artifacts before public npm packaging.",
+      "package.json",
+      { missing: missingArtifactExcludes }
+    ));
   }
 }
 
@@ -617,6 +637,23 @@ async function validateNoSecretLikeFiles(root: string, issues: PublicReadinessIs
   }
 }
 
+async function validateNoForbiddenCatalogArtifacts(
+  root: string,
+  trackedFiles: Set<string>,
+  issues: PublicReadinessIssue[]
+): Promise<void> {
+  for (const file of [...trackedFiles].sort()) {
+    if (!isForbiddenCatalogArtifact(file)) continue;
+    if (!(await pathExists(path.join(root, file)))) continue;
+    issues.push(issue(
+      "error",
+      "forbidden-catalog-artifact",
+      "Catalog contains a generated runtime artifact path that must not be published.",
+      file
+    ));
+  }
+}
+
 async function validatePromptDeprecation(root: string, issues: PublicReadinessIssue[]): Promise<void> {
   const promptCatalog = path.join(root, "catalog/prompts");
   if (!(await pathExists(promptCatalog))) return;
@@ -659,6 +696,7 @@ export async function validatePublicReadiness(
 
   await validateNoPlaceholderChecksums(absoluteRoot, issues);
   await validateNoSecretLikeFiles(absoluteRoot, issues);
+  await validateNoForbiddenCatalogArtifacts(absoluteRoot, trackedFiles, issues);
   await validatePromptDeprecation(absoluteRoot, issues);
 
   const errors = issues.filter((item) => item.severity === "error").length;

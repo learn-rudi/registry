@@ -13,6 +13,7 @@ import {
 } from './operations/clips.js';
 import { auditCutsRun } from './operations/cut-audit.js';
 import { cutSilence, cutSilenceBatch } from './operations/cut-silence.js';
+import { processFirstPass, watchDownloads } from './operations/download-intake.js';
 import { clusterTranscriptRun } from './operations/cluster.js';
 import { aboutRun } from './operations/about.js';
 import { gradeRenderRun, gradeSourceRun, listGradePresets } from './operations/grade.js';
@@ -157,6 +158,66 @@ function parsePromoteArgs(rawArgs) {
   };
 }
 
+function parseDownloadIntakeArgs(rawArgs, command) {
+  const positionals = [];
+  const options = {};
+  const optionNames = new Map([
+    ['--silence-duration', 'silenceDuration'],
+    ['--threshold', 'thresholdDb'],
+    ['-t', 'thresholdDb'],
+    ['--duration', 'silenceDuration'],
+    ['-d', 'silenceDuration'],
+    ['--padding', 'padding'],
+    ['--min-keep-duration', 'minKeepDuration'],
+    ['--output', 'renderName'],
+    ['--render-name', 'renderName'],
+    ['--slug', 'slug'],
+    ['--archive-dir', 'archiveDir'],
+    ['--stable-seconds', 'stableSeconds'],
+    ['--poll-seconds', 'pollSeconds'],
+    ['--state-path', 'statePath'],
+    ['--stale-job-seconds', 'staleJobSeconds']
+  ]);
+  const flags = new Map([
+    ['--force', ['force', true]],
+    ['--move-source', ['moveSource', true]],
+    ['--no-move-source', ['moveSource', false]],
+    ['--transcribe', ['transcribe', true]],
+    ['--no-transcribe', ['transcribe', false]],
+    ['--once', ['once', true]],
+    ['--retry-failed', ['retryFailed', true]],
+    ['--dry-run', ['dryRun', true]]
+  ]);
+
+  for (let index = 0; index < rawArgs.length; index += 1) {
+    const arg = rawArgs[index];
+    if (!arg.startsWith('-')) {
+      positionals.push(arg);
+      continue;
+    }
+
+    if (flags.has(arg)) {
+      const [name, value] = flags.get(arg);
+      options[name] = value;
+      continue;
+    }
+
+    const name = optionNames.get(arg);
+    if (!name) {
+      throw new Error(`Unknown ${command} option: ${arg}`);
+    }
+
+    const next = rawArgs[index + 1];
+    if (!next) {
+      throw new Error(`Missing value for ${arg}`);
+    }
+    options[name] = next;
+    index += 1;
+  }
+
+  return { positionals, options };
+}
+
 function printHelp() {
   console.log(`
 RUDI Video Editor Stack
@@ -180,6 +241,10 @@ Commands:
                                   One-shot silence cut using the run pipeline
   cut-silence-batch <output-dir> <video...> [options]
                                   Silence-cut multiple videos
+  first-pass <source-video> [options]
+                                  Process a new source into rough-v1 with long-silence cleanup, QA, and review
+  watch-downloads [downloads-dir] [options]
+                                  Poll a Downloads folder and first-pass each stable new video
   silence-presets                 List silence-cut presets
   lower-third <run> <title> [subtitle] [at] [duration] [style] [position]
                                   Add a Remotion lower-third overlay to a run
@@ -221,6 +286,8 @@ Examples:
   node src/cli.js slides webinar.mp4 ./slides 5
   node src/cli.js cut-silence video.mp4 edited.mp4 --preset aggressive
   node src/cli.js cut-silence-batch ./edited video-1.mp4 video-2.mp4 --threshold -28
+  node src/cli.js first-pass ~/Downloads/take.mov --silence-duration 1.5
+  node src/cli.js watch-downloads ~/Downloads --silence-duration 1.5 --stable-seconds 10
   node src/cli.js lower-third movie-2026-05-08-1229 "Jane Smith" "Founder" 12 5 modern bottom-left
   node src/cli.js apply-overlays ./overlay-request.json
   node src/cli.js init "/path/to/video.mov" movie-2026-05-08-1229
@@ -335,7 +402,8 @@ async function main() {
       outputPath: path.relative(process.cwd(), result.outputPath),
       keepRangeCount: result.keepRangeCount,
       timelineDuration: result.timelineDuration,
-      silenceSettings: result.silenceSettings
+      silenceSettings: result.silenceSettings,
+      intake: result.intake
     }, null, 2));
     return;
   }
@@ -354,6 +422,61 @@ async function main() {
         runDir: item.runDir ? path.relative(process.cwd(), item.runDir) : undefined
       }))
     }, null, 2));
+    return;
+  }
+
+  if (command === 'first-pass') {
+    const { positionals, options } = parseDownloadIntakeArgs(args, command);
+    if (positionals.length !== 1) {
+      throw new Error('Usage: first-pass <source-video> [--silence-duration seconds] [--move-source]');
+    }
+
+    const result = await processFirstPass(positionals[0], options);
+    console.log(JSON.stringify({
+      run: result.runSlug,
+      runDir: path.relative(process.cwd(), result.runDir),
+      renderPath: path.relative(process.cwd(), result.renderPath),
+      reviewPath: path.relative(process.cwd(), result.reviewPath),
+      archivedSourcePath: result.archivedSourcePath,
+      silence: result.silence,
+      plan: result.plan,
+      review: result.review
+    }, null, 2));
+    return;
+  }
+
+  if (command === 'watch-downloads') {
+    const { positionals, options } = parseDownloadIntakeArgs(args, command);
+    if (positionals.length > 1) {
+      throw new Error('Usage: watch-downloads [downloads-dir] [options]');
+    }
+
+    const result = await watchDownloads({
+      ...options,
+      watchDir: positionals[0],
+      onEvent: (event) => {
+        const printable = { ...event };
+        if (printable.result) {
+          printable.result = {
+            run: event.result.runSlug,
+            renderPath: path.relative(process.cwd(), event.result.renderPath),
+            reviewPath: path.relative(process.cwd(), event.result.reviewPath),
+            archivedSourcePath: event.result.archivedSourcePath
+          };
+        }
+        console.log(JSON.stringify(printable));
+      }
+    });
+
+    if (result) {
+      console.log(JSON.stringify({
+        watchDir: result.watchDir,
+        statePath: path.relative(process.cwd(), result.statePath),
+        candidateCount: result.candidateCount,
+        processedCount: result.processed.length,
+        skipped: result.skipped
+      }, null, 2));
+    }
     return;
   }
 
@@ -414,6 +537,9 @@ async function main() {
       const dur = `${Math.floor(t.duration / 60)}:${String(Math.floor(t.duration % 60)).padStart(2, '0')}`;
       console.log(`Probed: ${v?.codec || '?'} ${dims}${orient} ${fps}, ${dur}`);
       console.log(`Wrote ${path.relative(process.cwd(), result.about.aboutPath)}`);
+    }
+    if (result.intake?.movedFromDownloads) {
+      console.log(`Moved Downloads source into ${path.relative(process.cwd(), result.intake.sourcePath)}`);
     }
     console.log(`\nnext:  node src/cli.js transcribe ${result.project.slug} source`);
     return;

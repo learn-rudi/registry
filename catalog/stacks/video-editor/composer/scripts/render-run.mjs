@@ -1,11 +1,10 @@
 import fs from 'fs/promises';
+import os from 'os';
 import path from 'path';
 import {spawn} from 'child_process';
 import {fileURLToPath} from 'url';
 
 const composerRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const videoAgentRoot = path.resolve(composerRoot, '..');
-const runsRoot = path.join(videoAgentRoot, 'runs');
 const publicMediaRoot = path.join(composerRoot, 'public', 'media');
 
 const DEFAULT_RENDER_CONCURRENCY = 1;
@@ -20,6 +19,29 @@ if (!runArg) {
   console.error('Usage: npm run render -- <run-slug-or-path> [output-name.mp4]');
   process.exit(1);
 }
+
+function envPath(name) {
+  const value = process.env[name];
+  return value && value.trim() ? path.resolve(value) : null;
+}
+
+function resolveRudiHome() {
+  const configuredHome = envPath('RUDI_HOME');
+  if (configuredHome) {
+    return configuredHome;
+  }
+
+  const homeDir = os.homedir();
+  if (!homeDir) {
+    throw new Error('Unable to resolve RUDI home: HOME is not set');
+  }
+
+  return path.join(homeDir, '.rudi');
+}
+
+const stateRoot = envPath('RUDI_VIDEO_EDITOR_STATE_DIR') ||
+  path.join(resolveRudiHome(), 'state', 'stacks', 'video-editor');
+const runsRoot = path.join(stateRoot, 'runs');
 
 async function pathExists(filePath) {
   try {

@@ -1,5 +1,6 @@
 node_modules/
 dist/
+output/
 .env
 token.json
 credentials.json

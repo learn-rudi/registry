@@ -46,7 +46,8 @@ function outputPathForSource(sourceVideo, outputDir) {
 export async function cutSilence(sourceVideo, options = {}) {
   const outputPath = options.outputPath ? path.resolve(options.outputPath) : null;
   const renderName = outputPath ? path.basename(outputPath) : 'silence-cut.mp4';
-  const { runDir } = await initRun(sourceVideo, options.slug);
+  const init = await initRun(sourceVideo, options.slug);
+  const { runDir } = init;
 
   const silenceSettings = await updateSilenceSettings(runDir, options);
   await disableRenderTranscription(runDir);
@@ -68,7 +69,8 @@ export async function cutSilence(sourceVideo, options = {}) {
     renderPath: render.outputPath,
     keepRangeCount: render.keepRangeCount,
     timelineDuration: render.timelineDuration,
-    silenceSettings
+    silenceSettings,
+    intake: init.intake
   };
 }
 

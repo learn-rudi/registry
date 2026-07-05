@@ -4,6 +4,22 @@ Consolidated local video editing stack for silence cutting, transcript clipping,
 
 This stack replaces the separate `silence-cutter`, `video-editor`, and `video-agent` public surfaces. `video-agent` is the base because it already owns the structured run pipeline; the older tools are represented here as direct operations.
 
+## Source, Install, And State
+
+The registry source at `catalog/stacks/video-editor` is the canonical
+downloadable package. A local install lives at `~/.rudi/stacks/video-editor` and
+can be replaced by `rudi update stack:video-editor`.
+
+Runtime media and generated artifacts do not belong in either source tree.
+Pipeline runs live under `~/.rudi/state/stacks/video-editor/runs`, template
+composer jobs and bundles live under
+`~/.rudi/state/stacks/video-editor/template-composer`, and final template
+delivery renders default to `~/.rudi/outputs`.
+
+Private story workflows, account-specific browser automation, platform posting
+state, and brand-specific production notes should live in local `.rudi` state or
+private skills. The public stack should stay generic and reproducible.
+
 ## Direct Commands
 
 ```bash
@@ -16,6 +32,8 @@ npm run start -- topic-clips video.mp4 transcript.txt "AI,education" ./topic-cli
 npm run start -- slides webinar.mp4 ./slides 5
 npm run start -- cut-silence video.mp4 edited.mp4 --preset aggressive
 npm run start -- cut-silence-batch ./edited video-1.mp4 video-2.mp4 --threshold -28
+npm run cli -- first-pass ~/Downloads/take.mov --silence-duration 1.5
+npm run cli -- watch-downloads ~/Downloads --silence-duration 1.5 --stable-seconds 10
 npm run start -- silence-presets
 npm run start -- lower-third movie-2026-05-08-1229 "Jane Smith" "Founder" 12 5 modern bottom-left
 npm run start -- apply-overlays ./overlay-request.json
@@ -29,6 +47,30 @@ Silence options:
 --duration 0.5
 --padding 0.12
 --min-keep-duration 0.25
+```
+
+## Downloads First Pass
+
+Use `first-pass` or `watch-downloads` for ad hoc local videos that land in a
+Downloads-style inbox and need a quick reviewable rough cut. The workflow waits
+for stable files, initializes a state-root run, normalizes media, detects long
+silences, renders `rough-v1.mp4`, runs QA, and writes review artifacts.
+
+By default the original source file is left in place. Add `--move-source` only
+when you want the stack to archive the source after the run-local copy is
+committed and size-checked.
+
+Useful options:
+
+```bash
+--silence-duration 2      # only cut longer pauses
+--threshold -30           # ffmpeg silencedetect dB threshold
+--padding 0.12            # keep this much sound around each cut
+--move-source             # archive/remove the original after verified import
+--transcribe              # slower, but refresh transcript-based audit evidence
+--once                    # scan once and exit
+--retry-failed            # retry files recorded as failed in watcher state
+--state-path ./state.json # override watcher state file
 ```
 
 `apply-overlays` accepts the `video_apply_overlays` request contract:

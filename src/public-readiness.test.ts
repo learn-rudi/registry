@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { validatePublicReadiness } from "./public-readiness.js";
+import { CATALOG_PACKAGE_ARTIFACT_EXCLUDES } from "./catalog-artifacts.js";
 
 let tmpDir: string;
 
@@ -24,7 +25,7 @@ beforeEach(async () => {
   await fs.mkdir(path.join(tmpDir, "catalog/workflows"), { recursive: true });
   await writeJson(path.join(tmpDir, "package.json"), {
     name: "@rudi/registry-test",
-    files: ["index.json", "catalog", "dist"],
+    files: ["index.json", "catalog", "dist", ...CATALOG_PACKAGE_ARTIFACT_EXCLUDES],
   });
 });
 
@@ -93,6 +94,83 @@ describe("validatePublicReadiness", () => {
     expect(codes).toContain("checksum-placeholder");
     expect(codes).toContain("secret-like-file");
     expect(report.summary.errors).toBeGreaterThanOrEqual(4);
+  });
+
+  it("reports tracked runtime artifacts inside catalog stack payloads", async () => {
+    await writeJson(path.join(tmpDir, "index.json"), {
+      packages: {
+        stacks: {
+          official: [
+            {
+              id: "stack:demo",
+              path: "catalog/stacks/demo",
+            },
+          ],
+        },
+      },
+    });
+    await writeJson(path.join(tmpDir, "catalog/stacks/demo/manifest.json"), {
+      id: "stack:demo",
+      name: "Demo",
+    });
+    await writeJson(path.join(tmpDir, "catalog/stacks/demo/runs/leak.json"), {
+      shouldNotShip: true,
+    });
+
+    const report = await validatePublicReadiness(tmpDir, {
+      trackedFiles: new Set([
+        "index.json",
+        "package.json",
+        "catalog/stacks/demo/manifest.json",
+        "catalog/stacks/demo/runs/leak.json",
+      ]),
+    });
+
+    expect(report.issues).toContainEqual(
+      expect.objectContaining({
+        code: "forbidden-catalog-artifact",
+        path: "catalog/stacks/demo/runs/leak.json",
+      })
+    );
+    expect(report.summary.errors).toBeGreaterThanOrEqual(1);
+  });
+
+  it("reports package allowlists that do not exclude generated stack artifacts", async () => {
+    await writeJson(path.join(tmpDir, "package.json"), {
+      name: "@rudi/registry-test",
+      files: ["index.json", "catalog/stacks/**/*.{js,json,md}", "dist"],
+    });
+    await writeJson(path.join(tmpDir, "index.json"), {
+      packages: {
+        stacks: {
+          official: [
+            {
+              id: "stack:demo",
+              path: "catalog/stacks/demo",
+            },
+          ],
+        },
+      },
+    });
+    await writeJson(path.join(tmpDir, "catalog/stacks/demo/manifest.json"), {
+      id: "stack:demo",
+      name: "Demo",
+    });
+
+    const report = await validatePublicReadiness(tmpDir, {
+      trackedFiles: new Set([
+        "index.json",
+        "package.json",
+        "catalog/stacks/demo/manifest.json",
+      ]),
+    });
+
+    expect(report.issues).toContainEqual(
+      expect.objectContaining({
+        code: "package-artifact-excludes-missing",
+        path: "package.json",
+      })
+    );
   });
 
   it("reports stack binary requirements that cannot resolve to installable or detectable providers", async () => {

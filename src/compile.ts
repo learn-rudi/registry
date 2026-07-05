@@ -26,6 +26,10 @@ import {
   discoverCatalogPackages,
   type CatalogPackageFile,
 } from "./catalog.js";
+import {
+  CATALOG_ARTIFACT_IGNORE,
+  CATALOG_PAYLOAD_PATTERNS,
+} from "./catalog-artifacts.js";
 
 // =============================================================================
 // Types
@@ -178,21 +182,11 @@ function buildPlatformIndex(
 // =============================================================================
 
 async function buildCatalogHash(): Promise<CatalogHash> {
-  // Find all catalog payload files (stacks, skills, prompts)
-  const patterns = [
-    "catalog/stacks/**/!(node_modules)/**/*.{ts,js,json,md,py,txt}",
-    "catalog/stacks/*/manifest.json",
-    "catalog/stacks/*/manifest.v2.json",
-    "catalog/stacks/*/.env.example",
-    "catalog/skills/**/*.md",
-    "catalog/prompts/**/*.md",
-  ];
-
-  const files = await fg(patterns, {
+  const files = await fg(CATALOG_PAYLOAD_PATTERNS, {
     dot: false,
     onlyFiles: true,
     cwd: process.cwd(),
-    ignore: ["**/node_modules/**"],
+    ignore: CATALOG_ARTIFACT_IGNORE,
   });
 
   const hashes: Record<string, string> = {};

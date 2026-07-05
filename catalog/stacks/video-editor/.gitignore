@@ -1,4 +1,7 @@
 runs/
+downloads/
+tmp/
+.chrome-profiles/
 clips/
 output/
 outputs/
