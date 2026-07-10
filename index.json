@@ -1087,6 +1087,23 @@
             "analysis",
             "captions"
           ]
+        },
+        {
+          "id": "skill:rudi-rundown-writer",
+          "name": "RUDI Rundown Writer",
+          "version": "1.0.0",
+          "description": "Write the editorial layer of a RUDI Rundown daily AI news page: newsletter open, query-phrased Q&A, dek, and card blurbs, grounded strictly in the day's story data",
+          "path": "catalog/skills/rudi-rundown-writer.md",
+          "category": "writing",
+          "tags": [
+            "rudi",
+            "writing",
+            "news",
+            "editorial",
+            "seo",
+            "llm-optimization",
+            "daily-briefing"
+          ]
         }
       ],
       "community": []
