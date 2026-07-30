@@ -1059,8 +1059,8 @@
         {
           "id": "skill:site-zoning-envelope-review",
           "name": "Site Zoning Envelope Review",
-          "version": "1.0.0",
-          "description": "Run a site-engine workflow from address, parcel key, rollup, or saved site-record through zoning and buildable envelope review",
+          "version": "1.1.0",
+          "description": "Run zoning and buildable-envelope review through either a local Site Engine checkout or the RUDI Dwellow MCP stack",
           "path": "catalog/skills/site-zoning-envelope-review.md",
           "category": "real-estate",
           "tags": [

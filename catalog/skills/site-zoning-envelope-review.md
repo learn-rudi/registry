@@ -1,7 +1,7 @@
 ---
 name: Site Zoning Envelope Review
-description: Run the Pre Dev Intel site-engine workflow from address, parcel key, rollup, or saved site-record through zoning and buildable envelope only. Use when the user asks whether a parcel's zoning can be determined, how zoning feeds the site envelope, what the net buildable area or largest rectangle is, or when frontage/MapLibre review is needed before shell frontier, building type fit, or parking feasibility. Stop before building-type fit, shell frontier, parking feasibility, site-option-set, or concept generation unless the user explicitly asks to continue.
-version: 1.0.0
+description: Run the site-engine workflow through zoning and buildable-envelope review using either a local Pre Dev Intel checkout or the RUDI Dwellow MCP stack. Use when the user asks whether a parcel's zoning can be determined, how zoning feeds the site envelope, what the net buildable area or largest rectangle is, or when frontage review is needed before shell frontier, building type fit, or parking feasibility. Stop before building-type fit, shell frontier, parking feasibility, site-option-set, or concept generation unless the user explicitly asks to continue.
+version: 1.1.0
 category: real-estate
 tags: [zoning, site-engine, envelope, frontage, parcels, feasibility]
 ---
@@ -11,6 +11,66 @@ tags: [zoning, site-engine, envelope, frontage, parcels, feasibility]
 Use this skill to answer: "Given this site or parcel, what zoning applies, what is the gross site geometry, and what legal net envelope does zoning create?"
 
 The decision boundary is `site-envelope.json`. Do not treat shell frontier, building type fit, parking feasibility, or unit yield as part of this skill unless explicitly requested.
+
+## Execution Mode
+
+Choose one execution mode before starting and preserve its provenance throughout
+the review:
+
+- **MCP-first:** Use this mode when the local Site Engine checkout is absent or
+  the installed `stack:dwellow-mcp` tools are the configured property
+  intelligence boundary. This is the required mode on the always-on Dwellow Mac.
+- **Repo-native:** Use the CLI commands below only when the local Site Engine
+  checkout and its required data/providers are present.
+
+Do not claim that an MCP result created a local `site-*.json` file. In MCP-first
+mode, the tool result, its `evidence_refs`, `artifact_refs`, and provider
+references are the review evidence. Record the exact tool name and target used
+for every step. If work crosses execution modes, record the boundary and do not
+merge conflicting results silently.
+
+### MCP-First Tool Sequence
+
+Use the installed `stack:dwellow-mcp` tools in this order. Pass either the
+confirmed address or parcel key consistently after resolution.
+
+1. Resolve the target with `lookup_location`.
+   - Record the canonical address, rollup identity, parcel keys, ownership,
+     primary zoning code, area, and provenance.
+   - If the result is ambiguous or identifies multiple plausible sites, stop
+     and report the candidates. Do not choose one by rank.
+2. Establish gross parcel truth with `get_site_boundary`.
+   - Record the canonical boundary identity/hash, gross area, dimensions, and
+     any site-mode warning.
+3. Establish the frontage frame with `build_frontage_workspace`.
+   - Treat this result as the MCP equivalent of `site-orientation.json`.
+   - If frontage remains inferred or needs review, all setback-dependent net
+     envelope conclusions remain provisional.
+4. Collect physical facts with `get_site_conditions`.
+   - Report flood, hillside, elevation/slope, soil, building/vacancy, and
+     freshness status when present.
+   - Call `refresh_site_conditions` only when the result says required evidence
+     is stale or not computed and the request needs it. Supply a stable
+     case-scoped `idempotency_key`; do not poll or retry without a bound.
+5. Normalize zoning with `get_zoning_rules` using the exact returned zone code.
+   - Use `run_legal_fit` when a screening-level legal feasibility layer is
+     needed. Do not substitute a preferred form for the authoritative base
+     zoning code.
+6. Compute the legal/net envelope with `run_site_envelope`.
+   - Use the same confirmed address or parcel key and the same site-mode choice
+     used for boundary/frontage.
+   - Report setbacks, buildable area, footprint/height/story limits, and the
+     largest legal rectangle when the result provides them.
+7. Use `get_site_visual_context` when frontage, parcel shape, street context,
+   or edge labeling needs visual review.
+8. Stop at zoning and envelope. Call `run_building_fit`,
+   `generate_site_plan`, community/financial tools, or Site Planner only when
+   the request explicitly continues beyond this skill's boundary.
+
+For a durable feasibility case, `start_feasibility_study` may create the study
+shell before the layer calls, and `run_legal_fit` may attach its result with the
+returned `study_id`. A study shell does not relax the frontage, evidence, or
+stop rules above.
 
 ## Workflow
 
@@ -74,7 +134,7 @@ If frontage is unconfirmed, report the legal/net envelope as provisional and rou
 - `maxLegalStories`: fractional legal story cap from zoning source.
 - `maxFullStories` / envelope `maxStories`: whole-floor count for shell frontier and rough GFA calculations.
 
-## Command Pattern
+## Repo-Native CLI Command Pattern
 
 Prefer individual commands so the workflow stops at the envelope boundary. Use full `run_phase1.py` only when the user asks for the complete phase1 pipeline.
 
@@ -179,7 +239,8 @@ If the command differs in the current repo, inspect `site-engine/scripts/run-sit
 
 Report each step with:
 
-- artifact path
+- artifact path for repo-native work, or exact MCP tool plus evidence/artifact
+  references for MCP-first work
 - key facts
 - warnings or unresolved assumptions
 - whether the result is final or provisional
