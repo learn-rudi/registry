@@ -25,6 +25,9 @@ describe("site-planner stack package", () => {
     const legacyManifest = await readJson<Record<string, any>>(
       path.join(stackRoot, "manifest.json"),
     );
+    const packageJson = await readJson<Record<string, any>>(
+      path.join(stackRoot, "package.json"),
+    );
     const index = await readJson<Record<string, any>>(
       path.join(process.cwd(), "index.json"),
     );
@@ -49,6 +52,7 @@ describe("site-planner stack package", () => {
     });
     expect(manifest.provides.tools).toEqual(expectedTools);
     expect(legacyManifest.provides.tools).toEqual(expectedTools);
+    expect(packageJson.engines.node).toBe(">=20.10");
 
     expect(index.packages.stacks.official).toContainEqual(
       expect.objectContaining({

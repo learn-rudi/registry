@@ -1,7 +1,6 @@
 # Site Planner RUDI Stack — SWE Compliance Plan
 
-Status: **Local implementation and verification complete; remote deployment
-pending**
+Status: **Implementation and always-on-Mac verification complete**
 
 ## Phase 0: Baseline And Manual Lookup
 
@@ -111,6 +110,11 @@ Evidence:
 - `node --test test/mcp.test.mjs` timed out before `src/index.js` existed.
 - `npm test -- --run src/site-planner-stack.test.ts` failed while the manifests
   and catalog entry were absent.
+- The installed RUDI runtime exposed a packaging mismatch: the adapter package
+  declared Node `>=22.18` even though RUDI correctly launches portable adapters
+  on its bundled Node 20 and the adapter separately invokes Site Planner with
+  configured Node 22. A catalog assertion failed on `>=22.18` before the
+  adapter engine range was corrected to `>=20.10`.
 
 ## Phase 3: Implementation
 
@@ -197,11 +201,22 @@ Local evidence:
 - A bounded credential/private-key and workstation-path scan of the touched
   files returned no matches.
 
-Remote evidence remains pending:
+Remote evidence:
 
-- Install/index on the always-on Mac.
-- Configuration status plus one synthetic read-only operation.
-- Missing/invalid write-authorization rejection.
+- Installed from reviewed Registry commit
+  `86c164f5bca19506b7c3c8a4030fb0ea41aaa733` through RUDI's local-registry
+  install path.
+- Preserved the prior four-tool pilot stack, its RUDI registration, and tool
+  index in an owner-only recovery directory before replacement.
+- Configured the exact Site Planner commit, Node `v22.23.2`, fixed owner-only
+  workspace, and separate private artifact root.
+- RUDI registered and indexed all seven tools without stack failures.
+- `site_planner_config_status` returned ready at the expected commit and Node
+  version.
+- `site_planner_inspect_concept` successfully inspected the existing synthetic
+  nine-parcel Concept revision 1 and wrote bounded provenance artifacts.
+- `site_planner_fork_concept` without a write authorization failed closed with
+  a structured `invalid_arguments` response and created no revision.
 
 ## Phase 6: Docs, Contracts, And Closure
 
@@ -224,4 +239,8 @@ Current closure state:
 
 - Stack README, manifests, Registry index, package tests, and compliance ledger
   match the locally verified runtime.
-- Commit/push, CI, and always-on-Mac evidence are pending.
+- Draft PR `learnrudi/registry#16` contains the reviewable change.
+- Fresh Registry CI passed validate/compile and the macOS, Ubuntu, and Windows
+  validation jobs.
+- The exact reviewed stack is installed, configured, indexed, and smoke-tested
+  on the always-on Mac.
