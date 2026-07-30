@@ -1,0 +1,48 @@
+{
+  "id": "stack:site-planner",
+  "name": "Site Planner",
+  "version": "0.1.0",
+  "description": "Fixed-root MCP adapter for inspecting, generating, optimizing, previewing, forking, and applying changes to a pinned local Site Planner workspace.",
+  "runtime": "node",
+  "command": [
+    "node",
+    "src/index.js"
+  ],
+  "provides": {
+    "tools": [
+      "site_planner_config_status",
+      "site_planner_inspect_concept",
+      "site_planner_generate_lot_plan",
+      "site_planner_optimize_lot_plan",
+      "site_planner_preview_concept_commands",
+      "site_planner_fork_concept",
+      "site_planner_apply_concept_commands"
+    ]
+  },
+  "requires": {
+    "binaries": [],
+    "secrets": [
+      {
+        "name": "SITE_PLANNER_WRITE_HMAC_V1",
+        "label": "Site Planner write-authorization HMAC key",
+        "description": "Exactly 32 random bytes encoded as 43 unpadded base64url characters. Service Desk uses this key to authorize one request-bound fork or apply operation after approval.",
+        "required": true
+      }
+    ]
+  },
+  "meta": {
+    "author": "RUDI",
+    "license": "MIT",
+    "category": "development",
+    "tags": [
+      "site-planner",
+      "lot-planning",
+      "concepts",
+      "revisions",
+      "local-first",
+      "property"
+    ],
+    "boundary": "The adapter executes only the configured Site Planner JSON CLI against a fixed workspace and exact clean Git revision. It does not perform zoning, entitlement, parking, finance, or underwriting analysis.",
+    "secretGuidance": "Keep SITE_PLANNER_WRITE_HMAC_V1 in RUDI secret state. Do not expose it to agents, logs, artifacts, configuration JSON, or tool output."
+  }
+}
