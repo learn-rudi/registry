@@ -125,6 +125,28 @@
           }
         },
         {
+          "id": "stack:site-planner",
+          "name": "Site Planner",
+          "version": "0.1.0",
+          "description": "Fixed-root MCP adapter for a pinned local Site Planner workspace",
+          "path": "catalog/stacks/site-planner",
+          "runtime": "runtime:node",
+          "category": "development",
+          "tags": [
+            "site-planner",
+            "lot-planning",
+            "concepts",
+            "revisions",
+            "local-first",
+            "property"
+          ],
+          "requires": {
+            "secrets": [
+              "SITE_PLANNER_WRITE_HMAC_V1"
+            ]
+          }
+        },
+        {
           "id": "stack:newsletter-extractor",
           "name": "Newsletter Extractor",
           "version": "0.1.0",
