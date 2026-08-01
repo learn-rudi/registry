@@ -1,45 +1,42 @@
 {
-  "id": "sqlite",
+  "id": "stack:sqlite",
+  "kind": "stack",
   "name": "SQLite",
   "version": "1.0.0",
-  "description": "Query and manage SQLite databases. Perfect for local databases, app data, and the RUDI session database.",
-  "runtime": "node",
-  "command": [
-    "npx",
-    "tsx",
-    "src/index.ts"
-  ],
-  "provides": {
-    "tools": [
-      "sqlite_query",
-      "sqlite_execute",
-      "sqlite_list_tables",
-      "sqlite_describe_table",
-      "sqlite_schema"
-    ]
+
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/sqlite"
   },
+
+  "runtime": "node",
   "requires": {
     "binaries": [],
     "secrets": [
       {
-        "description": "Path to SQLite database file (e.g., ~/.rudi/rudi.db)",
+        "key": "SQLITE_DB_PATH",
         "label": "Database Path",
-        "name": "SQLITE_DB_PATH",
         "required": true
       }
     ]
   },
+  "provides": {
+    "tools": ["sqlite_query", "sqlite_execute", "sqlite_list_tables", "sqlite_describe_table", "sqlite_schema"]
+  },
+  "mcp": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["tsx", "src/index.ts"],
+    "cwd": "."
+  },
+
   "meta": {
+    "description": "Query and manage SQLite databases. Perfect for local databases, app data, and the RUDI session database.",
     "author": "RUDI",
     "license": "MIT",
     "category": "data",
-    "tags": [
-      "sqlite",
-      "database",
-      "sql",
-      "local",
-      "rudi"
-    ],
-    "icon": "🗃️"
+    "tags": ["sqlite", "database", "sql", "local"],
+    "icon": "📊"
   }
 }

@@ -34,28 +34,22 @@ const EXPECTED_OPTIONAL_SECRETS = [
   "REDDIT_CLIENT_SECRET",
 ];
 
-test("content-extractor manifests declare the public MCP tool surface", async () => {
+test("content-extractor manifest declares the public MCP tool surface", async () => {
   const manifest = await readJson("../manifest.json");
-  const manifestV2 = await readJson("../manifest.v2.json");
 
   assert.deepEqual(manifest.provides.tools, EXPECTED_TOOLS);
-  assert.deepEqual(manifestV2.provides.tools, EXPECTED_TOOLS);
 });
 
-test("content-extractor manifests declare optional extractor secrets without requiring them", async () => {
+test("content-extractor manifest declares optional extractor secrets without requiring them", async () => {
   const manifest = await readJson("../manifest.json");
-  const manifestV2 = await readJson("../manifest.v2.json");
 
-  const v1Secrets = new Map(manifest.requires.secrets.map((secret) => [secret.name, secret]));
-  const v2Secrets = new Map(manifestV2.requires.secrets.map((secret) => [secret.key, secret]));
+  const secrets = new Map(manifest.requires.secrets.map((secret) => [secret.key, secret]));
 
   for (const key of EXPECTED_OPTIONAL_SECRETS) {
-    assert.equal(v1Secrets.get(key)?.required, false, `${key} should be optional in manifest.json`);
-    assert.equal(v2Secrets.get(key)?.required, false, `${key} should be optional in manifest.v2.json`);
+    assert.equal(secrets.get(key)?.required, false, `${key} should be optional in manifest.json`);
   }
 
-  assert.match(v1Secrets.get("SUPA_DATA_API")?.description, /reliable YouTube transcript/);
-  assert.equal(v2Secrets.get("SUPA_DATA_API")?.helpUrl, "https://supadata.ai");
+  assert.equal(secrets.get("SUPA_DATA_API")?.helpUrl, "https://supadata.ai");
 });
 
 test("content-extractor stack files do not reference private local paths", async () => {

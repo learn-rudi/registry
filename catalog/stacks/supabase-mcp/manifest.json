@@ -1,13 +1,20 @@
 {
-  "id": "supabase-mcp",
+  "id": "stack:supabase-mcp",
+  "kind": "stack",
   "name": "Supabase MCP",
   "version": "0.1.0",
-  "description": "Connect agents to Supabase's hosted OAuth MCP server for database, project, Edge Functions, docs, and development tools.",
+
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/supabase-mcp"
+  },
+
   "runtime": "node",
-  "command": [
-    "node",
-    "src/index.js"
-  ],
+  "requires": {
+    "binaries": [],
+    "secrets": []
+  },
   "provides": {
     "tools": [
       "list_tables",
@@ -44,11 +51,17 @@
       "update_storage_config"
     ]
   },
-  "requires": {
-    "binaries": [],
-    "secrets": []
+  "mcp": {
+    "transport": "stdio",
+    "command": "node",
+    "args": [
+      "src/index.js"
+    ],
+    "cwd": "."
   },
+
   "meta": {
+    "description": "Connect agents to Supabase's hosted OAuth MCP server for database, project, Edge Functions, docs, and development tools.",
     "author": "RUDI",
     "license": "MIT",
     "category": "data",
@@ -60,6 +73,17 @@
       "oauth",
       "remote"
     ],
-    "icon": "supabase"
+    "icon": "supabase",
+    "remoteMcp": {
+      "url": "https://mcp.supabase.com/mcp",
+      "auth": "oauth",
+      "bridgePackage": "mcp-remote@0.1.38",
+      "queryEnv": [
+        "SUPABASE_MCP_PROJECT_REF",
+        "SUPABASE_MCP_READ_ONLY",
+        "SUPABASE_MCP_FEATURES"
+      ]
+    },
+    "mcpSafety": "Supabase recommends using MCP for development and testing, scoping to a project, and enabling read-only mode when connecting to sensitive data."
   }
 }

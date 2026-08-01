@@ -1,39 +1,36 @@
 {
-  "id": "web-export",
+  "id": "stack:web-export",
+  "kind": "stack",
   "name": "Web Export",
   "version": "2.0.0",
-  "description": "Export HTML to PDF/PNG with mode detection, artifact verification, and structured diagnostics.",
-  "runtime": "node",
-  "command": [
-    "node",
-    "dist/index.js"
-  ],
-  "provides": {
-    "tools": [
-      "html_to_png",
-      "html_to_pdf",
-      "html_to_png_pdf"
-    ]
+
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/web-export"
   },
+
+  "runtime": "node",
   "requires": {
     "binaries": [],
     "secrets": []
   },
+  "provides": {
+    "tools": ["html_to_png", "html_to_pdf", "html_to_png_pdf"]
+  },
+  "mcp": {
+    "transport": "stdio",
+    "command": "node",
+    "args": ["dist/index.js"],
+    "cwd": "."
+  },
+
   "meta": {
+    "description": "Export HTML to PDF/PNG with mode detection, artifact verification, and structured diagnostics.",
     "author": "CO-LLAB",
     "license": "MIT",
     "category": "document-processing",
-    "tags": [
-      "export",
-      "pdf",
-      "png",
-      "html",
-      "artboard",
-      "print",
-      "screenshot",
-      "playwright",
-      "diagnostics"
-    ],
+    "tags": ["export", "pdf", "png", "html", "artboard", "print", "screenshot", "playwright", "diagnostics"],
     "icon": "📄"
   }
 }

@@ -1,13 +1,37 @@
 {
-  "id": "image-generator",
+  "id": "stack:image-generator",
+  "kind": "stack",
   "name": "Image Generator",
   "version": "0.1.0",
-  "description": "Agent-safe multi-provider image generation for content creation workflows.",
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/image-generator"
+  },
   "runtime": "python",
-  "command": [
-    "python",
-    "src/server.py"
-  ],
+  "requires": {
+    "binaries": [],
+    "secrets": [
+      {
+        "key": "GEMINI_API_KEY",
+        "label": "Gemini API key",
+        "required": false,
+        "helpUrl": "https://aistudio.google.com/apikey"
+      },
+      {
+        "key": "OPENAI_API_KEY",
+        "label": "OpenAI API key",
+        "required": false,
+        "helpUrl": "https://platform.openai.com/api-keys"
+      },
+      {
+        "key": "REPLICATE_API_TOKEN",
+        "label": "Replicate API token",
+        "required": false,
+        "helpUrl": "https://replicate.com/account/api-tokens"
+      }
+    ]
+  },
   "provides": {
     "tools": [
       "generate_image",
@@ -15,33 +39,16 @@
       "list_models"
     ]
   },
-  "requires": {
-    "binaries": [],
-    "secrets": [
-      {
-        "name": "GEMINI_API_KEY",
-        "description": "Google AI Studio API key for Gemini image models.",
-        "label": "Gemini API key",
-        "required": false,
-        "link": "https://aistudio.google.com/apikey"
-      },
-      {
-        "name": "OPENAI_API_KEY",
-        "description": "OpenAI API key for GPT Image models.",
-        "label": "OpenAI API key",
-        "required": false,
-        "link": "https://platform.openai.com/api-keys"
-      },
-      {
-        "name": "REPLICATE_API_TOKEN",
-        "description": "Replicate API token for flux-2 and other hosted models.",
-        "label": "Replicate API token",
-        "required": false,
-        "link": "https://replicate.com/account/api-tokens"
-      }
-    ]
+  "mcp": {
+    "transport": "stdio",
+    "command": "python",
+    "args": [
+      "src/server.py"
+    ],
+    "cwd": "."
   },
   "meta": {
+    "description": "Agent-safe multi-provider image generation for content creation workflows.",
     "author": "brandonz@heritagehill.co",
     "license": "MIT",
     "category": "ai-generation",

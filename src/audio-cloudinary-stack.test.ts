@@ -41,9 +41,6 @@ async function readStackFiles(stackRoot: string): Promise<string> {
 describe("audio-tools and cloudinary stack packages", () => {
   it("registers audio-tools as a portable remote stack with required media binaries", async () => {
     const manifest = await readJson<Record<string, any>>(
-      path.join(audioRoot, "manifest.v2.json")
-    );
-    const legacyManifest = await readJson<Record<string, any>>(
       path.join(audioRoot, "manifest.json")
     );
     const index = await readJson<Record<string, any>>(path.join(root, "index.json"));
@@ -67,30 +64,15 @@ describe("audio-tools and cloudinary stack packages", () => {
       },
     });
     expect(manifest.provides.tools).toEqual(audioTools);
-    expect(legacyManifest.provides.tools).toEqual(audioTools);
-
-    const officialStacks = index.packages.stacks.official as Array<Record<string, any>>;
-    expect(officialStacks).toContainEqual(
-      expect.objectContaining({
-        id: "stack:audio-tools",
-        path: "catalog/stacks/audio-tools",
-        runtime: "runtime:node",
-        requires: {
-          binaries: ["ffmpeg", "ffprobe", "yt-dlp"],
-        },
-      })
-    );
+    expect(index.packages[manifest.id]).toEqual(manifest);
 
     const stackContent = await readStackFiles(audioRoot);
-    expect(stackContent).not.toContain("/Users/hoff");
+    expect(stackContent).not.toContain("/Users/");
     expect(stackContent).not.toContain("/opt/homebrew");
   });
 
   it("registers cloudinary as a credential-safe remote stack", async () => {
     const manifest = await readJson<Record<string, any>>(
-      path.join(cloudinaryRoot, "manifest.v2.json")
-    );
-    const legacyManifest = await readJson<Record<string, any>>(
       path.join(cloudinaryRoot, "manifest.json")
     );
     const index = await readJson<Record<string, any>>(path.join(root, "index.json"));
@@ -113,12 +95,6 @@ describe("audio-tools and cloudinary stack packages", () => {
       },
     });
     expect(manifest.provides.tools).toEqual(cloudinaryTools);
-    expect(legacyManifest).toMatchObject({
-      id: "stack:cloudinary",
-      runtime: "node",
-      command: ["npx", "tsx", "src/index.ts"],
-    });
-    expect(legacyManifest.provides.tools).toEqual(cloudinaryTools);
     expect(manifest).not.toHaveProperty("related");
 
     const secrets = manifest.requires.secrets as Array<Record<string, unknown>>;
@@ -130,17 +106,10 @@ describe("audio-tools and cloudinary stack packages", () => {
     ]);
     expect(secrets.every((secret) => secret.required === false)).toBe(true);
 
-    const officialStacks = index.packages.stacks.official as Array<Record<string, any>>;
-    expect(officialStacks).toContainEqual(
-      expect.objectContaining({
-        id: "stack:cloudinary",
-        path: "catalog/stacks/cloudinary",
-        runtime: "runtime:node",
-      })
-    );
+    expect(index.packages[manifest.id]).toEqual(manifest);
 
     const stackContent = await readStackFiles(cloudinaryRoot);
-    expect(stackContent).not.toContain("/Users/hoff");
+    expect(stackContent).not.toContain("/Users/");
     expect(stackContent).not.toContain("hoffdigital");
   });
 });

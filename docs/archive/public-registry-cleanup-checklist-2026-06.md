@@ -1,5 +1,9 @@
 # Public Registry Cleanup Checklist
 
+> **Status: archived historical checklist (June 2026).** For the current
+> canonical layout, follow [`AGENTS.md`](../../AGENTS.md) and
+> [`SCHEMA.md`](../../SCHEMA.md).
+
 Use this as the working checklist for separating the public-facing RUDI registry
 from local `.rudi` install/runtime state.
 

@@ -1,13 +1,28 @@
 {
   "id": "binary:docker",
+  "kind": "binary",
   "name": "Docker",
-  "description": "Container runtime",
-  "category": "devops",
-  "installType": "system",
-  "binary": "docker",
-  "checkCommand": "docker --version",
-  "installInstructions": {
-    "darwin": "Download Docker Desktop from https://docker.com/products/docker-desktop",
-    "linux": "curl -fsSL https://get.docker.com | sh"
+  "version": "system",
+
+  "delivery": "system",
+  "install": {
+    "source": "system"
+  },
+
+  "bins": ["docker"],
+
+  "detect": {
+    "command": "docker --version",
+    "expectExitCode": 0
+  },
+
+  "installHints": {
+    "brew": "brew install --cask docker",
+    "manual": "Download Docker Desktop from https://docker.com/products/docker-desktop"
+  },
+
+  "meta": {
+    "description": "Container runtime",
+    "category": "devops"
   }
 }

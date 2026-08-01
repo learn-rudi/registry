@@ -1,10 +1,27 @@
 {
-  "id": "stripe",
+  "id": "stack:stripe",
+  "kind": "stack",
   "name": "Stripe",
   "version": "1.0.0",
-  "description": "Manage Stripe payments, customers, invoices, and subscriptions",
+
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/stripe"
+  },
+
   "runtime": "node",
-  "command": ["node", "dist/index.js"],
+  "requires": {
+    "binaries": [],
+    "secrets": [
+      {
+        "key": "STRIPE_API_KEY",
+        "label": "Stripe Secret Key",
+        "required": true,
+        "helpUrl": "https://dashboard.stripe.com/apikeys"
+      }
+    ]
+  },
   "provides": {
     "tools": [
       "stripe_list_customers",
@@ -19,19 +36,15 @@
       "stripe_get_balance"
     ]
   },
-  "requires": {
-    "binaries": [],
-    "secrets": [
-      {
-        "name": "STRIPE_API_KEY",
-        "label": "Stripe Secret Key",
-        "description": "Secret key from Stripe Dashboard (sk_...)",
-        "link": "https://dashboard.stripe.com/apikeys",
-        "required": true
-      }
-    ]
+  "mcp": {
+    "transport": "stdio",
+    "command": "node",
+    "args": ["dist/index.js"],
+    "cwd": "."
   },
+
   "meta": {
+    "description": "Manage Stripe payments, customers, invoices, and subscriptions",
     "author": "RUDI",
     "license": "MIT",
     "category": "business",

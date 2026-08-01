@@ -1,227 +1,57 @@
 {
-  "id": "slack",
+  "id": "stack:slack",
+  "kind": "stack",
   "name": "Slack",
   "version": "1.0.0",
-  "description": "Send messages, search channels, upload files, and manage reactions in Slack",
-  "author": "CO-LLAB",
-  "license": "MIT",
-  "runtimes": [
-    "node"
-  ],
-  "mcp": {
-    "runtime": "node",
-    "entry": "node/src/index.ts",
-    "command": "npx",
-    "args": [
-      "tsx",
-      "node/src/index.ts"
+
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/slack"
+  },
+
+  "runtime": "node",
+  "requires": {
+    "binaries": [],
+    "secrets": [
+      {
+        "key": "SLACK_BOT_TOKEN",
+        "label": "Slack Bot Token",
+        "required": true,
+        "helpUrl": "https://api.slack.com/apps"
+      },
+      {
+        "key": "SLACK_CHANNEL_ID",
+        "label": "Default Channel ID",
+        "required": false
+      }
     ]
   },
-  "secrets": [
-    {
-      "key": "SLACK_BOT_TOKEN",
-      "label": "Slack Bot Token",
-      "description": "Bot token starting with xoxb-",
-      "helpUrl": "https://api.slack.com/apps",
-      "required": true
-    },
-    {
-      "key": "SLACK_CHANNEL_ID",
-      "label": "Default Channel ID",
-      "description": "Optional default channel for messages",
-      "required": false
-    }
-  ],
-  "tools": [
-    {
-      "name": "slack_send_message",
-      "description": "Send a message to a Slack channel or user",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "channel": {
-            "type": "string",
-            "description": "Channel ID or name (e.g., #general, C0123456789). Uses default if not provided."
-          },
-          "text": {
-            "type": "string",
-            "description": "Message text (supports Slack markdown)"
-          },
-          "thread_ts": {
-            "type": "string",
-            "description": "Thread timestamp to reply to (optional)"
-          }
-        },
-        "required": [
-          "text"
-        ]
-      }
-    },
-    {
-      "name": "slack_list_channels",
-      "description": "List available Slack channels",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "limit": {
-            "type": "number",
-            "description": "Max channels to return (default: 100)"
-          }
-        }
-      }
-    },
-    {
-      "name": "slack_read_channel",
-      "description": "Read recent messages from a channel",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "channel": {
-            "type": "string",
-            "description": "Channel ID"
-          },
-          "limit": {
-            "type": "number",
-            "description": "Number of messages (default: 20)"
-          }
-        },
-        "required": [
-          "channel"
-        ]
-      }
-    },
-    {
-      "name": "slack_search",
-      "description": "Search for messages",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "query": {
-            "type": "string",
-            "description": "Search query"
-          },
-          "limit": {
-            "type": "number",
-            "description": "Max results (default: 20)"
-          }
-        },
-        "required": [
-          "query"
-        ]
-      }
-    },
-    {
-      "name": "slack_update_message",
-      "description": "Update an existing message",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "channel": {
-            "type": "string",
-            "description": "Channel ID"
-          },
-          "ts": {
-            "type": "string",
-            "description": "Message timestamp"
-          },
-          "text": {
-            "type": "string",
-            "description": "New message text"
-          }
-        },
-        "required": [
-          "channel",
-          "ts",
-          "text"
-        ]
-      }
-    },
-    {
-      "name": "slack_add_reaction",
-      "description": "Add an emoji reaction to a message",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "channel": {
-            "type": "string",
-            "description": "Channel ID"
-          },
-          "ts": {
-            "type": "string",
-            "description": "Message timestamp"
-          },
-          "emoji": {
-            "type": "string",
-            "description": "Emoji name without colons (e.g., 'thumbsup')"
-          }
-        },
-        "required": [
-          "channel",
-          "ts",
-          "emoji"
-        ]
-      }
-    },
-    {
-      "name": "slack_upload_file",
-      "description": "Upload a file to a channel",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "channel": {
-            "type": "string",
-            "description": "Channel ID"
-          },
-          "file_path": {
-            "type": "string",
-            "description": "Local file path to upload"
-          },
-          "title": {
-            "type": "string",
-            "description": "File title (optional)"
-          },
-          "comment": {
-            "type": "string",
-            "description": "Initial comment (optional)"
-          }
-        },
-        "required": [
-          "channel",
-          "file_path"
-        ]
-      }
-    },
-    {
-      "name": "slack_get_user",
-      "description": "Get user info by ID or email",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "user_id": {
-            "type": "string",
-            "description": "User ID (e.g., U0123456789)"
-          },
-          "email": {
-            "type": "string",
-            "description": "User email (alternative to user_id)"
-          }
-        }
-      }
-    }
-  ],
-  "tags": [
-    "slack",
-    "messaging",
-    "chat",
-    "team",
-    "communication"
-  ],
-  "category": "communication",
-  "icon": "💬",
-  "runtime": "node",
-  "command": [
-    "npx",
-    "tsx",
-    "src/index.ts"
-  ]
+  "provides": {
+    "tools": [
+      "slack_send_message",
+      "slack_list_channels",
+      "slack_read_channel",
+      "slack_search",
+      "slack_update_message",
+      "slack_add_reaction",
+      "slack_upload_file",
+      "slack_get_user"
+    ]
+  },
+  "mcp": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["tsx", "node/src/index.ts"],
+    "cwd": "."
+  },
+
+  "meta": {
+    "description": "Send messages, search channels, upload files, and manage reactions in Slack",
+    "author": "CO-LLAB",
+    "license": "MIT",
+    "category": "communication",
+    "tags": ["slack", "messaging", "chat", "team"],
+    "icon": "💬"
+  }
 }

@@ -1,16 +1,58 @@
 {
-  "id": "bun",
+  "id": "runtime:bun",
+  "kind": "runtime",
   "name": "Bun",
   "version": "1.0",
-  "description": "Fast JavaScript runtime and package manager",
-  "bundled": false,
-  "binary": "bun",
-  "commands": [
-    { "name": "bun", "bin": "bun" },
-    { "name": "bunx", "bin": "bun", "args": ["x"] }
-  ],
-  "download": {
-    "darwin-arm64": "bun-1.0-darwin-arm64.tar.gz",
-    "darwin-x64": "bun-1.0-darwin-x64.tar.gz"
+  "delivery": "remote",
+  "install": {
+    "source": "download",
+    "platforms": {
+      "darwin-arm64": {
+        "url": "https://github.com/oven-sh/bun/releases/download/bun-v1.0.0/bun-darwin-aarch64.zip",
+        "checksum": {
+          "algo": "sha256",
+          "value": "05df0a2f521b581462319ab860f84d2dd8413aa45178215e50f02294b7e4d133"
+        },
+        "extract": {
+          "type": "zip"
+        }
+      },
+      "darwin-x64": {
+        "url": "https://github.com/oven-sh/bun/releases/download/bun-v1.0.0/bun-darwin-x64.zip",
+        "checksum": {
+          "algo": "sha256",
+          "value": "d004f9f218dac12eb4ab960041dfeea55cf4bce22cd7524cfa5737735986c8e1"
+        },
+        "extract": {
+          "type": "zip"
+        }
+      },
+      "linux-x64": {
+        "url": "https://github.com/oven-sh/bun/releases/download/bun-v1.0.0/bun-linux-x64.zip",
+        "checksum": {
+          "algo": "sha256",
+          "value": "d63bbb66e5bcdb045f5c4894db82f1f6ca42a0886175d276a787534d09ac6bb0"
+        },
+        "extract": {
+          "type": "zip"
+        }
+      }
+    }
+  },
+  "bins": {
+    "bun": {
+      "path": "bun"
+    },
+    "bunx": {
+      "path": "bun"
+    }
+  },
+  "detect": {
+    "command": "bun --version",
+    "expectExitCode": 0
+  },
+  "meta": {
+    "description": "Fast JavaScript runtime and package manager",
+    "category": "runtime"
   }
 }

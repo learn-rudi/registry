@@ -1,70 +1,61 @@
 {
-  "id": "content-extractor",
+  "id": "stack:content-extractor",
+  "kind": "stack",
   "name": "Content Extractor",
   "version": "1.0.0",
-  "description": "Extract content from YouTube, Reddit, TikTok, web articles, and link pages",
-  "runtime": "node",
-  "command": [
-    "npx",
-    "tsx",
-    "src/index.ts"
-  ],
-  "provides": {
-    "tools": [
-      "extract_youtube",
-      "extract_reddit",
-      "extract_tiktok",
-      "extract_article",
-      "extract_links"
-    ]
+
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/content-extractor"
   },
+
+  "runtime": "node",
   "requires": {
     "binaries": [],
     "secrets": [
       {
-        "description": "Optional but recommended - required for reliable YouTube transcript extraction",
+        "key": "SUPA_DATA_API",
         "label": "Supadata API Key",
-        "link": "https://supadata.ai",
         "required": false,
-        "name": "SUPA_DATA_API"
+        "helpUrl": "https://supadata.ai"
       },
       {
-        "description": "Optional - Reddit OAuth bearer token used when public JSON access is blocked",
+        "key": "REDDIT_BEARER_TOKEN",
         "label": "Reddit Bearer Token",
-        "link": "https://www.reddit.com/prefs/apps",
         "required": false,
-        "name": "REDDIT_BEARER_TOKEN"
+        "helpUrl": "https://www.reddit.com/prefs/apps"
       },
       {
-        "description": "Optional - Reddit app client ID for client-credentials fallback",
+        "key": "REDDIT_CLIENT_ID",
         "label": "Reddit Client ID",
-        "link": "https://www.reddit.com/prefs/apps",
         "required": false,
-        "name": "REDDIT_CLIENT_ID"
+        "helpUrl": "https://www.reddit.com/prefs/apps"
       },
       {
-        "description": "Optional - Reddit app client secret for client-credentials fallback",
+        "key": "REDDIT_CLIENT_SECRET",
         "label": "Reddit Client Secret",
-        "link": "https://www.reddit.com/prefs/apps",
         "required": false,
-        "name": "REDDIT_CLIENT_SECRET"
+        "helpUrl": "https://www.reddit.com/prefs/apps"
       }
     ]
   },
+  "provides": {
+    "tools": ["extract_youtube", "extract_reddit", "extract_tiktok", "extract_article", "extract_links"]
+  },
+  "mcp": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["tsx", "src/index.ts"],
+    "cwd": "."
+  },
+
   "meta": {
+    "description": "Extract content from YouTube, Reddit, TikTok, web articles, and link pages",
     "author": "CO-LLAB",
     "license": "MIT",
     "category": "data-extraction",
-    "tags": [
-      "youtube",
-      "reddit",
-      "tiktok",
-      "article",
-      "links",
-      "transcript",
-      "extraction",
-      "scraping"
-    ],
+    "tags": ["youtube", "reddit", "tiktok", "article", "links", "transcript"],
     "icon": "📥"
   }
 }

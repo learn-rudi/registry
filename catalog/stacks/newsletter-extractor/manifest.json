@@ -1,14 +1,18 @@
 {
-  "id": "newsletter-extractor",
+  "id": "stack:newsletter-extractor",
+  "kind": "stack",
   "name": "Newsletter Extractor",
   "version": "0.1.0",
-  "description": "Extract newsletter email bodies, normalize newsletter links, and read RSS/Atom feeds",
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/newsletter-extractor"
+  },
   "runtime": "node",
-  "command": [
-    "npx",
-    "tsx",
-    "src/index.ts"
-  ],
+  "requires": {
+    "binaries": [],
+    "secrets": []
+  },
   "provides": {
     "tools": [
       "extract_newsletter_email",
@@ -16,11 +20,17 @@
       "extract_rss_feed"
     ]
   },
-  "requires": {
-    "binaries": [],
-    "secrets": []
+  "mcp": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": [
+      "tsx",
+      "src/index.ts"
+    ],
+    "cwd": "."
   },
   "meta": {
+    "description": "Extract newsletter email bodies, normalize newsletter links, and read RSS/Atom feeds",
     "author": "CO-LLAB",
     "license": "MIT",
     "category": "data-extraction",

@@ -1,13 +1,30 @@
 {
-  "id": "flyio",
+  "id": "binary:flyio",
+  "kind": "binary",
   "name": "Fly.io CLI",
   "version": "latest",
-  "description": "Deploy to Fly.io (edge hosting)",
-  "bundled": false,
-  "installType": "npm",
-  "npmPackage": "flyctl",
-  "binary": "flyio/node_modules/.bin/flyctl",
-  "installDir": "flyio",
-  "requiresAuth": true,
-  "authInstructions": "Run 'fly auth login' to authenticate"
+
+  "delivery": "remote",
+  "install": {
+    "source": "npm",
+    "package": "flyctl"
+  },
+
+  "bins": ["flyctl", "fly"],
+
+  "detect": {
+    "command": "flyctl version",
+    "expectExitCode": 0
+  },
+
+  "auth": {
+    "required": true,
+    "command": "fly auth login",
+    "instructions": "Run 'fly auth login' to authenticate with your Fly.io account"
+  },
+
+  "meta": {
+    "description": "Deploy to Fly.io (edge hosting)",
+    "category": "devops"
+  }
 }

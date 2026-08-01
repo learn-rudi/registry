@@ -1,13 +1,30 @@
 {
-  "id": "railway",
+  "id": "binary:railway",
+  "kind": "binary",
   "name": "Railway CLI",
   "version": "latest",
-  "description": "Deploy to Railway (simple cloud hosting)",
-  "bundled": false,
-  "installType": "npm",
-  "npmPackage": "@railway/cli",
-  "binary": "railway/node_modules/.bin/railway",
-  "installDir": "railway",
-  "requiresAuth": true,
-  "authInstructions": "Run 'railway login' to authenticate"
+
+  "delivery": "remote",
+  "install": {
+    "source": "npm",
+    "package": "@railway/cli"
+  },
+
+  "bins": ["railway"],
+
+  "detect": {
+    "command": "railway --version",
+    "expectExitCode": 0
+  },
+
+  "auth": {
+    "required": true,
+    "command": "railway login",
+    "instructions": "Run 'railway login' to authenticate with your Railway account"
+  },
+
+  "meta": {
+    "description": "Deploy to Railway (simple cloud hosting)",
+    "category": "devops"
+  }
 }

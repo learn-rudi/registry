@@ -327,7 +327,6 @@ video-editor/
     DEBT_GUARDRAILS.md
   src/template-composer/
   manifest.json
-  manifest.v2.json
   package.json
   src/
     server.ts
@@ -407,7 +406,6 @@ npm run validate
 Registry stack checklist:
 
 - [ ] Add `manifest.json`.
-- [ ] Add `manifest.v2.json`.
 - [ ] Runtime is Node, not Python.
 - [ ] Required binaries are declared if needed.
 - [ ] Secrets are not required for deterministic rendering.

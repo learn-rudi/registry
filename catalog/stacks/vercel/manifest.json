@@ -1,10 +1,33 @@
 {
-  "id": "vercel",
+  "id": "stack:vercel",
+  "kind": "stack",
   "name": "Vercel",
   "version": "1.0.0",
-  "description": "Deploy to Vercel, manage environment variables, and monitor deployments",
+
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/vercel"
+  },
+
   "runtime": "node",
-  "command": ["npx", "tsx", "src/index.ts"],
+  "requires": {
+    "binaries": [],
+    "secrets": [
+      {
+        "key": "VERCEL_TOKEN",
+        "label": "Vercel API Token",
+        "required": true,
+        "helpUrl": "https://vercel.com/account/tokens"
+      },
+      {
+        "key": "VERCEL_ORG_ID",
+        "label": "Vercel Organization ID",
+        "required": false,
+        "helpUrl": "https://vercel.com/account/settings"
+      }
+    ]
+  },
   "provides": {
     "tools": [
       "vercel_list_projects",
@@ -20,30 +43,19 @@
       "vercel_list_domains"
     ]
   },
-  "requires": {
-    "binaries": [],
-    "secrets": [
-      {
-        "name": "VERCEL_TOKEN",
-        "label": "Vercel API Token",
-        "description": "Personal access token from your Vercel account",
-        "link": "https://vercel.com/account/tokens",
-        "required": true
-      },
-      {
-        "name": "VERCEL_ORG_ID",
-        "label": "Vercel Organization ID (Optional)",
-        "description": "Your team/org ID if using a team account (optional for personal)",
-        "link": "https://vercel.com/account/settings",
-        "required": false
-      }
-    ]
+  "mcp": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["tsx", "src/index.ts"],
+    "cwd": "."
   },
+
   "meta": {
+    "description": "Deploy to Vercel, manage environment variables, and monitor deployments",
     "author": "RUDI",
     "license": "MIT",
     "category": "deployment",
-    "tags": ["vercel", "deployment", "serverless", "env-vars", "hosting"],
+    "tags": ["vercel", "deployment", "serverless", "hosting"],
     "icon": "⚡"
   }
 }

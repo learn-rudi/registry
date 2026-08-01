@@ -1,22 +1,53 @@
 {
   "id": "binary:yt-dlp",
+  "kind": "binary",
   "name": "yt-dlp",
   "version": "2024.12.23",
-  "description": "Video downloader for YouTube and other sites",
-  "category": "media",
-  "installType": "binary",
-  "bins": ["yt-dlp"],
-  "binary": "yt-dlp",
-  "upstream": {
-    "darwin-arm64": "https://github.com/yt-dlp/yt-dlp/releases/download/2024.12.23/yt-dlp_macos",
-    "darwin-x64": "https://github.com/yt-dlp/yt-dlp/releases/download/2024.12.23/yt-dlp_macos",
-    "linux-x64": "https://github.com/yt-dlp/yt-dlp/releases/download/2024.12.23/yt-dlp_linux"
-  },
-  "extract": {
-    "default": {
-      "type": "raw",
-      "binary": "yt-dlp",
-      "chmod": true
+  "delivery": "remote",
+  "install": {
+    "source": "download",
+    "platforms": {
+      "darwin-arm64": {
+        "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2024.12.23/yt-dlp_macos",
+        "checksum": {
+          "algo": "sha256",
+          "value": "f23a251d04eac4e4b35c0697b709ce220a52f659f1eec43e7ad520a40477bbdc"
+        },
+        "extract": {
+          "type": "raw"
+        }
+      },
+      "darwin-x64": {
+        "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2024.12.23/yt-dlp_macos",
+        "checksum": {
+          "algo": "sha256",
+          "value": "f23a251d04eac4e4b35c0697b709ce220a52f659f1eec43e7ad520a40477bbdc"
+        },
+        "extract": {
+          "type": "raw"
+        }
+      },
+      "linux-x64": {
+        "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2024.12.23/yt-dlp_linux",
+        "checksum": {
+          "algo": "sha256",
+          "value": "50a1799719fc69baf387e5bce8e38bd9aef2d177e0569d666151a4f9e40a461d"
+        },
+        "extract": {
+          "type": "raw"
+        }
+      }
     }
+  },
+  "bins": [
+    "yt-dlp"
+  ],
+  "detect": {
+    "command": "yt-dlp --version",
+    "expectExitCode": 0
+  },
+  "meta": {
+    "description": "Video downloader for YouTube and other sites",
+    "category": "media"
   }
 }

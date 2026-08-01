@@ -1,10 +1,27 @@
 {
-  "id": "tally",
+  "id": "stack:tally",
+  "kind": "stack",
   "name": "Tally Forms",
   "version": "1.0.0",
-  "description": "Create, manage, and analyze Tally forms and submissions",
+
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/tally"
+  },
+
   "runtime": "node",
-  "command": ["node", "dist/index.js"],
+  "requires": {
+    "binaries": [],
+    "secrets": [
+      {
+        "key": "TALLY_API_KEY",
+        "label": "Tally API Key",
+        "required": true,
+        "helpUrl": "https://tally.so/help/api"
+      }
+    ]
+  },
   "provides": {
     "tools": [
       "tally_list_forms",
@@ -21,23 +38,18 @@
       "tally_get_analytics"
     ]
   },
-  "requires": {
-    "binaries": [],
-    "secrets": [
-      {
-        "name": "TALLY_API_KEY",
-        "label": "Tally API Key",
-        "description": "OAuth token from Tally developer settings",
-        "link": "https://tally.so/help/api",
-        "required": true
-      }
-    ]
+  "mcp": {
+    "transport": "stdio",
+    "command": "node",
+    "args": ["dist/index.js"],
+    "cwd": "."
   },
+
   "meta": {
+    "description": "Create, manage, and analyze Tally forms and submissions",
     "author": "RUDI",
     "license": "MIT",
     "category": "productivity",
-    "tags": ["tally", "forms", "surveys", "data-collection", "feedback"],
-    "icon": "📋"
+    "tags": ["tally", "forms", "surveys", "data-collection", "feedback"]
   }
 }

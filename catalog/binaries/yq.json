@@ -1,20 +1,53 @@
 {
   "id": "binary:yq",
+  "kind": "binary",
   "name": "yq",
   "version": "4.44.6",
-  "description": "YAML processor (like jq but for YAML)",
-  "category": "data",
-  "installType": "binary",
-  "binary": "yq",
-  "upstream": {
-    "darwin-arm64": "https://github.com/mikefarah/yq/releases/download/v4.44.6/yq_darwin_arm64",
-    "darwin-x64": "https://github.com/mikefarah/yq/releases/download/v4.44.6/yq_darwin_amd64",
-    "linux-x64": "https://github.com/mikefarah/yq/releases/download/v4.44.6/yq_linux_amd64"
-  },
-  "extract": {
-    "default": {
-      "type": "raw",
-      "chmod": true
+  "delivery": "remote",
+  "install": {
+    "source": "download",
+    "platforms": {
+      "darwin-arm64": {
+        "url": "https://github.com/mikefarah/yq/releases/download/v4.44.6/yq_darwin_arm64",
+        "checksum": {
+          "algo": "sha256",
+          "value": "164e10e5f7df62990e4f3823205e7ea42ba5660523a428df07c7386c0b62e3d9"
+        },
+        "extract": {
+          "type": "raw"
+        }
+      },
+      "darwin-x64": {
+        "url": "https://github.com/mikefarah/yq/releases/download/v4.44.6/yq_darwin_amd64",
+        "checksum": {
+          "algo": "sha256",
+          "value": "71813c67f87766a532a072d9ef9c24dd5615f6b7d2e49b2a56cd26cf3de021e1"
+        },
+        "extract": {
+          "type": "raw"
+        }
+      },
+      "linux-x64": {
+        "url": "https://github.com/mikefarah/yq/releases/download/v4.44.6/yq_linux_amd64",
+        "checksum": {
+          "algo": "sha256",
+          "value": "0c2b24e645b57d8e7c0566d18643a6d4f5580feeea3878127354a46f2a1e4598"
+        },
+        "extract": {
+          "type": "raw"
+        }
+      }
     }
+  },
+  "bins": [
+    "yq"
+  ],
+  "detect": {
+    "command": "yq --version",
+    "expectExitCode": 0
+  },
+  "meta": {
+    "description": "YAML processor (like jq but for YAML)",
+    "category": "data"
   }
 }

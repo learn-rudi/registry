@@ -1,12 +1,36 @@
 {
-  "id": "imagemagick",
+  "id": "binary:imagemagick",
+  "kind": "binary",
   "name": "ImageMagick",
   "version": "7.1",
-  "description": "Image processing",
-  "bundled": false,
-  "binary": "imagemagick/magick",
-  "download": {
-    "darwin-arm64": "imagemagick-7.1-darwin-arm64.tar.gz",
-    "darwin-x64": "imagemagick-7.1-darwin-x64.tar.gz"
+  "delivery": "system",
+  "install": {
+    "source": "system"
+  },
+  "bins": {
+    "magick": {
+      "path": "magick"
+    },
+    "convert": {
+      "path": "convert"
+    },
+    "identify": {
+      "path": "identify"
+    }
+  },
+  "detect": {
+    "command": "magick --version",
+    "expectExitCode": 0
+  },
+  "meta": {
+    "description": "Image processing and manipulation toolkit",
+    "category": "media"
+  },
+  "installHints": {
+    "brew": "brew install imagemagick",
+    "apt": "sudo apt install imagemagick",
+    "winget": "winget install ImageMagick.ImageMagick",
+    "choco": "choco install imagemagick",
+    "manual": "Install ImageMagick and ensure magick is on PATH."
   }
 }

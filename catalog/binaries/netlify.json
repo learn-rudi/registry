@@ -1,14 +1,30 @@
 {
-  "id": "netlify",
+  "id": "binary:netlify",
+  "kind": "binary",
   "name": "Netlify CLI",
   "version": "latest",
-  "description": "Deploy to Netlify",
-  "bundled": false,
-  "installType": "npm",
-  "npmPackage": "netlify-cli",
+
+  "delivery": "remote",
+  "install": {
+    "source": "npm",
+    "package": "netlify-cli"
+  },
+
   "bins": ["netlify", "ntl"],
-  "binary": "netlify/node_modules/.bin/netlify",
-  "installDir": "netlify",
-  "requiresAuth": true,
-  "authInstructions": "Run 'netlify login' to authenticate"
+
+  "detect": {
+    "command": "netlify --version",
+    "expectExitCode": 0
+  },
+
+  "auth": {
+    "required": true,
+    "command": "netlify login",
+    "instructions": "Run 'netlify login' to authenticate with your Netlify account"
+  },
+
+  "meta": {
+    "description": "Deploy to Netlify",
+    "category": "devops"
+  }
 }

@@ -1,10 +1,27 @@
 {
-  "id": "github",
+  "id": "stack:github",
+  "kind": "stack",
   "name": "GitHub",
   "version": "1.0.0",
-  "description": "Manage GitHub repositories, branches, contents, collaborators, issues, pull requests, releases, Actions, artifacts, and direct REST API calls",
+
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/github"
+  },
+
   "runtime": "node",
-  "command": ["node", "dist/index.js"],
+  "requires": {
+    "binaries": [],
+    "secrets": [
+      {
+        "key": "GITHUB_TOKEN",
+        "label": "GitHub Personal Access Token",
+        "required": true,
+        "helpUrl": "https://github.com/settings/tokens"
+      }
+    ]
+  },
   "provides": {
     "tools": [
       "github_rest_request",
@@ -69,23 +86,19 @@
       "github_delete_artifact"
     ]
   },
-  "requires": {
-    "binaries": [],
-    "secrets": [
-      {
-        "name": "GITHUB_TOKEN",
-        "label": "GitHub Personal Access Token",
-        "description": "Personal access token with repo access",
-        "link": "https://github.com/settings/tokens",
-        "required": true
-      }
-    ]
+  "mcp": {
+    "transport": "stdio",
+    "command": "node",
+    "args": ["dist/index.js"],
+    "cwd": "."
   },
+
   "meta": {
+    "description": "Manage GitHub repositories, branches, contents, collaborators, issues, pull requests, releases, Actions, artifacts, and direct REST API calls",
     "author": "RUDI",
     "license": "MIT",
     "category": "development",
-    "tags": ["github", "git", "repos", "prs", "issues", "code", "releases", "actions"],
+    "tags": ["github", "git", "repos", "prs", "issues", "releases", "actions"],
     "icon": "🐙"
   }
 }

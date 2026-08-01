@@ -1,5 +1,8 @@
 # Stack-Related Skills Checklist
 
+> **Status: active product roadmap.** This is planning material, not a catalog
+> package or an implementation contract.
+
 Purpose: capture the product and engineering work needed to make RUDI stacks feel like complete capability bundles: tools plus runtimes plus binaries plus connectors plus editable agent workflows.
 
 ## Product Thesis
@@ -116,7 +119,7 @@ Registry schema and docs:
 
 Video editor relationship:
 
-- `catalog/stacks/video-editor/manifest.v2.json`
+- `catalog/stacks/video-editor/manifest.json`
 - `catalog/stacks/video-editor/README.md`
 
 Skill package:
@@ -191,7 +194,7 @@ Reason:
 
 ### 3. Stack Manifest
 
-- [x] Add `related.skills` to `catalog/stacks/video-editor/manifest.v2.json`.
+- [x] Add `related.skills` to `catalog/stacks/video-editor/manifest.json`.
 - [ ] Audit other stacks for obvious related-skill candidates.
 - [ ] Do not add skills to `provides`.
 - [ ] Keep each related skill as a standalone registry skill so users can install and edit it.

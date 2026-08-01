@@ -1,38 +1,34 @@
 {
   "id": "binary:git",
+  "kind": "binary",
   "name": "Git",
   "version": "system",
-  "description": "Distributed version control system",
-  "category": "version-control",
-  "installType": "system",
-  "binary": "git",
-  "checkCommand": "git --version",
 
-  "platforms": {
-    "darwin": {
-      "strategy": "system",
-      "preinstalled": true,
-      "bins": ["git"],
-      "agentGuidance": "Git is pre-installed on macOS (via Xcode CLT). No installation needed. Use system binary."
-    },
-    "linux": {
-      "strategy": "package-manager",
-      "preinstalled": true,
-      "bins": ["git"],
-      "packageManager": "apt",
-      "package": "git",
-      "agentGuidance": "Git is pre-installed on most Linux distributions. Use system binary."
-    },
-    "win32": {
-      "strategy": "bundled",
-      "preinstalled": false,
-      "bins": ["git.exe"],
-      "agentGuidance": "Git is not pre-installed on Windows. Would need to bundle Git binary or direct user to Git for Windows installer."
+  "delivery": "system",
+  "install": {
+    "source": "system",
+    "platforms": {
+      "darwin": { "preinstalled": true },
+      "linux": { "preinstalled": true },
+      "win32": { "preinstalled": false }
     }
   },
 
-  "installInstructions": {
-    "darwin": "Install Xcode Command Line Tools: xcode-select --install",
-    "linux": "sudo apt install git"
+  "bins": ["git"],
+
+  "detect": {
+    "command": "git --version",
+    "expectExitCode": 0
+  },
+
+  "installHints": {
+    "brew": "xcode-select --install",
+    "apt": "sudo apt install git",
+    "manual": "Pre-installed on macOS and most Linux distributions"
+  },
+
+  "meta": {
+    "description": "Distributed version control system",
+    "category": "version-control"
   }
 }

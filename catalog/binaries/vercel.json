@@ -1,12 +1,30 @@
 {
   "id": "binary:vercel",
+  "kind": "binary",
   "name": "Vercel CLI",
   "version": "latest",
-  "description": "Deploy to Vercel",
-  "category": "devops",
-  "installType": "npm",
-  "npmPackage": "vercel",
+
+  "delivery": "remote",
+  "install": {
+    "source": "npm",
+    "package": "vercel"
+  },
+
   "bins": ["vercel", "vc"],
-  "requiresAuth": true,
-  "authCommand": "vercel login"
+
+  "detect": {
+    "command": "vercel --version",
+    "expectExitCode": 0
+  },
+
+  "auth": {
+    "required": true,
+    "command": "vercel login",
+    "instructions": "Run 'vercel login' to authenticate with your Vercel account"
+  },
+
+  "meta": {
+    "description": "Deploy to Vercel",
+    "category": "devops"
+  }
 }

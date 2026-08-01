@@ -1,49 +1,48 @@
 {
-  "id": "zoho-mail",
+  "id": "stack:zoho-mail",
+  "kind": "stack",
   "name": "Zoho Mail",
   "version": "1.0.0",
-  "description": "Send, search, and manage emails via Zoho Mail",
-  "runtime": "node",
-  "command": [
-    "npx",
-    "tsx",
-    "src/index.ts"
-  ],
-  "provides": {
-    "tools": [
-      "zoho_send_email",
-      "zoho_list_emails",
-      "zoho_get_email",
-      "zoho_search_email",
-      "zoho_list_folders",
-      "zoho_create_draft"
-    ]
+
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/zoho-mail"
   },
+
+  "runtime": "node",
   "requires": {
     "binaries": [],
     "secrets": [
       {
-        "description": "OAuth Client ID from Zoho API Console",
+        "key": "ZOHO_CLIENT_ID",
         "label": "Zoho Client ID",
-        "link": "https://api-console.zoho.com/",
-        "name": "ZOHO_CLIENT_ID"
+        "required": true,
+        "helpUrl": "https://api-console.zoho.com/"
       },
       {
-        "description": "OAuth Client Secret from Zoho API Console",
+        "key": "ZOHO_CLIENT_SECRET",
         "label": "Zoho Client Secret",
-        "name": "ZOHO_CLIENT_SECRET"
+        "required": true
       }
     ]
   },
+  "provides": {
+    "tools": ["zoho_send_email", "zoho_list_emails", "zoho_get_email", "zoho_search_email", "zoho_list_folders", "zoho_create_draft"]
+  },
+  "mcp": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["tsx", "src/index.ts"],
+    "cwd": "."
+  },
+
   "meta": {
+    "description": "Send, search, and manage emails via Zoho Mail",
     "author": "CO-LLAB",
     "license": "MIT",
     "category": "productivity",
-    "tags": [
-      "zoho",
-      "email",
-      "mail"
-    ],
+    "tags": ["zoho", "email", "mail"],
     "icon": "📬"
   }
 }

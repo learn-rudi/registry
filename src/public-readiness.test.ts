@@ -22,7 +22,6 @@ beforeEach(async () => {
   tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "rudi-registry-public-"));
   await fs.mkdir(path.join(tmpDir, "catalog/stacks/demo"), { recursive: true });
   await fs.mkdir(path.join(tmpDir, "catalog/skills"), { recursive: true });
-  await fs.mkdir(path.join(tmpDir, "catalog/workflows"), { recursive: true });
   await writeJson(path.join(tmpDir, "package.json"), {
     name: "@rudi/registry-test",
     files: ["index.json", "catalog", "dist", ...CATALOG_PACKAGE_ARTIFACT_EXCLUDES],
@@ -36,14 +35,15 @@ afterEach(async () => {
 describe("validatePublicReadiness", () => {
   it("passes a minimal tracked registry", async () => {
     await writeJson(path.join(tmpDir, "index.json"), {
+      schemaVersion: "2",
       packages: {
-        stacks: {
-          official: [
-            {
-              id: "stack:demo",
-              path: "catalog/stacks/demo",
-            },
-          ],
+        "stack:demo": {
+          id: "stack:demo",
+          kind: "stack",
+          name: "Demo",
+          version: "1.0.0",
+          delivery: "remote",
+          install: { source: "catalog", path: "catalog/stacks/demo" },
         },
       },
     });
@@ -61,16 +61,22 @@ describe("validatePublicReadiness", () => {
     });
 
     expect(report.summary.errors).toBe(0);
+    expect(report.summary.referencedPackages).toBe(1);
   });
 
   it("reports missing paths, untracked paths, placeholder checksums, and secret-like files", async () => {
     await writeJson(path.join(tmpDir, "index.json"), {
+      schemaVersion: "2",
       packages: {
-        stacks: {
-          official: [
-            { id: "stack:missing", path: "catalog/stacks/missing" },
-            { id: "stack:untracked", path: "catalog/stacks/untracked" },
-          ],
+        "stack:missing": {
+          id: "stack:missing",
+          kind: "stack",
+          install: { source: "catalog", path: "catalog/stacks/missing" },
+        },
+        "stack:untracked": {
+          id: "stack:untracked",
+          kind: "stack",
+          install: { source: "catalog", path: "catalog/stacks/untracked" },
         },
       },
     });
@@ -78,7 +84,7 @@ describe("validatePublicReadiness", () => {
       id: "stack:untracked",
       name: "Untracked",
     });
-    await writeJson(path.join(tmpDir, "catalog/runtimes/v2/node.json"), {
+    await writeJson(path.join(tmpDir, "catalog/runtimes/node.json"), {
       id: "runtime:node",
       checksum: { value: "0".repeat(64) },
     });
@@ -98,14 +104,12 @@ describe("validatePublicReadiness", () => {
 
   it("reports tracked runtime artifacts inside catalog stack payloads", async () => {
     await writeJson(path.join(tmpDir, "index.json"), {
+      schemaVersion: "2",
       packages: {
-        stacks: {
-          official: [
-            {
-              id: "stack:demo",
-              path: "catalog/stacks/demo",
-            },
-          ],
+        "stack:demo": {
+          id: "stack:demo",
+          kind: "stack",
+          install: { source: "catalog", path: "catalog/stacks/demo" },
         },
       },
     });
@@ -141,14 +145,12 @@ describe("validatePublicReadiness", () => {
       files: ["index.json", "catalog/stacks/**/*.{js,json,md}", "dist"],
     });
     await writeJson(path.join(tmpDir, "index.json"), {
+      schemaVersion: "2",
       packages: {
-        stacks: {
-          official: [
-            {
-              id: "stack:demo",
-              path: "catalog/stacks/demo",
-            },
-          ],
+        "stack:demo": {
+          id: "stack:demo",
+          kind: "stack",
+          install: { source: "catalog", path: "catalog/stacks/demo" },
         },
       },
     });
@@ -175,26 +177,20 @@ describe("validatePublicReadiness", () => {
 
   it("reports stack binary requirements that cannot resolve to installable or detectable providers", async () => {
     await writeJson(path.join(tmpDir, "index.json"), {
+      schemaVersion: "2",
       packages: {
-        stacks: {
-          official: [
-            {
-              id: "stack:media",
-              path: "catalog/stacks/media",
-            },
-          ],
+        "stack:media": {
+          id: "stack:media",
+          kind: "stack",
+          install: { source: "catalog", path: "catalog/stacks/media" },
         },
-        binaries: {
-          official: [
-            {
-              id: "binary:ffmpeg",
-              path: "catalog/binaries/ffmpeg.json",
-            },
-            {
-              id: "binary:badtool",
-              path: "catalog/binaries/badtool.json",
-            },
-          ],
+        "binary:ffmpeg": {
+          id: "binary:ffmpeg",
+          kind: "binary",
+        },
+        "binary:badtool": {
+          id: "binary:badtool",
+          kind: "binary",
         },
       },
     });
@@ -207,20 +203,23 @@ describe("validatePublicReadiness", () => {
     });
     await writeJson(path.join(tmpDir, "catalog/binaries/ffmpeg.json"), {
       id: "binary:ffmpeg",
+      kind: "binary",
       name: "FFmpeg",
-      downloads: {
-        "darwin-arm64": [
-          {
+      install: {
+        source: "download",
+        platforms: {
+          "darwin-arm64": {
             url: "https://example.com/ffmpeg.zip",
-            type: "zip",
-            binary: "ffmpeg",
+            checksum: { algo: "sha256", value: "a".repeat(64) },
+            extract: { type: "zip" },
           },
-        ],
+        },
       },
       bins: ["ffmpeg", "ffprobe"],
     });
     await writeJson(path.join(tmpDir, "catalog/binaries/badtool.json"), {
       id: "binary:badtool",
+      kind: "binary",
       name: "Bad Tool",
     });
 

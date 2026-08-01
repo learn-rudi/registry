@@ -1,290 +1,81 @@
 {
-  "id": "social-media-publisher",
+  "id": "stack:social-media-publisher",
+  "kind": "stack",
   "name": "Social Media Publisher",
   "version": "1.0.0",
-  "description": "Post to Twitter, LinkedIn, Facebook, Instagram, TikTok, and YouTube with readiness checks and unified publisher validation",
-  "runtime": "node",
-  "command": [
-    "npx",
-    "tsx",
-    "src/index.ts"
-  ],
-  "provides": {
-    "tools": [
-      "social_list_supported_platforms",
-      "social_validate_post",
-      "social_check_publish_ready",
-      "social_publish_direct",
-      "twitter_post",
-      "twitter_thread",
-      "linkedin_post",
-      "facebook_post",
-      "facebook_list_pages",
-      "instagram_post",
-      "instagram_reel_create_container",
-      "instagram_container_status",
-      "instagram_publish_container",
-      "instagram_list_accounts",
-      "tiktok_creator_info",
-      "tiktok_direct_post",
-      "tiktok_video_upload",
-      "tiktok_fetch_status",
-      "youtube_video_upload"
-    ]
+
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/social-media-publisher"
   },
+
+  "runtime": "node",
   "requires": {
     "binaries": [],
     "secrets": [
-      {
-        "description": "Twitter API Key",
-        "label": "Twitter API Key",
-        "required": false,
-        "name": "TWITTER_API_KEY"
-      },
-      {
-        "description": "Twitter API Secret",
-        "label": "Twitter API Secret",
-        "required": false,
-        "name": "TWITTER_API_SECRET"
-      },
-      {
-        "description": "Twitter Access Token",
-        "label": "Twitter Access Token",
-        "required": false,
-        "name": "TWITTER_ACCESS_TOKEN"
-      },
-      {
-        "description": "Twitter Access Secret",
-        "label": "Twitter Access Secret",
-        "required": false,
-        "name": "TWITTER_ACCESS_SECRET"
-      },
-      {
-        "description": "Twitter OAuth 2.0 access token for the optional unified publisher import flow",
-        "label": "Twitter OAuth2 Access Token",
-        "required": false,
-        "name": "TWITTER_OAUTH2_ACCESS_TOKEN"
-      },
-      {
-        "description": "Twitter OAuth 2.0 refresh token for the optional unified publisher import flow",
-        "label": "Twitter OAuth2 Refresh Token",
-        "required": false,
-        "name": "TWITTER_OAUTH2_REFRESH_TOKEN"
-      },
-      {
-        "description": "Twitter OAuth 2.0 client ID for refresh-token publishing",
-        "label": "Twitter OAuth2 Client ID",
-        "required": false,
-        "name": "TWITTER_OAUTH2_CLIENT_ID"
-      },
-      {
-        "description": "Twitter OAuth 2.0 client secret for confidential-client refresh-token publishing",
-        "label": "Twitter OAuth2 Client Secret",
-        "required": false,
-        "name": "TWITTER_OAUTH2_CLIENT_SECRET"
-      },
-      {
-        "description": "Optional Twitter OAuth 2.0 token endpoint override",
-        "label": "Twitter OAuth2 Token URI",
-        "required": false,
-        "name": "TWITTER_OAUTH2_TOKEN_URI"
-      },
-      {
-        "description": "LinkedIn OAuth client ID for member publishing",
-        "label": "LinkedIn Client ID",
-        "required": false,
-        "name": "LINKEDIN_CLIENT_ID"
-      },
-      {
-        "description": "LinkedIn OAuth client secret for member publishing",
-        "label": "LinkedIn Client Secret",
-        "required": false,
-        "name": "LINKEDIN_CLIENT_SECRET"
-      },
-      {
-        "description": "LinkedIn Access Token",
-        "label": "LinkedIn Access Token",
-        "required": false,
-        "name": "LINKEDIN_ACCESS_TOKEN"
-      },
-      {
-        "description": "ISO timestamp when the LinkedIn access token expires",
-        "label": "LinkedIn Access Token Expires At",
-        "required": false,
-        "name": "LINKEDIN_ACCESS_TOKEN_EXPIRES_AT"
-      },
-      {
-        "description": "LinkedIn Refresh Token for the optional unified publisher import flow",
-        "label": "LinkedIn Refresh Token",
-        "required": false,
-        "name": "LINKEDIN_REFRESH_TOKEN"
-      },
-      {
-        "description": "Optional LinkedIn token endpoint override",
-        "label": "LinkedIn Token URI",
-        "required": false,
-        "name": "LINKEDIN_TOKEN_URI"
-      },
-      {
-        "description": "LinkedIn OAuth redirect URI used by the local login helper",
-        "label": "LinkedIn Redirect URI",
-        "required": false,
-        "name": "LINKEDIN_REDIRECT_URI"
-      },
-      {
-        "description": "LinkedIn permissions requested by the local login helper",
-        "label": "LinkedIn OAuth Scopes",
-        "required": false,
-        "name": "LINKEDIN_SCOPES"
-      },
-      {
-        "description": "Database URL for the optional unified publisher API and worker",
-        "label": "Database URL",
-        "required": false,
-        "name": "DATABASE_URL"
-      },
-      {
-        "description": "Direct database URL for migrations and maintenance",
-        "label": "Direct Database URL",
-        "required": false,
-        "name": "DIRECT_DATABASE_URL"
-      },
-      {
-        "description": "Internal API key for the optional unified publisher API",
-        "label": "Internal API Key",
-        "required": false,
-        "name": "INTERNAL_API_KEY"
-      },
-      {
-        "description": "Encryption key for stored social tokens",
-        "label": "Token Encryption Key",
-        "required": false,
-        "name": "TOKEN_ENCRYPTION_KEY"
-      },
-      {
-        "description": "Meta app ID for Facebook and Instagram OAuth",
-        "label": "Meta App ID",
-        "required": false,
-        "name": "META_APP_ID"
-      },
-      {
-        "description": "Meta app secret for Facebook and Instagram OAuth",
-        "label": "Meta App Secret",
-        "required": false,
-        "name": "META_APP_SECRET"
-      },
-      {
-        "description": "Meta OAuth redirect URI used by the local login helper",
-        "label": "Meta Redirect URI",
-        "required": false,
-        "name": "META_REDIRECT_URI"
-      },
-      {
-        "description": "Meta permissions requested by the local login helper",
-        "label": "Meta OAuth Scopes",
-        "required": false,
-        "name": "META_SCOPES"
-      },
-      {
-        "description": "Long-lived Meta user access token used to discover Page tokens",
-        "label": "Meta User Access Token",
-        "required": false,
-        "name": "META_USER_ACCESS_TOKEN"
-      },
-      {
-        "description": "Meta Instagram app ID kept for Instagram-specific API setup",
-        "label": "Meta Instagram App ID",
-        "required": false,
-        "name": "META_INSTAGRAM_APP_ID"
-      },
-      {
-        "description": "Meta Instagram app secret kept for Instagram-specific API setup",
-        "label": "Meta Instagram App Secret",
-        "required": false,
-        "name": "META_INSTAGRAM_APP_SECRET"
-      },
-      {
-        "description": "Google OAuth client ID for YouTube publishing",
-        "label": "Google Client ID",
-        "required": false,
-        "name": "GOOGLE_CLIENT_ID"
-      },
-      {
-        "description": "Google OAuth client secret for YouTube publishing",
-        "label": "Google Client Secret",
-        "required": false,
-        "name": "GOOGLE_CLIENT_SECRET"
-      },
-      {
-        "description": "Google refresh token authorized for YouTube upload publishing",
-        "label": "YouTube Refresh Token",
-        "required": false,
-        "name": "YOUTUBE_REFRESH_TOKEN"
-      },
-      {
-        "description": "Optional Google token endpoint override for YouTube refresh-token publishing",
-        "label": "YouTube Token URI",
-        "required": false,
-        "name": "YOUTUBE_TOKEN_URI"
-      },
-      {
-        "description": "Optional YouTube OAuth scopes for refresh-token publishing",
-        "label": "YouTube Scopes",
-        "required": false,
-        "name": "YOUTUBE_SCOPES"
-      },
-      {
-        "description": "TikTok user access token authorized for video.upload",
-        "label": "TikTok Access Token",
-        "required": false,
-        "name": "TIKTOK_ACCESS_TOKEN"
-      },
-      {
-        "description": "TikTok refresh token used to mint short-lived access tokens",
-        "label": "TikTok Refresh Token",
-        "required": false,
-        "name": "TIKTOK_REFRESH_TOKEN"
-      },
-      {
-        "description": "TikTok sandbox or production app client key for OAuth setup",
-        "label": "TikTok Client Key",
-        "required": false,
-        "name": "TIKTOK_CLIENT_KEY"
-      },
-      {
-        "description": "TikTok sandbox or production app client secret for OAuth setup",
-        "label": "TikTok Client Secret",
-        "required": false,
-        "name": "TIKTOK_CLIENT_SECRET"
-      },
-      {
-        "description": "TikTok OAuth redirect URI for manual token setup",
-        "label": "TikTok Redirect URI",
-        "required": false,
-        "name": "TIKTOK_REDIRECT_URI"
-      },
-      {
-        "description": "TikTok OAuth scopes requested during manual token setup",
-        "label": "TikTok Scope",
-        "required": false,
-        "name": "TIKTOK_SCOPE"
-      }
+      { "key": "TWITTER_API_KEY", "label": "Twitter API Key", "required": false },
+      { "key": "TWITTER_API_SECRET", "label": "Twitter API Secret", "required": false },
+      { "key": "TWITTER_ACCESS_TOKEN", "label": "Twitter Access Token", "required": false },
+      { "key": "TWITTER_ACCESS_SECRET", "label": "Twitter Access Secret", "required": false },
+      { "key": "TWITTER_OAUTH2_ACCESS_TOKEN", "label": "Twitter OAuth2 Access Token", "required": false },
+      { "key": "TWITTER_OAUTH2_REFRESH_TOKEN", "label": "Twitter OAuth2 Refresh Token", "required": false },
+      { "key": "TWITTER_OAUTH2_CLIENT_ID", "label": "Twitter OAuth2 Client ID", "required": false },
+      { "key": "TWITTER_OAUTH2_CLIENT_SECRET", "label": "Twitter OAuth2 Client Secret", "required": false },
+      { "key": "TWITTER_OAUTH2_TOKEN_URI", "label": "Twitter OAuth2 Token URI", "required": false },
+      { "key": "LINKEDIN_CLIENT_ID", "label": "LinkedIn Client ID", "required": false },
+      { "key": "LINKEDIN_CLIENT_SECRET", "label": "LinkedIn Client Secret", "required": false },
+      { "key": "LINKEDIN_ACCESS_TOKEN", "label": "LinkedIn Access Token", "required": false },
+      { "key": "LINKEDIN_ACCESS_TOKEN_EXPIRES_AT", "label": "LinkedIn Access Token Expires At", "required": false },
+      { "key": "LINKEDIN_REFRESH_TOKEN", "label": "LinkedIn Refresh Token", "required": false },
+      { "key": "LINKEDIN_TOKEN_URI", "label": "LinkedIn Token URI", "required": false },
+      { "key": "LINKEDIN_REDIRECT_URI", "label": "LinkedIn Redirect URI", "required": false },
+      { "key": "LINKEDIN_SCOPES", "label": "LinkedIn OAuth Scopes", "required": false },
+      { "key": "DATABASE_URL", "label": "Database URL", "required": false },
+      { "key": "DIRECT_DATABASE_URL", "label": "Direct Database URL", "required": false },
+      { "key": "INTERNAL_API_KEY", "label": "Internal API Key", "required": false },
+      { "key": "TOKEN_ENCRYPTION_KEY", "label": "Token Encryption Key", "required": false },
+      { "key": "META_APP_ID", "label": "Meta App ID", "required": false },
+      { "key": "META_APP_SECRET", "label": "Meta App Secret", "required": false },
+      { "key": "META_REDIRECT_URI", "label": "Meta Redirect URI", "required": false },
+      { "key": "META_SCOPES", "label": "Meta OAuth Scopes", "required": false },
+      { "key": "META_USER_ACCESS_TOKEN", "label": "Meta User Access Token", "required": false },
+      { "key": "META_INSTAGRAM_APP_ID", "label": "Meta Instagram App ID", "required": false },
+      { "key": "META_INSTAGRAM_APP_SECRET", "label": "Meta Instagram App Secret", "required": false },
+      { "key": "GOOGLE_CLIENT_ID", "label": "Google Client ID", "required": false },
+      { "key": "GOOGLE_CLIENT_SECRET", "label": "Google Client Secret", "required": false },
+      { "key": "YOUTUBE_REFRESH_TOKEN", "label": "YouTube Refresh Token", "required": false },
+      { "key": "YOUTUBE_TOKEN_URI", "label": "YouTube Token URI", "required": false },
+      { "key": "YOUTUBE_SCOPES", "label": "YouTube Scopes", "required": false },
+      { "key": "TIKTOK_ACCESS_TOKEN", "label": "TikTok Access Token", "required": false },
+      { "key": "TIKTOK_REFRESH_TOKEN", "label": "TikTok Refresh Token", "required": false },
+      { "key": "TIKTOK_CLIENT_KEY", "label": "TikTok Client Key", "required": false },
+      { "key": "TIKTOK_CLIENT_SECRET", "label": "TikTok Client Secret", "required": false },
+      { "key": "TIKTOK_REDIRECT_URI", "label": "TikTok Redirect URI", "required": false },
+      { "key": "TIKTOK_SCOPE", "label": "TikTok Scope", "required": false }
     ]
   },
+  "provides": {
+    "tools": ["social_list_supported_platforms", "social_validate_post", "social_check_publish_ready", "social_publish_direct", "twitter_post", "twitter_thread", "linkedin_post", "facebook_post", "facebook_list_pages", "instagram_post", "instagram_reel_create_container", "instagram_container_status", "instagram_publish_container", "instagram_list_accounts", "tiktok_creator_info", "tiktok_direct_post", "tiktok_video_upload", "tiktok_fetch_status", "youtube_video_upload"]
+  },
+  "related": {
+    "skills": [
+      "skill:shortform-publish-copy"
+    ]
+  },
+  "mcp": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["tsx", "src/index.ts"],
+    "cwd": "."
+  },
+
   "meta": {
+    "description": "Post to Twitter, LinkedIn, Facebook, Instagram, TikTok, and YouTube with readiness checks and unified publisher validation",
     "author": "CO-LLAB",
     "license": "MIT",
-    "category": "social-media",
-    "tags": [
-      "social-media",
-      "twitter",
-      "linkedin",
-      "facebook",
-      "instagram",
-      "tiktok",
-      "youtube",
-      "marketing"
-    ],
+    "category": "social",
+    "tags": ["twitter", "linkedin", "facebook", "instagram", "tiktok", "youtube", "social-media"],
     "icon": "📱"
   }
 }

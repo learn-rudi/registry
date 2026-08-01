@@ -1,9 +1,8 @@
 export const CATALOG_PAYLOAD_PATTERNS = [
   "catalog/stacks/**/!(node_modules)/**/*.{ts,js,json,md,py,txt}",
   "catalog/stacks/*/manifest.json",
-  "catalog/stacks/*/manifest.v2.json",
   "catalog/stacks/*/.env.example",
-  "catalog/skills/**/*.md",
+  "catalog/skills/**/*",
   "catalog/prompts/**/*.md",
 ];
 
@@ -31,6 +30,10 @@ export const CATALOG_PACKAGE_ARTIFACT_EXCLUDES = [
   "!catalog/stacks/**/output/**",
   "!catalog/stacks/**/outputs/**",
   "!catalog/stacks/**/composer/public/media/**",
+  "!catalog/skills/**/node_modules/**",
+  "!catalog/skills/**/runs/**",
+  "!catalog/skills/**/output/**",
+  "!catalog/skills/**/outputs/**",
   "!catalog/**/.DS_Store",
 ];
 
@@ -45,6 +48,10 @@ const FORBIDDEN_CATALOG_ARTIFACT_PATTERNS = [
   /^catalog\/stacks\/[^/]+\/output(?:\/|$)/,
   /^catalog\/stacks\/[^/]+\/outputs(?:\/|$)/,
   /^catalog\/stacks\/[^/]+\/composer\/public\/media(?:\/|$)/,
+  /^catalog\/skills\/[^/]+\/node_modules(?:\/|$)/,
+  /^catalog\/skills\/[^/]+\/runs(?:\/|$)/,
+  /^catalog\/skills\/[^/]+\/output(?:\/|$)/,
+  /^catalog\/skills\/[^/]+\/outputs(?:\/|$)/,
   /^catalog\/.*\/\.DS_Store$/,
 ];
 

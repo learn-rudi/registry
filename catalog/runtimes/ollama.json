@@ -1,44 +1,82 @@
 {
-  "id": "ollama",
+  "id": "runtime:ollama",
+  "kind": "runtime",
   "name": "Ollama",
   "version": "0.5.4",
-  "description": "Run local LLMs and embedding models (Llama, Mistral, nomic-embed-text)",
-  "category": "model",
-  "bundled": false,
-  "binary": "ollama",
-  "installDir": "ollama",
-  "commands": [
-    { "name": "ollama", "bin": "ollama" }
-  ],
-  "download": {
-    "darwin-arm64": {
-      "url": "https://github.com/ollama/ollama/releases/download/v0.5.4/ollama-darwin",
-      "type": "binary"
-    },
-    "darwin-x64": {
-      "url": "https://github.com/ollama/ollama/releases/download/v0.5.4/ollama-darwin",
-      "type": "binary"
-    },
-    "linux-x64": {
-      "url": "https://github.com/ollama/ollama/releases/download/v0.5.4/ollama-linux-amd64",
-      "type": "binary"
-    },
-    "linux-arm64": {
-      "url": "https://github.com/ollama/ollama/releases/download/v0.5.4/ollama-linux-arm64",
-      "type": "binary"
+  "delivery": "remote",
+  "install": {
+    "source": "download",
+    "platforms": {
+      "darwin-arm64": {
+        "url": "https://github.com/ollama/ollama/releases/download/v0.5.4/ollama-darwin",
+        "checksum": {
+          "algo": "sha256",
+          "value": "5f745eafb59ecef40cf453bedd58f9bccc0cfd79bf752514e89f4288188de319"
+        },
+        "extract": {
+          "type": "raw"
+        }
+      },
+      "darwin-x64": {
+        "url": "https://github.com/ollama/ollama/releases/download/v0.5.4/ollama-darwin",
+        "checksum": {
+          "algo": "sha256",
+          "value": "5f745eafb59ecef40cf453bedd58f9bccc0cfd79bf752514e89f4288188de319"
+        },
+        "extract": {
+          "type": "raw"
+        }
+      },
+      "linux-x64": {
+        "url": "https://github.com/ollama/ollama/releases/download/v0.5.4/ollama-linux-amd64.tgz",
+        "checksum": {
+          "algo": "sha256",
+          "value": "5f44dc7f21c4f0050c4da6649bf1501707e782b57a3f5e899e4fd0e2ffc183cb"
+        },
+        "extract": {
+          "type": "tar.gz"
+        }
+      },
+      "linux-arm64": {
+        "url": "https://github.com/ollama/ollama/releases/download/v0.5.4/ollama-linux-arm64.tgz",
+        "checksum": {
+          "algo": "sha256",
+          "value": "7ff1f8b2c08f5172b8e4646abdbdc3b6947f20ca7f0e9060bf07064241420d45"
+        },
+        "extract": {
+          "type": "tar.gz"
+        }
+      }
     }
   },
-  "postInstall": {
-    "message": "Ollama installed. To start:\n  ollama serve\n\nFor embeddings:\n  ollama pull nomic-embed-text\n\nFor chat:\n  ollama pull llama3.2"
+  "bins": [
+    "ollama"
+  ],
+  "aliases": [
+    "agent:ollama",
+    "binary:ollama"
+  ],
+  "detect": {
+    "command": "ollama --version",
+    "expectExitCode": 0
+  },
+  "installHints": {
+    "brew": "brew install --cask ollama",
+    "manual": "Download Ollama for macOS from https://ollama.com/download. Start the server before using OpenAI-compatible local endpoints."
   },
   "meta": {
+    "description": "Run local LLMs and embedding models (Llama, Mistral, Phi, nomic-embed-text)",
+    "category": "model-runtime",
+    "tags": [
+      "llm",
+      "local",
+      "inference",
+      "embeddings",
+      "ai"
+    ],
     "homepage": "https://ollama.com",
     "docs": "https://docs.ollama.com/",
     "openaiCompatibilityDocs": "https://docs.ollama.com/openai",
-    "models": {
-      "embedding": ["nomic-embed-text", "mxbai-embed-large", "all-minilm"],
-      "chat": ["llama3.2", "mistral", "codellama", "qwen2.5-coder"]
-    },
     "localLlm": {
       "providerFamily": "openai_compatible",
       "openaiCompatible": true,
@@ -76,6 +114,13 @@
           }
         }
       },
+      "recommendedUse": [
+        "summarization",
+        "tagging",
+        "claims",
+        "classification",
+        "embeddings"
+      ],
       "consumerEnv": {
         "contentEngine": {
           "ENABLE_LLM": "true",
@@ -100,6 +145,53 @@
           "command": "docker run --rm curlimages/curl:latest http://host.docker.internal:11434/v1/models"
         }
       ],
+      "models": {
+        "chat": [
+          {
+            "tag": "qwen2.5:3b",
+            "workloads": [
+              "summarization",
+              "tagging",
+              "classification"
+            ],
+            "minimumMemoryGb": 8,
+            "status": "candidate",
+            "notes": "Verify the current Ollama model tag before committing as the default."
+          },
+          {
+            "tag": "qwen2.5:7b",
+            "workloads": [
+              "summarization",
+              "tagging",
+              "claims",
+              "classification"
+            ],
+            "minimumMemoryGb": 16,
+            "status": "candidate",
+            "notes": "Verify the current Ollama model tag before committing as the default."
+          },
+          {
+            "tag": "llama3.2:3b",
+            "workloads": [
+              "summarization",
+              "tagging",
+              "classification"
+            ],
+            "minimumMemoryGb": 8,
+            "status": "candidate"
+          }
+        ],
+        "embeddings": [
+          {
+            "tag": "nomic-embed-text",
+            "workloads": [
+              "embeddings"
+            ],
+            "minimumMemoryGb": 8,
+            "status": "candidate"
+          }
+        ]
+      },
       "securityNotes": [
         "Prefer a host-local runtime bind for development.",
         "Binding Ollama to 0.0.0.0 can expose the model runtime on the LAN; use firewall or trusted-network controls.",

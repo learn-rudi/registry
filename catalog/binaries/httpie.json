@@ -1,13 +1,24 @@
 {
   "id": "binary:httpie",
+  "kind": "binary",
   "name": "HTTPie",
   "version": "latest",
-  "description": "Modern HTTP client for API testing",
-  "category": "utilities",
-  "installType": "pip",
-  "pipPackage": "httpie",
-  "binary": "http",
-  "requires": [
-    "runtime:python"
-  ]
+
+  "delivery": "remote",
+  "install": {
+    "source": "pip",
+    "package": "httpie"
+  },
+
+  "bins": ["http", "https"],
+
+  "detect": {
+    "command": "http --version",
+    "expectExitCode": 0
+  },
+
+  "meta": {
+    "description": "Modern HTTP client for API testing",
+    "category": "utilities"
+  }
 }

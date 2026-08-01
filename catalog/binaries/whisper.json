@@ -1,17 +1,27 @@
 {
   "id": "binary:whisper",
+  "kind": "binary",
   "name": "Whisper",
   "version": "1.0.0",
-  "description": "OpenAI Whisper speech-to-text CLI",
-  "category": "media",
-  "installType": "system",
-  "managed": false,
-  "binary": "whisper",
-  "bins": ["whisper"],
-  "checkCommand": "whisper --help",
+  "delivery": "system",
+  "install": {
+    "source": "system"
+  },
+  "bins": {
+    "whisper-cli": {
+      "path": "bin/whisper-cli"
+    }
+  },
   "detect": {
-    "command": "whisper --help",
+    "command": "whisper-cli --version",
     "expectExitCode": 0
   },
-  "instructions": "Install with pipx install openai-whisper or uv tool install openai-whisper, then ensure whisper is on PATH."
+  "meta": {
+    "description": "OpenAI Whisper speech-to-text (local whisper.cpp)",
+    "category": "media"
+  },
+  "installHints": {
+    "brew": "brew install openai-whisper",
+    "manual": "Install Whisper with pipx install openai-whisper or uv tool install openai-whisper, and ensure whisper is on PATH."
+  }
 }

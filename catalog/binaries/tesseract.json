@@ -1,13 +1,29 @@
 {
   "id": "binary:tesseract",
+  "kind": "binary",
   "name": "Tesseract OCR",
-  "version": "5.3",
-  "description": "OCR text extraction from images",
-  "category": "document-processing",
-  "installType": "system",
-  "binary": "tesseract",
+  "version": "system",
+
+  "delivery": "system",
+  "install": {
+    "source": "system"
+  },
+
   "bins": ["tesseract"],
-  "managed": false,
-  "checkCommand": "tesseract --version",
-  "instructions": "Install via Homebrew: brew install tesseract"
+
+  "detect": {
+    "command": "tesseract --version",
+    "expectExitCode": 0
+  },
+
+  "installHints": {
+    "brew": "brew install tesseract",
+    "apt": "sudo apt install tesseract-ocr",
+    "manual": "Install Tesseract OCR from your package manager"
+  },
+
+  "meta": {
+    "description": "OCR text extraction from images",
+    "category": "utilities"
+  }
 }

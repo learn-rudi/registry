@@ -1,16 +1,24 @@
 {
-  "id": "playwright",
+  "id": "binary:playwright",
+  "kind": "binary",
   "name": "Playwright",
-  "version": "1.49.0",
-  "description": "Browser automation for screenshots, scraping, and testing",
-  "npmPackage": "playwright",
-  "postInstall": {
-    "bin": "playwright",
-    "args": ["install", "chromium"]
+  "version": "latest",
+
+  "delivery": "remote",
+  "install": {
+    "source": "npm",
+    "package": "playwright"
   },
-  "binaries": ["playwright"],
-  "commands": {
-    "screenshot": "npx playwright screenshot",
-    "codegen": "npx playwright codegen"
+
+  "bins": ["playwright"],
+
+  "detect": {
+    "command": "npx playwright --version",
+    "expectExitCode": 0
+  },
+
+  "meta": {
+    "description": "Browser automation for screenshots, scraping, and testing",
+    "category": "utilities"
   }
 }

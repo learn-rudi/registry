@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -137,11 +138,9 @@ afterEach(() => {
 });
 
 describe("social-media-publisher stack package", () => {
-  it("exposes staged Instagram Reel tools across install metadata and the MCP tool list", async () => {
-    const manifest = await readJson<Record<string, any>>(path.join(stackRoot, "manifest.v2.json"));
-    const legacyManifest = await readJson<Record<string, any>>(path.join(stackRoot, "manifest.json"));
+  it("exposes staged Instagram Reel tools across canonical metadata", async () => {
+    const manifest = await readJson<Record<string, any>>(path.join(stackRoot, "manifest.json"));
     const index = await readJson<Record<string, any>>(path.join(root, "index.json"));
-    const mcpTools = await listMcpTools();
 
     expect(manifest).toMatchObject({
       id: "stack:social-media-publisher",
@@ -159,25 +158,13 @@ describe("social-media-publisher stack package", () => {
     });
     expect(manifest.provides.tools).toEqual(expectedTools);
 
-    expect(legacyManifest).toMatchObject({
-      id: "social-media-publisher",
-      runtime: "node",
-      command: ["npx", "tsx", "src/index.ts"],
-    });
-    expect(legacyManifest.provides.tools).toEqual(expectedTools);
-
-    const officialStacks = index.packages.stacks.official as Array<Record<string, any>>;
-    expect(officialStacks).toContainEqual(
-      expect.objectContaining({
-        id: "stack:social-media-publisher",
-        path: "catalog/stacks/social-media-publisher",
-        runtime: "runtime:node",
-        provides: {
-          tools: expectedTools,
-        },
-      })
-    );
-
-    expect(mcpTools).toEqual(expectedTools);
+    expect(index.packages[manifest.id]).toEqual(manifest);
   });
+
+  it.skipIf(!fsSync.existsSync(path.join(stackRoot, "node_modules/@modelcontextprotocol/sdk")))(
+    "matches the live MCP tools/list response when stack dependencies are installed",
+    async () => {
+      expect(await listMcpTools()).toEqual(expectedTools);
+    }
+  );
 });

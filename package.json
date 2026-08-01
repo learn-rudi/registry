@@ -8,6 +8,10 @@
     "validate:public": "tsx src/public-readiness.ts",
     "validate": "npm run validate:v2",
     "compile": "tsx src/compile.ts",
+    "indexes:sync": "npm run compile && tsx src/index-sync.ts --write",
+    "indexes:check": "npm run compile && tsx src/index-sync.ts --check",
+    "catalog:clean:check": "tsx src/catalog-hygiene.ts --dry-run",
+    "catalog:clean": "tsx src/catalog-hygiene.ts --apply",
     "build": "npm run validate && npm run compile",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -33,12 +37,14 @@
     "!catalog/stacks/**/outputs/**",
     "!catalog/stacks/**/composer/public/media/**",
     "!catalog/**/.DS_Store",
-    "catalog/skills/**/*.md",
-    "catalog/workflows/**/*.{json,yaml,yml,md}",
+    "catalog/skills/**/*",
+    "!catalog/skills/**/node_modules/**",
+    "!catalog/skills/**/runs/**",
+    "!catalog/skills/**/output/**",
+    "!catalog/skills/**/outputs/**",
     "README.md",
     "LICENSE",
-    "SCHEMA.md",
-    "MANIFEST_SCHEMA.md"
+    "SCHEMA.md"
   ],
   "devDependencies": {
     "ajv": "^8.17.1",

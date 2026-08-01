@@ -1,14 +1,26 @@
 {
-  "id": "rudi-crm",
+  "id": "stack:rudi-crm",
+  "kind": "stack",
   "name": "RUDI CRM",
   "version": "0.1.0",
-  "description": "Controlled MCP interface for RUDI CRM engagement memory, discovery, triage, validators, and correspondence context.",
+
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/rudi-crm"
+  },
+
   "runtime": "node",
-  "command": [
-    "npx",
-    "tsx",
-    "src/index.ts"
-  ],
+  "requires": {
+    "binaries": [],
+    "secrets": [
+      {
+        "key": "RUDI_CRM_DATABASE_URL",
+        "label": "RUDI CRM Database URL",
+        "required": true
+      }
+    ]
+  },
   "provides": {
     "tools": [
       "rudi_crm_config_status",
@@ -29,18 +41,18 @@
       "rudi_crm_get_latest_correspondence"
     ]
   },
-  "requires": {
-    "binaries": [],
-    "secrets": [
-      {
-        "name": "RUDI_CRM_DATABASE_URL",
-        "label": "RUDI CRM Database URL",
-        "description": "Postgres connection string for the RUDI CRM database. Use a scoped server-side credential; never expose it to clients.",
-        "required": true
-      }
-    ]
+  "mcp": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": [
+      "tsx",
+      "src/index.ts"
+    ],
+    "cwd": "."
   },
+
   "meta": {
+    "description": "Controlled MCP interface for RUDI CRM engagement memory, discovery, triage, validators, and correspondence context.",
     "author": "RUDI",
     "license": "MIT",
     "category": "business",
@@ -52,6 +64,8 @@
       "mcp",
       "audit"
     ],
-    "icon": "rudi-crm"
+    "icon": "rudi-crm",
+    "boundary": "RUDI CRM exposes a controlled write/read contract over existing Postgres functions and views. It does not expose raw table writes or generic SQL execution.",
+    "secretGuidance": "Use a scoped server-side Postgres credential in RUDI_CRM_DATABASE_URL. Never expose this value to clients or agents."
   }
 }

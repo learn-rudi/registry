@@ -1,13 +1,22 @@
 {
-  "id": "creator-intelligence",
+  "id": "stack:creator-intelligence",
+  "kind": "stack",
   "name": "Creator Intelligence",
   "version": "0.1.0",
-  "description": "Creator audit and style-reference tooling for shortform research, contact sheets, keyframe sheets, and local audit inventory.",
+
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/creator-intelligence"
+  },
+
   "runtime": "node",
-  "command": [
-    "node",
-    "dist/index.js"
-  ],
+
+  "requires": {
+    "binaries": ["yt-dlp", "ffmpeg", "ffprobe"],
+    "secrets": []
+  },
+
   "provides": {
     "tools": [
       "creator_style_reference_intake",
@@ -22,28 +31,20 @@
       "creator_inventory"
     ]
   },
-  "requires": {
-    "binaries": [
-      "yt-dlp",
-      "ffmpeg",
-      "ffprobe"
-    ],
-    "secrets": []
+
+  "mcp": {
+    "transport": "stdio",
+    "command": "node",
+    "args": ["dist/index.js"],
+    "cwd": "."
   },
+
   "meta": {
+    "description": "Creator audit and style-reference tooling for shortform research, contact sheets, keyframe sheets, and local audit inventory.",
     "author": "CO-LLAB",
     "license": "MIT",
     "category": "creator-intelligence",
-    "tags": [
-      "creator",
-      "tiktok",
-      "youtube",
-      "shortform",
-      "audit",
-      "style-reference",
-      "contact-sheet",
-      "keyframes"
-    ],
+    "tags": ["creator", "tiktok", "youtube", "shortform", "audit", "style-reference", "contact-sheet", "keyframes"],
     "icon": "🎞️"
   }
 }

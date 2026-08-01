@@ -21,7 +21,7 @@ async function writeText(file: string, content: string): Promise<void> {
 }
 
 async function writeDemoStack(id = "demo"): Promise<void> {
-  await writeJson(path.join(tmpDir, `catalog/stacks/${id}/manifest.v2.json`), {
+  await writeJson(path.join(tmpDir, `catalog/stacks/${id}/manifest.json`), {
     id: `stack:${id}`,
     kind: "stack",
     name: "Demo Stack",
@@ -96,8 +96,42 @@ requires:
     });
   });
 
+  it("discovers a bundled skill once and installs the complete bundle directory", async () => {
+    await writeText(
+      path.join(tmpDir, "catalog/skills/demo-bundle/SKILL.md"),
+      `---
+name: Demo Bundle
+description: Demonstrates bundled skill package discovery
+---
+
+# Demo Bundle
+`
+    );
+    await writeText(
+      path.join(tmpDir, "catalog/skills/demo-bundle/references/notes.md"),
+      "# Reference Notes\n"
+    );
+    await writeText(
+      path.join(tmpDir, "catalog/skills/demo-bundle/scripts/run.js"),
+      "console.log('demo');\n"
+    );
+
+    const packages = await discoverCatalogPackages(tmpDir);
+
+    expect(packages).toHaveLength(1);
+    expect(packages[0].path).toBe("catalog/skills/demo-bundle/SKILL.md");
+    expect(packages[0].manifest).toMatchObject({
+      id: "skill:demo-bundle",
+      kind: "skill",
+      install: {
+        source: "catalog",
+        path: "catalog/skills/demo-bundle",
+      },
+    });
+  });
+
   it("rejects stack related.skills references to unknown skills", async () => {
-    await writeJson(path.join(tmpDir, "catalog/stacks/demo/manifest.v2.json"), {
+    await writeJson(path.join(tmpDir, "catalog/stacks/demo/manifest.json"), {
       id: "stack:demo",
       kind: "stack",
       name: "Demo Stack",
@@ -146,6 +180,24 @@ requires:
 
     expect(() => assertCatalogReferences(packages)).toThrow(
       "[skill:orphan-skill] requires.stacks references unknown stack: stack:missing-stack"
+    );
+  });
+
+  it("rejects version-suffixed catalog metadata paths", async () => {
+    await writeJson(path.join(tmpDir, "catalog/stacks/demo/manifest.v2.json"), {
+      id: "stack:demo",
+      kind: "stack",
+      name: "Version-Suffixed Demo",
+      version: "1.0.0",
+      delivery: "remote",
+      install: { source: "catalog", path: "catalog/stacks/demo" },
+      runtime: "node",
+      provides: { tools: [] },
+      mcp: { transport: "stdio", command: "node" },
+    });
+
+    await expect(discoverCatalogPackages(tmpDir)).rejects.toThrow(
+      "Version-suffixed catalog metadata is not allowed"
     );
   });
 });

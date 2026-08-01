@@ -10,7 +10,7 @@ or in a RUDI release.
 - [x] Confirm no video generation code was added under `image-generator`.
 - [x] Confirm Python runtime is available.
 - [x] Confirm `requirements.txt` is installable in the target RUDI runtime.
-- [x] Confirm `manifest.json` and `manifest.v2.json` expose:
+- [x] Confirm `manifest.json` exposes:
   - `list_video_models`
   - `generate_video`
   - `get_video_job`

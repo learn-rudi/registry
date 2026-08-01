@@ -1,13 +1,44 @@
 {
-  "id": "rudi-processor",
+  "id": "stack:rudi-processor",
+  "kind": "stack",
   "name": "RUDI Processor",
   "version": "2.0.0",
-  "description": "Local file metadata extraction, workspace audit, and indexed content search.",
+
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/rudi-processor"
+  },
+
   "runtime": "python",
-  "command": [
-    "python3",
-    "src/index.py"
-  ],
+  "requires": {
+    "binaries": [
+      "ffmpeg",
+      "tesseract"
+    ],
+    "secrets": [
+      {
+        "key": "ANTHROPIC_API_KEY",
+        "label": "Anthropic API Key",
+        "required": false
+      },
+      {
+        "key": "OPENAI_API_KEY",
+        "label": "OpenAI API Key",
+        "required": false
+      },
+      {
+        "key": "GOOGLE_API_KEY",
+        "label": "Google API Key",
+        "required": false
+      },
+      {
+        "key": "DEEPSEEK_API_KEY",
+        "label": "DeepSeek API Key",
+        "required": false
+      }
+    ]
+  },
   "provides": {
     "tools": [
       "rudi_process_file",
@@ -16,39 +47,17 @@
       "rudi_processor_config"
     ]
   },
-  "requires": {
-    "binaries": [
-      "ffmpeg",
-      "tesseract"
+  "mcp": {
+    "transport": "stdio",
+    "command": "python3",
+    "args": [
+      "src/index.py"
     ],
-    "secrets": [
-      {
-        "name": "ANTHROPIC_API_KEY",
-        "label": "Anthropic API Key",
-        "description": "Optional for Stage 2 LLM enhancement.",
-        "required": false
-      },
-      {
-        "name": "OPENAI_API_KEY",
-        "label": "OpenAI API Key",
-        "description": "Optional for Stage 2 LLM enhancement.",
-        "required": false
-      },
-      {
-        "name": "GOOGLE_API_KEY",
-        "label": "Google API Key",
-        "description": "Optional for Stage 2 LLM enhancement.",
-        "required": false
-      },
-      {
-        "name": "DEEPSEEK_API_KEY",
-        "label": "DeepSeek API Key",
-        "description": "Optional for Stage 2 LLM enhancement.",
-        "required": false
-      }
-    ]
+    "cwd": "."
   },
+
   "meta": {
+    "description": "Local file metadata extraction, workspace audit, and indexed content search.",
     "author": "RUDI",
     "license": "MIT",
     "category": "data-extraction",

@@ -1,16 +1,31 @@
 {
-  "id": "gemini",
+  "id": "agent:gemini",
+  "kind": "agent",
   "name": "Gemini CLI",
   "version": "latest",
-  "description": "Google Gemini CLI",
-  "bundled": false,
-  "installType": "npm",
-  "npmPackage": "@google/gemini-cli",
-  "binary": "node_modules/.bin/gemini",
-  "installDir": "gemini",
-  "commands": [
-    { "name": "gemini", "bin": "node_modules/.bin/gemini" }
-  ],
-  "requiresAuth": true,
-  "authInstructions": "Run 'gemini' to authenticate with your Google account"
+
+  "delivery": "remote",
+  "install": {
+    "source": "npm",
+    "package": "@google/gemini-cli"
+  },
+
+  "bins": ["gemini"],
+
+  "detect": {
+    "command": "gemini --version",
+    "expectExitCode": 0
+  },
+
+  "auth": {
+    "required": true,
+    "command": "gemini",
+    "instructions": "Run 'gemini' to authenticate with your Google account"
+  },
+
+  "meta": {
+    "description": "Google Gemini CLI - AI coding assistant",
+    "category": "ai-assistant",
+    "homepage": "https://gemini.google.com"
+  }
 }

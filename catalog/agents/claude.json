@@ -1,12 +1,31 @@
 {
-  "id": "claude",
+  "id": "agent:claude",
+  "kind": "agent",
   "name": "Claude Code",
   "version": "latest",
-  "description": "Anthropic Claude Code CLI",
-  "bundled": false,
-  "installType": "npm",
-  "npmPackage": "@anthropic-ai/claude-code",
-  "commands": [{ "name": "claude", "bin": "claude" }],
-  "requiresAuth": true,
-  "authInstructions": "Run 'claude login' to authenticate with your Anthropic account"
+
+  "delivery": "remote",
+  "install": {
+    "source": "npm",
+    "package": "@anthropic-ai/claude-code"
+  },
+
+  "bins": ["claude"],
+
+  "detect": {
+    "command": "claude --version",
+    "expectExitCode": 0
+  },
+
+  "auth": {
+    "required": true,
+    "command": "claude login",
+    "instructions": "Run 'claude login' to authenticate with your Anthropic account"
+  },
+
+  "meta": {
+    "description": "Anthropic Claude Code CLI - AI coding assistant",
+    "category": "ai-assistant",
+    "homepage": "https://claude.ai"
+  }
 }

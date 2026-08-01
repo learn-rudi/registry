@@ -18,9 +18,6 @@ async function readJson<T>(file: string): Promise<T> {
 describe("swe-engineering stack package", () => {
   it("packages the SWE manual as portable registry content with related skill wiring", async () => {
     const manifest = await readJson<Record<string, any>>(
-      path.join(stackRoot, "manifest.v2.json")
-    );
-    const legacyManifest = await readJson<Record<string, any>>(
       path.join(stackRoot, "manifest.json")
     );
     const index = await readJson<Record<string, any>>(path.join(process.cwd(), "index.json"));
@@ -42,18 +39,7 @@ describe("swe-engineering stack package", () => {
       },
     });
     expect(manifest.provides.tools).toEqual(expectedTools);
-    expect(legacyManifest.provides.tools).toEqual(expectedTools);
-
-    const officialStacks = index.packages.stacks.official as Array<Record<string, any>>;
-    expect(officialStacks).toContainEqual(
-      expect.objectContaining({
-        id: "stack:swe-engineering",
-        path: "catalog/stacks/swe-engineering",
-        related: {
-          skills: ["skill:swe-compliance-checklist"],
-        },
-      })
-    );
+    expect(index.packages[manifest.id]).toEqual(manifest);
 
     const manualFiles = await fg("src/manual/*", {
       cwd: stackRoot,
@@ -87,6 +73,6 @@ describe("swe-engineering stack package", () => {
     const manualContent = await Promise.all(
       manualFiles.map((file) => fs.readFile(path.join(stackRoot, file), "utf8"))
     );
-    expect(manualContent.join("\n")).not.toContain("/Users/hoff");
+    expect(manualContent.join("\n")).not.toContain("/Users/");
   });
 });

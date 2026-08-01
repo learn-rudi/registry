@@ -12,6 +12,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
+import { execFileSync } from "node:child_process";
 import fg from "fast-glob";
 
 import {
@@ -74,6 +75,29 @@ const PLATFORMS: Array<{ os: "darwin" | "linux" | "win32"; arch: "arm64" | "x64"
 
 const SCHEMA_URL = "https://learn-rudi.dev/schemas/registry/v2/index.schema.json";
 
+function resolveGeneratedAt(): string {
+  const sourceDateEpoch = process.env.SOURCE_DATE_EPOCH;
+  if (sourceDateEpoch !== undefined) {
+    if (!/^\d+$/.test(sourceDateEpoch)) {
+      throw new Error("SOURCE_DATE_EPOCH must be an integer number of seconds");
+    }
+    return new Date(Number(sourceDateEpoch) * 1000).toISOString();
+  }
+
+  try {
+    const commitDate = execFileSync("git", ["log", "-1", "--format=%cI"], {
+      cwd: process.cwd(),
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    return new Date(commitDate).toISOString();
+  } catch {
+    return new Date(0).toISOString();
+  }
+}
+
+const GENERATED_AT = resolveGeneratedAt();
+
 // =============================================================================
 // File Utilities
 // =============================================================================
@@ -115,7 +139,7 @@ function buildBaseIndex(manifests: CatalogPackageFile[]): RegistryIndex {
   return {
     $schema: SCHEMA_URL,
     schemaVersion: "2",
-    generatedAt: new Date().toISOString(),
+    generatedAt: GENERATED_AT,
     stats: {
       total: manifests.length,
       byKind,
@@ -166,7 +190,7 @@ function buildPlatformIndex(
   return {
     $schema: SCHEMA_URL,
     schemaVersion: "2",
-    generatedAt: new Date().toISOString(),
+    generatedAt: GENERATED_AT,
     platform: `${ctx.os}-${ctx.arch}`,
     stats: {
       total: Object.keys(packages).length,
@@ -202,7 +226,7 @@ async function buildCatalogHash(): Promise<CatalogHash> {
   const root = crypto.createHash("sha256").update(allHashes).digest("hex");
 
   return {
-    generatedAt: new Date().toISOString(),
+    generatedAt: GENERATED_AT,
     algorithm: "sha256",
     files: hashes,
     root,

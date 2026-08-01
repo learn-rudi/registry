@@ -1,13 +1,20 @@
 {
-  "id": "document-processor",
+  "id": "stack:document-processor",
+  "kind": "stack",
   "name": "Document Processor",
   "version": "1.0.0",
-  "description": "Extract PDF slides as images, remove watermarks, process presentations",
+
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/document-processor"
+  },
+
   "runtime": "python",
-  "command": [
-    "python3",
-    "src/index.py"
-  ],
+  "requires": {
+    "binaries": ["pdftoppm"],
+    "secrets": []
+  },
   "provides": {
     "tools": [
       "pdf_to_images",
@@ -16,22 +23,19 @@
       "batch_remove_watermark"
     ]
   },
-  "requires": {
-    "binaries": ["pdftoppm"],
-    "secrets": []
+  "mcp": {
+    "transport": "stdio",
+    "command": "python3",
+    "args": ["src/index.py"],
+    "cwd": "."
   },
+
   "meta": {
+    "description": "Extract PDF slides as images, remove watermarks, and process presentations.",
     "author": "CO-LLAB",
     "license": "MIT",
     "category": "document-processing",
-    "tags": [
-      "pdf",
-      "slides",
-      "watermark",
-      "extraction",
-      "images",
-      "presentation"
-    ],
+    "tags": ["pdf", "slides", "watermark", "extraction", "images", "presentation"],
     "icon": "📄"
   }
 }

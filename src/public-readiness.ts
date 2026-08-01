@@ -56,7 +56,6 @@ const ZERO_SHA256 = /^0{64}$/;
 const REQUIRED_PUBLIC_CATALOG_DIRS = [
   "catalog/stacks",
   "catalog/skills",
-  "catalog/workflows",
 ];
 
 function toPosixPath(filePath: string): string {
@@ -111,58 +110,46 @@ function issue(
   };
 }
 
-function kindFromSection(section: string): string {
-  const singulars: Record<string, string> = {
-    agents: "agent",
-    binaries: "binary",
-    prompts: "prompt",
-    runtimes: "runtime",
-    skills: "skill",
-    stacks: "stack",
-    workflows: "workflow",
-  };
-  return singulars[section] ?? section.replace(/s$/, "");
-}
-
 function collectPackageRefs(index: unknown): RegistryPackageRef[] {
-  if (!index || typeof index !== "object") return [];
-  const packages = (index as { packages?: unknown }).packages;
-  if (!packages || typeof packages !== "object") return [];
+  const root = asRecord(index);
+  if (!root) throw new Error("Root index must be an object");
+  if (String(root.schemaVersion) !== "2") {
+    throw new Error(`Root index must use schemaVersion 2, received ${String(root.schemaVersion)}`);
+  }
+  const packages = asRecord(root.packages);
+  if (!packages) throw new Error("Root index packages must be an object");
 
   const refs: RegistryPackageRef[] = [];
-  for (const [section, value] of Object.entries(packages as Record<string, unknown>)) {
-    const kind = kindFromSection(section);
-
-    if (Array.isArray(value)) {
-      refs.push(...collectBucketRefs(value, kind, section, "root"));
-      continue;
+  for (const [key, value] of Object.entries(packages)) {
+    const pkg = asRecord(value);
+    if (!pkg) throw new Error(`Registry package ${key} must be an object`);
+    if (pkg.id !== key) {
+      throw new Error(`Registry package key/id mismatch: ${key} != ${String(pkg.id)}`);
+    }
+    if (typeof pkg.kind !== "string") {
+      throw new Error(`Registry package ${key} requires kind`);
     }
 
-    if (!value || typeof value !== "object") continue;
-    for (const [bucket, entries] of Object.entries(value as Record<string, unknown>)) {
-      if (!Array.isArray(entries)) continue;
-      refs.push(...collectBucketRefs(entries, kind, section, bucket));
+    const slug = key.split(":", 2)[1];
+    const install = asRecord(pkg.install);
+    let registryPath = typeof install?.path === "string" ? install.path : undefined;
+    if (!registryPath && slug) {
+      const section = pkg.kind === "binary" ? "binaries" : `${pkg.kind}s`;
+      if (["agent", "binary", "runtime"].includes(pkg.kind)) {
+        registryPath = `catalog/${section}/${slug}.json`;
+      }
     }
+
+    refs.push({
+      id: key,
+      kind: pkg.kind,
+      path: registryPath,
+      section: "packages",
+      bucket: "canonical",
+    });
   }
 
   return refs;
-}
-
-function collectBucketRefs(
-  entries: unknown[],
-  kind: string,
-  section: string,
-  bucket: string
-): RegistryPackageRef[] {
-  return entries
-    .filter((entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === "object")
-    .map((entry) => ({
-      id: typeof entry.id === "string" ? entry.id : "",
-      kind,
-      path: typeof entry.path === "string" ? entry.path : undefined,
-      section,
-      bucket,
-    }));
 }
 
 function hasTrackedPayload(trackedFiles: Set<string>, registryPath: string): boolean {
@@ -295,6 +282,9 @@ function hasInstallOrDetectMetadata(manifest?: Record<string, unknown>): boolean
 
   if (hasSupportedDownloads(manifest.downloads)) return true;
   if (hasSupportedUpstreamExtract(manifest)) return true;
+
+  const install = asRecord(manifest.install);
+  if (["download", "npm", "pip", "system"].includes(String(install?.source))) return true;
 
   return false;
 }

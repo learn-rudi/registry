@@ -1,47 +1,43 @@
 {
-  "id": "postgres",
+  "id": "stack:postgres",
+  "kind": "stack",
   "name": "PostgreSQL",
   "version": "1.0.0",
-  "description": "Query and manage PostgreSQL databases. Works with Neon, Railway, Supabase, and any PostgreSQL connection.",
-  "runtime": "node",
-  "command": [
-    "npx",
-    "tsx",
-    "src/index.ts"
-  ],
-  "provides": {
-    "tools": [
-      "pg_query",
-      "pg_execute",
-      "pg_list_tables",
-      "pg_describe_table",
-      "pg_list_schemas"
-    ]
+
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/postgres"
   },
+
+  "runtime": "node",
   "requires": {
     "binaries": [],
     "secrets": [
       {
-        "description": "PostgreSQL connection string (postgresql://user:pass@host:port/db)",
+        "key": "DATABASE_URL",
         "label": "Database URL",
-        "link": "https://neon.tech/docs/connect/connection-string",
-        "name": "DATABASE_URL"
+        "required": true,
+        "helpUrl": "https://neon.tech/docs/connect/connection-string"
       }
     ]
   },
+  "provides": {
+    "tools": ["pg_query", "pg_execute", "pg_list_tables", "pg_describe_table", "pg_list_schemas"]
+  },
+  "mcp": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["tsx", "src/index.ts"],
+    "cwd": "."
+  },
+
   "meta": {
+    "description": "Query and manage PostgreSQL databases. Works with Neon, Railway, Supabase, and any PostgreSQL connection.",
     "author": "RUDI",
     "license": "MIT",
     "category": "data",
-    "tags": [
-      "postgres",
-      "postgresql",
-      "database",
-      "sql",
-      "neon",
-      "railway",
-      "supabase"
-    ],
+    "tags": ["postgres", "postgresql", "database", "sql"],
     "icon": "🐘"
   }
 }

@@ -1,14 +1,18 @@
 {
-  "id": "sports-stats",
+  "id": "stack:sports-stats",
+  "kind": "stack",
   "name": "Sports Stats",
   "version": "1.0.0",
-  "description": "Extract and query sports statistics from Basketball Reference, ESPN, and other sports sites",
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/sports-stats"
+  },
   "runtime": "node",
-  "command": [
-    "npx",
-    "tsx",
-    "src/index.ts"
-  ],
+  "requires": {
+    "binaries": [],
+    "secrets": []
+  },
   "provides": {
     "tools": [
       "extract_nba_stats",
@@ -16,11 +20,17 @@
       "query_nba_db"
     ]
   },
-  "requires": {
-    "binaries": [],
-    "secrets": []
+  "mcp": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": [
+      "tsx",
+      "src/index.ts"
+    ],
+    "cwd": "."
   },
   "meta": {
+    "description": "Extract and query sports statistics from Basketball Reference, ESPN, and other sports sites",
     "author": "CO-LLAB",
     "license": "MIT",
     "category": "data-extraction",

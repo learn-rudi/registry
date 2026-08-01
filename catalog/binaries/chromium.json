@@ -1,23 +1,28 @@
 {
   "id": "binary:chromium",
+  "kind": "binary",
   "name": "Chromium",
   "version": "131",
-  "description": "Chromium browser for local rendering and automation",
-  "category": "utilities",
-  "installType": "system",
-  "managed": false,
-  "binary": "chromium",
-  "bins": ["chromium"],
-  "checkCommand": "chromium --version",
+  "delivery": "system",
+  "install": {
+    "source": "system"
+  },
+  "bins": {
+    "chromium": {
+      "path": "Chromium.app/Contents/MacOS/Chromium"
+    }
+  },
   "detect": {
     "command": "chromium --version",
     "expectExitCode": 0
   },
-  "systemPaths": [
-    "/Applications/Chromium.app/Contents/MacOS/Chromium",
-    "/opt/homebrew/bin/chromium",
-    "/usr/bin/chromium",
-    "/usr/bin/chromium-browser"
-  ],
-  "instructions": "Install Chromium with brew install --cask chromium on macOS, or install chromium/chromium-browser on Linux."
+  "meta": {
+    "description": "Browser automation for Puppeteer/Playwright",
+    "category": "utilities"
+  },
+  "installHints": {
+    "brew": "brew install --cask chromium",
+    "apt": "sudo apt install chromium-browser || sudo apt install chromium",
+    "manual": "Install Chromium or configure a Playwright-managed Chromium browser before using browser automation tools."
+  }
 }

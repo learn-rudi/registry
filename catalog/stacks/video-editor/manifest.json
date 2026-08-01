@@ -1,14 +1,22 @@
 {
   "id": "stack:video-editor",
+  "kind": "stack",
   "name": "Video Editor",
   "version": "1.0.0",
-  "description": "Comprehensive local video editing stack for quick ffmpeg operations, structured runs, captions, rendering, and QA.",
+
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/video-editor"
+  },
+
   "runtime": "node",
-  "command": [
-    "npx",
-    "tsx",
-    "src/index.ts"
-  ],
+
+  "requires": {
+    "binaries": ["ffmpeg", "ffprobe", "whisper", "chromium"],
+    "secrets": []
+  },
+
   "provides": {
     "tools": [
       "video_info",
@@ -52,15 +60,7 @@
       "video_process_video_transcript"
     ]
   },
-  "requires": {
-    "binaries": [
-      "ffmpeg",
-      "ffprobe",
-      "whisper",
-      "chromium"
-    ],
-    "secrets": []
-  },
+
   "related": {
     "skills": [
       "skill:rudi-video-editor",
@@ -68,23 +68,20 @@
       "skill:shortform-publish-copy"
     ]
   },
+
+  "mcp": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["tsx", "src/index.ts"],
+    "cwd": "."
+  },
+
   "meta": {
+    "description": "Comprehensive local video editing stack for quick ffmpeg operations, structured runs, captions, rendering, and QA.",
     "author": "CO-LLAB",
     "license": "MIT",
     "category": "media",
-    "tags": [
-      "video",
-      "ffmpeg",
-      "editing",
-      "silence",
-      "transcript",
-      "slides",
-      "captions",
-      "remotion",
-      "templates",
-      "qa",
-      "media"
-    ],
+    "tags": ["video", "ffmpeg", "editing", "silence", "transcript", "slides", "captions", "remotion", "templates", "qa", "media"],
     "icon": "🎬"
   }
 }

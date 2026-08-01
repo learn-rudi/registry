@@ -16,7 +16,7 @@ extractor logic.
 ## Completed
 
 - [x] Package scaffold exists in the registry catalog as `stack:creator-intelligence`.
-- [x] MCP tools are declared in both `manifest.json` and `manifest.v2.json`.
+- [x] MCP tools are declared in the canonical `manifest.json`.
 - [x] Style-reference intake downloads shortform video, creates source metadata,
   contact sheet, keyframe sheet, and README.
 - [x] Style-reference transcription extracts audio and writes Whisper artifacts

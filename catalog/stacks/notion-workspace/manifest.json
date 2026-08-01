@@ -1,14 +1,27 @@
 {
-  "id": "notion-workspace",
+  "id": "stack:notion-workspace",
+  "kind": "stack",
   "name": "Notion Workspace",
   "version": "1.2.0",
-  "description": "Search, create, and manage Notion pages and databases",
+
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/notion-workspace"
+  },
+
   "runtime": "node",
-  "command": [
-    "npx",
-    "tsx",
-    "src/index.ts"
-  ],
+  "requires": {
+    "binaries": [],
+    "secrets": [
+      {
+        "key": "NOTION_API_KEY",
+        "label": "Notion API Key",
+        "required": true,
+        "helpUrl": "https://www.notion.so/my-integrations"
+      }
+    ]
+  },
   "provides": {
     "tools": [
       "notion_search",
@@ -20,43 +33,22 @@
       "notion_list_databases",
       "notion_query_database",
       "notion_create_database",
-      "notion_add_database_row",
-      "notion_db_list",
-      "notion_db_add",
-      "notion_db_remove",
-      "notion_batch_add_rows",
-      "notion_update_row",
-      "notion_get_database_schema",
-      "notion_search_all_databases",
-      "notion_duplicate_page",
-      "notion_add_block",
-      "notion_move_page",
-      "notion_update_page_properties",
-      "notion_get_page_tree"
+      "notion_add_database_row"
     ]
   },
-  "requires": {
-    "binaries": [],
-    "secrets": [
-      {
-        "description": "Internal integration token from Notion",
-        "label": "Notion Integration Token",
-        "link": "https://www.notion.so/my-integrations",
-        "name": "NOTION_API_KEY"
-      }
-    ]
+  "mcp": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["tsx", "src/index.ts"],
+    "cwd": "."
   },
+
   "meta": {
+    "description": "Search, create, and manage Notion pages and databases",
     "author": "CO-LLAB",
     "license": "MIT",
     "category": "productivity",
-    "tags": [
-      "notion",
-      "productivity",
-      "notes",
-      "databases",
-      "wiki"
-    ],
+    "tags": ["notion", "pages", "databases", "workspace"],
     "icon": "📝"
   }
 }

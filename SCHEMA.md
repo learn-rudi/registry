@@ -1,7 +1,7 @@
 # RUDI Registry Schema v2
 
-**Status:** Final
-**Date:** 2026-01-09
+**Status:** Canonical
+**Date:** 2026-08-01
 
 ---
 
@@ -20,15 +20,16 @@
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
 | `delivery:"bundled"` | Future only - means offline/shipped bits | Not yet implemented; all current packages are `remote` or `system` |
-| Linux musl (Alpine) | Unsupported v1 | `linux-x64` implies glibc; add musl later if demand |
+| Linux musl (Alpine) | Unsupported | `linux-x64` implies glibc; add musl later if demand |
 | Runtimes special? | No, just `kind:"runtime"` | Same install shape as binaries |
 | Allow "latest"? | No for downloads, warn for npm/pip | Downloads must pin version |
 | Supply chain minimum | sha256 required for downloads | Foreign binaries must verify |
 
-### v1 Legacy Clarification
+### Canonical Representation
 
-In v1, `bundled: true` meant "RUDI-managed download from our releases" (not shipped offline).
-This maps to v2 `delivery: "remote"` with URLs pointing to RUDI GitHub releases.
+Schema version 2 is stored at unversioned canonical paths. The registry does not
+maintain parallel v1/v2 files or generate compatibility manifests. Historical
+migration material lives under `docs/archive/`.
 
 ---
 
@@ -40,7 +41,7 @@ This maps to v2 `delivery: "remote"` with URLs pointing to RUDI GitHub releases.
 | `binary` | CLI tool | `catalog/binaries/{name}.json` |
 | `agent` | AI assistant | `catalog/agents/{name}.json` |
 | `stack` | MCP server | `catalog/stacks/{name}/manifest.json` |
-| `skill` | Reusable skill template | `catalog/skills/{name}.md` |
+| `skill` | Reusable skill template | `catalog/skills/{name}.md` or `catalog/skills/{name}/SKILL.md` |
 | `prompt` | Legacy prompt template | `catalog/prompts/{name}.md` |
 
 ---
@@ -114,23 +115,24 @@ For `source: "catalog"`, the payload lives inside the registry itself:
 - If `path` omitted, derived from `id`:
   - `stack:video-editor` → `catalog/stacks/video-editor`
   - `skill:grill-with-docs` → `catalog/skills/grill-with-docs.md`
+  - bundled `skill:design-system-extractor` → `catalog/skills/design-system-extractor`
   - `prompt:code-review` → `catalog/prompts/code-review.md`
 - Integrity handled at registry-release artifact level (no per-file checksum)
 
 Catalog source must remain portable. Do not publish generated runtime state, local account state, dependency installs, downloaded media, rendered outputs, browser profiles, or private workflow artifacts under `catalog/`. Stack state belongs under `~/.rudi/state/stacks/{stack-id}` by default, and registry checks exclude forbidden stack-local paths such as `node_modules`, `runs`, `downloads`, `tmp`, `.chrome-profiles`, `.test-rudi`, `clips`, `output`, `outputs`, and `composer/public/media`.
 
-### Skill Markdown Packages
+### Skill Packages
 
-Skills are stored as ready-to-run, editable Markdown under `catalog/skills/{name}.md`.
+Skills use either a legacy-compatible flat Markdown file at `catalog/skills/{name}.md` or a bundle rooted at `catalog/skills/{name}/SKILL.md`. Bundles may carry `scripts/`, `references/`, and `assets/`; the complete directory is the install payload.
 During v2 validation and compile, the registry derives:
 
-- `id`: `skill:{name}` from the Markdown filename
+- `id`: `skill:{name}` from the flat Markdown filename or bundled directory name
 - `kind`: `skill`
 - `delivery`: `remote`
 - `install.source`: `catalog`
-- `install.path`: the Markdown file path
+- `install.path`: the flat Markdown file path or bundled directory path
 
-The Markdown frontmatter must include `name` and `description`; `version` defaults to `1.0.0` when omitted. Optional `requires.stacks` entries are normalized to canonical `stack:*` package IDs and must resolve to existing v2 stack packages.
+Only top-level flat `*.md` files and exact `*/SKILL.md` entries are package entrypoints. Nested Markdown references are payload files, not additional packages. Entry frontmatter must include `name` and `description`; `version` defaults to `1.0.0` when omitted. Optional `requires.stacks` entries are normalized to canonical `stack:*` package IDs and must resolve to existing v2 stack packages.
 
 Public registry skills must avoid personal, client-specific, machine-specific, or brand-specific defaults. Consumers can edit the installed local copy or layer a private skill on top of the public one.
 
@@ -626,32 +628,11 @@ Use `related.skills` for companion agent workflows commonly used with a package.
 
 ---
 
-## Migration from v1
+## Historical Migration
 
-| v1 Field | v2 Field |
-|----------|----------|
-| `installType: "binary"` | `install.source: "download"` |
-| `installType: "npm"` | `install.source: "npm"` |
-| `installType: "system"` | `install.source: "system"`, `delivery: "system"` |
-| `bundled: true` | `delivery: "remote"` |
-| `download: {...}` | `install.platforms: {...}` |
-| `downloads: {...}` | `install.platforms: {...}` |
-| `npmPackage: "..."` | `install.package: "..."` |
-| `checkCommand: "..."` | `detect.command: "..."` |
-| `binary: "..."` | `bins: [...]` |
-| `commands: [...]` | `bins: [...]` |
-| (stack implicit) | `delivery: "remote"`, `install.source: "catalog"` |
-
-### Stack Migration
-
-v1 stacks that omit `delivery`/`install` get these defaults:
-```json
-"delivery": "remote",
-"install": {
-  "source": "catalog",
-  "path": "catalog/stacks/{id}"  // derived from stack id
-}
-```
+The v1-to-v2 field mapping and superseded layout design are retained only in
+`docs/archive/manifest-schema-v2-design.md`. New and updated catalog packages
+must use this canonical contract directly.
 
 ---
 
@@ -691,7 +672,7 @@ Validation applies to the **effective resolved config** (after platform merge):
 
 ---
 
-## Unsupported (v1)
+## Current Limitations
 
 - `linux-*-musl` (Alpine) - document as unsupported
 - `delivery: "bundled"` - future enhancement

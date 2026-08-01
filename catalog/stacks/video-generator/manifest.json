@@ -1,13 +1,43 @@
 {
-  "id": "video-generator",
+  "id": "stack:video-generator",
+  "kind": "stack",
   "name": "Video Generator",
   "version": "0.1.0",
-  "description": "Agent-safe multi-provider video generation for content creation workflows.",
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/video-generator"
+  },
   "runtime": "python",
-  "command": [
-    "python",
-    "src/server.py"
-  ],
+  "requires": {
+    "binaries": [],
+    "secrets": [
+      {
+        "key": "GEMINI_API_KEY",
+        "label": "Gemini API key",
+        "required": false,
+        "helpUrl": "https://aistudio.google.com/apikey"
+      },
+      {
+        "key": "REPLICATE_API_TOKEN",
+        "label": "Replicate API token",
+        "required": false,
+        "helpUrl": "https://replicate.com/account/api-tokens"
+      },
+      {
+        "key": "FAL_KEY",
+        "label": "fal API key",
+        "required": false,
+        "helpUrl": "https://fal.ai/dashboard/keys"
+      },
+      {
+        "key": "OPENAI_API_KEY",
+        "label": "OpenAI API key",
+        "required": false,
+        "helpUrl": "https://platform.openai.com/api-keys"
+      }
+    ]
+  },
   "provides": {
     "tools": [
       "list_video_models",
@@ -15,40 +45,16 @@
       "get_video_job"
     ]
   },
-  "requires": {
-    "binaries": [],
-    "secrets": [
-      {
-        "name": "GEMINI_API_KEY",
-        "description": "Google Gemini API key for Veo video models.",
-        "label": "Gemini API key",
-        "required": false,
-        "link": "https://aistudio.google.com/apikey"
-      },
-      {
-        "name": "REPLICATE_API_TOKEN",
-        "description": "Replicate API token for hosted video models.",
-        "label": "Replicate API token",
-        "required": false,
-        "link": "https://replicate.com/account/api-tokens"
-      },
-      {
-        "name": "FAL_KEY",
-        "description": "fal API key for hosted video models.",
-        "label": "fal API key",
-        "required": false,
-        "link": "https://fal.ai/dashboard/keys"
-      },
-      {
-        "name": "OPENAI_API_KEY",
-        "description": "OpenAI API key for legacy Sora video model experiments.",
-        "label": "OpenAI API key",
-        "required": false,
-        "link": "https://platform.openai.com/api-keys"
-      }
-    ]
+  "mcp": {
+    "transport": "stdio",
+    "command": "python",
+    "args": [
+      "src/server.py"
+    ],
+    "cwd": "."
   },
   "meta": {
+    "description": "Agent-safe multi-provider video generation for content creation workflows.",
     "author": "brandonz@heritagehill.co",
     "license": "MIT",
     "category": "ai-generation",

@@ -1,5 +1,9 @@
 # RUDI Manifest Schema v2 (Platform-Aware)
 
+> **Status: archived and superseded.** The canonical package contract is
+> [`SCHEMA.md`](../../SCHEMA.md) and `schemas/package.schema.json`. Do not use the
+> migration instructions in this file to create or update catalog metadata.
+
 This document defines the enhanced manifest schema for RUDI binaries, runtimes, agents, and stacks with cross-platform support.
 
 ## Core Principle

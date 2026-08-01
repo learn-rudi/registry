@@ -58,8 +58,7 @@ This audit applies the RUDI engineering standards and SWE operating manual:
 | Gemini adapter | `src/renderer/gemini_client.py` | Gemini SDK calls and image-byte extraction |
 | OpenAI adapter | `src/renderer/openai_client.py` | OpenAI image generation/edit calls and image-byte extraction |
 | Replicate adapter | `src/renderer/replicate_client.py` | Replicate model calls and image-byte extraction |
-| Legacy registry manifest | `manifest.json` | Current CLI install/runtime metadata |
-| V2 registry manifest | `manifest.v2.json` | Compiled registry package metadata |
+| Registry manifest | `manifest.json` | Canonical schema-v2 install/runtime metadata |
 | User docs | `README.md` | Install, providers, defaults, output handoffs, examples, safety contract |
 | Tests | `tests/test_tools.py`, `tests/test_mcp_stdio.py` | Tool behavior, adapter behavior, and MCP stdio smoke tests |
 
@@ -151,8 +150,8 @@ tools are proven through provider smoke tests.
 
 Current status:
 
-- `manifest.json` supports current CLI install behavior.
-- `manifest.v2.json` validates against registry v2 schema.
+- `manifest.json` supports current CLI install behavior and validates against the
+  registry schema.
 - `index.json` includes `stack:image-generator`.
 - Registry build includes the package in compiled `dist/index*.json`.
 
@@ -206,7 +205,7 @@ agents and users to choose between overlapping tools with different behavior.
 | Capability overlap | `image-generator`, `openai`, and `google-ai` all expose image generation | Agents may pick the wrong tool or learn inconsistent contracts |
 | Provider logic duplication | OpenAI/Gemini image SDK calls repeated across stacks | Model updates and API changes must be patched in multiple places |
 | Schema duplication | Tool input schemas live in `server.py`, docs, tests, and examples | Contract drift can happen silently |
-| Manifest duplication | `manifest.json`, `manifest.v2.json`, root `index.json`, and `dist/index*.json` all describe the same package | Install metadata can disagree across registry paths |
+| Generated index copies | `manifest.json`, root `index.json`, and `dist/index*.json` describe the package at source and release boundaries | Generated indexes can drift if the registry gates are skipped |
 | File/path policy drift | Output and reference validation could diverge from other media stacks | Security behavior becomes inconsistent for agents |
 | Vendored code drift | Renderer provider modules originated elsewhere | Source ownership can become unclear unless this stack becomes canonical |
 | Test duplication without coverage | Tests may repeat happy paths without exercising real boundaries | Gives confidence without protecting the risky behavior |
@@ -241,7 +240,7 @@ not rediscovered later.
 | DEBT-002 | Model registry | Open | P2 | `module_constants()` retains an AST fallback even though `model_config.py` is now authoritative. | `tools.py` previously exposed AST-backed helpers; fallback keeps compatibility for unusual local callers and tests. | Delete fallback when compatibility re-exports are removed from `tools.py`. |
 | DEBT-003 | Tool module API | Open | P2 | `tools.py` re-exports private helper aliases such as `_call_provider`, `_output_path`, and `_renderer_constants`. | Current tests and possible local debugging imports patch those names. | Move tests to module-level helpers directly, then stop exporting private names. |
 | DEBT-004 | Schema duplication | Open | P1 | MCP schemas live in `server.py`, contract docs, examples, and response-shape tests. | Fastest path to a stable contract during early stack hardening. | Before adding more public fields, extract shared schema builders or add strict schema snapshots. |
-| DEBT-005 | Registry metadata duplication | Accepted | P2 | `manifest.json`, `manifest.v2.json`, root `index.json`, `dist/index*.json`, and `dist/catalog.sha256.json` repeat package metadata. | Registry compatibility and compiled distribution require generated artifacts. | Keep accepted; verify build regenerates dist and catalog hash after source changes. |
+| DEBT-005 | Registry metadata duplication | Resolved | P2 | The parallel version-suffixed manifest was removed; `manifest.json` is the only catalog source. | Generated indexes and the catalog hash remain release artifacts. | Keep `indexes:check` in CI so generated artifacts cannot drift. |
 | DEBT-006 | Provider overlap | Open | P1 | `image-generator`, `openai`, and `google-ai` can all generate images. | Provider-suite stacks expose provider-specific breadth; this stack exposes a normalized content workflow. | Document suite routing rules and prefer `image-generator` for content-image intent. |
 | DEBT-007 | Replicate model drift | Open | P1 | Replicate support is beta because it depends on model-specific schemas, aliases, aspect-ratio params, and reference params. | Open-source hosted models do not share one stable provider-level schema. | Add verified model metadata and live smoke status per Replicate model before removing the beta label. |
 | DEBT-008 | Provider request metadata | Open | P2 | Responses do not include provider request IDs, usage, or cost fields. | The initial contract focused on reliable image bytes and local file paths. | Add after provider SDK response fields are confirmed in live smoke tests. |

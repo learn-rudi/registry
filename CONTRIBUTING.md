@@ -1,15 +1,12 @@
 # Contributing to RUDI Registry
 
-Thank you for your interest in contributing to the RUDI Registry.
+Catalog manifests and skill sources are the hand-maintained source of truth.
+`index.json` is generated from them; never edit it directly. Canonical paths are
+unversioned even though the documents use schema version 2.
 
-## Getting Started
+## Setup
 
-### Prerequisites
-
-- Node.js 18 or later
-- [RUDI CLI](https://github.com/learnrudi/cli) installed
-
-### Setup
+Prerequisites: Node.js 20 or later and the RUDI CLI.
 
 ```bash
 git clone https://github.com/learnrudi/registry.git
@@ -19,185 +16,74 @@ npm install
 
 ## Adding a Stack
 
-1. Create a folder: `catalog/stacks/{stack-id}/`
-2. Add `manifest.json` with required fields
-3. Add MCP server code in `node/src/` or `python/src/`
-4. Add entry to `index.json`
-5. Test locally with `rudi install {stack-id} --local`
-6. Submit a pull request
+1. Create `catalog/stacks/{stack-id}/`.
+2. Add the canonical `manifest.json`.
+3. Add MCP source under `src/`, `node/`, or `python/`, following nearby package
+   conventions.
+4. Add focused tests for the exposed behavior.
+5. Run the validation and generation gates below.
+6. Test installation with an isolated RUDI home and local registry checkout.
 
-### Stack Manifest Requirements
+The manifest must identify the package as `stack:{stack-id}`, use
+`kind:"stack"`, declare `install.source:"catalog"`, expose real MCP tools, and
+list all required binaries and secret names. See [SCHEMA.md](SCHEMA.md) for the
+complete shape.
 
-Required fields:
-- `id` - Unique identifier (lowercase, hyphens)
-- `name` - Display name
-- `version` - Semantic version
-- `description` - Brief description
-- `runtime` - `node` or `python`
-- `command` - Array of command arguments
+Never hardcode secrets or commit `.env`, credentials, browser profiles, user
+state, downloads, rendered outputs, dependency folders, or runtime artifacts.
 
-Optional fields:
-- `provides.tools` - List of MCP tools
-- `requires.binaries` - Binary dependencies
-- `requires.secrets` - Secret requirements
-- `meta` - Author, license, category, tags
+## Adding a Binary, Runtime, or Agent
 
-### Secrets Declaration
+Create its only manifest in the matching canonical directory:
 
-Declare secrets in `requires.secrets`:
+- `catalog/binaries/{id}.json`
+- `catalog/runtimes/{id}.json`
+- `catalog/agents/{id}.json`
 
-```json
-{
-  "requires": {
-    "secrets": [
-      {
-        "name": "API_KEY",
-        "label": "API Key",
-        "required": true,
-        "description": "Get yours at https://example.com/api-keys"
-      }
-    ]
-  }
-}
-```
+Downloaded artifacts require a pinned version, HTTPS URL, supported extraction
+type, and SHA-256 checksum for every platform. System packages require
+`detect.command`; npm/pip packages require `install.package`.
 
-Never hardcode secrets in stack code.
+## Adding a Skill
 
-## Adding a Binary
+Use either `catalog/skills/{id}.md` or a bundle rooted at
+`catalog/skills/{id}/SKILL.md`. Include portable YAML frontmatter with at least
+`name` and `description`. Keep personal, client-specific, brand-specific, and
+machine-specific workflow state out of public packages.
 
-1. Create `catalog/binaries/{binary-id}.json`
-2. Include upstream URLs for each platform
-3. Add entry to `index.json`
-4. Submit a pull request
+Unsupported package ideas belong under `docs/proposals/`, not `catalog/`.
 
-### Binary Manifest Example
-
-```json
-{
-  "id": "mytool",
-  "name": "My Tool",
-  "version": "1.0.0",
-  "description": "What it does",
-  "installType": "binary",
-  "binary": "mytool",
-  "upstream": {
-    "darwin-arm64": "https://releases.example.com/mytool-macos-arm64",
-    "darwin-x64": "https://releases.example.com/mytool-macos-x64",
-    "linux-x64": "https://releases.example.com/mytool-linux-x64"
-  }
-}
-```
-
-## Adding a Prompt
-
-1. Create `catalog/prompts/{prompt-id}.md`
-2. Add YAML frontmatter with metadata
-3. Add entry to `index.json`
-4. Submit a pull request
-
-### Prompt Format
-
-```markdown
----
-name: My Prompt
-description: What this prompt does
-category: coding
-tags:
-  - example
-author: Your Name
----
-
-# Prompt Title
-
-Your system prompt content here...
-```
-
-## Pull Request Process
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b add-my-stack`)
-3. Make your changes
-4. Test locally with the RUDI CLI
-5. Commit with a descriptive message
-6. Push to your fork
-7. Open a pull request
-
-### Commit Messages
-
-Use clear, descriptive commit messages:
-
-```
-Add slack stack with messaging tools
-
-- Add manifest.json with tool declarations
-- Add MCP server implementation
-- Update index.json
-```
-
-## Code Style
-
-For MCP server code:
-
-- Use TypeScript for Node.js stacks
-- Use type hints for Python stacks
-- Include error handling for all tools
-- Follow MCP protocol specifications
-
-## Testing
-
-Before submitting:
-
-1. Validate manifest structure
-2. Test installation with RUDI CLI
-3. Test all declared tools
-4. Verify secret injection works
+## Required Checks
 
 ```bash
-# Install locally
-rudi install my-stack --local
-
-# Run the stack
-rudi run my-stack
-
-# Test with Claude or another agent
-rudi integrate claude
+npm test
+npm run validate
+npm run indexes:sync
+npm run indexes:check
+npm run catalog:clean:check
+npm run build
+npm pack --dry-run --json
 ```
 
-## Categories
+`indexes:sync` rebuilds the single root `index.json` and generated `dist/`
+artifacts. Include generated changes in the same pull request.
 
-When categorizing packages, use these standard categories:
+For local CLI smoke tests, isolate all installed state:
 
-**Stacks:**
-- ai-generation
-- ai-local
-- productivity
-- communication
-- social-media
-- data-extraction
-- document-processing
-- media
-- deployment
-- utilities
+```bash
+RUDI_HOME="$(mktemp -d)" \
+USE_LOCAL_REGISTRY=true \
+RUDI_REGISTRY_ROOT="$PWD" \
+rudi search my-stack
+```
 
-**Binaries:**
-- media
-- data
-- devops
-- utilities
-- ai-ml
-- version-control
+## Pull Requests
 
-**Prompts:**
-- coding
-- writing
-- creative
-- utilities
-- general
+- Keep one concern per change.
+- Describe user-visible behavior, validation performed, and known gaps.
+- Add or update tests for install, resolution, and failure behavior.
+- Never mix catalog source with local generated/runtime state.
+- Do not add packages to `index.json` manually.
 
-## Questions
-
-If you have questions about contributing, open a discussion on GitHub or reach out via issues.
-
-## License
-
-By contributing to RUDI Registry, you agree that your contributions will be licensed under the MIT License.
+By contributing, you agree that your contribution is licensed under the MIT
+License.

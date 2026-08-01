@@ -47,9 +47,6 @@ async function readJson<T>(file: string): Promise<T> {
 describe("supabase-mcp stack package", () => {
   it("packages Supabase's hosted MCP server through the pinned stdio bridge", async () => {
     const manifest = await readJson<Record<string, any>>(
-      path.join(stackRoot, "manifest.v2.json")
-    );
-    const legacyManifest = await readJson<Record<string, any>>(
       path.join(stackRoot, "manifest.json")
     );
     const index = await readJson<Record<string, any>>(path.join(process.cwd(), "index.json"));
@@ -75,16 +72,6 @@ describe("supabase-mcp stack package", () => {
     });
     expect(manifest.provides.tools).toEqual(expectedTools);
 
-    expect(legacyManifest).toMatchObject({
-      id: "supabase-mcp",
-      runtime: "node",
-      command: ["node", "src/index.js"],
-      requires: {
-        binaries: [],
-        secrets: [],
-      },
-    });
-    expect(legacyManifest.provides.tools).toEqual(expectedTools);
     expect(wrapper).toContain(expectedBridgePackage);
     expect(wrapper).toContain(expectedRemoteUrl);
     expect(wrapper).toContain("SUPABASE_MCP_PROJECT_REF");
@@ -92,16 +79,6 @@ describe("supabase-mcp stack package", () => {
     expect(wrapper).toContain("SUPABASE_MCP_FEATURES");
     expect(wrapper).toContain("process.execPath");
 
-    const officialStacks = index.packages.stacks.official as Array<Record<string, any>>;
-    expect(officialStacks).toContainEqual(
-      expect.objectContaining({
-        id: "stack:supabase-mcp",
-        path: "catalog/stacks/supabase-mcp",
-        runtime: "runtime:node",
-        requires: {
-          secrets: [],
-        },
-      })
-    );
+    expect(index.packages[manifest.id]).toEqual(manifest);
   });
 });

@@ -29,9 +29,6 @@ async function readJson<T>(file: string): Promise<T> {
 describe("rudi-crm stack package", () => {
   it("packages the controlled RUDI CRM MCP contract", async () => {
     const manifest = await readJson<Record<string, any>>(
-      path.join(stackRoot, "manifest.v2.json")
-    );
-    const legacyManifest = await readJson<Record<string, any>>(
       path.join(stackRoot, "manifest.json")
     );
     const packageJson = await readJson<Record<string, any>>(
@@ -70,13 +67,6 @@ describe("rudi-crm stack package", () => {
     expect(manifest.provides.tools).toEqual(expectedTools);
     expect(manifest.meta.boundary).toMatch(/controlled write\/read contract/i);
 
-    expect(legacyManifest).toMatchObject({
-      id: "rudi-crm",
-      runtime: "node",
-      command: ["npx", "tsx", "src/index.ts"],
-    });
-    expect(legacyManifest.provides.tools).toEqual(expectedTools);
-
     expect(packageJson.dependencies).toMatchObject({
       "@modelcontextprotocol/sdk": expect.any(String),
       pg: expect.any(String),
@@ -112,16 +102,6 @@ describe("rudi-crm stack package", () => {
     expect(liveFinanceTest).toContain("RUDI_CRM_LIVE_TESTS=1");
     expect(liveFinanceTest).toContain("rollback");
 
-    const officialStacks = index.packages.stacks.official as Array<Record<string, any>>;
-    expect(officialStacks).toContainEqual(
-      expect.objectContaining({
-        id: "stack:rudi-crm",
-        path: "catalog/stacks/rudi-crm",
-        runtime: "runtime:node",
-        requires: {
-          secrets: ["RUDI_CRM_DATABASE_URL"],
-        },
-      })
-    );
+    expect(index.packages[manifest.id]).toEqual(manifest);
   });
 });

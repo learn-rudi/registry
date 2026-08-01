@@ -1,14 +1,41 @@
 {
-  "id": "plaid",
+  "id": "stack:plaid",
+  "kind": "stack",
   "name": "Plaid",
   "version": "0.1.0",
-  "description": "Connect bank accounts through Plaid, list accounts and balances, and sync transactions.",
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/plaid"
+  },
   "runtime": "node",
-  "command": [
-    "npx",
-    "tsx",
-    "src/index.ts"
-  ],
+  "requires": {
+    "binaries": [],
+    "secrets": [
+      {
+        "key": "PLAID_CLIENT_ID",
+        "label": "Plaid Client ID",
+        "required": true,
+        "helpUrl": "https://dashboard.plaid.com/developers/keys"
+      },
+      {
+        "key": "PLAID_SECRET",
+        "label": "Plaid Secret",
+        "required": true,
+        "helpUrl": "https://dashboard.plaid.com/developers/keys"
+      },
+      {
+        "key": "PLAID_ENV",
+        "label": "Plaid Environment",
+        "required": false
+      },
+      {
+        "key": "PLAID_TOKEN_STORE_PATH",
+        "label": "Plaid Token Store Path",
+        "required": false
+      }
+    ]
+  },
   "provides": {
     "tools": [
       "plaid_create_link",
@@ -21,38 +48,17 @@
       "plaid_sync_transactions"
     ]
   },
-  "requires": {
-    "binaries": [],
-    "secrets": [
-      {
-        "name": "PLAID_CLIENT_ID",
-        "label": "Plaid Client ID",
-        "description": "Client ID from the Plaid dashboard.",
-        "link": "https://dashboard.plaid.com/developers/keys",
-        "required": true
-      },
-      {
-        "name": "PLAID_SECRET",
-        "label": "Plaid Secret",
-        "description": "Sandbox or Production secret from the Plaid dashboard.",
-        "link": "https://dashboard.plaid.com/developers/keys",
-        "required": true
-      },
-      {
-        "name": "PLAID_ENV",
-        "label": "Plaid Environment",
-        "description": "Plaid environment: sandbox, development, or production. Defaults to sandbox.",
-        "required": false
-      },
-      {
-        "name": "PLAID_TOKEN_STORE_PATH",
-        "label": "Plaid Token Store Path",
-        "description": "Optional local path for encrypted-by-filesystem access token storage. Defaults to ~/.plaid/tokens.json.",
-        "required": false
-      }
-    ]
+  "mcp": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": [
+      "tsx",
+      "src/index.ts"
+    ],
+    "cwd": "."
   },
   "meta": {
+    "description": "Connect bank accounts through Plaid, list accounts and balances, and sync transactions.",
     "author": "CO-LLAB",
     "license": "MIT",
     "category": "finance",

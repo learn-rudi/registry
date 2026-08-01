@@ -201,7 +201,6 @@ state.
 Install files:
 
 - `manifest.json`
-- `manifest.v2.json`
 - `requirements.txt`
 - `README.md`
 - `API_CONTRACT.md`

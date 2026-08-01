@@ -110,21 +110,22 @@ describe("compiler determinism", () => {
     expect(versions[0]).toBe("2");
   });
 
-  it("should produce identical output on consecutive runs (excluding timestamps)", async () => {
-    const index1 = (await readJson("dist/index.json")) as {
-      generatedAt: string;
-      packages: Record<string, unknown>;
-      stats: unknown;
-    };
+  it("should produce byte-equivalent logical output on consecutive runs", async () => {
+    await runCompiler();
+    const first = await Promise.all([
+      readJson("dist/index.json"),
+      readJson("dist/catalog.sha256.json"),
+      readJson("dist/release.json"),
+    ]);
 
-    // Remove timestamp for comparison
-    const { generatedAt: _, ...indexWithoutTimestamp1 } = index1;
+    await runCompiler();
+    const second = await Promise.all([
+      readJson("dist/index.json"),
+      readJson("dist/catalog.sha256.json"),
+      readJson("dist/release.json"),
+    ]);
 
-    // Hash should be deterministic
-    const hash1 = hashObject(indexWithoutTimestamp1);
-
-    // Verify the hash is consistent (this test mostly documents expected behavior)
-    expect(hash1).toMatch(/^[a-f0-9]{64}$/);
+    expect(second.map(hashObject)).toEqual(first.map(hashObject));
   });
 });
 
@@ -278,6 +279,19 @@ describe("catalog hash", () => {
     expect(hasManifests).toBe(true);
   });
 
+  it("should include bundled skill resources in the hash tree", async () => {
+    const hash = (await readJson("dist/catalog.sha256.json")) as {
+      files: Record<string, string>;
+    };
+
+    expect(hash.files).toHaveProperty(
+      "catalog/skills/design-system-extractor/scripts/spec_utils.cjs"
+    );
+    expect(hash.files).toHaveProperty(
+      "catalog/skills/design-system-extractor/references/spec.example.json"
+    );
+  });
+
   it("should exclude stack runtime artifacts from the hash tree", async () => {
     const runtimeArtifact = path.join(
       "catalog",
@@ -301,6 +315,9 @@ describe("catalog hash", () => {
       expect(hash.files).not.toHaveProperty(runtimeArtifact);
     } finally {
       await fs.rm(path.dirname(runtimeArtifact), { recursive: true, force: true });
+      await fs.rmdir(path.join("catalog", "stacks", "video-editor", "runs")).catch((error) => {
+        if ((error as NodeJS.ErrnoException).code !== "ENOTEMPTY") throw error;
+      });
       await runCompiler();
     }
   });

@@ -1,14 +1,30 @@
 {
-  "id": "supabase",
+  "id": "binary:supabase",
+  "kind": "binary",
   "name": "Supabase CLI",
   "version": "latest",
-  "description": "Supabase local development and deployment",
-  "bundled": false,
-  "installType": "npm",
-  "npmPackage": "supabase",
+
+  "delivery": "remote",
+  "install": {
+    "source": "npm",
+    "package": "supabase"
+  },
+
   "bins": ["supabase"],
-  "binary": "supabase/node_modules/.bin/supabase",
-  "installDir": "supabase",
-  "requiresAuth": false,
-  "authInstructions": "Run 'supabase login' to authenticate"
+
+  "detect": {
+    "command": "supabase --version",
+    "expectExitCode": 0
+  },
+
+  "auth": {
+    "required": false,
+    "command": "supabase login",
+    "instructions": "Run 'supabase login' to authenticate (optional for local development)"
+  },
+
+  "meta": {
+    "description": "Supabase local development and deployment",
+    "category": "devops"
+  }
 }

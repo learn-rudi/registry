@@ -26,9 +26,16 @@ interface FrontmatterObject {
 }
 
 const CATALOG_PACKAGE_PATTERNS = [
+  "catalog/agents/*.json",
+  "catalog/binaries/*.json",
+  "catalog/runtimes/*.json",
+  "catalog/stacks/*/manifest.json",
+  "catalog/skills/**/*.md",
+];
+
+const VERSION_SUFFIXED_METADATA_PATTERNS = [
   "catalog/**/v2/**/*.json",
   "catalog/**/manifest.v2.json",
-  "catalog/skills/**/*.md",
 ];
 
 const SKILL_FRONTMATTER_KEYS = new Set([
@@ -48,17 +55,24 @@ function toPosixPath(filePath: string): string {
   return filePath.split(path.sep).join("/");
 }
 
-export function isV2ManifestPath(file: string): boolean {
+export function isCanonicalManifestPath(file: string): boolean {
+  const normalized = toPosixPath(file);
   return (
-    file.includes(`${path.sep}v2${path.sep}`) ||
-    file.includes("/v2/") ||
-    file.endsWith("manifest.v2.json")
+    /^catalog\/(agents|binaries|runtimes)\/[^/]+\.json$/.test(normalized) ||
+    /^catalog\/stacks\/[^/]+\/manifest\.json$/.test(normalized)
   );
 }
 
 function isSkillMarkdownPath(file: string): boolean {
   const normalized = toPosixPath(file);
-  return normalized.startsWith("catalog/skills/") && normalized.endsWith(".md");
+  if (!normalized.startsWith("catalog/skills/")) return false;
+
+  const relativePath = normalized.slice("catalog/skills/".length);
+  const segments = relativePath.split("/");
+  return (
+    (segments.length === 1 && relativePath.endsWith(".md")) ||
+    (segments.length === 2 && segments[1] === "SKILL.md")
+  );
 }
 
 async function readJson(file: string): Promise<unknown> {
@@ -334,7 +348,14 @@ function packageFromSkillMarkdown(file: string, content: string): Package {
     }
   }
 
-  const slug = path.basename(file, ".md");
+  const normalizedFile = toPosixPath(file);
+  const isBundledSkill = normalizedFile.endsWith("/SKILL.md");
+  const slug = isBundledSkill
+    ? path.posix.basename(path.posix.dirname(normalizedFile))
+    : path.posix.basename(normalizedFile, ".md");
+  const installPath = isBundledSkill
+    ? path.posix.dirname(normalizedFile)
+    : normalizedFile;
   const derivedId = normalizePackageId("skill", slug, file);
   const declaredKind = optionalString(frontmatter, "kind", file);
   if (declaredKind !== undefined && declaredKind !== "skill") {
@@ -370,7 +391,7 @@ function packageFromSkillMarkdown(file: string, content: string): Package {
     delivery: "remote",
     install: {
       source: "catalog",
-      path: toPosixPath(file),
+      path: installPath,
     },
     ...(requires ? { requires } : {}),
     meta: {
@@ -384,6 +405,19 @@ function packageFromSkillMarkdown(file: string, content: string): Package {
 }
 
 export async function discoverCatalogPackageFiles(root = process.cwd()): Promise<string[]> {
+  const versionSuffixed = await fg(VERSION_SUFFIXED_METADATA_PATTERNS, {
+    cwd: root,
+    dot: false,
+    onlyFiles: true,
+    ignore: ["**/node_modules/**"],
+  });
+  if (versionSuffixed.length > 0) {
+    throw new CatalogPackageError(
+      `Version-suffixed catalog metadata is not allowed: ${versionSuffixed.sort().join(", ")}`,
+      versionSuffixed.sort()[0]
+    );
+  }
+
   const files = await fg(CATALOG_PACKAGE_PATTERNS, {
     cwd: root,
     dot: false,
@@ -392,7 +426,7 @@ export async function discoverCatalogPackageFiles(root = process.cwd()): Promise
   });
 
   return files
-    .filter((file) => isV2ManifestPath(file) || isSkillMarkdownPath(file))
+    .filter((file) => isCanonicalManifestPath(file) || isSkillMarkdownPath(file))
     .sort();
 }
 
@@ -411,7 +445,7 @@ export async function readCatalogPackage(
     };
   }
 
-  if (isV2ManifestPath(normalizedFile)) {
+  if (isCanonicalManifestPath(normalizedFile)) {
     return {
       path: normalizedFile,
       manifest: await readJson(absoluteFile) as Package,

@@ -35,14 +35,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Validate v2 manifests
-        run: npm run validate:v2
+      - name: Validate manifests
+        run: npm run validate
 
       - name: Validate public readiness
         run: npm run validate:public -- --json
 
-      - name: Compile registry index
-        run: npm run compile
+      - name: Verify generated index
+        run: npm run indexes:check
+
+      - name: Verify clean catalog source
+        run: npm run catalog:clean:check
 
       - name: Upload dist artifacts
         uses: actions/upload-artifact@v4
@@ -91,7 +94,7 @@ jobs:
       - name: Create release tarball
         run: |
           mkdir -p release
-          tar -czf release/registry-v2.tgz \
+          tar -czf release/registry.tgz \
             --exclude='*/node_modules/*' \
             --exclude='*/runs/*' \
             --exclude='*/downloads/*' \
@@ -106,7 +109,7 @@ jobs:
             schemas/ \
             dist/ \
             SCHEMA.md
-          sha256sum release/registry-v2.tgz > release/registry-v2.tgz.sha256
+          sha256sum release/registry.tgz > release/registry.tgz.sha256
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
@@ -121,8 +124,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            release/registry-v2.tgz
-            release/registry-v2.tgz.sha256
+            release/registry.tgz
+            release/registry.tgz.sha256
             dist/index.json
             dist/release.json
           generate_release_notes: true
@@ -148,5 +151,5 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Validate v2 manifests
-        run: npm run validate:v2
+      - name: Validate manifests
+        run: npm run validate

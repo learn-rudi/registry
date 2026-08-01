@@ -1,1673 +1,5005 @@
 {
-  "$schema": "https://learnrudi.com/schemas/registry-v2.json",
-  "version": "2.0.0",
-  "name": "RUDI Registry",
-  "description": "Official and community-contributed stacks, skills, runtimes, binaries, and agents for RUDI",
-  "maintainer": "learnrudi",
-  "repository": "https://github.com/learnrudi/registry",
-  "lastUpdated": "2025-12-24T00:00:00Z",
-  "packages": {
-    "stacks": {
-      "official": [
-        {
-          "id": "stack:content-extractor",
-          "name": "Content Extractor",
-          "version": "1.0.0",
-          "description": "Extract content from YouTube, Reddit, TikTok, and web articles",
-          "path": "catalog/stacks/content-extractor",
-          "runtime": "runtime:node",
-          "category": "data-extraction",
-          "tags": [
-            "youtube",
-            "reddit",
-            "tiktok",
-            "article",
-            "transcript",
-            "extraction",
-            "scraping"
-          ]
-        },
-        {
-          "id": "stack:audio-tools",
-          "name": "Audio Tools",
-          "version": "1.0.0",
-          "description": "Transcribe, enrich, sync, and query local audio or video-linked speech with local Whisper and yt-dlp",
-          "path": "catalog/stacks/audio-tools",
-          "runtime": "runtime:node",
-          "category": "audio-processing",
-          "tags": [
-            "audio",
-            "transcription",
-            "whisper",
-            "yt-dlp",
-            "speech-to-text",
-            "sqlite"
-          ],
-          "requires": {
-            "binaries": [
-              "ffmpeg",
-              "ffprobe",
-              "yt-dlp"
-            ]
-          }
-        },
-        {
-          "id": "stack:cloudinary",
-          "name": "Cloudinary",
-          "version": "0.1.0",
-          "description": "Upload local media to Cloudinary and return public HTTPS delivery URLs",
-          "path": "catalog/stacks/cloudinary",
-          "runtime": "runtime:node",
-          "category": "media",
-          "tags": [
-            "cloudinary",
-            "video",
-            "media",
-            "upload",
-            "social-media"
-          ],
-          "requires": {
-            "secrets": [
-              "CLOUDINARY_CLOUD_NAME",
-              "CLOUDINARY_API_KEY",
-              "CLOUDINARY_API_SECRET",
-              "CLOUDINARY_URL"
-            ]
-          }
-        },
-        {
-          "id": "stack:creator-intelligence",
-          "name": "Creator Intelligence",
-          "version": "0.1.0",
-          "description": "Creator audit and style-reference tooling for shortform research, contact sheets, keyframe sheets, and local audit inventory",
-          "path": "catalog/stacks/creator-intelligence",
-          "runtime": "runtime:node",
-          "category": "creator-intelligence",
-          "tags": [
-            "creator",
-            "tiktok",
-            "youtube",
-            "shortform",
-            "audit",
-            "style-reference",
-            "contact-sheet",
-            "keyframes"
-          ],
-          "requires": {
-            "binaries": [
-              "yt-dlp",
-              "ffmpeg",
-              "ffprobe"
-            ]
-          }
-        },
-        {
-          "id": "stack:swe-engineering",
-          "name": "SWE Engineering",
-          "version": "0.1.0",
-          "description": "Portable SWE Operating Manual reference and JS/TS agent debt scanning tools for engineering workflows",
-          "path": "catalog/stacks/swe-engineering",
-          "runtime": "runtime:node",
-          "category": "development",
-          "tags": [
-            "swe",
-            "engineering",
-            "manual",
-            "testing",
-            "debugging",
-            "debt-scan",
-            "code-quality"
-          ],
-          "related": {
-            "skills": [
-              "skill:swe-compliance-checklist"
-            ]
-          }
-        },
-        {
-          "id": "stack:newsletter-extractor",
-          "name": "Newsletter Extractor",
-          "version": "0.1.0",
-          "description": "Extract newsletter email bodies, normalize newsletter links, and read RSS/Atom feeds",
-          "path": "catalog/stacks/newsletter-extractor",
-          "runtime": "runtime:node",
-          "category": "data-extraction",
-          "tags": [
-            "newsletter",
-            "email",
-            "gmail",
-            "rss",
-            "atom",
-            "links",
-            "extraction",
-            "content"
-          ]
-        },
-        {
-          "id": "stack:rudi-processor",
-          "name": "RUDI Processor",
-          "version": "2.0.0",
-          "description": "Local file metadata extraction, workspace audit, and indexed content search",
-          "path": "catalog/stacks/rudi-processor",
-          "runtime": "runtime:python",
-          "category": "data-extraction",
-          "tags": [
-            "metadata",
-            "files",
-            "documents",
-            "ocr",
-            "indexing",
-            "search"
-          ],
-          "requires": {
-            "binaries": [
-              "ffmpeg",
-              "tesseract"
-            ],
-            "secrets": [
-              "ANTHROPIC_API_KEY",
-              "OPENAI_API_KEY",
-              "GOOGLE_API_KEY",
-              "DEEPSEEK_API_KEY"
-            ]
-          }
-        },
-        {
-          "id": "stack:google-ai",
-          "name": "Google AI Suite",
-          "version": "1.0.0",
-          "description": "Generate images (Gemini, Imagen 4) and videos (Veo 3.1) using Google AI",
-          "path": "catalog/stacks/google-ai",
-          "runtime": "runtime:node",
-          "category": "ai-generation",
-          "tags": [
-            "ai",
-            "google-ai",
-            "gemini",
-            "imagen",
-            "veo",
-            "image-generation",
-            "video-generation"
-          ],
-          "requires": {
-            "secrets": [
-              "GOOGLE_AI_API_KEY"
-            ]
-          }
-        },
-        {
-          "id": "stack:image-generator",
-          "name": "Image Generator",
-          "version": "0.1.0",
-          "description": "Agent-safe multi-provider image generation for content creation workflows",
-          "path": "catalog/stacks/image-generator",
-          "runtime": "runtime:python",
-          "category": "ai-generation",
-          "tags": [
-            "image",
-            "generation",
-            "ai",
-            "gemini",
-            "openai",
-            "replicate",
-            "content-creation",
-            "social-media"
-          ],
-          "requires": {
-            "secrets": [
-              "GEMINI_API_KEY",
-              "OPENAI_API_KEY",
-              "REPLICATE_API_TOKEN"
-            ]
-          }
-        },
-        {
-          "id": "stack:video-generator",
-          "name": "Video Generator",
-          "version": "0.1.0",
-          "description": "Agent-safe multi-provider video generation for content creation workflows",
-          "path": "catalog/stacks/video-generator",
-          "runtime": "runtime:python",
-          "category": "ai-generation",
-          "tags": [
-            "video",
-            "generation",
-            "ai",
-            "gemini",
-            "veo",
-            "replicate",
-            "openai",
-            "sora",
-            "content-creation",
-            "social-media"
-          ],
-          "requires": {
-            "secrets": [
-              "GEMINI_API_KEY",
-              "REPLICATE_API_TOKEN",
-              "OPENAI_API_KEY"
-            ]
-          }
-        },
-        {
-          "id": "stack:google-workspace",
-          "name": "Google Workspace",
-          "version": "1.0.0",
-          "description": "Gmail, Sheets, Docs, Drive, Calendar, and Tasks integration",
-          "path": "catalog/stacks/google-workspace",
-          "runtime": "runtime:node",
-          "category": "productivity",
-          "tags": [
-            "google",
-            "gmail",
-            "sheets",
-            "docs",
-            "drive",
-            "calendar",
-            "email",
-            "tasks"
-          ],
-          "requires": {
-            "secrets": [
-              "GOOGLE_CREDENTIALS"
-            ]
-          }
-        },
-        {
-          "id": "stack:ms-office",
-          "name": "MS Office",
-          "version": "1.0.0",
-          "description": "Read and extract content from Microsoft Word (.docx) and Excel (.xlsx) documents",
-          "path": "catalog/stacks/ms-office",
-          "runtime": "runtime:node",
-          "category": "document-processing",
-          "tags": [
-            "microsoft",
-            "office",
-            "word",
-            "excel",
-            "docx",
-            "xlsx",
-            "documents"
-          ]
-        },
-        {
-          "id": "stack:notion-workspace",
-          "name": "Notion Workspace",
-          "version": "1.2.0",
-          "description": "Search, create, and manage Notion pages and databases",
-          "path": "catalog/stacks/notion-workspace",
-          "runtime": "runtime:node",
-          "category": "productivity",
-          "tags": [
-            "notion",
-            "productivity",
-            "notes",
-            "databases",
-            "wiki"
-          ],
-          "requires": {
-            "secrets": [
-              "NOTION_API_KEY"
-            ]
-          }
-        },
-        {
-          "id": "stack:otter-mcp",
-          "name": "Otter MCP",
-          "version": "0.1.0",
-          "description": "Search and fetch Otter meeting transcripts through Otter's hosted OAuth MCP server",
-          "path": "catalog/stacks/otter-mcp",
-          "runtime": "runtime:node",
-          "category": "productivity",
-          "tags": [
-            "otter",
-            "meetings",
-            "transcripts",
-            "mcp",
-            "oauth"
-          ],
-          "requires": {
-            "secrets": []
-          }
-        },
-        {
-          "id": "stack:openai",
-          "name": "OpenAI Suite",
-          "version": "1.0.0",
-          "description": "OpenAI tools: DALL-E images, Whisper transcription, TTS speech, Sora video",
-          "path": "catalog/stacks/openai",
-          "runtime": "runtime:node",
-          "category": "ai-generation",
-          "tags": [
-            "ai",
-            "openai",
-            "dalle",
-            "whisper",
-            "tts",
-            "sora",
-            "image-generation",
-            "video-generation",
-            "transcription"
-          ],
-          "requires": {
-            "secrets": [
-              "OPENAI_API_KEY"
-            ]
-          }
-        },
-        {
-          "id": "stack:slack",
-          "name": "Slack",
-          "version": "1.0.0",
-          "description": "Send messages, search channels, upload files, and manage reactions in Slack",
-          "path": "catalog/stacks/slack",
-          "runtime": "runtime:node",
-          "category": "communication",
-          "tags": [
-            "slack",
-            "messaging",
-            "chat",
-            "team",
-            "communication"
-          ],
-          "requires": {
-            "secrets": [
-              "SLACK_BOT_TOKEN"
-            ]
-          }
-        },
-        {
-          "id": "stack:twilio-sms",
-          "name": "Twilio SMS",
-          "version": "0.1.0",
-          "description": "Send SMS messages and inspect recent Twilio messages through a guarded MCP interface",
-          "path": "catalog/stacks/twilio-sms",
-          "runtime": "runtime:node",
-          "category": "communication",
-          "tags": [
-            "twilio",
-            "sms",
-            "messaging",
-            "mcp",
-            "communication"
-          ],
-          "requires": {
-            "secrets": [
-              "TWILIO_ACCOUNT_SID",
-              "TWILIO_AUTH_TOKEN",
-              "TWILIO_API_KEY_SID",
-              "TWILIO_API_KEY_SECRET",
-              "TWILIO_FROM_NUMBER",
-              "TWILIO_MESSAGING_SERVICE_SID"
-            ]
-          }
-        },
-        {
-          "id": "stack:social-media-publisher",
-          "name": "Social Media Publisher",
-          "version": "1.0.0",
-          "description": "Post to Twitter, LinkedIn, Facebook, Instagram, TikTok, and YouTube with readiness checks and unified publisher validation",
-          "path": "catalog/stacks/social-media-publisher",
-          "runtime": "runtime:node",
-          "category": "social-media",
-          "tags": [
-            "social-media",
-            "twitter",
-            "linkedin",
-            "facebook",
-            "instagram",
-            "tiktok",
-            "youtube",
-            "marketing"
-          ],
-          "provides": {
-            "tools": [
-              "social_list_supported_platforms",
-              "social_validate_post",
-              "social_check_publish_ready",
-              "social_publish_direct",
-              "twitter_post",
-              "twitter_thread",
-              "linkedin_post",
-              "facebook_post",
-              "facebook_list_pages",
-              "instagram_post",
-              "instagram_reel_create_container",
-              "instagram_container_status",
-              "instagram_publish_container",
-              "instagram_list_accounts",
-              "tiktok_creator_info",
-              "tiktok_direct_post",
-              "tiktok_video_upload",
-              "tiktok_fetch_status",
-              "youtube_video_upload"
-            ]
-          }
-        },
-        {
-          "id": "stack:video-editor",
-          "name": "Video Editor",
-          "version": "1.0.0",
-          "description": "Comprehensive local video editing stack for quick ffmpeg operations, structured runs, captions, rendering, and QA.",
-          "path": "catalog/stacks/video-editor",
-          "runtime": "runtime:node",
-          "category": "media",
-          "tags": [
-            "video",
-            "ffmpeg",
-            "editing",
-            "silence",
-            "transcript",
-            "slides",
-            "captions",
-            "remotion",
-            "templates",
-            "qa",
-            "media"
-          ],
-          "requires": {
-            "binaries": [
-              "ffmpeg",
-              "ffprobe",
-              "whisper",
-              "chromium"
-            ]
-          },
-          "related": {
-            "skills": [
-              "skill:rudi-video-editor",
-              "skill:shortform-your-words-script",
-              "skill:shortform-publish-copy"
-            ]
-          }
-        },
-        {
-          "id": "stack:web-export",
-          "name": "Web Export",
-          "version": "1.0.0",
-          "description": "Export HTML to high-resolution PNG and PDF with artboard support",
-          "path": "catalog/stacks/web-export",
-          "runtime": "runtime:python",
-          "category": "document-processing",
-          "tags": [
-            "export",
-            "pdf",
-            "png",
-            "html",
-            "artboard",
-            "print",
-            "screenshot"
-          ]
-        },
-        {
-          "id": "stack:zoho-mail",
-          "name": "Zoho Mail",
-          "version": "1.0.0",
-          "description": "Send, search, and manage emails via Zoho Mail",
-          "path": "catalog/stacks/zoho-mail",
-          "runtime": "runtime:node",
-          "category": "productivity",
-          "tags": [
-            "zoho",
-            "email",
-            "mail"
-          ],
-          "requires": {
-            "secrets": [
-              "ZOHO_CLIENT_ID",
-              "ZOHO_CLIENT_SECRET"
-            ]
-          }
-        },
-        {
-          "id": "stack:whisper",
-          "name": "Local Whisper",
-          "version": "1.0.0",
-          "description": "Transcribe audio locally with faster-whisper. No API key needed.",
-          "path": "catalog/stacks/whisper",
-          "runtime": "runtime:python",
-          "category": "ai-local",
-          "tags": [
-            "whisper",
-            "transcription",
-            "audio",
-            "local",
-            "offline",
-            "speech-to-text"
-          ],
-          "requires": {
-            "runtimes": [
-              "runtime:python"
-            ]
-          }
-        },
-        {
-          "id": "stack:postgres",
-          "name": "PostgreSQL",
-          "version": "1.0.0",
-          "description": "Query and manage PostgreSQL databases. Works with Neon, Railway, Supabase.",
-          "path": "catalog/stacks/postgres",
-          "runtime": "runtime:node",
-          "category": "data",
-          "tags": [
-            "postgres",
-            "postgresql",
-            "database",
-            "sql",
-            "neon",
-            "railway",
-            "supabase"
-          ],
-          "requires": {
-            "secrets": [
-              "DATABASE_URL"
-            ]
-          }
-        },
-        {
-          "id": "stack:sqlite",
-          "name": "SQLite",
-          "version": "1.0.0",
-          "description": "Query and manage SQLite databases. Perfect for local databases and RUDI sessions.",
-          "path": "catalog/stacks/sqlite",
-          "runtime": "runtime:node",
-          "category": "data",
-          "tags": [
-            "sqlite",
-            "database",
-            "sql",
-            "local",
-            "rudi"
-          ],
-          "requires": {
-            "secrets": [
-              "SQLITE_DB_PATH"
-            ]
-          }
-        },
-        {
-          "id": "stack:github",
-          "name": "GitHub",
-          "version": "1.0.0",
-          "description": "Manage GitHub repositories, branches, contents, collaborators, issues, pull requests, releases, Actions, artifacts, and direct REST API calls",
-          "path": "catalog/stacks/github",
-          "runtime": "runtime:node",
-          "category": "development",
-          "tags": [
-            "github",
-            "git",
-            "repos",
-            "prs",
-            "issues",
-            "code",
-            "releases",
-            "actions"
-          ],
-          "requires": {
-            "secrets": [
-              "GITHUB_TOKEN"
-            ]
-          }
-        },
-        {
-          "id": "stack:stripe",
-          "name": "Stripe",
-          "version": "1.0.0",
-          "description": "Manage Stripe payments, customers, invoices, and subscriptions",
-          "path": "catalog/stacks/stripe",
-          "runtime": "runtime:node",
-          "category": "business",
-          "tags": [
-            "stripe",
-            "payments",
-            "invoices",
-            "subscriptions",
-            "billing"
-          ],
-          "requires": {
-            "secrets": [
-              "STRIPE_API_KEY"
-            ]
-          }
-        },
-        {
-          "id": "stack:plaid",
-          "name": "Plaid",
-          "version": "0.1.0",
-          "description": "Connect bank accounts through Plaid, list accounts and balances, and sync transactions",
-          "path": "catalog/stacks/plaid",
-          "runtime": "runtime:node",
-          "category": "finance",
-          "tags": [
-            "plaid",
-            "banking",
-            "finance",
-            "transactions",
-            "accounts",
-            "balances"
-          ],
-          "requires": {
-            "secrets": [
-              "PLAID_CLIENT_ID",
-              "PLAID_SECRET"
-            ]
-          }
-        },
-        {
-          "id": "stack:data-analysis",
-          "name": "Data Analysis",
-          "version": "1.0.0",
-          "description": "Analyze data with Python, pandas, numpy, and matplotlib. Generate charts and insights.",
-          "path": "catalog/stacks/data-analysis",
-          "runtime": "runtime:python",
-          "category": "data",
-          "tags": [
-            "data",
-            "analysis",
-            "python",
-            "pandas",
-            "charts",
-            "visualization"
-          ]
-        },
-        {
-          "id": "stack:vercel",
-          "name": "Vercel",
-          "version": "1.0.0",
-          "description": "Deploy to Vercel, manage environment variables, and monitor deployments",
-          "path": "catalog/stacks/vercel",
-          "runtime": "runtime:node",
-          "category": "deployment",
-          "tags": [
-            "vercel",
-            "deployment",
-            "serverless",
-            "env-vars",
-            "hosting"
-          ],
-          "requires": {
-            "secrets": [
-              "VERCEL_TOKEN"
-            ]
-          }
-        },
-        {
-          "id": "stack:tally",
-          "name": "Tally Forms",
-          "version": "1.0.0",
-          "description": "Create, manage, and analyze Tally forms and submissions",
-          "path": "catalog/stacks/tally",
-          "runtime": "runtime:node",
-          "category": "productivity",
-          "tags": [
-            "tally",
-            "forms",
-            "surveys",
-            "data-collection",
-            "feedback"
-          ],
-          "requires": {
-            "secrets": [
-              "TALLY_API_KEY"
-            ]
-          }
-        },
-        {
-          "id": "stack:macos-automation",
-          "name": "macOS Automation",
-          "version": "0.1.0",
-          "description": "Guarded macOS automation tools for apps, Finder, Reminders, Shortcuts, notifications, and System Events permission checks",
-          "path": "catalog/stacks/macos-automation",
-          "runtime": "runtime:node",
-          "category": "local-automation",
-          "tags": [
-            "macos",
-            "apple-script",
-            "shortcuts",
-            "reminders",
-            "finder",
-            "productivity",
-            "automation",
-            "mcp"
-          ]
-        },
-        {
-          "id": "stack:neon",
-          "name": "Neon",
-          "version": "0.1.0",
-          "description": "Guarded Neon platform operations for projects, branches, connection URI retrieval, and MCP config generation",
-          "path": "catalog/stacks/neon",
-          "runtime": "runtime:node",
-          "category": "data",
-          "tags": [
-            "neon",
-            "postgres",
-            "database",
-            "branching",
-            "mcp",
-            "platform"
-          ],
-          "requires": {
-            "binaries": [
-              "neonctl"
-            ],
-            "secrets": [
-              "NEON_API_KEY"
-            ]
-          },
-          "related": {
-            "stacks": [
-              "stack:postgres"
-            ],
-            "binaries": [
-              "binary:neonctl"
-            ]
-          }
-        },
-        {
-          "id": "stack:rudi-crm",
-          "name": "RUDI CRM",
-          "version": "0.1.0",
-          "description": "Controlled MCP interface for RUDI CRM engagement memory, discovery, triage, validators, and correspondence context",
-          "path": "catalog/stacks/rudi-crm",
-          "runtime": "runtime:node",
-          "category": "business",
-          "tags": [
-            "crm",
-            "engagements",
-            "postgres",
-            "supabase",
-            "mcp",
-            "audit"
-          ],
-          "requires": {
-            "secrets": [
-              "RUDI_CRM_DATABASE_URL"
-            ]
-          }
-        },
-        {
-          "id": "stack:supabase-mcp",
-          "name": "Supabase MCP",
-          "version": "0.1.0",
-          "description": "Connect agents to Supabase's hosted OAuth MCP server for database, project, Edge Functions, docs, and development tools",
-          "path": "catalog/stacks/supabase-mcp",
-          "runtime": "runtime:node",
-          "category": "data",
-          "tags": [
-            "supabase",
-            "postgres",
-            "database",
-            "mcp",
-            "oauth",
-            "remote"
-          ],
-          "requires": {
-            "secrets": []
-          }
-        }
-      ],
-      "community": []
-    },
-    "skills": {
-      "official": [
-        {
-          "id": "skill:swe-compliance-checklist",
-          "name": "RUDI SWE Compliance Checklist",
-          "version": "1.0.0",
-          "description": "Create and execute RUDI phase-gated SWE Operating Manual compliance checklists for software changes",
-          "path": "catalog/skills/swe-compliance-checklist.md",
-          "category": "coding",
-          "tags": [
-            "rudi",
-            "swe",
-            "compliance",
-            "checklist",
-            "testing",
-            "verification",
-            "engineering"
-          ]
-        },
-        {
-          "id": "skill:client-engagement-intake",
-          "name": "Client Engagement Intake",
-          "version": "1.0.0",
-          "description": "Create RUDI client engagement workspaces and private GitHub repos from client conversations, transcripts, and pipeline discussions",
-          "path": "catalog/skills/client-engagement-intake.md",
-          "category": "business",
-          "tags": [
-            "clients",
-            "pipeline",
-            "engagements",
-            "github",
-            "handoff"
-          ]
-        },
-        {
-          "id": "skill:rudi-video-editor",
-          "name": "RUDI Video Editor",
-          "version": "1.0.0",
-          "description": "Use RUDI video editing stack tools to inspect, trim, caption, render, and verify edited video from a user prompt",
-          "path": "catalog/skills/rudi-video-editor.md",
-          "category": "creative",
-          "tags": [
-            "rudi",
-            "video",
-            "editing",
-            "captions",
-            "ffmpeg",
-            "rendering",
-            "qa"
-          ],
-          "requires": {
-            "stacks": [
-              "video-editor"
-            ]
-          }
-        },
-        {
-          "id": "skill:shortform-your-words-script",
-          "name": "Shortform Your-Words Script",
-          "version": "1.0.0",
-          "description": "Create short-form video scripts and teleprompter files from raw thoughts while preserving the original author's voice and words",
-          "path": "catalog/skills/shortform-your-words-script.md",
-          "category": "creative",
-          "tags": [
-            "video",
-            "shortform",
-            "script",
-            "teleprompter",
-            "creator-voice",
-            "captions"
-          ],
-          "requires": {
-            "stacks": [
-              "video-editor"
-            ]
-          }
-        },
-        {
-          "id": "skill:shortform-publish-copy",
-          "name": "Shortform Publish Copy",
-          "version": "1.0.0",
-          "description": "Create platform-ready short-form video publish copy with titles, descriptions, CTAs, hashtags, and platform notes",
-          "path": "catalog/skills/shortform-publish-copy.md",
-          "category": "marketing",
-          "tags": [
-            "video",
-            "shortform",
-            "social-media",
-            "seo",
-            "captions",
-            "publishing"
-          ],
-          "requires": {
-            "stacks": [
-              "video-editor",
-              "social-media-publisher"
-            ]
-          }
-        },
-        {
-          "id": "skill:grill-with-docs",
-          "name": "Grill With Docs",
-          "version": "1.0.0",
-          "description": "Stress-test a plan against the existing domain model, sharpen terminology, and update CONTEXT.md or ADRs as decisions crystallize",
-          "path": "catalog/skills/grill-with-docs.md",
-          "category": "coding",
-          "tags": [
-            "architecture",
-            "domain-modeling",
-            "glossary",
-            "adr",
-            "documentation",
-            "grill-me"
-          ]
-        },
-        {
-          "id": "skill:grill-with-docs-loop",
-          "name": "Grill With Docs Loop",
-          "version": "1.0.0",
-          "description": "Complete a repo-first, multi-agent grill-with-docs loop that resolves contract and design questions from repository evidence, updates CONTEXT.md and ADRs, and asks the human only for true product or domain decisions",
-          "path": "catalog/skills/grill-with-docs-loop.md",
-          "category": "coding",
-          "tags": [
-            "architecture",
-            "domain-modeling",
-            "glossary",
-            "adr",
-            "documentation",
-            "multi-agent",
-            "repo-analysis"
-          ]
-        },
-        {
-          "id": "skill:trace-feature-lineage",
-          "name": "Trace Feature Lineage",
-          "version": "1.0.0",
-          "description": "Trace user-visible features through runtime layers and data lineage to expose contracts, live-data evidence, gaps, and fix options",
-          "path": "catalog/skills/trace-feature-lineage.md",
-          "category": "coding",
-          "tags": [
-            "feature-trace",
-            "data-lineage",
-            "debugging",
-            "architecture",
-            "testing",
-            "repo-analysis"
-          ]
-        },
-        {
-          "id": "skill:reddit-saved-link-enrichment",
-          "name": "Reddit Saved Link Enrichment",
-          "version": "1.0.0",
-          "description": "Enrich Reddit rows from a saved-links database by extracting posts and comment discussion, drafting a concise database note, and preparing a full page body before any explicit Notion write",
-          "path": "catalog/skills/reddit-saved-link-enrichment.md",
-          "category": "research",
-          "tags": [
-            "reddit",
-            "notion",
-            "saved-links",
-            "enrichment",
-            "research",
-            "comments"
-          ],
-          "requires": {
-            "stacks": [
-              "content-extractor",
-              "notion-workspace"
-            ]
-          }
-        },
-        {
-          "id": "skill:repo-red-team-review",
-          "name": "RUDI Repo Red-Team Review",
-          "version": "1.0.0",
-          "description": "Run RUDI evidence-backed LLM-led red-team reviews of software repositories with attack-surface mapping, verified findings, and checklist documentation",
-          "path": "catalog/skills/repo-red-team-review.md",
-          "category": "security",
-          "tags": [
-            "rudi",
-            "security",
-            "red-team",
-            "threat-modeling",
-            "code-review",
-            "auth",
-            "webhooks",
-            "llm-tools"
-          ]
-        },
-        {
-          "id": "skill:rudi-ai-policy-assessor",
-          "name": "RUDI AI Policy Assessor",
-          "version": "1.0.0",
-          "description": "Assess, score, and upgrade organizational AI acceptable-use policies using RUDI's completeness rubric",
-          "path": "catalog/skills/rudi-ai-policy-assessor.md",
-          "category": "business",
-          "tags": [
-            "rudi",
-            "ai-policy",
-            "governance",
-            "compliance",
-            "risk",
-            "training",
-            "connectors"
-          ]
-        },
-        {
-          "id": "skill:rudi-swe-issue-loop",
-          "name": "RUDI SWE Issue Loop",
-          "version": "1.0.0",
-          "description": "Create and execute a GitHub issue and PR ledger for RUDI or Codex engineering work using the SWE checklist skill",
-          "path": "catalog/skills/rudi-swe-issue-loop.md",
-          "category": "coding",
-          "tags": [
-            "rudi",
-            "github",
-            "swe",
-            "issues",
-            "pull-requests",
-            "ci",
-            "checklist"
-          ]
-        },
-        {
-          "id": "skill:shortform-social-publish-package",
-          "name": "Shortform Social Publish Package",
-          "version": "1.0.0",
-          "description": "Generate platform-ready social publishing packages for short-form story folders before using social-media-publisher",
-          "path": "catalog/skills/shortform-social-publish-package.md",
-          "category": "marketing",
-          "tags": [
-            "video",
-            "shortform",
-            "social-media",
-            "publishing",
-            "captions",
-            "youtube",
-            "instagram",
-            "tiktok"
-          ],
-          "requires": {
-            "stacks": [
-              "cloudinary",
-              "social-media-publisher"
-            ]
-          }
-        },
-        {
-          "id": "skill:site-zoning-envelope-review",
-          "name": "Site Zoning Envelope Review",
-          "version": "1.0.0",
-          "description": "Run a site-engine workflow from address, parcel key, rollup, or saved site-record through zoning and buildable envelope review",
-          "path": "catalog/skills/site-zoning-envelope-review.md",
-          "category": "real-estate",
-          "tags": [
-            "zoning",
-            "site-engine",
-            "envelope",
-            "frontage",
-            "parcels",
-            "feasibility"
-          ]
-        },
-        {
-          "id": "skill:synthetic-cadence-editor",
-          "name": "Synthetic Cadence Editor",
-          "version": "1.0.0",
-          "description": "Write or revise analytical prose without synthetic thought-leadership cadence by grounding claims in actors, mechanisms, and consequences",
-          "path": "catalog/skills/synthetic-cadence-editor.md",
-          "category": "writing",
-          "tags": [
-            "writing",
-            "editing",
-            "prose",
-            "style",
-            "analysis",
-            "captions"
-          ]
-        },
-        {
-          "id": "skill:rudi-rundown-writer",
-          "name": "RUDI Rundown Writer",
-          "version": "1.0.0",
-          "description": "Write the editorial layer of a RUDI Rundown daily AI news page: newsletter open, query-phrased Q&A, dek, and card blurbs, grounded strictly in the day's story data",
-          "path": "catalog/skills/rudi-rundown-writer.md",
-          "category": "writing",
-          "tags": [
-            "rudi",
-            "writing",
-            "news",
-            "editorial",
-            "seo",
-            "llm-optimization",
-            "daily-briefing"
-          ]
-        }
-      ],
-      "community": []
-    },
-    "runtimes": {
-      "official": [
-        {
-          "id": "runtime:node",
-          "name": "Node.js",
-          "version": "20.10.0",
-          "description": "JavaScript runtime built on Chrome's V8 engine",
-          "path": "catalog/runtimes/node.json",
-          "bundled": true,
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64",
-            "linux-x64",
-            "win32-x64"
-          ]
-        },
-        {
-          "id": "runtime:python",
-          "name": "Python",
-          "version": "3.12",
-          "description": "Python interpreter for data science and scripting",
-          "path": "catalog/runtimes/python.json",
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64",
-            "linux-x64",
-            "win32-x64"
-          ]
-        },
-        {
-          "id": "runtime:deno",
-          "name": "Deno",
-          "version": "1.40",
-          "description": "Secure runtime for JavaScript and TypeScript",
-          "path": "catalog/runtimes/deno.json",
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64"
-          ]
-        },
-        {
-          "id": "runtime:bun",
-          "name": "Bun",
-          "version": "1.0",
-          "description": "Fast all-in-one JavaScript runtime and toolkit",
-          "path": "catalog/runtimes/bun.json",
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64"
-          ]
-        },
-        {
-          "id": "runtime:ollama",
-          "name": "Ollama",
-          "version": "0.5.4",
-          "description": "Run local LLMs and embedding models with an OpenAI-compatible local HTTP API",
-          "path": "catalog/runtimes/ollama.json",
-          "category": "model-runtime",
-          "tags": [
-            "llm",
-            "local",
-            "openai-compatible",
-            "ollama",
-            "embeddings"
-          ],
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64",
-            "linux-x64",
-            "linux-arm64"
-          ]
-        }
-      ],
-      "community": []
-    },
-    "binaries": {
-      "official": [
-        {
-          "id": "binary:ripgrep",
-          "name": "ripgrep",
-          "version": "14.0",
-          "description": "Fast text search (used by agents)",
-          "path": "catalog/binaries/ripgrep.json",
-          "bundled": true,
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64",
-            "linux-x64"
-          ]
-        },
-        {
-          "id": "binary:git",
-          "name": "Git",
-          "version": "2.43",
-          "description": "Distributed version control system",
-          "path": "catalog/binaries/git.json",
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64",
-            "linux-x64",
-            "win32-x64"
-          ]
-        },
-        {
-          "id": "binary:ffmpeg",
-          "name": "FFmpeg",
-          "version": "6.0",
-          "description": "Audio and video processing toolkit",
-          "path": "catalog/binaries/ffmpeg.json",
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64",
-            "linux-x64",
-            "win32-x64"
-          ]
-        },
-        {
-          "id": "binary:whisper",
-          "name": "Whisper",
-          "version": "1.0.0",
-          "description": "OpenAI Whisper speech-to-text CLI",
-          "path": "catalog/binaries/whisper.json",
-          "installType": "system",
-          "managed": false
-        },
-        {
-          "id": "binary:imagemagick",
-          "name": "ImageMagick",
-          "version": "7.1",
-          "description": "Image manipulation and conversion",
-          "path": "catalog/binaries/imagemagick.json",
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64"
-          ]
-        },
-        {
-          "id": "binary:pandoc",
-          "name": "Pandoc",
-          "version": "3.5",
-          "description": "Universal document converter",
-          "path": "catalog/binaries/pandoc.json",
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64"
-          ]
-        },
-        {
-          "id": "binary:chromium",
-          "name": "Chromium",
-          "version": "131",
-          "description": "Chromium browser for local rendering and automation",
-          "path": "catalog/binaries/chromium.json",
-          "installType": "system",
-          "managed": false
-        },
-        {
-          "id": "binary:jq",
-          "name": "jq",
-          "version": "1.7",
-          "description": "Command-line JSON processor",
-          "path": "catalog/binaries/jq.json",
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64"
-          ]
-        },
-        {
-          "id": "binary:yq",
-          "name": "yq",
-          "version": "4.40",
-          "description": "Command-line YAML processor",
-          "path": "catalog/binaries/yq.json",
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64"
-          ]
-        },
-        {
-          "id": "binary:sqlite",
-          "name": "SQLite",
-          "version": "3.44",
-          "description": "Embedded SQL database engine",
-          "path": "catalog/binaries/sqlite.json",
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64"
-          ]
-        },
-        {
-          "id": "binary:yt-dlp",
-          "name": "yt-dlp",
-          "version": "2024.12.23",
-          "description": "Video downloader for YouTube and other sites",
-          "path": "catalog/binaries/yt-dlp.json",
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64",
-            "linux-x64"
-          ]
-        },
-        {
-          "id": "binary:rclone",
-          "name": "rclone",
-          "version": "1.68",
-          "description": "Cloud storage sync and management",
-          "path": "catalog/binaries/rclone.json",
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64"
-          ]
-        },
-        {
-          "id": "binary:vercel",
-          "name": "Vercel CLI",
-          "version": "latest",
-          "description": "Deploy to Vercel",
-          "path": "catalog/binaries/vercel.json",
-          "installType": "npm",
-          "npmPackage": "vercel",
-          "bins": [
-            "vercel",
-            "vc"
-          ],
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64",
-            "linux-x64"
-          ]
-        },
-        {
-          "id": "binary:netlify",
-          "name": "Netlify CLI",
-          "version": "latest",
-          "description": "Deploy to Netlify",
-          "path": "catalog/binaries/netlify.json",
-          "installType": "npm",
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64",
-            "linux-x64"
-          ]
-        },
-        {
-          "id": "binary:supabase",
-          "name": "Supabase CLI",
-          "version": "latest",
-          "description": "Supabase local development and deployment",
-          "path": "catalog/binaries/supabase.json",
-          "installType": "npm",
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64",
-            "linux-x64"
-          ]
-        },
-        {
-          "id": "binary:wrangler",
-          "name": "Cloudflare Wrangler",
-          "version": "latest",
-          "description": "Deploy to Cloudflare Workers/Pages",
-          "path": "catalog/binaries/wrangler.json",
-          "installType": "npm",
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64",
-            "linux-x64"
-          ]
-        },
-        {
-          "id": "binary:railway",
-          "name": "Railway CLI",
-          "version": "latest",
-          "description": "Deploy to Railway",
-          "path": "catalog/binaries/railway.json",
-          "installType": "npm",
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64",
-            "linux-x64"
-          ]
-        },
-        {
-          "id": "binary:flyio",
-          "name": "Fly.io CLI",
-          "version": "latest",
-          "description": "Deploy to Fly.io edge hosting",
-          "path": "catalog/binaries/flyio.json",
-          "installType": "npm",
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64",
-            "linux-x64"
-          ]
-        },
-        {
-          "id": "binary:docker",
-          "name": "Docker",
-          "description": "Container runtime",
-          "path": "catalog/binaries/docker.json",
-          "managed": false
-        },
-        {
-          "id": "binary:psql",
-          "name": "PostgreSQL Client",
-          "version": "16",
-          "description": "PostgreSQL client for database connections",
-          "path": "catalog/binaries/psql.json",
-          "managed": false
-        },
-        {
-          "id": "binary:httpie",
-          "name": "HTTPie",
-          "version": "3.2",
-          "description": "Modern HTTP client for API testing",
-          "path": "catalog/binaries/httpie.json",
-          "managed": false
-        },
-        {
-          "id": "binary:tesseract",
-          "name": "Tesseract OCR",
-          "version": "5.3",
-          "description": "OCR text extraction from images",
-          "path": "catalog/binaries/tesseract.json",
-          "installType": "system",
-          "managed": false
-        },
-        {
-          "id": "binary:pdftoppm",
-          "name": "pdftoppm",
-          "version": "system",
-          "description": "PDF page renderer from Poppler",
-          "path": "catalog/binaries/pdftoppm.json",
-          "installType": "system",
-          "managed": false
-        },
-        {
-          "id": "binary:playwright",
-          "name": "Playwright",
-          "version": "1.49.0",
-          "description": "Browser automation for screenshots, scraping, and testing",
-          "path": "catalog/binaries/playwright.json",
-          "installType": "npm",
-          "npmPackage": "playwright",
-          "postInstall": "npx playwright install chromium",
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64",
-            "linux-x64"
-          ]
-        },
-        {
-          "id": "binary:uv",
-          "name": "uv",
-          "version": "0.9.22",
-          "description": "Extremely fast Python package and project manager",
-          "path": "catalog/binaries/uv.json",
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64",
-            "linux-x64",
-            "linux-arm64"
-          ]
-        },
-        {
-          "id": "binary:neonctl",
-          "name": "Neon CLI",
-          "version": "latest",
-          "description": "Manage Neon projects, branches, auth, and MCP setup from the terminal",
-          "path": "catalog/binaries/neonctl.json",
-          "installType": "npm",
-          "npmPackage": "neonctl",
-          "bins": [
-            "neonctl",
-            "neon"
-          ],
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64",
-            "linux-x64"
-          ]
-        }
-      ],
-      "community": []
-    },
-    "agents": {
-      "official": [
-        {
-          "id": "agent:claude",
-          "name": "Claude Code",
-          "version": "latest",
-          "description": "Anthropic Claude Code CLI",
-          "path": "catalog/agents/claude.json",
-          "installType": "npm",
-          "npmPackage": "@anthropic-ai/claude-code",
-          "requiresAuth": true,
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64",
-            "linux-x64"
-          ]
-        },
-        {
-          "id": "agent:codex",
-          "name": "OpenAI Codex",
-          "version": "latest",
-          "description": "OpenAI Codex CLI",
-          "path": "catalog/agents/codex.json",
-          "installType": "npm",
-          "npmPackage": "@openai/codex",
-          "requiresAuth": true,
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64",
-            "linux-x64"
-          ]
-        },
-        {
-          "id": "agent:gemini",
-          "name": "Gemini CLI",
-          "version": "latest",
-          "description": "Google Gemini CLI",
-          "path": "catalog/agents/gemini.json",
-          "installType": "npm",
-          "npmPackage": "@google/gemini-cli",
-          "requiresAuth": true,
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64",
-            "linux-x64"
-          ]
-        },
-        {
-          "id": "agent:copilot",
-          "name": "GitHub Copilot",
-          "version": "latest",
-          "description": "GitHub Copilot CLI",
-          "path": "catalog/agents/copilot.json",
-          "installType": "npm",
-          "npmPackage": "@githubnext/github-copilot-cli",
-          "requiresAuth": true,
-          "platforms": [
-            "darwin-arm64",
-            "darwin-x64",
-            "linux-x64"
-          ]
-        }
-      ],
-      "community": []
+  "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
+  "schemaVersion": "2",
+  "generatedAt": "2026-07-10T02:23:18.000Z",
+  "stats": {
+    "total": 99,
+    "byKind": {
+      "agent": 4,
+      "binary": 27,
+      "runtime": 5,
+      "skill": 20,
+      "stack": 43
     }
   },
-  "categories": {
-    "stacks": [
-      {
-        "id": "ai-generation",
-        "name": "AI Generation",
-        "icon": "sparkles"
+  "packages": {
+    "agent:claude": {
+      "id": "agent:claude",
+      "kind": "agent",
+      "name": "Claude Code",
+      "version": "latest",
+      "delivery": "remote",
+      "install": {
+        "source": "npm",
+        "package": "@anthropic-ai/claude-code"
       },
-      {
-        "id": "ai-local",
-        "name": "AI Local",
-        "icon": "cpu"
+      "bins": [
+        "claude"
+      ],
+      "detect": {
+        "command": "claude --version",
+        "expectExitCode": 0
       },
-      {
-        "id": "productivity",
-        "name": "Productivity",
-        "icon": "briefcase"
+      "auth": {
+        "required": true,
+        "command": "claude login",
+        "instructions": "Run 'claude login' to authenticate with your Anthropic account"
       },
-      {
-        "id": "communication",
-        "name": "Communication",
-        "icon": "message-circle"
+      "meta": {
+        "description": "Anthropic Claude Code CLI - AI coding assistant",
+        "category": "ai-assistant",
+        "homepage": "https://claude.ai"
+      }
+    },
+    "agent:codex": {
+      "id": "agent:codex",
+      "kind": "agent",
+      "name": "OpenAI Codex",
+      "version": "latest",
+      "delivery": "remote",
+      "install": {
+        "source": "npm",
+        "package": "@openai/codex"
       },
-      {
-        "id": "social-media",
-        "name": "Social Media",
-        "icon": "share-2"
+      "bins": [
+        "codex"
+      ],
+      "detect": {
+        "command": "codex --version",
+        "expectExitCode": 0
       },
-      {
-        "id": "data-extraction",
-        "name": "Data Extraction",
-        "icon": "database"
+      "auth": {
+        "required": true,
+        "command": "codex auth",
+        "instructions": "Run 'codex auth' to authenticate with your OpenAI account"
       },
-      {
-        "id": "document-processing",
-        "name": "Document Processing",
-        "icon": "file"
+      "meta": {
+        "description": "OpenAI Codex CLI - AI coding assistant",
+        "category": "ai-assistant",
+        "homepage": "https://openai.com"
+      }
+    },
+    "agent:copilot": {
+      "id": "agent:copilot",
+      "kind": "agent",
+      "name": "GitHub Copilot",
+      "version": "latest",
+      "delivery": "remote",
+      "install": {
+        "source": "npm",
+        "package": "@githubnext/github-copilot-cli"
       },
-      {
-        "id": "media",
-        "name": "Media",
+      "bins": [
+        "copilot",
+        "github-copilot-cli"
+      ],
+      "detect": {
+        "command": "github-copilot-cli --version",
+        "expectExitCode": 0
+      },
+      "auth": {
+        "required": true,
+        "command": "github-copilot-cli auth",
+        "instructions": "Run 'github-copilot-cli auth' to authenticate with GitHub"
+      },
+      "meta": {
+        "description": "GitHub Copilot CLI - AI coding assistant",
+        "category": "ai-assistant",
+        "homepage": "https://github.com/features/copilot"
+      }
+    },
+    "agent:gemini": {
+      "id": "agent:gemini",
+      "kind": "agent",
+      "name": "Gemini CLI",
+      "version": "latest",
+      "delivery": "remote",
+      "install": {
+        "source": "npm",
+        "package": "@google/gemini-cli"
+      },
+      "bins": [
+        "gemini"
+      ],
+      "detect": {
+        "command": "gemini --version",
+        "expectExitCode": 0
+      },
+      "auth": {
+        "required": true,
+        "command": "gemini",
+        "instructions": "Run 'gemini' to authenticate with your Google account"
+      },
+      "meta": {
+        "description": "Google Gemini CLI - AI coding assistant",
+        "category": "ai-assistant",
+        "homepage": "https://gemini.google.com"
+      }
+    },
+    "binary:chromium": {
+      "id": "binary:chromium",
+      "kind": "binary",
+      "name": "Chromium",
+      "version": "131",
+      "delivery": "system",
+      "install": {
+        "source": "system"
+      },
+      "bins": {
+        "chromium": {
+          "path": "Chromium.app/Contents/MacOS/Chromium"
+        }
+      },
+      "detect": {
+        "command": "chromium --version",
+        "expectExitCode": 0
+      },
+      "meta": {
+        "description": "Browser automation for Puppeteer/Playwright",
+        "category": "utilities"
+      },
+      "installHints": {
+        "brew": "brew install --cask chromium",
+        "apt": "sudo apt install chromium-browser || sudo apt install chromium",
+        "manual": "Install Chromium or configure a Playwright-managed Chromium browser before using browser automation tools."
+      }
+    },
+    "binary:docker": {
+      "id": "binary:docker",
+      "kind": "binary",
+      "name": "Docker",
+      "version": "system",
+      "delivery": "system",
+      "install": {
+        "source": "system"
+      },
+      "bins": [
+        "docker"
+      ],
+      "detect": {
+        "command": "docker --version",
+        "expectExitCode": 0
+      },
+      "installHints": {
+        "brew": "brew install --cask docker",
+        "manual": "Download Docker Desktop from https://docker.com/products/docker-desktop"
+      },
+      "meta": {
+        "description": "Container runtime",
+        "category": "devops"
+      }
+    },
+    "binary:ffmpeg": {
+      "id": "binary:ffmpeg",
+      "kind": "binary",
+      "name": "FFmpeg",
+      "version": "7.1",
+      "delivery": "system",
+      "install": {
+        "source": "system"
+      },
+      "bins": {
+        "ffmpeg": {
+          "path": "ffmpeg"
+        },
+        "ffprobe": {
+          "path": "ffprobe"
+        }
+      },
+      "detect": {
+        "command": "ffmpeg -version",
+        "expectExitCode": 0
+      },
+      "meta": {
+        "description": "Audio/video processing toolkit",
+        "category": "media",
+        "tags": [
+          "video",
+          "audio",
+          "encoding",
+          "transcoding"
+        ],
+        "icon": "🎬"
+      },
+      "installHints": {
+        "brew": "brew install ffmpeg",
+        "apt": "sudo apt install ffmpeg",
+        "winget": "winget install Gyan.FFmpeg",
+        "choco": "choco install ffmpeg",
+        "manual": "Install ffmpeg and ffprobe on PATH."
+      }
+    },
+    "binary:flyio": {
+      "id": "binary:flyio",
+      "kind": "binary",
+      "name": "Fly.io CLI",
+      "version": "latest",
+      "delivery": "remote",
+      "install": {
+        "source": "npm",
+        "package": "flyctl"
+      },
+      "bins": [
+        "flyctl",
+        "fly"
+      ],
+      "detect": {
+        "command": "flyctl version",
+        "expectExitCode": 0
+      },
+      "auth": {
+        "required": true,
+        "command": "fly auth login",
+        "instructions": "Run 'fly auth login' to authenticate with your Fly.io account"
+      },
+      "meta": {
+        "description": "Deploy to Fly.io (edge hosting)",
+        "category": "devops"
+      }
+    },
+    "binary:git": {
+      "id": "binary:git",
+      "kind": "binary",
+      "name": "Git",
+      "version": "system",
+      "delivery": "system",
+      "install": {
+        "source": "system",
+        "platforms": {
+          "darwin": {
+            "preinstalled": true
+          },
+          "linux": {
+            "preinstalled": true
+          },
+          "win32": {
+            "preinstalled": false
+          }
+        }
+      },
+      "bins": [
+        "git"
+      ],
+      "detect": {
+        "command": "git --version",
+        "expectExitCode": 0
+      },
+      "installHints": {
+        "brew": "xcode-select --install",
+        "apt": "sudo apt install git",
+        "manual": "Pre-installed on macOS and most Linux distributions"
+      },
+      "meta": {
+        "description": "Distributed version control system",
+        "category": "version-control"
+      }
+    },
+    "binary:httpie": {
+      "id": "binary:httpie",
+      "kind": "binary",
+      "name": "HTTPie",
+      "version": "latest",
+      "delivery": "remote",
+      "install": {
+        "source": "pip",
+        "package": "httpie"
+      },
+      "bins": [
+        "http",
+        "https"
+      ],
+      "detect": {
+        "command": "http --version",
+        "expectExitCode": 0
+      },
+      "meta": {
+        "description": "Modern HTTP client for API testing",
+        "category": "utilities"
+      }
+    },
+    "binary:imagemagick": {
+      "id": "binary:imagemagick",
+      "kind": "binary",
+      "name": "ImageMagick",
+      "version": "7.1",
+      "delivery": "system",
+      "install": {
+        "source": "system"
+      },
+      "bins": {
+        "magick": {
+          "path": "magick"
+        },
+        "convert": {
+          "path": "convert"
+        },
+        "identify": {
+          "path": "identify"
+        }
+      },
+      "detect": {
+        "command": "magick --version",
+        "expectExitCode": 0
+      },
+      "meta": {
+        "description": "Image processing and manipulation toolkit",
+        "category": "media"
+      },
+      "installHints": {
+        "brew": "brew install imagemagick",
+        "apt": "sudo apt install imagemagick",
+        "winget": "winget install ImageMagick.ImageMagick",
+        "choco": "choco install imagemagick",
+        "manual": "Install ImageMagick and ensure magick is on PATH."
+      }
+    },
+    "binary:jq": {
+      "id": "binary:jq",
+      "kind": "binary",
+      "name": "jq",
+      "version": "1.7.1",
+      "delivery": "remote",
+      "install": {
+        "source": "download",
+        "platforms": {
+          "darwin-arm64": {
+            "url": "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-macos-arm64",
+            "checksum": {
+              "algo": "sha256",
+              "value": "0bbe619e663e0de2c550be2fe0d240d076799d6f8a652b70fa04aea8a8362e8a"
+            },
+            "extract": {
+              "type": "raw"
+            }
+          },
+          "darwin-x64": {
+            "url": "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-macos-amd64",
+            "checksum": {
+              "algo": "sha256",
+              "value": "4155822bbf5ea90f5c79cf254665975eb4274d426d0709770c21774de5407443"
+            },
+            "extract": {
+              "type": "raw"
+            }
+          },
+          "linux-x64": {
+            "url": "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64",
+            "checksum": {
+              "algo": "sha256",
+              "value": "5942c9b0934e510ee61eb3e30273f1b3fe2590df93933a93d7c58b81d19c8ff5"
+            },
+            "extract": {
+              "type": "raw"
+            }
+          }
+        }
+      },
+      "bins": [
+        "jq"
+      ],
+      "detect": {
+        "command": "jq --version",
+        "expectExitCode": 0
+      },
+      "meta": {
+        "description": "Command-line JSON processor",
+        "category": "data"
+      }
+    },
+    "binary:neonctl": {
+      "id": "binary:neonctl",
+      "kind": "binary",
+      "name": "Neon CLI",
+      "version": "latest",
+      "delivery": "remote",
+      "install": {
+        "source": "npm",
+        "package": "neonctl"
+      },
+      "bins": [
+        "neonctl",
+        "neon"
+      ],
+      "detect": {
+        "command": "neonctl --version",
+        "expectExitCode": 0
+      },
+      "auth": {
+        "required": true,
+        "command": "neon auth",
+        "instructions": "Run 'neon auth' or set NEON_API_KEY in RUDI secrets to authenticate Neon operations"
+      },
+      "meta": {
+        "description": "Manage Neon projects, branches, auth, and MCP setup from the terminal",
+        "category": "database",
+        "tags": [
+          "neon",
+          "postgres",
+          "database",
+          "branching",
+          "mcp"
+        ]
+      }
+    },
+    "binary:netlify": {
+      "id": "binary:netlify",
+      "kind": "binary",
+      "name": "Netlify CLI",
+      "version": "latest",
+      "delivery": "remote",
+      "install": {
+        "source": "npm",
+        "package": "netlify-cli"
+      },
+      "bins": [
+        "netlify",
+        "ntl"
+      ],
+      "detect": {
+        "command": "netlify --version",
+        "expectExitCode": 0
+      },
+      "auth": {
+        "required": true,
+        "command": "netlify login",
+        "instructions": "Run 'netlify login' to authenticate with your Netlify account"
+      },
+      "meta": {
+        "description": "Deploy to Netlify",
+        "category": "devops"
+      }
+    },
+    "binary:pandoc": {
+      "id": "binary:pandoc",
+      "kind": "binary",
+      "name": "Pandoc",
+      "version": "3.6.1",
+      "delivery": "remote",
+      "install": {
+        "source": "download",
+        "platforms": {
+          "darwin-arm64": {
+            "url": "https://github.com/jgm/pandoc/releases/download/3.6.1/pandoc-3.6.1-arm64-macOS.zip",
+            "checksum": {
+              "algo": "sha256",
+              "value": "da38df80ef8fd327dcc6cc83382697ad596ec621a05d7b83f68f7abe14e5772e"
+            },
+            "extract": {
+              "type": "zip",
+              "strip": 1
+            }
+          },
+          "darwin-x64": {
+            "url": "https://github.com/jgm/pandoc/releases/download/3.6.1/pandoc-3.6.1-x86_64-macOS.zip",
+            "checksum": {
+              "algo": "sha256",
+              "value": "0f36e044dd08be96dc73422c6cffb61535a61f69bfbab94b3a75a7cd37a8f20b"
+            },
+            "extract": {
+              "type": "zip",
+              "strip": 1
+            }
+          },
+          "linux-x64": {
+            "url": "https://github.com/jgm/pandoc/releases/download/3.6.1/pandoc-3.6.1-linux-amd64.tar.gz",
+            "checksum": {
+              "algo": "sha256",
+              "value": "70241a3e8f0c2a30103d7954480025e547ed4f40b8cdce674cdf0be9f02bd5a3"
+            },
+            "extract": {
+              "type": "tar.gz",
+              "strip": 1
+            }
+          }
+        }
+      },
+      "bins": {
+        "pandoc": {
+          "path": "bin/pandoc"
+        }
+      },
+      "detect": {
+        "command": "pandoc --version",
+        "expectExitCode": 0
+      },
+      "meta": {
+        "description": "Universal document converter",
+        "category": "utilities"
+      }
+    },
+    "binary:pdftoppm": {
+      "id": "binary:pdftoppm",
+      "kind": "binary",
+      "name": "pdftoppm",
+      "version": "system",
+      "delivery": "system",
+      "install": {
+        "source": "system"
+      },
+      "bins": [
+        "pdftoppm"
+      ],
+      "detect": {
+        "command": "pdftoppm -v",
+        "expectExitCode": 0
+      },
+      "installHints": {
+        "brew": "brew install poppler",
+        "apt": "sudo apt install poppler-utils",
+        "manual": "Install Poppler and ensure pdftoppm is available on PATH."
+      },
+      "meta": {
+        "description": "PDF page renderer from Poppler",
+        "category": "document-processing",
+        "tags": [
+          "pdf",
+          "rendering",
+          "poppler"
+        ]
+      }
+    },
+    "binary:pdftotext": {
+      "id": "binary:pdftotext",
+      "kind": "binary",
+      "name": "pdftotext",
+      "version": "system",
+      "delivery": "system",
+      "install": {
+        "source": "system"
+      },
+      "bins": [
+        "pdftotext"
+      ],
+      "detect": {
+        "command": "pdftotext -v",
+        "expectExitCode": 0
+      },
+      "installHints": {
+        "brew": "brew install poppler",
+        "apt": "sudo apt install poppler-utils",
+        "manual": "Install Poppler and ensure pdftotext is available on PATH."
+      },
+      "meta": {
+        "description": "PDF-to-text converter from Poppler",
+        "category": "document-processing",
+        "tags": [
+          "pdf",
+          "text-extraction",
+          "poppler"
+        ]
+      }
+    },
+    "binary:playwright": {
+      "id": "binary:playwright",
+      "kind": "binary",
+      "name": "Playwright",
+      "version": "latest",
+      "delivery": "remote",
+      "install": {
+        "source": "npm",
+        "package": "playwright"
+      },
+      "bins": [
+        "playwright"
+      ],
+      "detect": {
+        "command": "npx playwright --version",
+        "expectExitCode": 0
+      },
+      "meta": {
+        "description": "Browser automation for screenshots, scraping, and testing",
+        "category": "utilities"
+      }
+    },
+    "binary:psql": {
+      "id": "binary:psql",
+      "kind": "binary",
+      "name": "PostgreSQL Client",
+      "version": "system",
+      "delivery": "system",
+      "install": {
+        "source": "system"
+      },
+      "bins": [
+        "psql"
+      ],
+      "detect": {
+        "command": "psql --version",
+        "expectExitCode": 0
+      },
+      "installHints": {
+        "brew": "brew install libpq && brew link libpq --force",
+        "apt": "sudo apt install postgresql-client",
+        "manual": "Install PostgreSQL client tools"
+      },
+      "meta": {
+        "description": "PostgreSQL client for database connections",
+        "category": "database"
+      }
+    },
+    "binary:railway": {
+      "id": "binary:railway",
+      "kind": "binary",
+      "name": "Railway CLI",
+      "version": "latest",
+      "delivery": "remote",
+      "install": {
+        "source": "npm",
+        "package": "@railway/cli"
+      },
+      "bins": [
+        "railway"
+      ],
+      "detect": {
+        "command": "railway --version",
+        "expectExitCode": 0
+      },
+      "auth": {
+        "required": true,
+        "command": "railway login",
+        "instructions": "Run 'railway login' to authenticate with your Railway account"
+      },
+      "meta": {
+        "description": "Deploy to Railway (simple cloud hosting)",
+        "category": "devops"
+      }
+    },
+    "binary:rclone": {
+      "id": "binary:rclone",
+      "kind": "binary",
+      "name": "rclone",
+      "version": "1.68.2",
+      "delivery": "remote",
+      "install": {
+        "source": "download",
+        "platforms": {
+          "darwin-arm64": {
+            "url": "https://downloads.rclone.org/v1.68.2/rclone-v1.68.2-osx-arm64.zip",
+            "checksum": {
+              "algo": "sha256",
+              "value": "323f387b32bcf9ddfc3874f01879a0b2689dbd91309beb8c3a4410db04d0c41f"
+            },
+            "extract": {
+              "type": "zip",
+              "strip": 1
+            }
+          },
+          "darwin-x64": {
+            "url": "https://downloads.rclone.org/v1.68.2/rclone-v1.68.2-osx-amd64.zip",
+            "checksum": {
+              "algo": "sha256",
+              "value": "cdc685e16abbf35b6f47c95b2a5b4ad73a73921ff6842e5f4136c8b461756188"
+            },
+            "extract": {
+              "type": "zip",
+              "strip": 1
+            }
+          },
+          "linux-x64": {
+            "url": "https://downloads.rclone.org/v1.68.2/rclone-v1.68.2-linux-amd64.zip",
+            "checksum": {
+              "algo": "sha256",
+              "value": "0e6fa18051e67fc600d803a2dcb10ddedb092247fc6eee61be97f64ec080a13c"
+            },
+            "extract": {
+              "type": "zip",
+              "strip": 1
+            }
+          }
+        }
+      },
+      "bins": [
+        "rclone"
+      ],
+      "detect": {
+        "command": "rclone --version",
+        "expectExitCode": 0
+      },
+      "meta": {
+        "description": "Cloud storage CLI (Google Drive, S3, Dropbox, 40+ providers)",
+        "category": "utilities"
+      }
+    },
+    "binary:ripgrep": {
+      "id": "binary:ripgrep",
+      "kind": "binary",
+      "name": "ripgrep",
+      "version": "14.1.1",
+      "delivery": "remote",
+      "install": {
+        "source": "download",
+        "platforms": {
+          "darwin-arm64": {
+            "url": "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-aarch64-apple-darwin.tar.gz",
+            "checksum": {
+              "algo": "sha256",
+              "value": "24ad76777745fbff131c8fbc466742b011f925bfa4fffa2ded6def23b5b937be"
+            },
+            "extract": {
+              "type": "tar.gz",
+              "strip": 1
+            }
+          },
+          "darwin-x64": {
+            "url": "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-x86_64-apple-darwin.tar.gz",
+            "checksum": {
+              "algo": "sha256",
+              "value": "fc87e78f7cb3fea12d69072e7ef3b21509754717b746368fd40d88963630e2b3"
+            },
+            "extract": {
+              "type": "tar.gz",
+              "strip": 1
+            }
+          },
+          "linux-x64": {
+            "url": "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-x86_64-unknown-linux-musl.tar.gz",
+            "checksum": {
+              "algo": "sha256",
+              "value": "4cf9f2741e6c465ffdb7c26f38056a59e2a2544b51f7cc128ef28337eeae4d8e"
+            },
+            "extract": {
+              "type": "tar.gz",
+              "strip": 1
+            }
+          }
+        }
+      },
+      "bins": [
+        "rg"
+      ],
+      "detect": {
+        "command": "rg --version",
+        "expectExitCode": 0
+      },
+      "meta": {
+        "description": "Fast text search tool",
+        "category": "data"
+      }
+    },
+    "binary:sqlite": {
+      "id": "binary:sqlite",
+      "kind": "binary",
+      "name": "SQLite",
+      "version": "system",
+      "delivery": "system",
+      "install": {
+        "source": "system",
+        "platforms": {
+          "darwin": {
+            "preinstalled": true
+          },
+          "linux": {
+            "preinstalled": false
+          },
+          "win32-x64": {
+            "source": "download",
+            "delivery": "remote",
+            "url": "https://sqlite.org/2024/sqlite-tools-win-x64-3450000.zip",
+            "checksum": {
+              "algo": "sha256",
+              "value": "771d3442164bc3b38c88365f5305b8e2efd9eddd10d59aeab114ac2ef99e2784"
+            },
+            "extract": {
+              "type": "zip"
+            }
+          }
+        }
+      },
+      "bins": [
+        "sqlite3"
+      ],
+      "detect": {
+        "command": "sqlite3 --version",
+        "expectExitCode": 0
+      },
+      "installHints": {
+        "brew": "brew install sqlite",
+        "apt": "sudo apt install sqlite3",
+        "manual": "Pre-installed on macOS"
+      },
+      "meta": {
+        "description": "Embedded SQL database engine",
+        "category": "database"
+      }
+    },
+    "binary:supabase": {
+      "id": "binary:supabase",
+      "kind": "binary",
+      "name": "Supabase CLI",
+      "version": "latest",
+      "delivery": "remote",
+      "install": {
+        "source": "npm",
+        "package": "supabase"
+      },
+      "bins": [
+        "supabase"
+      ],
+      "detect": {
+        "command": "supabase --version",
+        "expectExitCode": 0
+      },
+      "auth": {
+        "required": false,
+        "command": "supabase login",
+        "instructions": "Run 'supabase login' to authenticate (optional for local development)"
+      },
+      "meta": {
+        "description": "Supabase local development and deployment",
+        "category": "devops"
+      }
+    },
+    "binary:tesseract": {
+      "id": "binary:tesseract",
+      "kind": "binary",
+      "name": "Tesseract OCR",
+      "version": "system",
+      "delivery": "system",
+      "install": {
+        "source": "system"
+      },
+      "bins": [
+        "tesseract"
+      ],
+      "detect": {
+        "command": "tesseract --version",
+        "expectExitCode": 0
+      },
+      "installHints": {
+        "brew": "brew install tesseract",
+        "apt": "sudo apt install tesseract-ocr",
+        "manual": "Install Tesseract OCR from your package manager"
+      },
+      "meta": {
+        "description": "OCR text extraction from images",
+        "category": "utilities"
+      }
+    },
+    "binary:uv": {
+      "id": "binary:uv",
+      "kind": "binary",
+      "name": "uv",
+      "version": "0.9.22",
+      "delivery": "remote",
+      "install": {
+        "source": "download",
+        "platforms": {
+          "darwin-arm64": {
+            "url": "https://github.com/astral-sh/uv/releases/download/0.9.22/uv-aarch64-apple-darwin.tar.gz",
+            "checksum": {
+              "algo": "sha256",
+              "value": "4bfc6dacc9bcc9e433a9214a658495ca082b94fd607949b6745a955f34ccbc3c"
+            },
+            "extract": {
+              "type": "tar.gz"
+            }
+          },
+          "darwin-x64": {
+            "url": "https://github.com/astral-sh/uv/releases/download/0.9.22/uv-x86_64-apple-darwin.tar.gz",
+            "checksum": {
+              "algo": "sha256",
+              "value": "c0057ad78b475f343739b1bbe223361c1054524c9edf310ee1dc85a050207f86"
+            },
+            "extract": {
+              "type": "tar.gz"
+            }
+          },
+          "linux-x64": {
+            "url": "https://github.com/astral-sh/uv/releases/download/0.9.22/uv-x86_64-unknown-linux-gnu.tar.gz",
+            "checksum": {
+              "algo": "sha256",
+              "value": "e170aed70ac0225feee612e855d3a57ae73c61ffb22c7e52c3fd33b87c286508"
+            },
+            "extract": {
+              "type": "tar.gz"
+            }
+          },
+          "linux-arm64": {
+            "url": "https://github.com/astral-sh/uv/releases/download/0.9.22/uv-aarch64-unknown-linux-gnu.tar.gz",
+            "checksum": {
+              "algo": "sha256",
+              "value": "2f8716c407d5da21b8a3e8609ed358147216aaab28b96b1d6d7f48e9bcc6254e"
+            },
+            "extract": {
+              "type": "tar.gz"
+            }
+          }
+        }
+      },
+      "bins": [
+        "uv",
+        "uvx"
+      ],
+      "detect": {
+        "command": "uv --version",
+        "expectExitCode": 0
+      },
+      "meta": {
+        "description": "Extremely fast Python package and project manager",
+        "category": "utilities"
+      }
+    },
+    "binary:vercel": {
+      "id": "binary:vercel",
+      "kind": "binary",
+      "name": "Vercel CLI",
+      "version": "latest",
+      "delivery": "remote",
+      "install": {
+        "source": "npm",
+        "package": "vercel"
+      },
+      "bins": [
+        "vercel",
+        "vc"
+      ],
+      "detect": {
+        "command": "vercel --version",
+        "expectExitCode": 0
+      },
+      "auth": {
+        "required": true,
+        "command": "vercel login",
+        "instructions": "Run 'vercel login' to authenticate with your Vercel account"
+      },
+      "meta": {
+        "description": "Deploy to Vercel",
+        "category": "devops"
+      }
+    },
+    "binary:whisper": {
+      "id": "binary:whisper",
+      "kind": "binary",
+      "name": "Whisper",
+      "version": "1.0.0",
+      "delivery": "system",
+      "install": {
+        "source": "system"
+      },
+      "bins": {
+        "whisper-cli": {
+          "path": "bin/whisper-cli"
+        }
+      },
+      "detect": {
+        "command": "whisper-cli --version",
+        "expectExitCode": 0
+      },
+      "meta": {
+        "description": "OpenAI Whisper speech-to-text (local whisper.cpp)",
+        "category": "media"
+      },
+      "installHints": {
+        "brew": "brew install openai-whisper",
+        "manual": "Install Whisper with pipx install openai-whisper or uv tool install openai-whisper, and ensure whisper is on PATH."
+      }
+    },
+    "binary:wrangler": {
+      "id": "binary:wrangler",
+      "kind": "binary",
+      "name": "Cloudflare Wrangler",
+      "version": "latest",
+      "delivery": "remote",
+      "install": {
+        "source": "npm",
+        "package": "wrangler"
+      },
+      "bins": [
+        "wrangler"
+      ],
+      "detect": {
+        "command": "wrangler --version",
+        "expectExitCode": 0
+      },
+      "auth": {
+        "required": true,
+        "command": "wrangler login",
+        "instructions": "Run 'wrangler login' to authenticate with your Cloudflare account"
+      },
+      "meta": {
+        "description": "Deploy to Cloudflare Workers/Pages",
+        "category": "devops"
+      }
+    },
+    "binary:yq": {
+      "id": "binary:yq",
+      "kind": "binary",
+      "name": "yq",
+      "version": "4.44.6",
+      "delivery": "remote",
+      "install": {
+        "source": "download",
+        "platforms": {
+          "darwin-arm64": {
+            "url": "https://github.com/mikefarah/yq/releases/download/v4.44.6/yq_darwin_arm64",
+            "checksum": {
+              "algo": "sha256",
+              "value": "164e10e5f7df62990e4f3823205e7ea42ba5660523a428df07c7386c0b62e3d9"
+            },
+            "extract": {
+              "type": "raw"
+            }
+          },
+          "darwin-x64": {
+            "url": "https://github.com/mikefarah/yq/releases/download/v4.44.6/yq_darwin_amd64",
+            "checksum": {
+              "algo": "sha256",
+              "value": "71813c67f87766a532a072d9ef9c24dd5615f6b7d2e49b2a56cd26cf3de021e1"
+            },
+            "extract": {
+              "type": "raw"
+            }
+          },
+          "linux-x64": {
+            "url": "https://github.com/mikefarah/yq/releases/download/v4.44.6/yq_linux_amd64",
+            "checksum": {
+              "algo": "sha256",
+              "value": "0c2b24e645b57d8e7c0566d18643a6d4f5580feeea3878127354a46f2a1e4598"
+            },
+            "extract": {
+              "type": "raw"
+            }
+          }
+        }
+      },
+      "bins": [
+        "yq"
+      ],
+      "detect": {
+        "command": "yq --version",
+        "expectExitCode": 0
+      },
+      "meta": {
+        "description": "YAML processor (like jq but for YAML)",
+        "category": "data"
+      }
+    },
+    "binary:yt-dlp": {
+      "id": "binary:yt-dlp",
+      "kind": "binary",
+      "name": "yt-dlp",
+      "version": "2024.12.23",
+      "delivery": "remote",
+      "install": {
+        "source": "download",
+        "platforms": {
+          "darwin-arm64": {
+            "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2024.12.23/yt-dlp_macos",
+            "checksum": {
+              "algo": "sha256",
+              "value": "f23a251d04eac4e4b35c0697b709ce220a52f659f1eec43e7ad520a40477bbdc"
+            },
+            "extract": {
+              "type": "raw"
+            }
+          },
+          "darwin-x64": {
+            "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2024.12.23/yt-dlp_macos",
+            "checksum": {
+              "algo": "sha256",
+              "value": "f23a251d04eac4e4b35c0697b709ce220a52f659f1eec43e7ad520a40477bbdc"
+            },
+            "extract": {
+              "type": "raw"
+            }
+          },
+          "linux-x64": {
+            "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2024.12.23/yt-dlp_linux",
+            "checksum": {
+              "algo": "sha256",
+              "value": "50a1799719fc69baf387e5bce8e38bd9aef2d177e0569d666151a4f9e40a461d"
+            },
+            "extract": {
+              "type": "raw"
+            }
+          }
+        }
+      },
+      "bins": [
+        "yt-dlp"
+      ],
+      "detect": {
+        "command": "yt-dlp --version",
+        "expectExitCode": 0
+      },
+      "meta": {
+        "description": "Video downloader for YouTube and other sites",
+        "category": "media"
+      }
+    },
+    "runtime:bun": {
+      "id": "runtime:bun",
+      "kind": "runtime",
+      "name": "Bun",
+      "version": "1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "download",
+        "platforms": {
+          "darwin-arm64": {
+            "url": "https://github.com/oven-sh/bun/releases/download/bun-v1.0.0/bun-darwin-aarch64.zip",
+            "checksum": {
+              "algo": "sha256",
+              "value": "05df0a2f521b581462319ab860f84d2dd8413aa45178215e50f02294b7e4d133"
+            },
+            "extract": {
+              "type": "zip"
+            }
+          },
+          "darwin-x64": {
+            "url": "https://github.com/oven-sh/bun/releases/download/bun-v1.0.0/bun-darwin-x64.zip",
+            "checksum": {
+              "algo": "sha256",
+              "value": "d004f9f218dac12eb4ab960041dfeea55cf4bce22cd7524cfa5737735986c8e1"
+            },
+            "extract": {
+              "type": "zip"
+            }
+          },
+          "linux-x64": {
+            "url": "https://github.com/oven-sh/bun/releases/download/bun-v1.0.0/bun-linux-x64.zip",
+            "checksum": {
+              "algo": "sha256",
+              "value": "d63bbb66e5bcdb045f5c4894db82f1f6ca42a0886175d276a787534d09ac6bb0"
+            },
+            "extract": {
+              "type": "zip"
+            }
+          }
+        }
+      },
+      "bins": {
+        "bun": {
+          "path": "bun"
+        },
+        "bunx": {
+          "path": "bun"
+        }
+      },
+      "detect": {
+        "command": "bun --version",
+        "expectExitCode": 0
+      },
+      "meta": {
+        "description": "Fast JavaScript runtime and package manager",
+        "category": "runtime"
+      }
+    },
+    "runtime:deno": {
+      "id": "runtime:deno",
+      "kind": "runtime",
+      "name": "Deno",
+      "version": "1.40",
+      "delivery": "remote",
+      "install": {
+        "source": "download",
+        "platforms": {
+          "darwin-arm64": {
+            "url": "https://github.com/denoland/deno/releases/download/v1.40.0/deno-aarch64-apple-darwin.zip",
+            "checksum": {
+              "algo": "sha256",
+              "value": "583bdc6d74cfb5a3e4536c3f2896f559fb98bb12914c11dd331bca1cee37b92e"
+            },
+            "extract": {
+              "type": "zip"
+            }
+          },
+          "darwin-x64": {
+            "url": "https://github.com/denoland/deno/releases/download/v1.40.0/deno-x86_64-apple-darwin.zip",
+            "checksum": {
+              "algo": "sha256",
+              "value": "6cf5a3990865f580e0624c8c81869a52733ba9790b19148851186a175e916d6a"
+            },
+            "extract": {
+              "type": "zip"
+            }
+          },
+          "linux-x64": {
+            "url": "https://github.com/denoland/deno/releases/download/v1.40.0/deno-x86_64-unknown-linux-gnu.zip",
+            "checksum": {
+              "algo": "sha256",
+              "value": "dcbeb18f7d23de96bb30691fc660152d3ec5070335a3ffd798213632be33175a"
+            },
+            "extract": {
+              "type": "zip"
+            }
+          }
+        }
+      },
+      "bins": {
+        "deno": {
+          "path": "deno"
+        }
+      },
+      "detect": {
+        "command": "deno --version",
+        "expectExitCode": 0
+      },
+      "meta": {
+        "description": "Secure JavaScript/TypeScript runtime",
+        "category": "runtime"
+      }
+    },
+    "runtime:node": {
+      "id": "runtime:node",
+      "kind": "runtime",
+      "name": "Node.js",
+      "version": "20.10.0",
+      "delivery": "remote",
+      "install": {
+        "source": "download",
+        "platforms": {
+          "darwin-arm64": {
+            "url": "https://nodejs.org/dist/v20.10.0/node-v20.10.0-darwin-arm64.tar.gz",
+            "checksum": {
+              "algo": "sha256",
+              "value": "68b93099451d77aac116cf8fce179cabcf53fec079508dc6b39d3a086fb461a8"
+            },
+            "extract": {
+              "type": "tar.gz",
+              "strip": 1
+            }
+          },
+          "darwin-x64": {
+            "url": "https://nodejs.org/dist/v20.10.0/node-v20.10.0-darwin-x64.tar.gz",
+            "checksum": {
+              "algo": "sha256",
+              "value": "5ff5e8abd3eea6e5f507eb6677554f5b2188eedef654096aa4168a9941e91a32"
+            },
+            "extract": {
+              "type": "tar.gz",
+              "strip": 1
+            }
+          },
+          "linux-x64": {
+            "url": "https://nodejs.org/dist/v20.10.0/node-v20.10.0-linux-x64.tar.gz",
+            "checksum": {
+              "algo": "sha256",
+              "value": "d3f0908a9d9190a8525c5b9a716ed91bb57e908555841b0c47f75b2a001ff91b"
+            },
+            "extract": {
+              "type": "tar.gz",
+              "strip": 1
+            }
+          },
+          "linux-arm64": {
+            "url": "https://nodejs.org/dist/v20.10.0/node-v20.10.0-linux-arm64.tar.gz",
+            "checksum": {
+              "algo": "sha256",
+              "value": "8354cdb7cb2ad585ee6bb24819f5229bb48c118c5dabb282dfed153d766a68a4"
+            },
+            "extract": {
+              "type": "tar.gz",
+              "strip": 1
+            }
+          }
+        }
+      },
+      "bins": {
+        "node": {
+          "path": "bin/node"
+        },
+        "npm": {
+          "path": "bin/npm"
+        },
+        "npx": {
+          "path": "bin/npx"
+        }
+      },
+      "detect": {
+        "command": "node --version",
+        "expectExitCode": 0
+      },
+      "meta": {
+        "description": "JavaScript runtime for agents and stacks",
+        "category": "runtime"
+      }
+    },
+    "runtime:ollama": {
+      "id": "runtime:ollama",
+      "kind": "runtime",
+      "name": "Ollama",
+      "version": "0.5.4",
+      "delivery": "remote",
+      "install": {
+        "source": "download",
+        "platforms": {
+          "darwin-arm64": {
+            "url": "https://github.com/ollama/ollama/releases/download/v0.5.4/ollama-darwin",
+            "checksum": {
+              "algo": "sha256",
+              "value": "5f745eafb59ecef40cf453bedd58f9bccc0cfd79bf752514e89f4288188de319"
+            },
+            "extract": {
+              "type": "raw"
+            }
+          },
+          "darwin-x64": {
+            "url": "https://github.com/ollama/ollama/releases/download/v0.5.4/ollama-darwin",
+            "checksum": {
+              "algo": "sha256",
+              "value": "5f745eafb59ecef40cf453bedd58f9bccc0cfd79bf752514e89f4288188de319"
+            },
+            "extract": {
+              "type": "raw"
+            }
+          },
+          "linux-x64": {
+            "url": "https://github.com/ollama/ollama/releases/download/v0.5.4/ollama-linux-amd64.tgz",
+            "checksum": {
+              "algo": "sha256",
+              "value": "5f44dc7f21c4f0050c4da6649bf1501707e782b57a3f5e899e4fd0e2ffc183cb"
+            },
+            "extract": {
+              "type": "tar.gz"
+            }
+          },
+          "linux-arm64": {
+            "url": "https://github.com/ollama/ollama/releases/download/v0.5.4/ollama-linux-arm64.tgz",
+            "checksum": {
+              "algo": "sha256",
+              "value": "7ff1f8b2c08f5172b8e4646abdbdc3b6947f20ca7f0e9060bf07064241420d45"
+            },
+            "extract": {
+              "type": "tar.gz"
+            }
+          }
+        }
+      },
+      "bins": [
+        "ollama"
+      ],
+      "aliases": [
+        "agent:ollama",
+        "binary:ollama"
+      ],
+      "detect": {
+        "command": "ollama --version",
+        "expectExitCode": 0
+      },
+      "installHints": {
+        "brew": "brew install --cask ollama",
+        "manual": "Download Ollama for macOS from https://ollama.com/download. Start the server before using OpenAI-compatible local endpoints."
+      },
+      "meta": {
+        "description": "Run local LLMs and embedding models (Llama, Mistral, Phi, nomic-embed-text)",
+        "category": "model-runtime",
+        "tags": [
+          "llm",
+          "local",
+          "inference",
+          "embeddings",
+          "ai"
+        ],
+        "homepage": "https://ollama.com",
+        "docs": "https://docs.ollama.com/",
+        "openaiCompatibilityDocs": "https://docs.ollama.com/openai",
+        "localLlm": {
+          "providerFamily": "openai_compatible",
+          "openaiCompatible": true,
+          "defaultBaseUrl": "http://localhost:11434/v1",
+          "dockerHostBaseUrl": "http://host.docker.internal:11434/v1",
+          "apiKeyPolicy": "placeholder-accepted",
+          "placeholderApiKey": "ollama",
+          "modelsEndpoint": "/models",
+          "chatEndpoint": "/chat/completions",
+          "targets": {
+            "mac_host": {
+              "runtimeBaseUrl": "http://localhost:11434/v1",
+              "consumerUrls": {
+                "host_process": "http://localhost:11434/v1",
+                "docker_container": "http://host.docker.internal:11434/v1"
+              },
+              "healthCheck": {
+                "method": "GET",
+                "path": "/models"
+              },
+              "apiKeyPolicy": "placeholder",
+              "placeholderApiKey": "ollama"
+            }
+          },
+          "consumers": {
+            "content-engine": {
+              "defaultConsumerContext": "docker_container",
+              "env": {
+                "ENABLE_LLM": "true",
+                "ENABLE_LOCAL_LLM": "true",
+                "LOCAL_LLM_PROVIDER": "local",
+                "LOCAL_LLM_BASE_URL": "{{baseUrl}}",
+                "LOCAL_LLM_API_KEY": "{{apiKey}}",
+                "LOCAL_LLM_MODEL": "{{model}}"
+              }
+            }
+          },
+          "recommendedUse": [
+            "summarization",
+            "tagging",
+            "claims",
+            "classification",
+            "embeddings"
+          ],
+          "consumerEnv": {
+            "contentEngine": {
+              "ENABLE_LLM": "true",
+              "ENABLE_LOCAL_LLM": "true",
+              "LOCAL_LLM_PROVIDER": "local",
+              "LOCAL_LLM_BASE_URL": "http://host.docker.internal:11434/v1",
+              "LOCAL_LLM_API_KEY": "ollama",
+              "LOCAL_LLM_MODEL": "<model-tag>"
+            }
+          },
+          "smokeChecks": [
+            {
+              "name": "binary",
+              "command": "ollama --version"
+            },
+            {
+              "name": "host-openai-models",
+              "command": "curl http://localhost:11434/v1/models"
+            },
+            {
+              "name": "docker-host-openai-models",
+              "command": "docker run --rm curlimages/curl:latest http://host.docker.internal:11434/v1/models"
+            }
+          ],
+          "models": {
+            "chat": [
+              {
+                "tag": "qwen2.5:3b",
+                "workloads": [
+                  "summarization",
+                  "tagging",
+                  "classification"
+                ],
+                "minimumMemoryGb": 8,
+                "status": "candidate",
+                "notes": "Verify the current Ollama model tag before committing as the default."
+              },
+              {
+                "tag": "qwen2.5:7b",
+                "workloads": [
+                  "summarization",
+                  "tagging",
+                  "claims",
+                  "classification"
+                ],
+                "minimumMemoryGb": 16,
+                "status": "candidate",
+                "notes": "Verify the current Ollama model tag before committing as the default."
+              },
+              {
+                "tag": "llama3.2:3b",
+                "workloads": [
+                  "summarization",
+                  "tagging",
+                  "classification"
+                ],
+                "minimumMemoryGb": 8,
+                "status": "candidate"
+              }
+            ],
+            "embeddings": [
+              {
+                "tag": "nomic-embed-text",
+                "workloads": [
+                  "embeddings"
+                ],
+                "minimumMemoryGb": 8,
+                "status": "candidate"
+              }
+            ]
+          },
+          "securityNotes": [
+            "Prefer a host-local runtime bind for development.",
+            "Binding Ollama to 0.0.0.0 can expose the model runtime on the LAN; use firewall or trusted-network controls.",
+            "Consumer apps should not log prompts, completions, API keys, or full provider errors."
+          ]
+        }
+      }
+    },
+    "runtime:python": {
+      "id": "runtime:python",
+      "kind": "runtime",
+      "name": "Python",
+      "version": "3.12.12",
+      "delivery": "remote",
+      "install": {
+        "source": "download",
+        "platforms": {
+          "darwin-arm64": {
+            "url": "https://github.com/learnrudi/registry/releases/download/v1.0.0/python-3.12-darwin-arm64.tar.gz",
+            "checksum": {
+              "algo": "sha256",
+              "value": "9da99e9a4d3f4dd8c99d44e950830958b567cb8a5c96549cf738d4d5b173962c"
+            },
+            "extract": {
+              "type": "tar.gz"
+            }
+          },
+          "darwin-x64": {
+            "url": "https://github.com/learnrudi/registry/releases/download/v1.0.0/python-3.12-darwin-x64.tar.gz",
+            "checksum": {
+              "algo": "sha256",
+              "value": "e3f39bfbe1207f71fb4b0378284f74f0b8f9543dd220b3c593746830682d822d"
+            },
+            "extract": {
+              "type": "tar.gz"
+            }
+          }
+        }
+      },
+      "bins": {
+        "python": {
+          "path": "bin/python3"
+        },
+        "python3": {
+          "path": "bin/python3"
+        },
+        "pip": {
+          "path": "bin/pip3"
+        },
+        "pip3": {
+          "path": "bin/pip3"
+        }
+      },
+      "detect": {
+        "command": "python3 --version",
+        "expectExitCode": 0
+      },
+      "meta": {
+        "description": "Lean Python runtime - stack dependencies installed on demand",
+        "category": "runtime"
+      }
+    },
+    "skill:business-communication-secretary": {
+      "id": "skill:business-communication-secretary",
+      "kind": "skill",
+      "name": "Business Communication Secretary",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/business-communication-secretary.md"
+      },
+      "requires": {
+        "stacks": [
+          "stack:google-workspace",
+          "stack:notion-workspace"
+        ]
+      },
+      "meta": {
+        "description": "Operate the business communication workflow by reconciling source connectors such as Gmail, sent mail, Calendar, and meeting transcripts into a Notion action board",
+        "category": "business",
+        "tags": [
+          "email",
+          "calendar",
+          "notion",
+          "transcripts",
+          "communications",
+          "follow-up",
+          "secretary"
+        ],
+        "icon": "📬"
+      }
+    },
+    "skill:client-engagement-intake": {
+      "id": "skill:client-engagement-intake",
+      "kind": "skill",
+      "name": "Client Engagement Intake",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/client-engagement-intake.md"
+      },
+      "meta": {
+        "description": "Create RUDI client engagement workspaces and private GitHub repos from client conversations, transcripts, and pipeline discussions",
+        "category": "business",
+        "tags": [
+          "clients",
+          "pipeline",
+          "engagements",
+          "github",
+          "handoff"
+        ],
+        "icon": "🧾"
+      }
+    },
+    "skill:design-system-extractor": {
+      "id": "skill:design-system-extractor",
+      "kind": "skill",
+      "name": "design-system-extractor",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/design-system-extractor"
+      },
+      "meta": {
+        "description": "Extract a website's visual system and marketing language into a validated design-system JSON file, rendered HTML and DOCX references, image-generation prompts, and a provenance-aware marketing-copy library. Use when a user supplies a website and wants reusable brand guidance or source material for social, campaign, presentation, or Canva assets."
+      }
+    },
+    "skill:grill-with-docs": {
+      "id": "skill:grill-with-docs",
+      "kind": "skill",
+      "name": "Grill With Docs",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/grill-with-docs.md"
+      },
+      "meta": {
+        "description": "Stress-test a plan against the existing domain model, sharpen terminology, and update CONTEXT.md or ADRs as decisions crystallize",
+        "category": "coding",
+        "tags": [
+          "architecture",
+          "domain-modeling",
+          "glossary",
+          "adr",
+          "documentation",
+          "grill-me"
+        ]
+      }
+    },
+    "skill:grill-with-docs-loop": {
+      "id": "skill:grill-with-docs-loop",
+      "kind": "skill",
+      "name": "Grill With Docs Loop",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/grill-with-docs-loop.md"
+      },
+      "meta": {
+        "description": "Complete a repo-first, multi-agent grill-with-docs loop for a repository. Use when the user wants agents to inspect repo docs, code, tests, fixtures, migrations, and generated artifacts; resolve unresolved contract or design questions from evidence; update CONTEXT.md and ADRs; and ask the human only for true product or domain decisions.",
+        "category": "coding",
+        "tags": [
+          "architecture",
+          "domain-modeling",
+          "glossary",
+          "adr",
+          "documentation",
+          "multi-agent",
+          "repo-analysis"
+        ]
+      }
+    },
+    "skill:inline-editorial-markup": {
+      "id": "skill:inline-editorial-markup",
+      "kind": "skill",
+      "name": "Inline Editorial Markup",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/inline-editorial-markup.md"
+      },
+      "requires": {
+        "stacks": [
+          "stack:editorial-markup"
+        ]
+      },
+      "meta": {
+        "description": "Create static or interactive editorial markup documents with visible deletions, insertions, notes, accept/reject review controls, and clean-copy export. Use when a user asks for track-changes-style editing in HTML, Word-like review markup, inline redline proposals, transcript cleanup review, or an interactive editor for accepting changes.",
+        "category": "writing",
+        "tags": [
+          "writing",
+          "editing",
+          "markup",
+          "review",
+          "redline",
+          "html",
+          "transcripts"
+        ]
+      }
+    },
+    "skill:reddit-saved-link-enrichment": {
+      "id": "skill:reddit-saved-link-enrichment",
+      "kind": "skill",
+      "name": "Reddit Saved Link Enrichment",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/reddit-saved-link-enrichment.md"
+      },
+      "requires": {
+        "stacks": [
+          "stack:content-extractor",
+          "stack:notion-workspace"
+        ]
+      },
+      "meta": {
+        "description": "Enrich Reddit rows from a saved-links database by extracting posts and comment discussion, drafting a concise database note, and preparing a full page body before any explicit Notion write.",
+        "category": "research",
+        "tags": [
+          "reddit",
+          "notion",
+          "saved-links",
+          "enrichment",
+          "research",
+          "comments"
+        ]
+      }
+    },
+    "skill:repo-red-team-review": {
+      "id": "skill:repo-red-team-review",
+      "kind": "skill",
+      "name": "RUDI Repo Red-Team Review",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/repo-red-team-review.md"
+      },
+      "meta": {
+        "description": "Run RUDI evidence-backed LLM-led red-team reviews of software repositories. Use when the user asks to red-team a repo, perform an adversarial security review, map attack surfaces, threat-model implementation risks, review auth/tenant isolation/webhooks/billing/LLM tools/MCP surfaces, or run a goal-driven security pass with checklist documentation and optional subagents.",
+        "category": "security",
+        "tags": [
+          "rudi",
+          "security",
+          "red-team",
+          "threat-modeling",
+          "code-review",
+          "auth",
+          "webhooks",
+          "llm-tools"
+        ]
+      }
+    },
+    "skill:rudi-ai-policy-assessor": {
+      "id": "skill:rudi-ai-policy-assessor",
+      "kind": "skill",
+      "name": "RUDI AI Policy Assessor",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/rudi-ai-policy-assessor.md"
+      },
+      "meta": {
+        "description": "Assess, score, and upgrade organizational AI acceptable-use policies using RUDI's completeness rubric. Use when reviewing a client AI policy, creating a gap report, comparing a draft against RUDI standards, advising on Claude/ChatGPT/Copilot connectors and data permissions, or turning current AI practices into a policy/training rollout.",
+        "category": "business",
+        "tags": [
+          "rudi",
+          "ai-policy",
+          "governance",
+          "compliance",
+          "risk",
+          "training",
+          "connectors"
+        ]
+      }
+    },
+    "skill:rudi-rundown-writer": {
+      "id": "skill:rudi-rundown-writer",
+      "kind": "skill",
+      "name": "RUDI Rundown Writer",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/rudi-rundown-writer.md"
+      },
+      "meta": {
+        "description": "Write the editorial layer of a RUDI Rundown daily AI news page — the newsletter open, the query-phrased \"What People Are Asking\" Q&A, the dek, and card blurbs — grounded strictly in that day's story data. Use when writing, backfilling, or editing RUDI Rundown pages, a daily AI news roundup, or when reviewing rundown copy for voice, trust, or structure problems.",
+        "category": "writing",
+        "tags": [
+          "rudi",
+          "writing",
+          "news",
+          "editorial",
+          "seo",
+          "llm-optimization",
+          "daily-briefing"
+        ]
+      }
+    },
+    "skill:rudi-swe-issue-loop": {
+      "id": "skill:rudi-swe-issue-loop",
+      "kind": "skill",
+      "name": "RUDI SWE Issue Loop",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/rudi-swe-issue-loop.md"
+      },
+      "meta": {
+        "description": "Create and execute a GitHub issue and PR ledger for RUDI or Codex engineering work using the SWE checklist skill, including issue creation, phase-gated checklists, branches, commits, pull requests, CI verification, merges, and branch cleanup.",
+        "category": "coding",
+        "tags": [
+          "rudi",
+          "github",
+          "swe",
+          "issues",
+          "pull-requests",
+          "ci",
+          "checklist"
+        ],
+        "icon": "🔁"
+      }
+    },
+    "skill:rudi-video-editor": {
+      "id": "skill:rudi-video-editor",
+      "kind": "skill",
+      "name": "RUDI Video Editor",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/rudi-video-editor.md"
+      },
+      "requires": {
+        "stacks": [
+          "stack:video-editor"
+        ]
+      },
+      "meta": {
+        "description": "Use RUDI video editing stack tools to inspect, trim, remove silence, caption, render, and verify edited video from a user prompt. Use when the user asks to edit a clip, tighten a video, add captions, create rough cuts, apply overlays, produce thumbnails, resize media, or run video QA through RUDI.",
+        "category": "creative",
+        "tags": [
+          "rudi",
+          "video",
+          "editing",
+          "captions",
+          "ffmpeg",
+          "rendering",
+          "qa"
+        ]
+      }
+    },
+    "skill:share-web-app": {
+      "id": "skill:share-web-app",
+      "kind": "skill",
+      "name": "Share Web App",
+      "version": "0.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/share-web-app.md"
+      },
+      "requires": {
+        "stacks": [
+          "stack:rudi-share"
+        ]
+      },
+      "meta": {
+        "description": "Publish a local vanilla, Vite, or React-Vite static app to a revocable RUDI Share URL when a user asks to share, publish, host, preview, or send an app to teammates without configuring GitHub, Vercel, Railway, or another hosting account.",
+        "category": "deployment",
+        "tags": [
+          "sharing",
+          "hosting",
+          "static-site",
+          "vite",
+          "react",
+          "deployment"
+        ]
+      }
+    },
+    "skill:shortform-publish-copy": {
+      "id": "skill:shortform-publish-copy",
+      "kind": "skill",
+      "name": "Shortform Publish Copy",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/shortform-publish-copy.md"
+      },
+      "requires": {
+        "stacks": [
+          "stack:video-editor",
+          "stack:social-media-publisher"
+        ]
+      },
+      "meta": {
+        "description": "Create platform-ready short-form video publish copy with a viewer-facing title, SEO title, conversational description, CTA, hashtags, and platform notes",
+        "category": "marketing",
+        "tags": [
+          "video",
+          "shortform",
+          "social-media",
+          "seo",
+          "captions",
+          "publishing"
+        ]
+      }
+    },
+    "skill:shortform-social-publish-package": {
+      "id": "skill:shortform-social-publish-package",
+      "kind": "skill",
+      "name": "Shortform Social Publish Package",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/shortform-social-publish-package.md"
+      },
+      "requires": {
+        "stacks": [
+          "stack:cloudinary",
+          "stack:social-media-publisher"
+        ]
+      },
+      "meta": {
+        "description": "Generate platform-ready social publishing packages for short-form story folders, including Instagram Reels captions, Facebook captions, YouTube Shorts metadata, TikTok manual captions, media URL placeholders, and publish checklists before using social-media-publisher.",
+        "category": "marketing",
+        "tags": [
+          "video",
+          "shortform",
+          "social-media",
+          "publishing",
+          "captions",
+          "youtube",
+          "instagram",
+          "tiktok"
+        ]
+      }
+    },
+    "skill:shortform-your-words-script": {
+      "id": "skill:shortform-your-words-script",
+      "kind": "skill",
+      "name": "Shortform Your-Words Script",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/shortform-your-words-script.md"
+      },
+      "requires": {
+        "stacks": [
+          "stack:video-editor"
+        ]
+      },
+      "meta": {
+        "description": "Create short-form video scripts and teleprompter files from raw thoughts, voice memo transcripts, inbox notes, rough drafts, article reactions, or recorded takes while preserving the original author's voice and words",
+        "category": "creative",
+        "tags": [
+          "video",
+          "shortform",
+          "script",
+          "teleprompter",
+          "creator-voice",
+          "captions"
+        ],
+        "icon": "🎬"
+      }
+    },
+    "skill:site-zoning-envelope-review": {
+      "id": "skill:site-zoning-envelope-review",
+      "kind": "skill",
+      "name": "Site Zoning Envelope Review",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/site-zoning-envelope-review.md"
+      },
+      "meta": {
+        "description": "Run the Pre Dev Intel site-engine workflow from address, parcel key, rollup, or saved site-record through zoning and buildable envelope only. Use when the user asks whether a parcel's zoning can be determined, how zoning feeds the site envelope, what the net buildable area or largest rectangle is, or when frontage/MapLibre review is needed before shell frontier, building type fit, or parking feasibility. Stop before building-type fit, shell frontier, parking feasibility, site-option-set, or concept generation unless the user explicitly asks to continue.",
+        "category": "real-estate",
+        "tags": [
+          "zoning",
+          "site-engine",
+          "envelope",
+          "frontage",
+          "parcels",
+          "feasibility"
+        ]
+      }
+    },
+    "skill:swe-compliance-checklist": {
+      "id": "skill:swe-compliance-checklist",
+      "kind": "skill",
+      "name": "RUDI SWE Compliance Checklist",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/swe-compliance-checklist.md"
+      },
+      "meta": {
+        "description": "Create and execute a RUDI phase-gated engineering checklist for software changes that must comply with the SWE Operating Manual, including scope, tests, proof commands, smoke checks, documentation gates, accepted debt, and Definition of Done",
+        "category": "coding",
+        "tags": [
+          "rudi",
+          "swe",
+          "compliance",
+          "checklist",
+          "testing",
+          "verification",
+          "engineering"
+        ],
+        "icon": "✅"
+      }
+    },
+    "skill:synthetic-cadence-editor": {
+      "id": "skill:synthetic-cadence-editor",
+      "kind": "skill",
+      "name": "Synthetic Cadence Editor",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/synthetic-cadence-editor.md"
+      },
+      "meta": {
+        "description": "Write or revise analytical prose without the AI-coded thought-leadership voice that sounds insightful through contrast and abstraction but skips the mechanism. Use when generating, editing, or auditing essays, blog posts, newsletters, LinkedIn posts, op-eds, captions, scripts, or any analytical prose where the goal is to sound specific, grounded, and human.",
+        "category": "writing",
+        "tags": [
+          "writing",
+          "editing",
+          "prose",
+          "style",
+          "analysis",
+          "captions"
+        ]
+      }
+    },
+    "skill:trace-feature-lineage": {
+      "id": "skill:trace-feature-lineage",
+      "kind": "skill",
+      "name": "Trace Feature Lineage",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/trace-feature-lineage.md"
+      },
+      "meta": {
+        "description": "Perform end-to-end feature and data-lineage traces across software repositories. Use when investigating where a user-visible page, command, API result, record, workflow, or behavior comes from; why data appears, is missing, stale, filtered, duplicated, or mismatched; or when planning refactors, onboarding, incident response, deprecation cleanup, architecture reviews, or test coverage for an existing feature.",
+        "category": "coding",
+        "tags": [
+          "feature-trace",
+          "data-lineage",
+          "debugging",
+          "architecture",
+          "testing",
+          "repo-analysis"
+        ]
+      }
+    },
+    "stack:audio-tools": {
+      "id": "stack:audio-tools",
+      "kind": "stack",
+      "name": "Audio Tools",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/audio-tools"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [
+          "ffmpeg",
+          "ffprobe",
+          "yt-dlp"
+        ],
+        "secrets": []
+      },
+      "provides": {
+        "tools": [
+          "audio_transcribe",
+          "audio_enrich",
+          "audio_query",
+          "audio_sync",
+          "audio_stats"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "tsx",
+          "src/index.ts"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Transcribe, enrich, and query audio or video-linked speech. Accepts local files, direct media URLs, supported video-page URLs, or base64 input.",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "audio-processing",
+        "tags": [
+          "audio",
+          "transcription",
+          "whisper",
+          "yt-dlp",
+          "enrichment",
+          "speech-to-text"
+        ],
+        "icon": "mic"
+      }
+    },
+    "stack:cagis": {
+      "id": "stack:cagis",
+      "kind": "stack",
+      "name": "CAGIS Public Data",
+      "version": "0.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/cagis"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "CINCINNATI_PUBLIC_DATA_API_BASE_URL",
+            "label": "Cincinnati Public Data API Base URL",
+            "required": true
+          },
+          {
+            "key": "CINCINNATI_PUBLIC_DATA_API_KEY",
+            "label": "Cincinnati Public Data API Key",
+            "required": false
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "cagis_lookup_property_activity"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "node",
+        "args": [
+          "src/index.mjs"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Read-only Cincinnati and Hamilton County parcel, zoning, and property activity lookup through the configured public-data API.",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "government-data",
+        "tags": [
+          "cincinnati",
+          "hamilton-county",
+          "cagis",
+          "parcels",
+          "zoning"
+        ],
+        "boundary": "Read-only CAGIS facts only. No permit, case, inspection, or parcel mutation tools are exposed."
+      }
+    },
+    "stack:cloudinary": {
+      "id": "stack:cloudinary",
+      "kind": "stack",
+      "name": "Cloudinary",
+      "version": "0.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/cloudinary"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "CLOUDINARY_CLOUD_NAME",
+            "label": "Cloudinary Cloud Name",
+            "required": false,
+            "helpUrl": "https://cloudinary.com/documentation/cloudinary_credentials"
+          },
+          {
+            "key": "CLOUDINARY_API_KEY",
+            "label": "Cloudinary API Key",
+            "required": false,
+            "helpUrl": "https://cloudinary.com/documentation/cloudinary_credentials"
+          },
+          {
+            "key": "CLOUDINARY_API_SECRET",
+            "label": "Cloudinary API Secret",
+            "required": false,
+            "helpUrl": "https://cloudinary.com/documentation/cloudinary_credentials"
+          },
+          {
+            "key": "CLOUDINARY_URL",
+            "label": "Cloudinary URL",
+            "required": false,
+            "helpUrl": "https://cloudinary.com/documentation/cloudinary_credentials"
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "cloudinary_config_status",
+          "cloudinary_upload_video",
+          "cloudinary_get_resource"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "tsx",
+          "src/index.ts"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Upload local media to Cloudinary and return public HTTPS URLs for social publishing workflows.",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "media",
+        "tags": [
+          "cloudinary",
+          "video",
+          "media",
+          "upload",
+          "shortform",
+          "social-media"
+        ],
+        "icon": "cloud-upload"
+      }
+    },
+    "stack:content-extractor": {
+      "id": "stack:content-extractor",
+      "kind": "stack",
+      "name": "Content Extractor",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/content-extractor"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "SUPA_DATA_API",
+            "label": "Supadata API Key",
+            "required": false,
+            "helpUrl": "https://supadata.ai"
+          },
+          {
+            "key": "REDDIT_BEARER_TOKEN",
+            "label": "Reddit Bearer Token",
+            "required": false,
+            "helpUrl": "https://www.reddit.com/prefs/apps"
+          },
+          {
+            "key": "REDDIT_CLIENT_ID",
+            "label": "Reddit Client ID",
+            "required": false,
+            "helpUrl": "https://www.reddit.com/prefs/apps"
+          },
+          {
+            "key": "REDDIT_CLIENT_SECRET",
+            "label": "Reddit Client Secret",
+            "required": false,
+            "helpUrl": "https://www.reddit.com/prefs/apps"
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "extract_youtube",
+          "extract_reddit",
+          "extract_tiktok",
+          "extract_article",
+          "extract_links"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "tsx",
+          "src/index.ts"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Extract content from YouTube, Reddit, TikTok, web articles, and link pages",
+        "author": "CO-LLAB",
+        "license": "MIT",
+        "category": "data-extraction",
+        "tags": [
+          "youtube",
+          "reddit",
+          "tiktok",
+          "article",
+          "links",
+          "transcript"
+        ],
+        "icon": "📥"
+      }
+    },
+    "stack:creator-intelligence": {
+      "id": "stack:creator-intelligence",
+      "kind": "stack",
+      "name": "Creator Intelligence",
+      "version": "0.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/creator-intelligence"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [
+          "yt-dlp",
+          "ffmpeg",
+          "ffprobe"
+        ],
+        "secrets": []
+      },
+      "provides": {
+        "tools": [
+          "creator_style_reference_intake",
+          "creator_list_style_references",
+          "creator_read_style_reference",
+          "creator_transcribe_reference",
+          "creator_profile_video_index",
+          "creator_full_audit_inventory",
+          "creator_import_legacy_tiktok_extracts",
+          "creator_build_unified_export",
+          "creator_generate_audit_documents",
+          "creator_inventory"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "node",
+        "args": [
+          "dist/index.js"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Creator audit and style-reference tooling for shortform research, contact sheets, keyframe sheets, and local audit inventory.",
+        "author": "CO-LLAB",
+        "license": "MIT",
+        "category": "creator-intelligence",
+        "tags": [
+          "creator",
+          "tiktok",
+          "youtube",
+          "shortform",
+          "audit",
+          "style-reference",
+          "contact-sheet",
+          "keyframes"
+        ],
+        "icon": "🎞️"
+      }
+    },
+    "stack:data-analysis": {
+      "id": "stack:data-analysis",
+      "kind": "stack",
+      "name": "Data Analysis",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/data-analysis"
+      },
+      "runtime": "python",
+      "requires": {
+        "binaries": [],
+        "secrets": []
+      },
+      "provides": {
+        "tools": [
+          "data_load_csv",
+          "data_load_excel",
+          "data_load_json",
+          "data_describe",
+          "data_query",
+          "data_transform",
+          "data_aggregate",
+          "data_chart",
+          "data_export",
+          "data_list"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "python",
+        "args": [
+          "src/server.py"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Analyze data with Python, pandas, numpy, and matplotlib. Generate charts and insights.",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "data",
+        "tags": [
+          "data",
+          "analysis",
+          "python",
+          "pandas",
+          "charts"
+        ],
+        "icon": "📈"
+      }
+    },
+    "stack:document-processor": {
+      "id": "stack:document-processor",
+      "kind": "stack",
+      "name": "Document Processor",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/document-processor"
+      },
+      "runtime": "python",
+      "requires": {
+        "binaries": [
+          "pdftoppm"
+        ],
+        "secrets": []
+      },
+      "provides": {
+        "tools": [
+          "pdf_to_images",
+          "remove_watermark",
+          "pdf_extract_slides",
+          "batch_remove_watermark"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "python3",
+        "args": [
+          "src/index.py"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Extract PDF slides as images, remove watermarks, and process presentations.",
+        "author": "CO-LLAB",
+        "license": "MIT",
+        "category": "document-processing",
+        "tags": [
+          "pdf",
+          "slides",
+          "watermark",
+          "extraction",
+          "images",
+          "presentation"
+        ],
+        "icon": "📄"
+      }
+    },
+    "stack:document-qa": {
+      "id": "stack:document-qa",
+      "kind": "stack",
+      "name": "Document QA",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/document-qa"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "ANTHROPIC_API_KEY",
+            "label": "Anthropic API Key",
+            "required": true,
+            "helpUrl": "https://console.anthropic.com/settings/keys"
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "document_qa_inspect"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "tsx",
+          "src/index.ts"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Visual QA inspection for HTML documents using screenshots and Claude Vision.",
+        "author": "CO-LLAB",
+        "license": "MIT",
+        "category": "document-processing",
+        "tags": [
+          "qa",
+          "vision",
+          "html",
+          "pdf",
+          "validation"
+        ],
+        "icon": "🔍"
+      }
+    },
+    "stack:editorial-markup": {
+      "id": "stack:editorial-markup",
+      "kind": "stack",
+      "name": "Editorial Markup",
+      "version": "0.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/editorial-markup"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": []
+      },
+      "provides": {
+        "tools": [
+          "editorial_markup_validate_model",
+          "editorial_markup_build",
+          "editorial_markup_qa",
+          "editorial_markup_export_clean"
+        ]
+      },
+      "related": {
+        "skills": [
+          "skill:inline-editorial-markup"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "node",
+        "args": [
+          "dist/index.js"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Build validated inline editorial markup HTML, export clean copy, and run Playwright QA for accept/reject review artifacts.",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "document-processing",
+        "tags": [
+          "writing",
+          "editing",
+          "redline",
+          "html",
+          "review",
+          "qa",
+          "playwright"
+        ]
+      }
+    },
+    "stack:github": {
+      "id": "stack:github",
+      "kind": "stack",
+      "name": "GitHub",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/github"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "GITHUB_TOKEN",
+            "label": "GitHub Personal Access Token",
+            "required": true,
+            "helpUrl": "https://github.com/settings/tokens"
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "github_rest_request",
+          "github_list_repos",
+          "github_get_repo",
+          "github_create_repo",
+          "github_update_repo",
+          "github_delete_repo",
+          "github_list_branches",
+          "github_get_branch",
+          "github_create_branch",
+          "github_delete_branch",
+          "github_search_code",
+          "github_get_file",
+          "github_put_file",
+          "github_delete_file",
+          "github_list_collaborators",
+          "github_add_collaborator",
+          "github_remove_collaborator",
+          "github_list_prs",
+          "github_get_pr",
+          "github_create_pr",
+          "github_update_pr",
+          "github_merge_pr",
+          "github_list_pr_files",
+          "github_list_pr_commits",
+          "github_list_pr_reviews",
+          "github_create_pr_review",
+          "github_request_pr_reviewers",
+          "github_remove_pr_reviewers",
+          "github_list_issues",
+          "github_get_issue",
+          "github_create_issue",
+          "github_update_issue",
+          "github_add_comment",
+          "github_list_comments",
+          "github_update_comment",
+          "github_delete_comment",
+          "github_list_labels",
+          "github_create_label",
+          "github_update_label",
+          "github_delete_label",
+          "github_add_issue_labels",
+          "github_set_issue_labels",
+          "github_remove_issue_label",
+          "github_list_milestones",
+          "github_create_milestone",
+          "github_update_milestone",
+          "github_delete_milestone",
+          "github_list_releases",
+          "github_get_release",
+          "github_create_release",
+          "github_update_release",
+          "github_delete_release",
+          "github_list_workflows",
+          "github_dispatch_workflow",
+          "github_list_workflow_runs",
+          "github_get_workflow_run",
+          "github_rerun_workflow_run",
+          "github_cancel_workflow_run",
+          "github_list_artifacts",
+          "github_delete_artifact"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "node",
+        "args": [
+          "dist/index.js"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Manage GitHub repositories, branches, contents, collaborators, issues, pull requests, releases, Actions, artifacts, and direct REST API calls",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "development",
+        "tags": [
+          "github",
+          "git",
+          "repos",
+          "prs",
+          "issues",
+          "releases",
+          "actions"
+        ],
+        "icon": "🐙"
+      }
+    },
+    "stack:google-ai": {
+      "id": "stack:google-ai",
+      "kind": "stack",
+      "name": "Google AI Suite",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/google-ai"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "GOOGLE_AI_API_KEY",
+            "label": "Google AI API Key",
+            "required": true,
+            "helpUrl": "https://makersuite.google.com/app/apikey"
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "generate_image",
+          "generate_video"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "tsx",
+          "src/index.ts"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Generate images (Gemini, Imagen 4) and videos (Veo 3.1) using Google AI",
+        "author": "CO-LLAB",
+        "license": "MIT",
+        "category": "ai-generation",
+        "tags": [
+          "ai",
+          "google-ai",
+          "gemini",
+          "imagen",
+          "veo"
+        ],
+        "icon": "🎨"
+      }
+    },
+    "stack:google-workspace": {
+      "id": "stack:google-workspace",
+      "kind": "stack",
+      "name": "Google Workspace Tools",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/google-workspace"
+      },
+      "auth": {
+        "required": true,
+        "command": "rudi auth google-workspace user@example.com",
+        "instructions": "Run `rudi secrets set GOOGLE_CREDENTIALS` with Google OAuth client credentials JSON or a path to credentials.json, then run `rudi auth google-workspace user@example.com`. Register the localhost OAuth callback URI used by the helper, normally http://localhost:3456/callback, and any fallback ports you expect to use. Tokens are stored under ~/.rudi/state/stacks/google-workspace/accounts/<account>/token.json."
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "GOOGLE_CREDENTIALS",
+            "label": "Google OAuth Credentials",
+            "required": true,
+            "helpUrl": "https://console.cloud.google.com/apis/credentials"
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "account_list",
+          "account_switch",
+          "account_current",
+          "gmail_profile",
+          "gmail_history_list",
+          "gmail_send",
+          "gmail_search",
+          "gmail_draft",
+          "gmail_draft_list",
+          "gmail_draft_get",
+          "gmail_draft_update",
+          "gmail_draft_delete",
+          "gmail_draft_send",
+          "gmail_get",
+          "gmail_get_raw",
+          "gmail_list_attachments",
+          "gmail_get_attachment",
+          "gmail_reply",
+          "gmail_forward",
+          "gmail_get_thread",
+          "gmail_message_trash",
+          "gmail_message_untrash",
+          "gmail_message_delete",
+          "gmail_label_list",
+          "gmail_label_create",
+          "gmail_label_update",
+          "gmail_label_delete",
+          "gmail_message_modify_labels",
+          "gmail_message_archive",
+          "gmail_message_mark_read",
+          "gmail_message_mark_unread",
+          "gmail_message_star",
+          "gmail_message_unstar",
+          "gmail_message_batch_get",
+          "gmail_thread_batch_get",
+          "gmail_message_batch_modify_labels",
+          "gmail_message_batch_trash",
+          "gmail_message_batch_untrash",
+          "gmail_message_batch_delete",
+          "sheets_read",
+          "sheets_write",
+          "sheets_append",
+          "sheets_create",
+          "docs_read",
+          "docs_create",
+          "docs_insert_image",
+          "slides_get_presentation",
+          "slides_get_slide",
+          "slides_get_thumbnail",
+          "slides_batch_update",
+          "drive_list",
+          "drive_upload",
+          "drive_create_folder",
+          "drive_move_file",
+          "drive_download",
+          "drive_make_public",
+          "drive_delete",
+          "calendar_list",
+          "calendar_create",
+          "calendar_quick_add",
+          "calendar_delete",
+          "tasks_tasklists_list",
+          "tasks_list",
+          "tasks_create",
+          "tasks_update",
+          "tasks_complete",
+          "tasks_delete"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "tsx",
+          "src/index.ts"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Workflow-focused tools for Gmail, Google Sheets, Docs, Slides, Drive, Calendar, and Tasks",
+        "author": "CO-LLAB",
+        "license": "MIT",
+        "category": "api-integrations",
+        "tags": [
+          "google",
+          "gmail",
+          "sheets",
+          "docs",
+          "slides",
+          "drive",
+          "calendar",
+          "tasks"
+        ],
+        "icon": "📧"
+      }
+    },
+    "stack:hamilton-county-auditor": {
+      "id": "stack:hamilton-county-auditor",
+      "kind": "stack",
+      "name": "Hamilton County Auditor Public Data",
+      "version": "0.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/hamilton-county-auditor"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "CINCINNATI_PUBLIC_DATA_API_BASE_URL",
+            "label": "Cincinnati Public Data API Base URL",
+            "required": true
+          },
+          {
+            "key": "CINCINNATI_PUBLIC_DATA_API_KEY",
+            "label": "Cincinnati Public Data API Key",
+            "required": false
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "auditor_lookup_parcel_facts"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "node",
+        "args": [
+          "src/index.mjs"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Read-only authoritative parcel ownership, assessed value, characteristics, and sales facts through the configured public-data API.",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "government-data",
+        "tags": [
+          "hamilton-county",
+          "auditor",
+          "parcels",
+          "ownership",
+          "valuation",
+          "sales"
+        ],
+        "boundary": "Read-only Hamilton County Auditor facts only. The stack exposes no refresh, payment, filing, or parcel mutation tools."
+      }
+    },
+    "stack:image-generator": {
+      "id": "stack:image-generator",
+      "kind": "stack",
+      "name": "Image Generator",
+      "version": "0.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/image-generator"
+      },
+      "runtime": "python",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "GEMINI_API_KEY",
+            "label": "Gemini API key",
+            "required": false,
+            "helpUrl": "https://aistudio.google.com/apikey"
+          },
+          {
+            "key": "OPENAI_API_KEY",
+            "label": "OpenAI API key",
+            "required": false,
+            "helpUrl": "https://platform.openai.com/api-keys"
+          },
+          {
+            "key": "REPLICATE_API_TOKEN",
+            "label": "Replicate API token",
+            "required": false,
+            "helpUrl": "https://replicate.com/account/api-tokens"
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "generate_image",
+          "compare_providers",
+          "list_models"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "python",
+        "args": [
+          "src/server.py"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Agent-safe multi-provider image generation for content creation workflows.",
+        "author": "brandonz@heritagehill.co",
+        "license": "MIT",
+        "category": "ai-generation",
+        "tags": [
+          "image",
+          "generation",
+          "ai",
+          "gemini",
+          "openai",
+          "replicate",
+          "content-creation",
+          "social-media"
+        ],
+        "icon": "🎨"
+      }
+    },
+    "stack:macos-automation": {
+      "id": "stack:macos-automation",
+      "kind": "stack",
+      "name": "macOS Automation",
+      "version": "0.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/macos-automation"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": []
+      },
+      "provides": {
+        "tools": [
+          "macos_status",
+          "macos_automation_inventory",
+          "macos_automation_dashboard",
+          "macos_check_accessibility",
+          "macos_get_frontmost_app",
+          "macos_list_windows",
+          "macos_open_url",
+          "macos_open_app",
+          "macos_focus_app",
+          "macos_show_notification",
+          "macos_list_shortcuts",
+          "macos_run_shortcut",
+          "macos_create_reminder",
+          "macos_get_selected_finder_items",
+          "macos_reveal_in_finder",
+          "macos_keep_awake_start",
+          "macos_keep_awake_status",
+          "macos_keep_awake_stop",
+          "macos_install_launch_agent",
+          "macos_list_launch_agents",
+          "macos_remove_launch_agent",
+          "macos_run_launch_agent_now"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "tsx",
+          "src/index.ts"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Guarded macOS automation tools for apps, Finder, Reminders, Shortcuts, notifications, and System Events permission checks.",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "local-automation",
+        "tags": [
+          "macos",
+          "apple-script",
+          "shortcuts",
+          "reminders",
+          "finder",
+          "caffeinate",
+          "launchd",
+          "productivity",
+          "automation",
+          "mcp"
+        ],
+        "platforms": [
+          "darwin"
+        ],
+        "permissions": [
+          "Accessibility for System Events tools",
+          "Automation for Finder, Reminders, and target app control"
+        ],
+        "icon": "⌘"
+      }
+    },
+    "stack:ms-office": {
+      "id": "stack:ms-office",
+      "kind": "stack",
+      "name": "MS Office",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/ms-office"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": []
+      },
+      "provides": {
+        "tools": [
+          "docx_read",
+          "xlsx_read"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "tsx",
+          "src/index.ts"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Read and extract content from Microsoft Word (.docx) and Excel (.xlsx) documents",
+        "author": "CO-LLAB",
+        "license": "MIT",
+        "category": "document-processing",
+        "tags": [
+          "microsoft",
+          "office",
+          "word",
+          "excel",
+          "docx",
+          "xlsx"
+        ],
+        "icon": "📄"
+      }
+    },
+    "stack:municode": {
+      "id": "stack:municode",
+      "kind": "stack",
+      "name": "Municode Public Codes",
+      "version": "0.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/municode"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [
+          "binary:pdftotext"
+        ],
+        "secrets": []
+      },
+      "provides": {
+        "tools": [
+          "municode_get_publication",
+          "municode_list_code_sections",
+          "municode_get_code_section"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "node",
+        "args": [
+          "src/index.js"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Read-only publication, table-of-contents, and bounded code-section access for reviewed Municode jurisdiction profiles. Cincinnati, Ohio is the first profile.",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "government-data",
+        "tags": [
+          "municode",
+          "municipal-code",
+          "ordinances",
+          "government-data",
+          "zoning"
+        ],
+        "boundary": "Read-only access to fixed Municode code products for reviewed jurisdiction profiles. No arbitrary URL, search, export, email, notification, browser, or mutation tools are exposed. Provider text is evidence, not legal interpretation."
+      }
+    },
+    "stack:neon": {
+      "id": "stack:neon",
+      "kind": "stack",
+      "name": "Neon",
+      "version": "0.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/neon"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [
+          "binary:neonctl"
+        ],
+        "secrets": [
+          {
+            "key": "NEON_API_KEY",
+            "label": "Neon API Key",
+            "required": true,
+            "helpUrl": "https://console.neon.tech/app/settings/api-keys"
+          },
+          {
+            "key": "NEON_API_BASE_URL",
+            "label": "Neon API Base URL",
+            "required": false
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "neon_config_status",
+          "neon_list_orgs",
+          "neon_list_projects",
+          "neon_create_project",
+          "neon_get_connection_string",
+          "neon_create_branch",
+          "neon_list_branches",
+          "neon_generate_mcp_config",
+          "neon_generate_cli_workflow"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "tsx",
+          "src/index.ts"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Guarded Neon platform operations for projects, branches, connection URI retrieval, and MCP config generation.",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "data",
+        "tags": [
+          "neon",
+          "postgres",
+          "database",
+          "branching",
+          "mcp",
+          "platform"
+        ],
+        "boundary": "Use stack:neon for Neon platform operations and stack:postgres for SQL querying via DATABASE_URL.",
+        "mcpSafety": "Neon MCP is intended for development and testing. Do not connect MCP agents freely to production databases."
+      }
+    },
+    "stack:newsletter-extractor": {
+      "id": "stack:newsletter-extractor",
+      "kind": "stack",
+      "name": "Newsletter Extractor",
+      "version": "0.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/newsletter-extractor"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": []
+      },
+      "provides": {
+        "tools": [
+          "extract_newsletter_email",
+          "extract_newsletter_links",
+          "extract_rss_feed"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "tsx",
+          "src/index.ts"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Extract newsletter email bodies, normalize newsletter links, and read RSS/Atom feeds",
+        "author": "CO-LLAB",
+        "license": "MIT",
+        "category": "data-extraction",
+        "tags": [
+          "newsletter",
+          "email",
+          "gmail",
+          "rss",
+          "atom",
+          "links",
+          "extraction",
+          "content"
+        ],
+        "icon": "📬"
+      }
+    },
+    "stack:notion-workspace": {
+      "id": "stack:notion-workspace",
+      "kind": "stack",
+      "name": "Notion Workspace",
+      "version": "1.2.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/notion-workspace"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "NOTION_API_KEY",
+            "label": "Notion API Key",
+            "required": true,
+            "helpUrl": "https://www.notion.so/my-integrations"
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "notion_search",
+          "notion_get_page",
+          "notion_get_page_content",
+          "notion_create_page",
+          "notion_append_content",
+          "notion_delete_page",
+          "notion_list_databases",
+          "notion_query_database",
+          "notion_create_database",
+          "notion_add_database_row"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "tsx",
+          "src/index.ts"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Search, create, and manage Notion pages and databases",
+        "author": "CO-LLAB",
+        "license": "MIT",
+        "category": "productivity",
+        "tags": [
+          "notion",
+          "pages",
+          "databases",
+          "workspace"
+        ],
+        "icon": "📝"
+      }
+    },
+    "stack:openai": {
+      "id": "stack:openai",
+      "kind": "stack",
+      "name": "OpenAI Suite",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/openai"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "OPENAI_API_KEY",
+            "label": "OpenAI API Key",
+            "required": true,
+            "helpUrl": "https://platform.openai.com/api-keys"
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "generate_image",
+          "transcribe_audio",
+          "text_to_speech",
+          "generate_video"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "tsx",
+          "src/index.ts"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "OpenAI tools: DALL-E images, Whisper transcription, TTS speech, Sora video",
+        "author": "CO-LLAB",
+        "license": "MIT",
+        "category": "ai-generation",
+        "tags": [
+          "ai",
+          "openai",
+          "dalle",
+          "whisper",
+          "tts",
+          "sora"
+        ],
+        "icon": "🤖"
+      }
+    },
+    "stack:opencounter": {
+      "id": "stack:opencounter",
+      "kind": "stack",
+      "name": "OpenCounter Cincinnati Guidance",
+      "version": "0.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/opencounter"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "OPENCOUNTER_SESSION_ENCRYPTION_KEY",
+            "label": "OpenCounter Session Encryption Key",
+            "required": true
+          },
+          {
+            "key": "OPENCOUNTER_STATE_DIRECTORY",
+            "label": "OpenCounter State Directory",
+            "required": false
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "opencounter_start_guidance",
+          "opencounter_continue_guidance",
+          "opencounter_get_guidance_result",
+          "opencounter_reconcile_guidance"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "node",
+        "args": [
+          "src/index.mjs"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Guarded, headless browser guidance for Cincinnati zoning, business permits and fees, special events, and residential permitting.",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "government-services",
+        "tags": [
+          "cincinnati",
+          "opencounter",
+          "zoning",
+          "permits",
+          "special-events",
+          "residential",
+          "playwright"
+        ],
+        "boundary": "Guidance only. No account creation, sign-in, terms acceptance, uploads, staff messages, application submission, downloads, or payment.",
+        "mcpSafety": "Every tool is Cincinnati-scoped and exact-schema. Browser contexts are isolated and closed after each bounded call; resumable anonymous state is encrypted at rest and expires after 24 hours."
+      }
+    },
+    "stack:otter-mcp": {
+      "id": "stack:otter-mcp",
+      "kind": "stack",
+      "name": "Otter MCP",
+      "version": "0.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/otter-mcp"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": []
+      },
+      "provides": {
+        "tools": [
+          "get_user_info",
+          "search",
+          "fetch"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "node",
+        "args": [
+          "src/index.js"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Search and fetch Otter meeting transcripts through Otter's hosted OAuth MCP server.",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "productivity",
+        "tags": [
+          "otter",
+          "meetings",
+          "transcripts",
+          "mcp",
+          "oauth"
+        ],
+        "icon": "otter"
+      }
+    },
+    "stack:plaid": {
+      "id": "stack:plaid",
+      "kind": "stack",
+      "name": "Plaid",
+      "version": "0.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/plaid"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "PLAID_CLIENT_ID",
+            "label": "Plaid Client ID",
+            "required": true,
+            "helpUrl": "https://dashboard.plaid.com/developers/keys"
+          },
+          {
+            "key": "PLAID_SECRET",
+            "label": "Plaid Secret",
+            "required": true,
+            "helpUrl": "https://dashboard.plaid.com/developers/keys"
+          },
+          {
+            "key": "PLAID_ENV",
+            "label": "Plaid Environment",
+            "required": false
+          },
+          {
+            "key": "PLAID_TOKEN_STORE_PATH",
+            "label": "Plaid Token Store Path",
+            "required": false
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "plaid_create_link",
+          "plaid_complete_hosted_link",
+          "plaid_get_link_status",
+          "plaid_exchange_public_token",
+          "plaid_list_items",
+          "plaid_list_accounts",
+          "plaid_get_balances",
+          "plaid_sync_transactions"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "tsx",
+          "src/index.ts"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Connect bank accounts through Plaid, list accounts and balances, and sync transactions.",
+        "author": "CO-LLAB",
+        "license": "MIT",
+        "category": "finance",
+        "tags": [
+          "plaid",
+          "banking",
+          "finance",
+          "transactions",
+          "accounts",
+          "balances"
+        ]
+      }
+    },
+    "stack:postgres": {
+      "id": "stack:postgres",
+      "kind": "stack",
+      "name": "PostgreSQL",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/postgres"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "DATABASE_URL",
+            "label": "Database URL",
+            "required": true,
+            "helpUrl": "https://neon.tech/docs/connect/connection-string"
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "pg_query",
+          "pg_execute",
+          "pg_list_tables",
+          "pg_describe_table",
+          "pg_list_schemas"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "tsx",
+          "src/index.ts"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Query and manage PostgreSQL databases. Works with Neon, Railway, Supabase, and any PostgreSQL connection.",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "data",
+        "tags": [
+          "postgres",
+          "postgresql",
+          "database",
+          "sql"
+        ],
+        "icon": "🐘"
+      }
+    },
+    "stack:rudi-crm": {
+      "id": "stack:rudi-crm",
+      "kind": "stack",
+      "name": "RUDI CRM",
+      "version": "0.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/rudi-crm"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "RUDI_CRM_DATABASE_URL",
+            "label": "RUDI CRM Database URL",
+            "required": true
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "rudi_crm_config_status",
+          "rudi_crm_setup_status",
+          "rudi_crm_record_discovery_observations",
+          "rudi_crm_log_ingest_batch",
+          "rudi_crm_upsert_interaction",
+          "rudi_crm_record_finance_event",
+          "rudi_crm_run_validators",
+          "rudi_crm_list_people",
+          "rudi_crm_list_organizations",
+          "rudi_crm_list_engagements",
+          "rudi_crm_get_activity_feed",
+          "rudi_crm_get_attention_brief",
+          "rudi_crm_list_triage_queue",
+          "rudi_crm_get_unknown_discovery_domains",
+          "rudi_crm_get_engagement_context",
+          "rudi_crm_get_latest_correspondence"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "tsx",
+          "src/index.ts"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Controlled MCP interface for RUDI CRM engagement memory, discovery, triage, validators, and correspondence context.",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "business",
+        "tags": [
+          "crm",
+          "engagements",
+          "postgres",
+          "supabase",
+          "mcp",
+          "audit"
+        ],
+        "icon": "rudi-crm",
+        "boundary": "RUDI CRM exposes a controlled write/read contract over existing Postgres functions and views. It does not expose raw table writes or generic SQL execution.",
+        "secretGuidance": "Use a scoped server-side Postgres credential in RUDI_CRM_DATABASE_URL. Never expose this value to clients or agents."
+      }
+    },
+    "stack:rudi-processor": {
+      "id": "stack:rudi-processor",
+      "kind": "stack",
+      "name": "RUDI Processor",
+      "version": "2.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/rudi-processor"
+      },
+      "runtime": "python",
+      "requires": {
+        "binaries": [
+          "ffmpeg",
+          "tesseract"
+        ],
+        "secrets": [
+          {
+            "key": "ANTHROPIC_API_KEY",
+            "label": "Anthropic API Key",
+            "required": false
+          },
+          {
+            "key": "OPENAI_API_KEY",
+            "label": "OpenAI API Key",
+            "required": false
+          },
+          {
+            "key": "GOOGLE_API_KEY",
+            "label": "Google API Key",
+            "required": false
+          },
+          {
+            "key": "DEEPSEEK_API_KEY",
+            "label": "DeepSeek API Key",
+            "required": false
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "rudi_process_file",
+          "rudi_audit_files",
+          "rudi_search_index",
+          "rudi_processor_config"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "python3",
+        "args": [
+          "src/index.py"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Local file metadata extraction, workspace audit, and indexed content search.",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "data-extraction",
+        "tags": [
+          "metadata",
+          "files",
+          "documents",
+          "ocr",
+          "indexing",
+          "search"
+        ],
+        "icon": "processor"
+      }
+    },
+    "stack:rudi-share": {
+      "id": "stack:rudi-share",
+      "kind": "stack",
+      "name": "RUDI Share",
+      "version": "0.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/rudi-share"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "RUDI_SHARE_API_URL",
+            "label": "RUDI Share API URL",
+            "required": true
+          },
+          {
+            "key": "RUDI_SHARE_TOKEN",
+            "label": "RUDI Share Publisher Token",
+            "required": true
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "rudi_share_preflight",
+          "rudi_share_publish",
+          "rudi_share_get",
+          "rudi_share_unpublish"
+        ]
+      },
+      "related": {
+        "skills": [
+          "skill:share-web-app"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "tsx",
+          "src/index.ts"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Publish locally built vanilla, Vite, and React-Vite static apps to revocable Anyone-with-the-link URLs.",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "deployment",
+        "tags": [
+          "hosting",
+          "static-site",
+          "vite",
+          "react",
+          "deployment",
+          "sharing"
+        ],
+        "icon": "cloud-upload"
+      }
+    },
+    "stack:slack": {
+      "id": "stack:slack",
+      "kind": "stack",
+      "name": "Slack",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/slack"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "SLACK_BOT_TOKEN",
+            "label": "Slack Bot Token",
+            "required": true,
+            "helpUrl": "https://api.slack.com/apps"
+          },
+          {
+            "key": "SLACK_CHANNEL_ID",
+            "label": "Default Channel ID",
+            "required": false
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "slack_send_message",
+          "slack_list_channels",
+          "slack_read_channel",
+          "slack_search",
+          "slack_update_message",
+          "slack_add_reaction",
+          "slack_upload_file",
+          "slack_get_user"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "tsx",
+          "node/src/index.ts"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Send messages, search channels, upload files, and manage reactions in Slack",
+        "author": "CO-LLAB",
+        "license": "MIT",
+        "category": "communication",
+        "tags": [
+          "slack",
+          "messaging",
+          "chat",
+          "team"
+        ],
+        "icon": "💬"
+      }
+    },
+    "stack:social-media-publisher": {
+      "id": "stack:social-media-publisher",
+      "kind": "stack",
+      "name": "Social Media Publisher",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/social-media-publisher"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "TWITTER_API_KEY",
+            "label": "Twitter API Key",
+            "required": false
+          },
+          {
+            "key": "TWITTER_API_SECRET",
+            "label": "Twitter API Secret",
+            "required": false
+          },
+          {
+            "key": "TWITTER_ACCESS_TOKEN",
+            "label": "Twitter Access Token",
+            "required": false
+          },
+          {
+            "key": "TWITTER_ACCESS_SECRET",
+            "label": "Twitter Access Secret",
+            "required": false
+          },
+          {
+            "key": "TWITTER_OAUTH2_ACCESS_TOKEN",
+            "label": "Twitter OAuth2 Access Token",
+            "required": false
+          },
+          {
+            "key": "TWITTER_OAUTH2_REFRESH_TOKEN",
+            "label": "Twitter OAuth2 Refresh Token",
+            "required": false
+          },
+          {
+            "key": "TWITTER_OAUTH2_CLIENT_ID",
+            "label": "Twitter OAuth2 Client ID",
+            "required": false
+          },
+          {
+            "key": "TWITTER_OAUTH2_CLIENT_SECRET",
+            "label": "Twitter OAuth2 Client Secret",
+            "required": false
+          },
+          {
+            "key": "TWITTER_OAUTH2_TOKEN_URI",
+            "label": "Twitter OAuth2 Token URI",
+            "required": false
+          },
+          {
+            "key": "LINKEDIN_CLIENT_ID",
+            "label": "LinkedIn Client ID",
+            "required": false
+          },
+          {
+            "key": "LINKEDIN_CLIENT_SECRET",
+            "label": "LinkedIn Client Secret",
+            "required": false
+          },
+          {
+            "key": "LINKEDIN_ACCESS_TOKEN",
+            "label": "LinkedIn Access Token",
+            "required": false
+          },
+          {
+            "key": "LINKEDIN_ACCESS_TOKEN_EXPIRES_AT",
+            "label": "LinkedIn Access Token Expires At",
+            "required": false
+          },
+          {
+            "key": "LINKEDIN_REFRESH_TOKEN",
+            "label": "LinkedIn Refresh Token",
+            "required": false
+          },
+          {
+            "key": "LINKEDIN_TOKEN_URI",
+            "label": "LinkedIn Token URI",
+            "required": false
+          },
+          {
+            "key": "LINKEDIN_REDIRECT_URI",
+            "label": "LinkedIn Redirect URI",
+            "required": false
+          },
+          {
+            "key": "LINKEDIN_SCOPES",
+            "label": "LinkedIn OAuth Scopes",
+            "required": false
+          },
+          {
+            "key": "DATABASE_URL",
+            "label": "Database URL",
+            "required": false
+          },
+          {
+            "key": "DIRECT_DATABASE_URL",
+            "label": "Direct Database URL",
+            "required": false
+          },
+          {
+            "key": "INTERNAL_API_KEY",
+            "label": "Internal API Key",
+            "required": false
+          },
+          {
+            "key": "TOKEN_ENCRYPTION_KEY",
+            "label": "Token Encryption Key",
+            "required": false
+          },
+          {
+            "key": "META_APP_ID",
+            "label": "Meta App ID",
+            "required": false
+          },
+          {
+            "key": "META_APP_SECRET",
+            "label": "Meta App Secret",
+            "required": false
+          },
+          {
+            "key": "META_REDIRECT_URI",
+            "label": "Meta Redirect URI",
+            "required": false
+          },
+          {
+            "key": "META_SCOPES",
+            "label": "Meta OAuth Scopes",
+            "required": false
+          },
+          {
+            "key": "META_USER_ACCESS_TOKEN",
+            "label": "Meta User Access Token",
+            "required": false
+          },
+          {
+            "key": "META_INSTAGRAM_APP_ID",
+            "label": "Meta Instagram App ID",
+            "required": false
+          },
+          {
+            "key": "META_INSTAGRAM_APP_SECRET",
+            "label": "Meta Instagram App Secret",
+            "required": false
+          },
+          {
+            "key": "GOOGLE_CLIENT_ID",
+            "label": "Google Client ID",
+            "required": false
+          },
+          {
+            "key": "GOOGLE_CLIENT_SECRET",
+            "label": "Google Client Secret",
+            "required": false
+          },
+          {
+            "key": "YOUTUBE_REFRESH_TOKEN",
+            "label": "YouTube Refresh Token",
+            "required": false
+          },
+          {
+            "key": "YOUTUBE_TOKEN_URI",
+            "label": "YouTube Token URI",
+            "required": false
+          },
+          {
+            "key": "YOUTUBE_SCOPES",
+            "label": "YouTube Scopes",
+            "required": false
+          },
+          {
+            "key": "TIKTOK_ACCESS_TOKEN",
+            "label": "TikTok Access Token",
+            "required": false
+          },
+          {
+            "key": "TIKTOK_REFRESH_TOKEN",
+            "label": "TikTok Refresh Token",
+            "required": false
+          },
+          {
+            "key": "TIKTOK_CLIENT_KEY",
+            "label": "TikTok Client Key",
+            "required": false
+          },
+          {
+            "key": "TIKTOK_CLIENT_SECRET",
+            "label": "TikTok Client Secret",
+            "required": false
+          },
+          {
+            "key": "TIKTOK_REDIRECT_URI",
+            "label": "TikTok Redirect URI",
+            "required": false
+          },
+          {
+            "key": "TIKTOK_SCOPE",
+            "label": "TikTok Scope",
+            "required": false
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "social_list_supported_platforms",
+          "social_validate_post",
+          "social_check_publish_ready",
+          "social_publish_direct",
+          "twitter_post",
+          "twitter_thread",
+          "linkedin_post",
+          "facebook_post",
+          "facebook_list_pages",
+          "instagram_post",
+          "instagram_reel_create_container",
+          "instagram_container_status",
+          "instagram_publish_container",
+          "instagram_list_accounts",
+          "tiktok_creator_info",
+          "tiktok_direct_post",
+          "tiktok_video_upload",
+          "tiktok_fetch_status",
+          "youtube_video_upload"
+        ]
+      },
+      "related": {
+        "skills": [
+          "skill:shortform-publish-copy"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "tsx",
+          "src/index.ts"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Post to Twitter, LinkedIn, Facebook, Instagram, TikTok, and YouTube with readiness checks and unified publisher validation",
+        "author": "CO-LLAB",
+        "license": "MIT",
+        "category": "social",
+        "tags": [
+          "twitter",
+          "linkedin",
+          "facebook",
+          "instagram",
+          "tiktok",
+          "youtube",
+          "social-media"
+        ],
+        "icon": "📱"
+      }
+    },
+    "stack:sports-stats": {
+      "id": "stack:sports-stats",
+      "kind": "stack",
+      "name": "Sports Stats",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/sports-stats"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": []
+      },
+      "provides": {
+        "tools": [
+          "extract_nba_stats",
+          "save_nba_splits",
+          "query_nba_db"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "tsx",
+          "src/index.ts"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Extract and query sports statistics from Basketball Reference, ESPN, and other sports sites",
+        "author": "CO-LLAB",
+        "license": "MIT",
+        "category": "data-extraction",
+        "tags": [
+          "sports",
+          "nba",
+          "basketball",
+          "statistics",
+          "analytics",
+          "basketball-reference"
+        ],
+        "icon": "🏀"
+      }
+    },
+    "stack:sqlite": {
+      "id": "stack:sqlite",
+      "kind": "stack",
+      "name": "SQLite",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/sqlite"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "SQLITE_DB_PATH",
+            "label": "Database Path",
+            "required": true
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "sqlite_query",
+          "sqlite_execute",
+          "sqlite_list_tables",
+          "sqlite_describe_table",
+          "sqlite_schema"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "tsx",
+          "src/index.ts"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Query and manage SQLite databases. Perfect for local databases, app data, and the RUDI session database.",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "data",
+        "tags": [
+          "sqlite",
+          "database",
+          "sql",
+          "local"
+        ],
+        "icon": "📊"
+      }
+    },
+    "stack:stripe": {
+      "id": "stack:stripe",
+      "kind": "stack",
+      "name": "Stripe",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/stripe"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "STRIPE_API_KEY",
+            "label": "Stripe Secret Key",
+            "required": true,
+            "helpUrl": "https://dashboard.stripe.com/apikeys"
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "stripe_list_customers",
+          "stripe_get_customer",
+          "stripe_create_customer",
+          "stripe_list_invoices",
+          "stripe_get_invoice",
+          "stripe_create_invoice",
+          "stripe_list_subscriptions",
+          "stripe_get_subscription",
+          "stripe_list_payments",
+          "stripe_get_balance"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "node",
+        "args": [
+          "dist/index.js"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Manage Stripe payments, customers, invoices, and subscriptions",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "business",
+        "tags": [
+          "stripe",
+          "payments",
+          "invoices",
+          "subscriptions",
+          "billing"
+        ],
+        "icon": "💳"
+      }
+    },
+    "stack:supabase-mcp": {
+      "id": "stack:supabase-mcp",
+      "kind": "stack",
+      "name": "Supabase MCP",
+      "version": "0.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/supabase-mcp"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": []
+      },
+      "provides": {
+        "tools": [
+          "list_tables",
+          "list_extensions",
+          "list_migrations",
+          "apply_migration",
+          "execute_sql",
+          "get_logs",
+          "get_advisors",
+          "get_project_url",
+          "get_publishable_keys",
+          "generate_typescript_types",
+          "list_edge_functions",
+          "get_edge_function",
+          "deploy_edge_function",
+          "list_projects",
+          "get_project",
+          "create_project",
+          "pause_project",
+          "restore_project",
+          "list_organizations",
+          "get_organization",
+          "get_cost",
+          "confirm_cost",
+          "search_docs",
+          "create_branch",
+          "list_branches",
+          "delete_branch",
+          "merge_branch",
+          "reset_branch",
+          "rebase_branch",
+          "list_storage_buckets",
+          "get_storage_config",
+          "update_storage_config"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "node",
+        "args": [
+          "src/index.js"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Connect agents to Supabase's hosted OAuth MCP server for database, project, Edge Functions, docs, and development tools.",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "data",
+        "tags": [
+          "supabase",
+          "postgres",
+          "database",
+          "mcp",
+          "oauth",
+          "remote"
+        ],
+        "icon": "supabase",
+        "remoteMcp": {
+          "url": "https://mcp.supabase.com/mcp",
+          "auth": "oauth",
+          "bridgePackage": "mcp-remote@0.1.38",
+          "queryEnv": [
+            "SUPABASE_MCP_PROJECT_REF",
+            "SUPABASE_MCP_READ_ONLY",
+            "SUPABASE_MCP_FEATURES"
+          ]
+        },
+        "mcpSafety": "Supabase recommends using MCP for development and testing, scoping to a project, and enabling read-only mode when connecting to sensitive data."
+      }
+    },
+    "stack:swe-engineering": {
+      "id": "stack:swe-engineering",
+      "kind": "stack",
+      "name": "SWE Engineering",
+      "version": "0.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/swe-engineering"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": []
+      },
+      "provides": {
+        "tools": [
+          "swe_manual_list",
+          "swe_manual_read",
+          "swe_manual_search",
+          "swe_debt_scan"
+        ]
+      },
+      "related": {
+        "skills": [
+          "skill:swe-compliance-checklist"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "node",
+        "args": [
+          "src/index.js"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Portable SWE Operating Manual reference and JS/TS agent debt scanning tools for engineering workflows.",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "development",
+        "tags": [
+          "swe",
+          "engineering",
+          "manual",
+          "testing",
+          "debugging",
+          "debt-scan",
+          "code-quality"
+        ]
+      }
+    },
+    "stack:tally": {
+      "id": "stack:tally",
+      "kind": "stack",
+      "name": "Tally Forms",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/tally"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "TALLY_API_KEY",
+            "label": "Tally API Key",
+            "required": true,
+            "helpUrl": "https://tally.so/help/api"
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "tally_list_forms",
+          "tally_get_form",
+          "tally_create_form",
+          "tally_update_form",
+          "tally_delete_form",
+          "tally_list_fields",
+          "tally_list_submissions",
+          "tally_get_submission",
+          "tally_filter_submissions",
+          "tally_export_submissions",
+          "tally_generate_prefill_url",
+          "tally_get_analytics"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "node",
+        "args": [
+          "dist/index.js"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Create, manage, and analyze Tally forms and submissions",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "productivity",
+        "tags": [
+          "tally",
+          "forms",
+          "surveys",
+          "data-collection",
+          "feedback"
+        ]
+      }
+    },
+    "stack:twilio-sms": {
+      "id": "stack:twilio-sms",
+      "kind": "stack",
+      "name": "Twilio SMS",
+      "version": "0.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/twilio-sms"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "TWILIO_ACCOUNT_SID",
+            "label": "Twilio Account SID",
+            "required": true,
+            "helpUrl": "https://console.twilio.com/"
+          },
+          {
+            "key": "TWILIO_AUTH_TOKEN",
+            "label": "Twilio Auth Token",
+            "required": false,
+            "helpUrl": "https://console.twilio.com/"
+          },
+          {
+            "key": "TWILIO_API_KEY_SID",
+            "label": "Twilio API Key SID",
+            "required": false,
+            "helpUrl": "https://console.twilio.com/us1/account/keys-credentials/api-keys"
+          },
+          {
+            "key": "TWILIO_API_KEY_SECRET",
+            "label": "Twilio API Key Secret",
+            "required": false,
+            "helpUrl": "https://console.twilio.com/us1/account/keys-credentials/api-keys"
+          },
+          {
+            "key": "TWILIO_FROM_NUMBER",
+            "label": "Twilio From Number",
+            "required": false,
+            "helpUrl": "https://console.twilio.com/us1/develop/phone-numbers/manage/incoming"
+          },
+          {
+            "key": "TWILIO_MESSAGING_SERVICE_SID",
+            "label": "Twilio Messaging Service SID",
+            "required": false,
+            "helpUrl": "https://console.twilio.com/us1/develop/sms/services"
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "twilio_config_status",
+          "twilio_send_sms",
+          "twilio_list_messages",
+          "twilio_get_message"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "tsx",
+          "src/index.ts"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Send SMS messages and inspect recent Twilio messages through a guarded MCP interface.",
+        "author": "CO-LLAB",
+        "license": "MIT",
+        "category": "communication",
+        "tags": [
+          "twilio",
+          "sms",
+          "messaging",
+          "mcp",
+          "communication"
+        ],
+        "icon": "💬"
+      }
+    },
+    "stack:vercel": {
+      "id": "stack:vercel",
+      "kind": "stack",
+      "name": "Vercel",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/vercel"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "VERCEL_TOKEN",
+            "label": "Vercel API Token",
+            "required": true,
+            "helpUrl": "https://vercel.com/account/tokens"
+          },
+          {
+            "key": "VERCEL_ORG_ID",
+            "label": "Vercel Organization ID",
+            "required": false,
+            "helpUrl": "https://vercel.com/account/settings"
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "vercel_list_projects",
+          "vercel_get_project",
+          "vercel_set_env_variable",
+          "vercel_get_env_variables",
+          "vercel_remove_env_variable",
+          "vercel_list_deployments",
+          "vercel_get_deployment",
+          "vercel_deploy",
+          "vercel_promote_deployment",
+          "vercel_get_logs",
+          "vercel_list_domains"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "tsx",
+          "src/index.ts"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Deploy to Vercel, manage environment variables, and monitor deployments",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "deployment",
+        "tags": [
+          "vercel",
+          "deployment",
+          "serverless",
+          "hosting"
+        ],
+        "icon": "⚡"
+      }
+    },
+    "stack:video-editor": {
+      "id": "stack:video-editor",
+      "kind": "stack",
+      "name": "Video Editor",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/video-editor"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [
+          "ffmpeg",
+          "ffprobe",
+          "whisper",
+          "chromium"
+        ],
+        "secrets": []
+      },
+      "provides": {
+        "tools": [
+          "video_info",
+          "video_trim",
+          "video_speed",
+          "video_extract_audio",
+          "video_remove_silence",
+          "video_resize",
+          "video_compress",
+          "video_concat",
+          "video_frames",
+          "video_extract_slides",
+          "video_thumbnail",
+          "video_make_transcript_clips",
+          "video_make_topic_clips",
+          "video_cut_silence",
+          "video_cut_silence_batch",
+          "video_silence_presets",
+          "video_init_run",
+          "video_probe_run",
+          "video_normalize_run",
+          "video_transcribe_run",
+          "video_cluster_transcript",
+          "video_detect_silence",
+          "video_audit_cuts",
+          "video_plan_cut",
+          "video_render_rough",
+          "video_generate_captions",
+          "video_render_captions",
+          "video_grade_source",
+          "video_grade_render",
+          "video_grade_presets",
+          "video_add_lower_third",
+          "video_apply_overlays",
+          "video_qa",
+          "video_review",
+          "video_list_templates",
+          "video_render_template",
+          "video_get_render_job",
+          "video_transcribe_audio",
+          "video_process_video_transcript"
+        ]
+      },
+      "related": {
+        "skills": [
+          "skill:rudi-video-editor",
+          "skill:shortform-your-words-script",
+          "skill:shortform-publish-copy"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "tsx",
+          "src/index.ts"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Comprehensive local video editing stack for quick ffmpeg operations, structured runs, captions, rendering, and QA.",
+        "author": "CO-LLAB",
+        "license": "MIT",
+        "category": "media",
+        "tags": [
+          "video",
+          "ffmpeg",
+          "editing",
+          "silence",
+          "transcript",
+          "slides",
+          "captions",
+          "remotion",
+          "templates",
+          "qa",
+          "media"
+        ],
+        "icon": "🎬"
+      }
+    },
+    "stack:video-generator": {
+      "id": "stack:video-generator",
+      "kind": "stack",
+      "name": "Video Generator",
+      "version": "0.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/video-generator"
+      },
+      "runtime": "python",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "GEMINI_API_KEY",
+            "label": "Gemini API key",
+            "required": false,
+            "helpUrl": "https://aistudio.google.com/apikey"
+          },
+          {
+            "key": "REPLICATE_API_TOKEN",
+            "label": "Replicate API token",
+            "required": false,
+            "helpUrl": "https://replicate.com/account/api-tokens"
+          },
+          {
+            "key": "FAL_KEY",
+            "label": "fal API key",
+            "required": false,
+            "helpUrl": "https://fal.ai/dashboard/keys"
+          },
+          {
+            "key": "OPENAI_API_KEY",
+            "label": "OpenAI API key",
+            "required": false,
+            "helpUrl": "https://platform.openai.com/api-keys"
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "list_video_models",
+          "generate_video",
+          "get_video_job"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "python",
+        "args": [
+          "src/server.py"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Agent-safe multi-provider video generation for content creation workflows.",
+        "author": "brandonz@heritagehill.co",
+        "license": "MIT",
+        "category": "ai-generation",
+        "tags": [
+          "video",
+          "generation",
+          "ai",
+          "gemini",
+          "veo",
+          "replicate",
+          "fal",
+          "openai",
+          "sora",
+          "content-creation",
+          "social-media"
+        ],
         "icon": "video"
-      },
-      {
-        "id": "deployment",
-        "name": "Deployment",
-        "icon": "rocket"
-      },
-      {
-        "id": "utilities",
-        "name": "Utilities",
-        "icon": "tool"
       }
-    ],
-    "skills": [
-      {
-        "id": "general",
-        "name": "General",
-        "icon": "star"
+    },
+    "stack:web-export": {
+      "id": "stack:web-export",
+      "kind": "stack",
+      "name": "Web Export",
+      "version": "2.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/web-export"
       },
-      {
-        "id": "coding",
-        "name": "Coding",
-        "icon": "code"
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": []
       },
-      {
-        "id": "writing",
-        "name": "Writing",
-        "icon": "edit"
+      "provides": {
+        "tools": [
+          "html_to_png",
+          "html_to_pdf",
+          "html_to_png_pdf"
+        ]
       },
-      {
-        "id": "creative",
-        "name": "Creative",
-        "icon": "palette"
+      "mcp": {
+        "transport": "stdio",
+        "command": "node",
+        "args": [
+          "dist/index.js"
+        ],
+        "cwd": "."
       },
-      {
-        "id": "utilities",
-        "name": "Utilities",
-        "icon": "tool"
-      },
-      {
-        "id": "productivity",
-        "name": "Productivity",
-        "icon": "briefcase"
-      },
-      {
-        "id": "analysis",
-        "name": "Analysis",
-        "icon": "bar-chart"
-      },
-      {
-        "id": "development",
-        "name": "Development",
-        "icon": "code"
-      },
-      {
-        "id": "business",
-        "name": "Business",
-        "icon": "briefcase"
-      },
-      {
-        "id": "marketing",
-        "name": "Marketing",
-        "icon": "megaphone"
-      },
-      {
-        "id": "automation",
-        "name": "Automation",
-        "icon": "refresh-cw"
+      "meta": {
+        "description": "Export HTML to PDF/PNG with mode detection, artifact verification, and structured diagnostics.",
+        "author": "CO-LLAB",
+        "license": "MIT",
+        "category": "document-processing",
+        "tags": [
+          "export",
+          "pdf",
+          "png",
+          "html",
+          "artboard",
+          "print",
+          "screenshot",
+          "playwright",
+          "diagnostics"
+        ],
+        "icon": "📄"
       }
-    ]
+    },
+    "stack:whisper": {
+      "id": "stack:whisper",
+      "kind": "stack",
+      "name": "Local Whisper",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/whisper"
+      },
+      "runtime": "python",
+      "requires": {
+        "binaries": [],
+        "secrets": []
+      },
+      "provides": {
+        "tools": [
+          "whisper_transcribe",
+          "whisper_list_models"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "python",
+        "args": [
+          "python/src/server.py"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Transcribe audio locally with faster-whisper. No API key needed - runs on your machine.",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "ai-local",
+        "tags": [
+          "whisper",
+          "transcription",
+          "audio",
+          "local",
+          "speech-to-text"
+        ],
+        "icon": "🎙️"
+      }
+    },
+    "stack:zoho-mail": {
+      "id": "stack:zoho-mail",
+      "kind": "stack",
+      "name": "Zoho Mail",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/zoho-mail"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "ZOHO_CLIENT_ID",
+            "label": "Zoho Client ID",
+            "required": true,
+            "helpUrl": "https://api-console.zoho.com/"
+          },
+          {
+            "key": "ZOHO_CLIENT_SECRET",
+            "label": "Zoho Client Secret",
+            "required": true
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "zoho_send_email",
+          "zoho_list_emails",
+          "zoho_get_email",
+          "zoho_search_email",
+          "zoho_list_folders",
+          "zoho_create_draft"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "tsx",
+          "src/index.ts"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Send, search, and manage emails via Zoho Mail",
+        "author": "CO-LLAB",
+        "license": "MIT",
+        "category": "productivity",
+        "tags": [
+          "zoho",
+          "email",
+          "mail"
+        ],
+        "icon": "📬"
+      }
+    }
+  },
+  "aliases": {
+    "agent:ollama": "runtime:ollama",
+    "binary:ollama": "runtime:ollama"
   }
 }
