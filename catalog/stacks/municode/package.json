@@ -1,0 +1,14 @@
+{
+  "name": "@rudi/stack-municode",
+  "version": "0.1.0",
+  "description": "Read-only Municode publication and municipal-code access for reviewed jurisdiction profiles.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}

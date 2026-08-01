@@ -1,0 +1,26 @@
+{
+  "id": "stack:cagis",
+  "kind": "stack",
+  "name": "CAGIS Public Data",
+  "version": "0.1.0",
+  "delivery": "remote",
+  "install": { "source": "catalog", "path": "catalog/stacks/cagis" },
+  "runtime": "node",
+  "requires": {
+    "binaries": [],
+    "secrets": [
+      { "key": "CINCINNATI_PUBLIC_DATA_API_BASE_URL", "label": "Cincinnati Public Data API Base URL", "required": true },
+      { "key": "CINCINNATI_PUBLIC_DATA_API_KEY", "label": "Cincinnati Public Data API Key", "required": false }
+    ]
+  },
+  "provides": { "tools": ["cagis_lookup_property_activity"] },
+  "mcp": { "transport": "stdio", "command": "node", "args": ["src/index.mjs"], "cwd": "." },
+  "meta": {
+    "description": "Read-only Cincinnati and Hamilton County parcel, zoning, and property activity lookup through the configured public-data API.",
+    "author": "RUDI",
+    "license": "MIT",
+    "category": "government-data",
+    "tags": ["cincinnati", "hamilton-county", "cagis", "parcels", "zoning"],
+    "boundary": "Read-only CAGIS facts only. No permit, case, inspection, or parcel mutation tools are exposed."
+  }
+}

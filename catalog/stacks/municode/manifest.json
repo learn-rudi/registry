@@ -1,0 +1,47 @@
+{
+  "id": "stack:municode",
+  "kind": "stack",
+  "name": "Municode Public Codes",
+  "version": "0.1.0",
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/municode"
+  },
+  "runtime": "node",
+  "requires": {
+    "binaries": [
+      "binary:pdftotext"
+    ],
+    "secrets": []
+  },
+  "provides": {
+    "tools": [
+      "municode_get_publication",
+      "municode_list_code_sections",
+      "municode_get_code_section"
+    ]
+  },
+  "mcp": {
+    "transport": "stdio",
+    "command": "node",
+    "args": [
+      "src/index.js"
+    ],
+    "cwd": "."
+  },
+  "meta": {
+    "description": "Read-only publication, table-of-contents, and bounded code-section access for reviewed Municode jurisdiction profiles. Cincinnati, Ohio is the first profile.",
+    "author": "RUDI",
+    "license": "MIT",
+    "category": "government-data",
+    "tags": [
+      "municode",
+      "municipal-code",
+      "ordinances",
+      "government-data",
+      "zoning"
+    ],
+    "boundary": "Read-only access to fixed Municode code products for reviewed jurisdiction profiles. No arbitrary URL, search, export, email, notification, browser, or mutation tools are exposed. Provider text is evidence, not legal interpretation."
+  }
+}

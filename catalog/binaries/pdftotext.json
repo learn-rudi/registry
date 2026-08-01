@@ -1,0 +1,31 @@
+{
+  "id": "binary:pdftotext",
+  "kind": "binary",
+  "name": "pdftotext",
+  "version": "system",
+  "delivery": "system",
+  "install": {
+    "source": "system"
+  },
+  "bins": [
+    "pdftotext"
+  ],
+  "detect": {
+    "command": "pdftotext -v",
+    "expectExitCode": 0
+  },
+  "installHints": {
+    "brew": "brew install poppler",
+    "apt": "sudo apt install poppler-utils",
+    "manual": "Install Poppler and ensure pdftotext is available on PATH."
+  },
+  "meta": {
+    "description": "PDF-to-text converter from Poppler",
+    "category": "document-processing",
+    "tags": [
+      "pdf",
+      "text-extraction",
+      "poppler"
+    ]
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "id": "stack:opencounter",
+  "kind": "stack",
+  "name": "OpenCounter Cincinnati Guidance",
+  "version": "0.1.0",
+  "delivery": "remote",
+  "install": { "source": "catalog", "path": "catalog/stacks/opencounter" },
+  "runtime": "node",
+  "requires": {
+    "binaries": [],
+    "secrets": [
+      { "key": "OPENCOUNTER_SESSION_ENCRYPTION_KEY", "label": "OpenCounter Session Encryption Key", "required": true },
+      { "key": "OPENCOUNTER_STATE_DIRECTORY", "label": "OpenCounter State Directory", "required": false }
+    ]
+  },
+  "provides": {
+    "tools": [
+      "opencounter_start_guidance",
+      "opencounter_continue_guidance",
+      "opencounter_get_guidance_result",
+      "opencounter_reconcile_guidance"
+    ]
+  },
+  "mcp": { "transport": "stdio", "command": "node", "args": ["src/index.mjs"], "cwd": "." },
+  "meta": {
+    "description": "Guarded, headless browser guidance for Cincinnati zoning, business permits and fees, special events, and residential permitting.",
+    "author": "RUDI",
+    "license": "MIT",
+    "category": "government-services",
+    "tags": ["cincinnati", "opencounter", "zoning", "permits", "special-events", "residential", "playwright"],
+    "boundary": "Guidance only. No account creation, sign-in, terms acceptance, uploads, staff messages, application submission, downloads, or payment.",
+    "mcpSafety": "Every tool is Cincinnati-scoped and exact-schema. Browser contexts are isolated and closed after each bounded call; resumable anonymous state is encrypted at rest and expires after 24 hours."
+  }
+}
