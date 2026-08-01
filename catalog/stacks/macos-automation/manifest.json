@@ -1,17 +1,25 @@
 {
-  "id": "macos-automation",
+  "id": "stack:macos-automation",
+  "kind": "stack",
   "name": "macOS Automation",
   "version": "0.1.0",
-  "description": "Guarded macOS automation tools for apps, Finder, Reminders, Shortcuts, notifications, and System Events permission checks.",
+
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/macos-automation"
+  },
+
   "runtime": "node",
-  "command": [
-    "npx",
-    "tsx",
-    "src/index.ts"
-  ],
+  "requires": {
+    "binaries": [],
+    "secrets": []
+  },
   "provides": {
     "tools": [
       "macos_status",
+      "macos_automation_inventory",
+      "macos_automation_dashboard",
       "macos_check_accessibility",
       "macos_get_frontmost_app",
       "macos_list_windows",
@@ -33,11 +41,15 @@
       "macos_run_launch_agent_now"
     ]
   },
-  "requires": {
-    "binaries": [],
-    "secrets": []
+  "mcp": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["tsx", "src/index.ts"],
+    "cwd": "."
   },
+
   "meta": {
+    "description": "Guarded macOS automation tools for apps, Finder, Reminders, Shortcuts, notifications, and System Events permission checks.",
     "author": "RUDI",
     "license": "MIT",
     "category": "local-automation",
@@ -53,13 +65,11 @@
       "automation",
       "mcp"
     ],
-    "platforms": [
-      "darwin"
-    ],
+    "platforms": ["darwin"],
     "permissions": [
       "Accessibility for System Events tools",
       "Automation for Finder, Reminders, and target app control"
     ],
-    "icon": "command"
+    "icon": "⌘"
   }
 }

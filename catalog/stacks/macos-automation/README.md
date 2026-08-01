@@ -20,6 +20,8 @@ Events access.
 ## Tools
 
 - `macos_status`
+- `macos_automation_inventory`
+- `macos_automation_dashboard`
 - `macos_check_accessibility`
 - `macos_get_frontmost_app`
 - `macos_list_windows`
@@ -39,6 +41,24 @@ Events access.
 - `macos_list_launch_agents`
 - `macos_remove_launch_agent`
 - `macos_run_launch_agent_now`
+
+## Automation Dashboard
+
+`macos_automation_inventory` returns a read-only inventory of the main macOS
+automation surfaces: LaunchAgents, LaunchDaemons, cron, the `at` queue,
+Shortcuts, RUDI keep-awake sessions, active `caffeinate` processes, and current
+`pmset` sleep assertions.
+
+`macos_automation_dashboard` writes a local HTML snapshot under
+`~/.rudi/state/macos-automation/dashboard/index.html` by default. Pass
+`open_dashboard: true` to open it in the default browser. The dashboard does not
+remove jobs, stop processes, or mutate scheduler state.
+
+From the installed stack directory:
+
+```bash
+npm run dashboard -- --open
+```
 
 `macos_run_shortcut` and `macos_create_reminder` default to dry-run mode.
 Pass `confirm_run: true` or `confirm_create: true` only after reviewing the

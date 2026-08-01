@@ -16,6 +16,7 @@ export const MAX_WATCH_PATHS = 20;
 export const DEFAULT_KEEP_AWAKE_MINUTES = 60;
 export const MAX_KEEP_AWAKE_MINUTES = 24 * 60;
 export const KEEP_AWAKE_SESSION_ID_PREFIX = "awake-";
+export const DEFAULT_DASHBOARD_RELATIVE_PATH = ".rudi/state/macos-automation/dashboard/index.html";
 
 export type ToolArgs = Record<string, unknown> | undefined;
 
@@ -45,12 +46,18 @@ export interface ProcessManager {
   kill(pid: number, signal: NodeJS.Signals): void;
 }
 
+export interface LaunchdInventoryRoot {
+  domain: "user" | "global-agent" | "global-daemon";
+  dir: string;
+}
+
 export interface MacosAutomationDependencies {
   runner?: CommandRunner;
   processManager?: ProcessManager;
   platform?: NodeJS.Platform | string;
   homeDir?: string;
   uid?: number;
+  launchdRoots?: LaunchdInventoryRoot[];
 }
 
 export interface OpenUrlInput {
@@ -140,6 +147,77 @@ export interface KeepAwakeStartInput {
 export interface KeepAwakeStopInput {
   session_id?: string;
   confirm_stop: boolean;
+}
+
+export interface AutomationDashboardInput {
+  output_path?: string;
+  open_dashboard: boolean;
+}
+
+export interface LaunchdInventoryItem {
+  label: string;
+  domain: "user" | "global-agent" | "global-daemon";
+  path: string;
+  loaded: boolean;
+  pid: number | null;
+  last_exit_status: number | null;
+  schedules: string[];
+  triggers: string[];
+  keep_alive: boolean;
+  run_at_load: boolean;
+  command: string[];
+  warnings: string[];
+}
+
+export interface AutomationInventory {
+  generated_at: string;
+  platform: string;
+  launchd: {
+    summary: {
+      total: number;
+      loaded: number;
+      scheduled: number;
+      triggers: number;
+      keep_alive: number;
+      broken: number;
+      stale: number;
+    };
+    items: LaunchdInventoryItem[];
+  };
+  cron: {
+    available: boolean;
+    entries: Array<{ schedule: string; command: string; raw: string }>;
+    error?: string;
+  };
+  at: {
+    available: boolean;
+    jobs: string[];
+    error?: string;
+  };
+  shortcuts: {
+    available: boolean;
+    count: number;
+    shortcuts: string[];
+    error?: string;
+  };
+  keep_awake: {
+    active_count: number;
+    sessions: Record<string, unknown>[];
+  };
+  sleep: {
+    preventing_sleep: boolean;
+    assertion_status: Record<string, number>;
+    assertions: Array<{
+      pid: number;
+      process: string;
+      kind: string;
+      name?: string;
+      details?: string;
+    }>;
+    caffeinate_processes: Array<{ pid: number; command: string }>;
+    raw: string;
+    error?: string;
+  };
 }
 
 interface KeepAwakeSession {
@@ -855,6 +933,14 @@ export function parseKeepAwakeStopArgs(args: ToolArgs): KeepAwakeStopInput {
   };
 }
 
+export function parseAutomationDashboardArgs(args: ToolArgs): AutomationDashboardInput {
+  const parsedArgs = requireArgs(args);
+  return {
+    output_path: optionalAbsolutePath(parsedArgs, "output_path"),
+    open_dashboard: parsedArgs.open_dashboard === true,
+  };
+}
+
 export function buildLaunchAgentPlist(input: InstallLaunchAgentInput): string {
   const lines = [
     "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
@@ -971,6 +1057,709 @@ export function classifyMacosError(error: unknown): ClassifiedMacosError {
   };
 }
 
+async function runUnchecked(
+  file: string,
+  args: string[],
+  deps: MacosAutomationDependencies = {},
+  options: CommandOptions = {}
+): Promise<CommandResult> {
+  ensureMacos(deps);
+  try {
+    return await getRunner(deps).execFile(file, args, {
+      timeoutMs: options.timeoutMs ?? DEFAULT_COMMAND_TIMEOUT_MS,
+      input: options.input,
+    });
+  } catch (error) {
+    return {
+      stdout: "",
+      stderr: error instanceof Error ? error.message : String(error),
+      exitCode: 1,
+    };
+  }
+}
+
+function defaultLaunchdInventoryRoots(
+  deps: MacosAutomationDependencies = {}
+): LaunchdInventoryRoot[] {
+  return deps.launchdRoots ?? [
+    { domain: "user", dir: launchAgentsDir(deps) },
+    { domain: "global-agent", dir: "/Library/LaunchAgents" },
+    { domain: "global-daemon", dir: "/Library/LaunchDaemons" },
+  ];
+}
+
+function redactSensitiveText(value: string): string {
+  if (
+    /(?:token|secret|password|passwd|api[_-]?key|access[_-]?key|credential|bearer)/i.test(value)
+  ) {
+    return "[redacted]";
+  }
+  return value;
+}
+
+function parseLaunchctlList(stdout: string): Map<string, { pid: number | null; last_exit_status: number | null }> {
+  const loaded = new Map<string, { pid: number | null; last_exit_status: number | null }>();
+  for (const line of stdout.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("PID") || trimmed.startsWith("{")) continue;
+    const parts = trimmed.split(/\s+/);
+    if (parts.length < 3) continue;
+    const label = parts.slice(2).join(" ");
+    const pid = parts[0] === "-" ? null : Number(parts[0]);
+    const lastExitStatus = parts[1] === "-" ? null : Number(parts[1]);
+    loaded.set(label, {
+      pid: Number.isFinite(pid) ? pid : null,
+      last_exit_status: Number.isFinite(lastExitStatus) ? lastExitStatus : null,
+    });
+  }
+  return loaded;
+}
+
+function decodeXml(value: string): string {
+  return value
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, "\"")
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
+function xmlBlockForKey(xml: string, key: string, tag: string): string | undefined {
+  const keyIndex = xml.indexOf(`<key>${key}</key>`);
+  if (keyIndex < 0) return undefined;
+  const startToken = `<${tag}>`;
+  const endToken = `</${tag}>`;
+  const start = xml.indexOf(startToken, keyIndex);
+  if (start < 0) return undefined;
+  const end = xml.indexOf(endToken, start + startToken.length);
+  if (end < 0) return undefined;
+  return xml.slice(start + startToken.length, end);
+}
+
+function xmlStringForKey(xml: string, key: string): string | undefined {
+  const keyIndex = xml.indexOf(`<key>${key}</key>`);
+  if (keyIndex < 0) return undefined;
+  const rest = xml.slice(keyIndex);
+  const match = rest.match(/<string>([\s\S]*?)<\/string>/);
+  return match ? decodeXml(match[1]) : undefined;
+}
+
+function xmlIntegerForKey(xml: string, key: string): number | undefined {
+  const keyIndex = xml.indexOf(`<key>${key}</key>`);
+  if (keyIndex < 0) return undefined;
+  const rest = xml.slice(keyIndex);
+  const match = rest.match(/<integer>(-?\d+)<\/integer>/);
+  return match ? Number(match[1]) : undefined;
+}
+
+function xmlBooleanForKey(xml: string, key: string): boolean | undefined {
+  const keyIndex = xml.indexOf(`<key>${key}</key>`);
+  if (keyIndex < 0) return undefined;
+  const rest = xml.slice(keyIndex, keyIndex + 120);
+  if (rest.includes("<true/>")) return true;
+  if (rest.includes("<false/>")) return false;
+  return undefined;
+}
+
+function xmlStringArrayForKey(xml: string, key: string): string[] | undefined {
+  const block = xmlBlockForKey(xml, key, "array");
+  if (!block) return undefined;
+  return [...block.matchAll(/<string>([\s\S]*?)<\/string>/g)].map((match) =>
+    decodeXml(match[1])
+  );
+}
+
+function xmlDictForKey(xml: string, key: string): Record<string, unknown> | undefined {
+  const block = xmlBlockForKey(xml, key, "dict");
+  if (!block) return undefined;
+  const out: Record<string, unknown> = {};
+  const matches = [...block.matchAll(/<key>([^<]+)<\/key>\s*(?:<integer>(-?\d+)<\/integer>|<string>([\s\S]*?)<\/string>|<(true|false)\/>)/g)];
+  for (const match of matches) {
+    const itemKey = decodeXml(match[1]);
+    if (match[2] !== undefined) out[itemKey] = Number(match[2]);
+    else if (match[3] !== undefined) out[itemKey] = decodeXml(match[3]);
+    else out[itemKey] = match[4] === "true";
+  }
+  return out;
+}
+
+function parseLoosePlistXml(xml: string): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  const label = xmlStringForKey(xml, "Label");
+  if (label) out.Label = label;
+  const program = xmlStringForKey(xml, "Program");
+  if (program) out.Program = program;
+  const programArguments = xmlStringArrayForKey(xml, "ProgramArguments");
+  if (programArguments) out.ProgramArguments = programArguments;
+  const watchPaths = xmlStringArrayForKey(xml, "WatchPaths");
+  if (watchPaths) out.WatchPaths = watchPaths;
+  const queueDirectories = xmlStringArrayForKey(xml, "QueueDirectories");
+  if (queueDirectories) out.QueueDirectories = queueDirectories;
+  const startInterval = xmlIntegerForKey(xml, "StartInterval");
+  if (startInterval !== undefined) out.StartInterval = startInterval;
+  const startCalendarInterval = xmlDictForKey(xml, "StartCalendarInterval");
+  if (startCalendarInterval) out.StartCalendarInterval = startCalendarInterval;
+  const runAtLoad = xmlBooleanForKey(xml, "RunAtLoad");
+  if (runAtLoad !== undefined) out.RunAtLoad = runAtLoad;
+  const keepAlive = xmlBooleanForKey(xml, "KeepAlive");
+  if (keepAlive !== undefined) out.KeepAlive = keepAlive;
+  return out;
+}
+
+async function readPlist(filePath: string, deps: MacosAutomationDependencies): Promise<Record<string, unknown>> {
+  const converted = await runUnchecked(
+    "/usr/bin/plutil",
+    ["-convert", "json", "-o", "-", filePath],
+    deps
+  );
+  if (converted.exitCode === 0 && converted.stdout.trim()) {
+    try {
+      return JSON.parse(converted.stdout) as Record<string, unknown>;
+    } catch {
+      // Fall through to the XML parser below.
+    }
+  }
+  return parseLoosePlistXml(await fs.readFile(filePath, "utf8"));
+}
+
+function numberFromRecord(value: Record<string, unknown>, key: string): number | undefined {
+  const raw = value[key];
+  return typeof raw === "number" && Number.isFinite(raw) ? raw : undefined;
+}
+
+function formatTime(hour?: number, minute?: number): string | undefined {
+  if (hour === undefined && minute === undefined) return undefined;
+  const safeHour = hour ?? 0;
+  const safeMinute = minute ?? 0;
+  return `${String(safeHour).padStart(2, "0")}:${String(safeMinute).padStart(2, "0")}`;
+}
+
+function formatCalendarInterval(value: unknown): string[] {
+  const values = Array.isArray(value) ? value : [value];
+  return values.flatMap((item) => {
+    if (typeof item !== "object" || item === null || Array.isArray(item)) return [];
+    const record = item as Record<string, unknown>;
+    const hour = numberFromRecord(record, "Hour");
+    const minute = numberFromRecord(record, "Minute");
+    const day = numberFromRecord(record, "Day");
+    const month = numberFromRecord(record, "Month");
+    const weekday = numberFromRecord(record, "Weekday");
+    const time = formatTime(hour, minute);
+    if (month !== undefined && day !== undefined) {
+      return [`calendar ${String(month).padStart(2, "0")}/${String(day).padStart(2, "0")}${time ? ` ${time}` : ""}`];
+    }
+    if (weekday !== undefined) {
+      return [`weekly weekday ${weekday}${time ? ` ${time}` : ""}`];
+    }
+    if (time) return [`daily ${time}`];
+    return ["calendar"];
+  });
+}
+
+function calendarIntervalLooksPast(value: unknown, now = new Date()): boolean {
+  const values = Array.isArray(value) ? value : [value];
+  return values.some((item) => {
+    if (typeof item !== "object" || item === null || Array.isArray(item)) return false;
+    const record = item as Record<string, unknown>;
+    const month = numberFromRecord(record, "Month");
+    const day = numberFromRecord(record, "Day");
+    if (month === undefined || day === undefined) return false;
+    const hour = numberFromRecord(record, "Hour") ?? 0;
+    const minute = numberFromRecord(record, "Minute") ?? 0;
+    const scheduled = new Date(now.getFullYear(), month - 1, day, hour, minute);
+    return scheduled.getTime() < now.getTime();
+  });
+}
+
+function formatIntervalSeconds(seconds: number): string {
+  if (seconds % 3600 === 0) return `every ${seconds / 3600}h`;
+  if (seconds % 60 === 0) return `every ${seconds / 60}m`;
+  return `every ${seconds}s`;
+}
+
+function stringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string");
+}
+
+async function commandWarnings(command: string[]): Promise<string[]> {
+  if (command.length === 0) return ["missing command"];
+  const executable = command[0];
+  if (!path.isAbsolute(executable)) return ["command executable is not absolute"];
+  try {
+    await fs.access(executable);
+    return [];
+  } catch {
+    return [`missing executable ${executable}`];
+  }
+}
+
+async function collectLaunchdInventory(
+  deps: MacosAutomationDependencies
+): Promise<AutomationInventory["launchd"]> {
+  const loadedResult = await runUnchecked("/bin/launchctl", ["list"], deps);
+  const loaded = parseLaunchctlList(loadedResult.stdout);
+  const items: LaunchdInventoryItem[] = [];
+
+  for (const root of defaultLaunchdInventoryRoots(deps)) {
+    let names: string[] = [];
+    try {
+      names = (await fs.readdir(root.dir)).filter((name) => name.endsWith(".plist")).sort();
+    } catch (error: any) {
+      if (error?.code !== "ENOENT" && error?.code !== "EACCES" && error?.code !== "EPERM") {
+        throw error;
+      }
+      continue;
+    }
+
+    for (const name of names) {
+      const filePath = path.join(root.dir, name);
+      let plist: Record<string, unknown>;
+      try {
+        plist = await readPlist(filePath, deps);
+      } catch {
+        plist = {};
+      }
+
+      const label = typeof plist.Label === "string" && plist.Label.trim()
+        ? plist.Label.trim()
+        : name.slice(0, -".plist".length);
+      const loadedStatus = loaded.get(label);
+      const command = stringArray(plist.ProgramArguments);
+      if (command.length === 0 && typeof plist.Program === "string") {
+        command.push(plist.Program);
+      }
+      const redactedCommand = command.map(redactSensitiveText);
+      const schedules = [
+        ...formatCalendarInterval(plist.StartCalendarInterval),
+      ];
+      if (typeof plist.StartInterval === "number") {
+        schedules.push(formatIntervalSeconds(plist.StartInterval));
+      }
+      const triggers = [
+        ...stringArray(plist.WatchPaths).map((item) => `watch ${item}`),
+        ...stringArray(plist.QueueDirectories).map((item) => `queue ${item}`),
+      ];
+      const keepAlive = Boolean(plist.KeepAlive);
+      const runAtLoad = plist.RunAtLoad === true;
+      const warnings = await commandWarnings(command);
+      if (calendarIntervalLooksPast(plist.StartCalendarInterval)) {
+        warnings.push("dated calendar schedule has elapsed this year");
+      }
+
+      items.push({
+        label,
+        domain: root.domain,
+        path: filePath,
+        loaded: loadedStatus !== undefined,
+        pid: loadedStatus?.pid ?? null,
+        last_exit_status: loadedStatus?.last_exit_status ?? null,
+        schedules,
+        triggers,
+        keep_alive: keepAlive,
+        run_at_load: runAtLoad,
+        command: redactedCommand,
+        warnings,
+      });
+    }
+  }
+
+  items.sort((a, b) => a.domain.localeCompare(b.domain) || a.label.localeCompare(b.label));
+  return {
+    summary: {
+      total: items.length,
+      loaded: items.filter((item) => item.loaded).length,
+      scheduled: items.filter((item) => item.schedules.length > 0).length,
+      triggers: items.filter((item) => item.triggers.length > 0).length,
+      keep_alive: items.filter((item) => item.keep_alive).length,
+      broken: items.filter((item) =>
+        item.warnings.some((warning) => warning.startsWith("missing executable") || warning === "missing command")
+      ).length,
+      stale: items.filter((item) =>
+        item.warnings.some((warning) => warning.includes("elapsed this year"))
+      ).length,
+    },
+    items,
+  };
+}
+
+function parseCronEntries(stdout: string): AutomationInventory["cron"]["entries"] {
+  return stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#"))
+    .map((line) => {
+      const parts = line.split(/\s+/);
+      const scheduleWidth = parts[0]?.startsWith("@") ? 1 : 5;
+      return {
+        schedule: parts.slice(0, scheduleWidth).join(" "),
+        command: redactSensitiveText(parts.slice(scheduleWidth).join(" ")),
+        raw: redactSensitiveText(line),
+      };
+    });
+}
+
+async function collectCronInventory(
+  deps: MacosAutomationDependencies
+): Promise<AutomationInventory["cron"]> {
+  const result = await runUnchecked("/usr/bin/crontab", ["-l"], deps);
+  if (result.exitCode !== 0) {
+    const message = trimCommandOutput(result.stderr || result.stdout);
+    if (/no crontab/i.test(message)) return { available: true, entries: [] };
+    return { available: false, entries: [], error: message || "crontab command failed" };
+  }
+  return { available: true, entries: parseCronEntries(result.stdout) };
+}
+
+async function collectAtInventory(
+  deps: MacosAutomationDependencies
+): Promise<AutomationInventory["at"]> {
+  const result = await runUnchecked("/usr/bin/atq", [], deps);
+  if (result.exitCode !== 0) {
+    return {
+      available: false,
+      jobs: [],
+      error: trimCommandOutput(result.stderr || result.stdout) || "atq command failed",
+    };
+  }
+  return {
+    available: true,
+    jobs: trimCommandOutput(result.stdout).split(/\r?\n/).filter(Boolean).map(redactSensitiveText),
+  };
+}
+
+async function collectShortcutsInventory(
+  deps: MacosAutomationDependencies
+): Promise<AutomationInventory["shortcuts"]> {
+  const result = await runUnchecked("/usr/bin/shortcuts", ["list"], deps);
+  if (result.exitCode !== 0) {
+    return {
+      available: false,
+      count: 0,
+      shortcuts: [],
+      error: trimCommandOutput(result.stderr || result.stdout) || "shortcuts command failed",
+    };
+  }
+  const shortcuts = trimCommandOutput(result.stdout).split(/\r?\n/).filter(Boolean);
+  return { available: true, count: shortcuts.length, shortcuts };
+}
+
+function parsePmsetAssertions(stdout: string): Pick<AutomationInventory["sleep"], "assertion_status" | "assertions"> {
+  const assertionStatus: Record<string, number> = {};
+  const assertions: AutomationInventory["sleep"]["assertions"] = [];
+  const lines = stdout.split(/\r?\n/);
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const statusMatch = line.match(/^\s*([A-Za-z][A-Za-z0-9]+)\s+(\d+)\s*$/);
+    if (statusMatch) {
+      assertionStatus[statusMatch[1]] = Number(statusMatch[2]);
+      continue;
+    }
+    const ownerMatch = line.match(/^\s*pid\s+(\d+)\(([^)]+)\):.*?\]\s+([A-Za-z0-9]+)\s+named:\s+"([^"]*)"/);
+    if (ownerMatch) {
+      const detailLine = lines[index + 1]?.trim();
+      assertions.push({
+        pid: Number(ownerMatch[1]),
+        process: ownerMatch[2],
+        kind: ownerMatch[3],
+        name: ownerMatch[4],
+        details: detailLine?.startsWith("Details:") ? detailLine.replace(/^Details:\s*/, "") : undefined,
+      });
+    }
+  }
+
+  return { assertion_status: assertionStatus, assertions };
+}
+
+function parseCaffeinateProcesses(stdout: string): AutomationInventory["sleep"]["caffeinate_processes"] {
+  return stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .flatMap((line) => {
+      const match = line.match(/^(\d+)\s+(.+)$/);
+      if (!match) return [];
+      return [{ pid: Number(match[1]), command: redactSensitiveText(match[2]) }];
+    });
+}
+
+async function collectSleepInventory(
+  deps: MacosAutomationDependencies
+): Promise<AutomationInventory["sleep"]> {
+  const pmset = await runUnchecked("/usr/bin/pmset", ["-g", "assertions"], deps);
+  const pgrep = await runUnchecked("/usr/bin/pgrep", ["-afil", "caffeinate"], deps);
+  const parsed = parsePmsetAssertions(pmset.stdout);
+  const caffeinateProcesses = pgrep.exitCode === 0 ? parseCaffeinateProcesses(pgrep.stdout) : [];
+  const preventingSleep =
+    caffeinateProcesses.length > 0 ||
+    ["PreventSystemSleep", "PreventUserIdleSystemSleep", "PreventUserIdleDisplaySleep", "PreventDiskIdle"].some(
+      (key) => (parsed.assertion_status[key] ?? 0) > 0
+    );
+
+  return {
+    preventing_sleep: preventingSleep,
+    assertion_status: parsed.assertion_status,
+    assertions: parsed.assertions,
+    caffeinate_processes: caffeinateProcesses,
+    raw: pmset.stdout,
+    error: pmset.exitCode === 0 ? undefined : trimCommandOutput(pmset.stderr || pmset.stdout) || "pmset command failed",
+  };
+}
+
+function dashboardPath(deps: MacosAutomationDependencies, input: AutomationDashboardInput): string {
+  return input.output_path ?? path.join(getHomeDir(deps), DEFAULT_DASHBOARD_RELATIVE_PATH);
+}
+
+export async function collectAutomationInventory(
+  deps: MacosAutomationDependencies = {}
+): Promise<AutomationInventory> {
+  ensureMacos(deps);
+  const [launchd, cron, at, shortcuts, keepAwakeResult, sleep] = await Promise.all([
+    collectLaunchdInventory(deps),
+    collectCronInventory(deps),
+    collectAtInventory(deps),
+    collectShortcutsInventory(deps),
+    listKeepAwakeSessions(deps),
+    collectSleepInventory(deps),
+  ]);
+
+  return {
+    generated_at: new Date().toISOString(),
+    platform: process.platform,
+    launchd,
+    cron,
+    at,
+    shortcuts,
+    keep_awake: {
+      active_count: typeof keepAwakeResult.active_count === "number" ? keepAwakeResult.active_count : 0,
+      sessions: Array.isArray(keepAwakeResult.sessions)
+        ? keepAwakeResult.sessions as Record<string, unknown>[]
+        : [],
+    },
+    sleep,
+  };
+}
+
+function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function joinList(values: string[]): string {
+  return values.length > 0 ? values.map(escapeHtml).join("<br>") : "<span class=\"muted\">none</span>";
+}
+
+function statusPill(label: string, tone: "ok" | "warn" | "idle" = "idle"): string {
+  return `<span class="pill ${tone}">${escapeHtml(label)}</span>`;
+}
+
+function breakableCode(value: unknown): string {
+  return `<code>${escapeHtml(value).replace(/([/_.-])/g, "$1<wbr>")}</code>`;
+}
+
+function tableCell(label: string, value: string, className?: string): string {
+  const classAttr = className ? ` class="${escapeHtml(className)}"` : "";
+  return `<td data-label="${escapeHtml(label)}"${classAttr}>${value}</td>`;
+}
+
+function renderMetric(label: string, value: unknown, tone: "ok" | "warn" | "idle" = "idle"): string {
+  return `<section class="metric ${tone}"><div>${escapeHtml(label)}</div><strong>${escapeHtml(value)}</strong></section>`;
+}
+
+export function renderAutomationDashboardHtml(inventory: AutomationInventory): string {
+  const sleepTone = inventory.sleep.preventing_sleep ? "warn" : "ok";
+  const launchdRows = inventory.launchd.items.map((item) => `
+      <tr>
+        ${tableCell("Label", `${escapeHtml(item.label)}<div class="sub">${escapeHtml(item.domain)}</div>`)}
+        ${tableCell("Loaded", item.loaded ? statusPill(item.pid ? `pid ${item.pid}` : "loaded", "ok") : statusPill("not loaded"))}
+        ${tableCell("Schedule", `${joinList(item.schedules)}${item.triggers.length ? `<div class="sub">${joinList(item.triggers)}</div>` : ""}`)}
+        ${tableCell("Flags", `${item.keep_alive ? statusPill("keep alive", "warn") : ""}${item.run_at_load ? statusPill("run at load", "idle") : ""}` || "<span class=\"muted\">none</span>")}
+        ${tableCell("Command", breakableCode(item.command.join(" ")), "command-cell")}
+        ${tableCell("Warnings", item.warnings.length ? item.warnings.map((warning) => statusPill(warning, "warn")).join(" ") : statusPill("clean", "ok"), "warning-cell")}
+      </tr>`).join("");
+  const cronRows = inventory.cron.entries.map((entry) => `
+      <tr>${tableCell("Schedule", escapeHtml(entry.schedule))}${tableCell("Command", breakableCode(entry.command), "command-cell")}</tr>`).join("");
+  const assertionRows = inventory.sleep.assertions.map((assertion) => `
+      <tr>
+        ${tableCell("Process", `${escapeHtml(assertion.process)}<div class="sub">pid ${escapeHtml(assertion.pid)}</div>`)}
+        ${tableCell("Assertion", escapeHtml(assertion.kind))}
+        ${tableCell("Name", `${escapeHtml(assertion.name ?? "")}<div class="sub">${escapeHtml(assertion.details ?? "")}</div>`)}
+      </tr>`).join("");
+  const caffeinateRows = inventory.sleep.caffeinate_processes.map((processInfo) => `
+      <tr>${tableCell("PID", escapeHtml(processInfo.pid))}${tableCell("Command", breakableCode(processInfo.command), "command-cell")}</tr>`).join("");
+  const shortcutList = inventory.shortcuts.shortcuts.map((shortcut) => `<li>${escapeHtml(shortcut)}</li>`).join("");
+  const atJobs = inventory.at.jobs.map((job) => `<li>${breakableCode(job)}</li>`).join("");
+  const keepAwakeSessions = inventory.keep_awake.sessions.map((session) => `
+      <tr>
+        ${tableCell("Session", escapeHtml(session.session_id))}
+        ${tableCell("Status", escapeHtml(session.status))}
+        ${tableCell("PID", escapeHtml(session.pid))}
+        ${tableCell("Expires", escapeHtml(session.expires_at))}
+        ${tableCell("Reason", escapeHtml(session.reason))}
+      </tr>`).join("");
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mac Automation</title>
+  <style>
+    :root { color-scheme: light dark; --bg: #f7f7f4; --fg: #1d1f21; --muted: #667085; --line: #d8d9d2; --ok: #1f7a4d; --warn: #9a5b00; --panel: #ffffff; --code: #eef0ea; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #111315; --fg: #ecefec; --muted: #9aa4ad; --line: #30363a; --panel: #181b1e; --code: #23282b; } }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--fg); font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 14px; line-height: 1.45; letter-spacing: 0; }
+    header { padding: 28px 32px 16px; border-bottom: 1px solid var(--line); }
+    main { width: 100%; max-width: 1180px; margin: 0 auto; padding: 22px 32px 40px; display: grid; gap: 22px; }
+    main > *, .metrics, .metric, section.panel, table, tbody, tr, td, code { min-width: 0; }
+    h1 { margin: 0 0 6px; font-size: 28px; font-weight: 700; }
+    h2 { margin: 0 0 12px; font-size: 18px; }
+    .sub, .muted { color: var(--muted); font-size: 12px; }
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+    .metric { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+    .metric strong { display: block; margin-top: 4px; font-size: 22px; }
+    .metric.ok strong { color: var(--ok); }
+    .metric.warn strong { color: var(--warn); }
+    section.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .command-table th:first-child { width: 24%; }
+    .command-table th:last-child { width: 76%; }
+    .launchd-table th:nth-child(1) { width: 18%; }
+    .launchd-table th:nth-child(2) { width: 12%; }
+    .launchd-table th:nth-child(3) { width: 13%; }
+    .launchd-table th:nth-child(4) { width: 10%; }
+    .launchd-table th:nth-child(5) { width: 32%; }
+    .launchd-table th:nth-child(6) { width: 15%; }
+    th, td { padding: 9px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+    th { color: var(--muted); font-size: 12px; font-weight: 650; text-transform: uppercase; }
+    code { display: block; max-width: 100%; background: var(--code); border-radius: 5px; padding: 4px 6px; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
+    .command-cell { width: 34%; }
+    .pill { display: inline-block; border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; margin: 0 4px 4px 0; color: var(--muted); white-space: nowrap; }
+    .pill.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); }
+    .pill.warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); }
+    .warning-cell .pill { display: block; max-width: 100%; width: fit-content; border-radius: 6px; line-height: 1.35; white-space: normal; overflow-wrap: anywhere; }
+    ul { margin: 0; padding-left: 18px; columns: 2; }
+    @media (max-width: 760px) {
+      header, main { padding-left: 16px; padding-right: 16px; }
+      main { gap: 16px; }
+      section.panel { max-width: calc(100vw - 32px); padding: 14px; }
+      ul { columns: 1; }
+      table, thead, tbody, tr, th, td { display: block; width: 100%; }
+      thead { display: none; }
+      tr { padding: 10px 0; border-bottom: 1px solid var(--line); }
+      td { padding: 4px 0; border-bottom: 0; font-size: 12px; }
+      td::before { content: attr(data-label); display: block; margin-bottom: 2px; color: var(--muted); font-size: 11px; font-weight: 650; text-transform: uppercase; }
+      tr.empty-row { padding: 0; }
+      tr.empty-row td::before { display: none; }
+      .command-cell { width: 100%; }
+      code { width: 100%; max-width: calc(100vw - 60px); white-space: normal; word-break: break-all; }
+    }
+    @media (max-width: 420px) {
+      .metrics { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Mac Automation</h1>
+    <div class="sub">Generated ${escapeHtml(new Date(inventory.generated_at).toLocaleString())}</div>
+  </header>
+  <main>
+    <div class="metrics">
+      ${renderMetric("Sleep", inventory.sleep.preventing_sleep ? "held awake" : "normal", sleepTone)}
+      ${renderMetric("Launchd Jobs", inventory.launchd.summary.total)}
+      ${renderMetric("Loaded", inventory.launchd.summary.loaded)}
+      ${renderMetric("Scheduled", inventory.launchd.summary.scheduled)}
+      ${renderMetric("Triggers", inventory.launchd.summary.triggers)}
+      ${renderMetric("Warnings", inventory.launchd.summary.broken + inventory.launchd.summary.stale, inventory.launchd.summary.broken + inventory.launchd.summary.stale > 0 ? "warn" : "ok")}
+      ${renderMetric("Cron", inventory.cron.entries.length)}
+      ${renderMetric("Shortcuts", inventory.shortcuts.count)}
+    </div>
+
+    <section class="panel">
+      <h2>Sleep</h2>
+      <table>
+        <thead><tr><th>Process</th><th>Assertion</th><th>Name</th></tr></thead>
+        <tbody>${assertionRows || `<tr class="empty-row"><td colspan="3" class="muted">No active sleep assertions found.</td></tr>`}</tbody>
+      </table>
+      <h2>Caffeinate</h2>
+      <table class="command-table">
+        <thead><tr><th>PID</th><th>Command</th></tr></thead>
+        <tbody>${caffeinateRows || `<tr class="empty-row"><td colspan="2" class="muted">No caffeinate processes found.</td></tr>`}</tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <h2>Launchd</h2>
+      <table class="launchd-table">
+        <thead><tr><th>Label</th><th>Loaded</th><th>Schedule</th><th>Flags</th><th>Command</th><th>Warnings</th></tr></thead>
+        <tbody>${launchdRows || `<tr class="empty-row"><td colspan="6" class="muted">No LaunchAgents or LaunchDaemons found.</td></tr>`}</tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <h2>Cron</h2>
+      <table class="command-table">
+        <thead><tr><th>Schedule</th><th>Command</th></tr></thead>
+        <tbody>${cronRows || `<tr class="empty-row"><td colspan="2" class="muted">${escapeHtml(inventory.cron.error ?? "No cron entries found.")}</td></tr>`}</tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <h2>RUDI Keep Awake</h2>
+      <table>
+        <thead><tr><th>Session</th><th>Status</th><th>PID</th><th>Expires</th><th>Reason</th></tr></thead>
+        <tbody>${keepAwakeSessions || `<tr class="empty-row"><td colspan="5" class="muted">No RUDI-managed keep-awake sessions found.</td></tr>`}</tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <h2>Shortcuts</h2>
+      ${shortcutList ? `<ul>${shortcutList}</ul>` : `<div class="muted">${escapeHtml(inventory.shortcuts.error ?? "No shortcuts found.")}</div>`}
+    </section>
+
+    <section class="panel">
+      <h2>At Queue</h2>
+      ${atJobs ? `<ul>${atJobs}</ul>` : `<div class="muted">${escapeHtml(inventory.at.error ?? "No queued at jobs found.")}</div>`}
+    </section>
+  </main>
+</body>
+</html>
+`;
+}
+
+export async function writeAutomationDashboard(
+  input: AutomationDashboardInput,
+  deps: MacosAutomationDependencies = {}
+): Promise<Record<string, unknown>> {
+  ensureMacos(deps);
+  const inventory = await collectAutomationInventory(deps);
+  const outputPath = dashboardPath(deps, input);
+  await fs.mkdir(path.dirname(outputPath), { recursive: true });
+  await fs.writeFile(outputPath, renderAutomationDashboardHtml(inventory), "utf8");
+  if (input.open_dashboard) {
+    await runCommand("/usr/bin/open", [outputPath], deps);
+  }
+  return {
+    written: true,
+    opened: input.open_dashboard,
+    path: outputPath,
+    generated_at: inventory.generated_at,
+    summary: {
+      sleep_prevented: inventory.sleep.preventing_sleep,
+      launchd_total: inventory.launchd.summary.total,
+      cron_entries: inventory.cron.entries.length,
+      shortcuts: inventory.shortcuts.count,
+      rudi_keep_awake_active: inventory.keep_awake.active_count,
+    },
+  };
+}
+
 export async function getStatus(): Promise<Record<string, unknown>> {
   const isDarwin = process.platform === "darwin";
   async function executable(file: string): Promise<boolean> {
@@ -992,6 +1781,11 @@ export async function getStatus(): Promise<Record<string, unknown>> {
       shortcuts: await executable("/usr/bin/shortcuts"),
       screencapture: await executable("/usr/sbin/screencapture"),
       caffeinate: await executable("/usr/bin/caffeinate"),
+      launchctl: await executable("/bin/launchctl"),
+      pmset: await executable("/usr/bin/pmset"),
+      pgrep: await executable("/usr/bin/pgrep"),
+      crontab: await executable("/usr/bin/crontab"),
+      atq: await executable("/usr/bin/atq"),
     },
     permissions: {
       accessibility:

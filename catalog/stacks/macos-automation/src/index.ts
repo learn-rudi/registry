@@ -10,6 +10,7 @@ import {
   MacosAutomationError,
   ToolArgs,
   checkAccessibility,
+  collectAutomationInventory,
   createReminder,
   focusApp,
   getFrontmostApp,
@@ -24,6 +25,7 @@ import {
   openUrl,
   parseAppArgs,
   parseInstallLaunchAgentArgs,
+  parseAutomationDashboardArgs,
   parseKeepAwakeStartArgs,
   parseKeepAwakeStopArgs,
   parseLaunchAgentLabelArgs,
@@ -40,6 +42,7 @@ import {
   showNotification,
   startKeepAwake,
   stopKeepAwake,
+  writeAutomationDashboard,
 } from "./core.js";
 
 function asText(data: unknown, isError = false) {
@@ -81,6 +84,34 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       inputSchema: {
         type: "object",
         properties: {},
+      },
+    },
+    {
+      name: "macos_automation_inventory",
+      description:
+        "Read-only inventory of macOS automation surfaces: LaunchAgents, LaunchDaemons, cron, at queue, Shortcuts, keep-awake sessions, caffeinate processes, and current power assertions.",
+      inputSchema: {
+        type: "object",
+        properties: {},
+      },
+    },
+    {
+      name: "macos_automation_dashboard",
+      description:
+        "Generate a read-only local HTML dashboard snapshot for macOS automations and sleep assertions. Optionally open it in the default browser.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          output_path: {
+            type: "string",
+            description:
+              "Optional absolute path for the HTML file. Defaults under ~/.rudi/state/macos-automation/dashboard/index.html.",
+          },
+          open_dashboard: {
+            type: "boolean",
+            description: "Open the generated dashboard with the default macOS handler.",
+          },
+        },
       },
     },
     {
@@ -461,6 +492,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     if (name === "macos_status") return asText(await getStatus());
+    if (name === "macos_automation_inventory") {
+      return asText(await collectAutomationInventory());
+    }
+    if (name === "macos_automation_dashboard") {
+      return asText(await writeAutomationDashboard(parseAutomationDashboardArgs(toolArgs)));
+    }
     if (name === "macos_check_accessibility") return asText(await checkAccessibility());
     if (name === "macos_get_frontmost_app") return asText(await getFrontmostApp());
     if (name === "macos_list_windows") {

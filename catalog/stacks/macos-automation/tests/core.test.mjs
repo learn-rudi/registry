@@ -6,6 +6,7 @@ import test from "node:test";
 import {
   buildLaunchAgentPlist,
   classifyMacosError,
+  collectAutomationInventory,
   createReminder,
   getSelectedFinderItems,
   installLaunchAgent,
@@ -18,6 +19,7 @@ import {
   parseInstallLaunchAgentArgs,
   parseLaunchAgentLabelArgs,
   removeLaunchAgent,
+  renderAutomationDashboardHtml,
   runLaunchAgentNow,
   parseShortcutArgs,
   runShortcut,
@@ -39,6 +41,22 @@ function makeRunner(result = { stdout: "", stderr: "", exitCode: 0 }, spawnResul
       spawnDetached: async (file, args) => {
         spawnCalls.push({ file, args });
         return spawnResult;
+      },
+    },
+  };
+}
+
+function makeRoutingRunner(routes) {
+  const calls = [];
+  return {
+    calls,
+    runner: {
+      execFile: async (file, args, options) => {
+        calls.push({ file, args, options });
+        const key = `${file} ${args.join(" ")}`;
+        const route = routes[key] ?? routes[file];
+        if (route) return route;
+        return { stdout: "", stderr: "", exitCode: 0 };
       },
     },
   };
@@ -426,4 +444,130 @@ test("keep-awake stop dry-runs then kills managed caffeinate sessions", async ()
     () => fs.stat(path.join(homeDir, ".rudi/state/macos-automation/keep-awake/long-export.json")),
     /ENOENT/
   );
+});
+
+test("automation inventory combines launchd, cron, shortcuts, and sleep assertions", async () => {
+  const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), "rudi-dashboard-home-"));
+  const launchAgents = path.join(homeDir, "Library/LaunchAgents");
+  await fs.mkdir(launchAgents, { recursive: true });
+  await fs.writeFile(
+    path.join(launchAgents, "dev.rudi.daily.plist"),
+    buildLaunchAgentPlist(parseInstallLaunchAgentArgs({
+      label: "dev.rudi.daily",
+      command: ["/bin/echo", "hello"],
+      schedule: { type: "daily", hour: 8, minute: 30 },
+      run_at_load: true,
+    }))
+  );
+
+  const { runner } = makeRoutingRunner({
+    "/bin/launchctl list": {
+      stdout: "123\t0\tdev.rudi.daily\n-\t78\tcom.example.failed\n",
+      stderr: "",
+      exitCode: 0,
+    },
+    "/usr/bin/crontab -l": {
+      stdout: "30 7 * * * echo morning # sample\n",
+      stderr: "",
+      exitCode: 0,
+    },
+    "/usr/bin/atq": { stdout: "", stderr: "", exitCode: 0 },
+    "/usr/bin/shortcuts list": {
+      stdout: "Ask Claude\nTurn Text Into Audio\n",
+      stderr: "",
+      exitCode: 0,
+    },
+    "/usr/bin/pmset -g assertions": {
+      stdout: [
+        "Assertion status system-wide:",
+        "   PreventSystemSleep             1",
+        "Listed by owning process:",
+        "   pid 39339(caffeinate): [0x1] PreventSystemSleep named: \"caffeinate command-line tool\"",
+        "\tDetails: caffeinate asserting for 86400 secs",
+        "",
+      ].join("\n"),
+      stderr: "",
+      exitCode: 0,
+    },
+    "/usr/bin/pgrep -afil caffeinate": {
+      stdout: "39339 /usr/bin/caffeinate -dimsu -t 86400\n",
+      stderr: "",
+      exitCode: 0,
+    },
+  });
+
+  const inventory = await collectAutomationInventory({
+    runner,
+    homeDir,
+    platform: "darwin",
+    uid: 501,
+    launchdRoots: [{ domain: "user", dir: launchAgents }],
+  });
+
+  assert.equal(inventory.launchd.summary.total, 1);
+  assert.equal(inventory.launchd.summary.loaded, 1);
+  assert.equal(inventory.cron.entries.length, 1);
+  assert.equal(inventory.shortcuts.count, 2);
+  assert.equal(inventory.sleep.preventing_sleep, true);
+  assert.equal(inventory.sleep.caffeinate_processes.length, 1);
+});
+
+test("automation dashboard HTML escapes inventory values", () => {
+  const html = renderAutomationDashboardHtml({
+    generated_at: "2026-07-13T22:00:00.000Z",
+    platform: "darwin",
+    launchd: {
+      summary: { total: 1, loaded: 0, scheduled: 1, triggers: 0, keep_alive: 0, broken: 0, stale: 0 },
+      items: [
+        {
+          label: "dev.rudi.<script>alert(1)</script>",
+          domain: "user",
+          path: "/tmp/dev.rudi.bad.plist",
+          loaded: false,
+          pid: null,
+          last_exit_status: null,
+          schedules: ["daily 08:30"],
+          triggers: [],
+          keep_alive: false,
+          run_at_load: false,
+          command: ["/bin/echo", "<unsafe>"],
+          warnings: [],
+        },
+      ],
+    },
+    cron: { entries: [], available: true },
+    at: { jobs: [], available: true },
+    shortcuts: { shortcuts: [], count: 0, available: true },
+    keep_awake: { sessions: [], active_count: 0 },
+    sleep: {
+      preventing_sleep: false,
+      assertion_status: {},
+      assertions: [],
+      caffeinate_processes: [],
+      raw: "",
+    },
+  });
+
+  assert.match(html, /Mac Automation/);
+  assert.doesNotMatch(html, /<script>alert/);
+  assert.match(html, /&lt;script&gt;alert/);
+  assert.match(html, /&lt;unsafe&gt;/);
+  assert.match(html, /<wbr>/);
+  assert.match(html, /data-label="Command"/);
+  assert.match(html, /class="launchd-table"/);
+  assert.match(html, /\.launchd-table th:nth-child\(5\) \{ width: 32%; \}/);
+  assert.match(html, /\.launchd-table th:nth-child\(6\) \{ width: 15%; \}/);
+  assert.match(html, /class="command-table"/);
+  assert.match(html, /table-layout: fixed/);
+  assert.match(html, /overflow-wrap: anywhere/);
+  assert.match(html, /max-width: 1180px/);
+  assert.match(html, /main > \*, \.metrics, \.metric, section\.panel, table, tbody, tr, td, code \{ min-width: 0; \}/);
+  assert.match(html, /\.warning-cell \.pill \{ display: block; max-width: 100%; width: fit-content; border-radius: 6px;/);
+  assert.match(html, /td::before/);
+  assert.match(html, /content: attr\(data-label\)/);
+  assert.match(html, /\.command-cell \{ width: 100%; \}/);
+  assert.match(html, /max-width: calc\(100vw - 60px\)/);
+  assert.match(html, /\.metrics \{ grid-template-columns: 1fr; \}/);
+  assert.match(html, /word-break: break-all/);
+  assert.doesNotMatch(html, /min-width: 760px/);
 });
