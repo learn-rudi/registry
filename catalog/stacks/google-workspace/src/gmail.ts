@@ -36,6 +36,7 @@ export type GmailDraftMessage = {
 };
 
 export type GmailRawMessageOptions = {
+  from?: unknown;
   to: unknown;
   cc?: unknown;
   bcc?: unknown;
@@ -44,6 +45,61 @@ export type GmailRawMessageOptions = {
   contentType?: unknown;
   inReplyTo?: unknown;
   references?: unknown;
+};
+
+type GmailSendResultLike = {
+  id?: unknown;
+  threadId?: unknown;
+  historyId?: unknown;
+  labelIds?: unknown;
+};
+
+type GmailRawMessageLike = GmailSendResultLike & {
+  internalDate?: unknown;
+  raw?: unknown;
+};
+
+type GmailHistoryMessageLike = {
+  id?: unknown;
+  threadId?: unknown;
+  labelIds?: unknown;
+};
+
+type GmailHistoryPageLike = {
+  history?: Array<{
+    id?: unknown;
+    messagesAdded?: Array<{
+      message?: GmailHistoryMessageLike | null;
+    }> | null;
+  }> | null;
+  nextPageToken?: unknown;
+  historyId?: unknown;
+};
+
+export type NormalizedGmailSendResult = {
+  messageId: string;
+  threadId: string;
+  historyId?: string;
+  labelIds: string[];
+};
+
+export type NormalizedGmailRawMessage = NormalizedGmailSendResult & {
+  internalDate?: string;
+  rawBase64Url: string;
+};
+
+export type NormalizedGmailHistoryPage = {
+  startHistoryId: string;
+  records: Array<{
+    historyId: string;
+    messagesAdded: Array<{
+      messageId: string;
+      threadId: string;
+      labelIds: string[];
+    }>;
+  }>;
+  nextPageToken?: string;
+  historyId: string;
 };
 
 export const DEFAULT_GMAIL_CONTENT_TYPE = 'text/plain; charset="UTF-8"';
@@ -57,6 +113,122 @@ export function resolveRequestedAccount(
     throw new Error("account must be a non-empty string");
   }
   return sanitizeHeaderValue(args.account, "account");
+}
+
+export function normalizeGmailSendResult(
+  input: GmailSendResultLike
+): NormalizedGmailSendResult {
+  return {
+    messageId: requireOpaqueProviderId(input.id, "messageId"),
+    threadId: requireOpaqueProviderId(input.threadId, "threadId"),
+    ...(input.historyId == null
+      ? {}
+      : { historyId: requireDecimalHistoryId(input.historyId, "historyId") }),
+    labelIds: normalizeProviderStringArray(input.labelIds, "labelIds"),
+  };
+}
+
+export function normalizeGmailRawMessage(
+  input: GmailRawMessageLike
+): NormalizedGmailRawMessage {
+  const normalized = normalizeGmailSendResult(input);
+  if (typeof input.raw !== "string") {
+    throw new Error("raw must be a string");
+  }
+  const providerRaw = input.raw.trim();
+  if (
+    providerRaw.length === 0
+    || providerRaw.length > 40_000_002
+    || !/^[A-Za-z0-9_-]+={0,2}$/.test(providerRaw)
+  ) {
+    throw new Error("raw must be bounded base64url");
+  }
+  const rawBase64Url = providerRaw.replace(/=+$/, "");
+  const decoded = Buffer.from(providerRaw, "base64url");
+  if (
+    rawBase64Url.length > 40_000_000
+    || decoded.toString("base64url") !== rawBase64Url
+  ) {
+    throw new Error("raw must use canonical base64url encoding");
+  }
+
+  return {
+    ...normalized,
+    ...(input.internalDate == null
+      ? {}
+      : {
+          internalDate: requireDecimalHistoryId(
+            input.internalDate,
+            "internalDate"
+          )
+        }),
+    rawBase64Url
+  };
+}
+
+export function normalizeGmailHistoryPage(
+  input: GmailHistoryPageLike,
+  startHistoryId: unknown
+): NormalizedGmailHistoryPage {
+  const normalizedStart = requireDecimalHistoryId(startHistoryId, "startHistoryId");
+  const pageHistoryId = requireDecimalHistoryId(input.historyId, "historyId");
+  const rawRecords = input.history ?? [];
+  if (!Array.isArray(rawRecords)) {
+    throw new Error("history must be an array");
+  }
+
+  let previousHistoryId = BigInt(normalizedStart);
+  const records = rawRecords.map((record, recordIndex) => {
+    if (!record || typeof record !== "object" || Array.isArray(record)) {
+      throw new Error(`history[${recordIndex}] must be an object`);
+    }
+    const historyId = requireDecimalHistoryId(record.id, `history[${recordIndex}].id`);
+    const numericHistoryId = BigInt(historyId);
+    if (numericHistoryId <= previousHistoryId) {
+      throw new Error("Gmail history records must be strictly increasing");
+    }
+    previousHistoryId = numericHistoryId;
+
+    const rawAdded = record.messagesAdded ?? [];
+    if (!Array.isArray(rawAdded)) {
+      throw new Error(`history[${recordIndex}].messagesAdded must be an array`);
+    }
+    const messagesAdded = rawAdded.map((entry, entryIndex) => {
+      const message = entry?.message;
+      if (!message || typeof message !== "object" || Array.isArray(message)) {
+        throw new Error(
+          `history[${recordIndex}].messagesAdded[${entryIndex}].message must be an object`
+        );
+      }
+      return {
+        messageId: requireOpaqueProviderId(
+          message.id,
+          `history[${recordIndex}].messagesAdded[${entryIndex}].message.id`
+        ),
+        threadId: requireOpaqueProviderId(
+          message.threadId,
+          `history[${recordIndex}].messagesAdded[${entryIndex}].message.threadId`
+        ),
+        labelIds: normalizeProviderStringArray(
+          message.labelIds,
+          `history[${recordIndex}].messagesAdded[${entryIndex}].message.labelIds`
+        ),
+      };
+    });
+    return { historyId, messagesAdded };
+  });
+
+  if (BigInt(pageHistoryId) < previousHistoryId) {
+    throw new Error("Gmail page historyId cannot precede a returned history record");
+  }
+
+  const nextPageToken = optionalProviderString(input.nextPageToken, "nextPageToken");
+  return {
+    startHistoryId: normalizedStart,
+    records,
+    ...(nextPageToken ? { nextPageToken } : {}),
+    historyId: pageHistoryId,
+  };
 }
 
 export function buildGmailDraftMessage(options: DraftMessageOptions): GmailDraftMessage {
@@ -142,9 +314,10 @@ export function buildGmailRawMessage(options: GmailRawMessageOptions): string {
   const body = requireString(options.body, "body");
   const contentType =
     optionalHeaderSafeString(options.contentType, "Content-Type") || inferGmailContentType(body);
-  const lines = [
-    `To: ${requireHeaderSafeString(options.to, "to")}`,
-  ];
+  const lines: string[] = [];
+  const from = optionalHeaderSafeString(options.from, "from");
+  if (from) lines.push(`From: ${from}`);
+  lines.push(`To: ${requireHeaderSafeString(options.to, "to")}`);
   const cc = optionalHeaderSafeString(options.cc, "cc");
   const bcc = optionalHeaderSafeString(options.bcc, "bcc");
   const inReplyTo = optionalHeaderSafeString(options.inReplyTo, "In-Reply-To");
@@ -275,6 +448,44 @@ function requireString(value: unknown, field: string): string {
     throw new Error(`${field} is required`);
   }
   return value;
+}
+
+function requireOpaqueProviderId(value: unknown, field: string): string {
+  const normalized = optionalProviderString(value, field);
+  if (!normalized) {
+    throw new Error(`${field} is required`);
+  }
+  if (normalized.length > 512) {
+    throw new Error(`${field} must be at most 512 characters`);
+  }
+  return normalized;
+}
+
+function requireDecimalHistoryId(value: unknown, field: string): string {
+  const normalized = requireOpaqueProviderId(value, field);
+  if (!/^(?:0|[1-9][0-9]*)$/.test(normalized)) {
+    throw new Error(`${field} must be an unsigned decimal Gmail history ID`);
+  }
+  return normalized;
+}
+
+function optionalProviderString(value: unknown, field: string): string | undefined {
+  if (value == null) return undefined;
+  if (typeof value !== "string") {
+    throw new Error(`${field} must be a string`);
+  }
+  const normalized = value.trim();
+  return normalized || undefined;
+}
+
+function normalizeProviderStringArray(value: unknown, field: string): string[] {
+  if (value == null) return [];
+  if (!Array.isArray(value)) {
+    throw new Error(`${field} must be an array`);
+  }
+  return value.map((entry, index) =>
+    requireOpaqueProviderId(entry, `${field}[${index}]`)
+  );
 }
 
 function requireHeaderSafeString(value: unknown, field: string): string {

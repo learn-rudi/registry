@@ -25,6 +25,9 @@ import {
   encodeMimeBody,
   encodeMimeHeaderValue,
   inferGmailContentType,
+  normalizeGmailHistoryPage,
+  normalizeGmailRawMessage,
+  normalizeGmailSendResult,
   resolveRequestedAccount,
 } from "./gmail.js";
 import { resolveOAuthClientConfig } from "./oauthCredentials.js";
@@ -180,6 +183,20 @@ function optionalToolString(args: Record<string, unknown> | undefined, field: st
   return trimmed || undefined;
 }
 
+function boundedInteger(
+  value: unknown,
+  field: string,
+  defaultValue: number,
+  minimum: number,
+  maximum: number
+): number {
+  if (value == null) return defaultValue;
+  if (!Number.isInteger(value) || (value as number) < minimum || (value as number) > maximum) {
+    throw new Error(`${field} must be an integer between ${minimum} and ${maximum}`);
+  }
+  return value as number;
+}
+
 function optionalStringArray(args: Record<string, unknown> | undefined, field: string): string[] | undefined {
   if (!hasToolArg(args, field)) return undefined;
   const value = args?.[field];
@@ -204,6 +221,54 @@ function requireStringArray(args: Record<string, unknown> | undefined, field: st
     throw new Error(`${field} must include at least one value`);
   }
   return values;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function requireObjectArray(args: Record<string, unknown> | undefined, field: string): Record<string, unknown>[] {
+  const value = args?.[field];
+  if (!Array.isArray(value)) {
+    throw new Error(`${field} must be an array`);
+  }
+  if (value.length === 0) {
+    throw new Error(`${field} must include at least one request`);
+  }
+  return value.map((entry, index) => {
+    if (!isRecord(entry)) {
+      throw new Error(`${field}[${index}] must be an object`);
+    }
+    return entry;
+  });
+}
+
+function optionalObject(args: Record<string, unknown> | undefined, field: string): Record<string, unknown> | undefined {
+  if (!hasToolArg(args, field)) return undefined;
+  const value = args?.[field];
+  if (value == null) return undefined;
+  if (!isRecord(value)) {
+    throw new Error(`${field} must be an object`);
+  }
+  return value;
+}
+
+function normalizePresentationId(args: Record<string, unknown> | undefined, field = "presentation_id"): string {
+  const raw = requireString(args?.[field], field).trim();
+  const urlMatch = raw.match(/\/presentation\/d\/([A-Za-z0-9_-]+)/);
+  if (urlMatch) return urlMatch[1];
+  if (/^[A-Za-z0-9_-]+$/.test(raw)) return raw;
+  throw new Error(`${field} must be a raw Google Slides ID or presentation URL`);
+}
+
+type SlidesThumbnailSize = "SMALL" | "MEDIUM" | "LARGE";
+
+function optionalSlidesThumbnailSize(args: Record<string, unknown> | undefined): SlidesThumbnailSize {
+  const value = (optionalToolString(args, "thumbnail_size") || "LARGE").toUpperCase();
+  if (value !== "SMALL" && value !== "MEDIUM" && value !== "LARGE") {
+    throw new Error("thumbnail_size must be one of: SMALL, MEDIUM, LARGE");
+  }
+  return value;
 }
 
 function getHeaderValue(headers: any[], name: string): string {
@@ -301,6 +366,7 @@ async function loadGmailPayloadAttachments(gmail: any, messageId: string, payloa
 }
 
 function buildRawEmail(options: {
+  from?: unknown;
   to: unknown;
   cc?: unknown;
   bcc?: unknown;
@@ -318,9 +384,10 @@ function buildRawEmail(options: {
 
   const body = requireString(options.body, "body");
   const boundary = `rudi-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  const lines = [
-    `To: ${sanitizeHeaderValue(requireString(options.to, "to"), "to")}`,
-  ];
+  const lines: string[] = [];
+  const from = optionalHeaderValue(options.from, "from");
+  if (from) lines.push(`From: ${from}`);
+  lines.push(`To: ${sanitizeHeaderValue(requireString(options.to, "to"), "to")}`);
   const cc = optionalHeaderValue(options.cc, "cc");
   const bcc = optionalHeaderValue(options.bcc, "bcc");
   const inReplyTo = optionalHeaderValue(options.inReplyTo, "In-Reply-To");
@@ -447,6 +514,32 @@ const TASK_DUE_INPUT = {
   description: "Optional RFC 3339 due datetime. Google Tasks stores date precision only.",
 };
 
+const PRESENTATION_ID_INPUT = {
+  type: "string",
+  description: "Google Slides presentation ID or URL",
+};
+
+const SLIDE_ID_INPUT = {
+  type: "string",
+  description: "Google Slides slide/page object ID",
+};
+
+const SLIDES_FIELDS_INPUT = {
+  type: "string",
+  description: "Optional Google API partial response fields selector",
+};
+
+const SLIDES_REQUESTS_INPUT = {
+  type: "array",
+  items: { type: "object" },
+  description: "Raw Google Slides presentations.batchUpdate request objects",
+};
+
+const SLIDES_WRITE_CONTROL_INPUT = {
+  type: "object",
+  description: "Optional Google Slides writeControl object, such as requiredRevisionId",
+};
+
 const server = new Server(
   { name: "google-workspace", version: "1.0.0" },
   { capabilities: { tools: {} } }
@@ -485,6 +578,35 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         properties: {
           account: ACCOUNT_INPUT,
         },
+      },
+    },
+    {
+      name: "gmail_history_list",
+      description: "List ordered Gmail message-added history after a durable history cursor",
+      inputSchema: {
+        type: "object",
+        properties: {
+          start_history_id: {
+            type: "string",
+            description: "Required Gmail history ID cursor; returns records after this ID",
+          },
+          max_results: {
+            type: "integer",
+            minimum: 1,
+            maximum: 500,
+            description: "Maximum history records to return (default 100, maximum 500)",
+          },
+          next_page_token: {
+            type: "string",
+            description: "Pagination token from a previous Gmail history response",
+          },
+          label_id: {
+            type: "string",
+            description: "Optional Gmail label ID filter, such as INBOX",
+          },
+          account: ACCOUNT_INPUT,
+        },
+        required: ["start_history_id"],
       },
     },
     {
@@ -615,6 +737,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         properties: {
           message_id: { type: "string", description: "Gmail message ID" },
           output: { type: "string", description: "Optional file path to save email content" },
+          account: ACCOUNT_INPUT,
+        },
+        required: ["message_id"],
+      },
+    },
+    {
+      name: "gmail_get_raw",
+      description: "Get one Gmail message as provider metadata plus raw RFC 2822 base64url",
+      inputSchema: {
+        type: "object",
+        properties: {
+          message_id: { type: "string", description: "Gmail message ID" },
           account: ACCOUNT_INPUT,
         },
         required: ["message_id"],
@@ -1025,6 +1159,64 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ["document_id", "image_url"],
       },
     },
+    // Slides
+    {
+      name: "slides_get_presentation",
+      description: "Get a Google Slides presentation by ID or URL",
+      inputSchema: {
+        type: "object",
+        properties: {
+          presentation_id: PRESENTATION_ID_INPUT,
+          fields: SLIDES_FIELDS_INPUT,
+          account: ACCOUNT_INPUT,
+        },
+        required: ["presentation_id"],
+      },
+    },
+    {
+      name: "slides_get_slide",
+      description: "Get one slide from a Google Slides presentation by slide/page object ID",
+      inputSchema: {
+        type: "object",
+        properties: {
+          presentation_id: PRESENTATION_ID_INPUT,
+          slide_id: SLIDE_ID_INPUT,
+          account: ACCOUNT_INPUT,
+        },
+        required: ["presentation_id", "slide_id"],
+      },
+    },
+    {
+      name: "slides_get_thumbnail",
+      description: "Get a temporary PNG thumbnail URL for one Google Slides slide",
+      inputSchema: {
+        type: "object",
+        properties: {
+          presentation_id: PRESENTATION_ID_INPUT,
+          slide_id: SLIDE_ID_INPUT,
+          thumbnail_size: {
+            type: "string",
+            description: "Thumbnail size: SMALL, MEDIUM, or LARGE (default: LARGE)",
+          },
+          account: ACCOUNT_INPUT,
+        },
+        required: ["presentation_id", "slide_id"],
+      },
+    },
+    {
+      name: "slides_batch_update",
+      description: "Apply raw Google Slides presentations.batchUpdate requests",
+      inputSchema: {
+        type: "object",
+        properties: {
+          presentation_id: PRESENTATION_ID_INPUT,
+          requests: SLIDES_REQUESTS_INPUT,
+          write_control: SLIDES_WRITE_CONTROL_INPUT,
+          account: ACCOUNT_INPUT,
+        },
+        required: ["presentation_id", "requests"],
+      },
+    },
     // Drive
     {
       name: "drive_list",
@@ -1340,6 +1532,27 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
+      case "gmail_history_list": {
+        const auth = getAuthForArgs(args);
+        const gmail = google.gmail({ version: "v1", auth });
+        const startHistoryId = requireString(
+          args?.start_history_id,
+          "start_history_id"
+        ).trim();
+        const response = await gmail.users.history.list({
+          userId: "me",
+          startHistoryId,
+          historyTypes: ["messageAdded"],
+          maxResults: boundedInteger(args?.max_results, "max_results", 100, 1, 500),
+          pageToken: optionalToolString(args, "next_page_token"),
+          labelId: optionalToolString(args, "label_id"),
+        });
+        const page = normalizeGmailHistoryPage(response.data, startHistoryId);
+        return {
+          content: [{ type: "text", text: JSON.stringify(page, null, 2) }],
+        };
+      }
+
       case "gmail_send": {
         const auth = getAuthForArgs(args);
         const gmail = google.gmail({ version: "v1", auth });
@@ -1353,9 +1566,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               format: "full",
             })
           : null;
-        const profile = replyMessageId && args?.reply_all === true
-          ? await gmail.users.getProfile({ userId: "me" })
-          : null;
+        const profile = await gmail.users.getProfile({ userId: "me" });
+        const from = sanitizeHeaderValue(
+          requireString(
+            profile.data.emailAddress,
+            "gmail profile emailAddress"
+          ),
+          "gmail profile emailAddress"
+        );
         const attachments = loadAttachmentFiles(optionalAttachmentPaths(args));
         const outgoing = replyMessageId
           ? buildGmailDraftMessage({
@@ -1367,7 +1585,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               replyMessageId,
               replyAll: args?.reply_all,
               originalMessage: original?.data,
-              selfEmail: profile?.data.emailAddress,
+              selfEmail: profile.data.emailAddress,
             })
           : {
               to: args?.to as string,
@@ -1381,6 +1599,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               references: undefined,
             };
         const raw = buildRawEmail({
+          from,
           to: outgoing.to,
           cc: outgoing.cc,
           bcc: outgoing.bcc,
@@ -1395,11 +1614,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (outgoing.threadId) {
           requestBody.threadId = outgoing.threadId;
         }
-        await gmail.users.messages.send({
+        const sent = await gmail.users.messages.send({
           userId: "me",
           requestBody,
         });
-        return { content: [{ type: "text", text: "Email sent successfully" }] };
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              sent: true,
+              ...normalizeGmailSendResult(sent.data),
+            }, null, 2),
+          }],
+        };
       }
 
       case "gmail_search": {
@@ -1725,6 +1952,24 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content: [{ type: "text", text }] };
       }
 
+      case "gmail_get_raw": {
+        const auth = getAuthForArgs(args);
+        const gmail = google.gmail({ version: "v1", auth });
+        const messageId = requireString(args?.message_id, "message_id");
+        const message = await gmail.users.messages.get({
+          userId: "me",
+          id: messageId,
+          format: "raw",
+        });
+        const normalized = normalizeGmailRawMessage(message.data);
+        if (normalized.messageId !== messageId) {
+          throw new Error("Gmail raw response message ID does not match the request");
+        }
+        return {
+          content: [{ type: "text", text: JSON.stringify(normalized, null, 2) }],
+        };
+      }
+
       case "gmail_list_attachments": {
         const auth = getAuthForArgs(args);
         const gmail = google.gmail({ version: "v1", auth });
@@ -1858,7 +2103,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           references: replyMessage.references,
           attachments: loadAttachmentFiles(optionalAttachmentPaths(args)),
         });
-        await gmail.users.messages.send({
+        const sent = await gmail.users.messages.send({
           userId: "me",
           requestBody: {
             raw,
@@ -1866,7 +2111,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           },
         });
 
-        return { content: [{ type: "text", text: `Reply sent to ${replyMessage.to}` }] };
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              sent: true,
+              replyToMessageId: messageId,
+              to: replyMessage.to,
+              ...normalizeGmailSendResult(sent.data),
+            }, null, 2),
+          }],
+        };
       }
 
       case "gmail_forward": {
@@ -2410,6 +2665,94 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           },
         });
         return { content: [{ type: "text", text: "Image inserted into document" }] };
+      }
+
+      // Slides
+      case "slides_get_presentation": {
+        const presentationId = normalizePresentationId(args);
+        const fields = optionalToolString(args, "fields");
+        const auth = getAuthForArgs(args);
+        const slides = google.slides({ version: "v1", auth });
+        const presentation = await slides.presentations.get({
+          presentationId,
+          fields,
+        });
+        return {
+          content: [{ type: "text", text: JSON.stringify(presentation.data, null, 2) }],
+        };
+      }
+
+      case "slides_get_slide": {
+        const presentationId = normalizePresentationId(args);
+        const slideId = requireString(args?.slide_id, "slide_id");
+        const auth = getAuthForArgs(args);
+        const slides = google.slides({ version: "v1", auth });
+        const presentation = await slides.presentations.get({ presentationId });
+        const slide = presentation.data.slides?.find((entry) => entry.objectId === slideId);
+        if (!slide) {
+          throw new Error(`slide_id not found: ${slideId}`);
+        }
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              presentationId: presentation.data.presentationId,
+              title: presentation.data.title,
+              slide,
+            }, null, 2),
+          }],
+        };
+      }
+
+      case "slides_get_thumbnail": {
+        const presentationId = normalizePresentationId(args);
+        const slideId = requireString(args?.slide_id, "slide_id");
+        const thumbnailSize = optionalSlidesThumbnailSize(args);
+        const auth = getAuthForArgs(args);
+        const slides = google.slides({ version: "v1", auth });
+        const thumbnail = await slides.presentations.pages.getThumbnail({
+          presentationId,
+          pageObjectId: slideId,
+          "thumbnailProperties.mimeType": "PNG",
+          "thumbnailProperties.thumbnailSize": thumbnailSize,
+        });
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              presentationId,
+              slideId,
+              thumbnailSize,
+              ...thumbnail.data,
+            }, null, 2),
+          }],
+        };
+      }
+
+      case "slides_batch_update": {
+        const presentationId = normalizePresentationId(args);
+        const requests = requireObjectArray(args, "requests");
+        const writeControl = optionalObject(args, "write_control");
+        const auth = getAuthForArgs(args);
+        const slides = google.slides({ version: "v1", auth });
+        const requestBody: Record<string, unknown> = { requests };
+        if (writeControl) {
+          requestBody.writeControl = writeControl;
+        }
+        const update = await slides.presentations.batchUpdate({
+          presentationId,
+          requestBody,
+        });
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              presentationId,
+              replies: update.data.replies || [],
+              writeControl: update.data.writeControl,
+            }, null, 2),
+          }],
+        };
       }
 
       // Drive

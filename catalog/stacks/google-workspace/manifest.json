@@ -1,23 +1,40 @@
 {
-  "id": "google-workspace",
+  "id": "stack:google-workspace",
+  "kind": "stack",
   "name": "Google Workspace Tools",
   "version": "1.0.0",
-  "description": "Workflow-focused tools for Gmail, Google Sheets, Docs, Slides, Drive, Calendar, and Tasks. Draft emails, send from markdown files, manage spreadsheets, create tasks, and more.",
+
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/google-workspace"
+  },
+
+  "auth": {
+    "required": true,
+    "command": "rudi auth google-workspace user@example.com",
+    "instructions": "Run `rudi secrets set GOOGLE_CREDENTIALS` with Google OAuth client credentials JSON or a path to credentials.json, then run `rudi auth google-workspace user@example.com`. Register the localhost OAuth callback URI used by the helper, normally http://localhost:3456/callback, and any fallback ports you expect to use. Tokens are stored under ~/.rudi/state/stacks/google-workspace/accounts/<account>/token.json."
+  },
+
   "runtime": "node",
-  "command": [
-    "npx",
-    "tsx",
-    "src/index.ts"
-  ],
-  "requiresAuth": true,
-  "authCommand": "rudi auth google-workspace user@example.com",
-  "authInstructions": "Run `rudi secrets set GOOGLE_CREDENTIALS` with Google OAuth client credentials JSON or a path to credentials.json, then run `rudi auth google-workspace user@example.com`. Register the localhost OAuth callback URI used by the helper, normally http://localhost:3456/callback, and any fallback ports you expect to use. Tokens are stored under ~/.rudi/state/stacks/google-workspace/accounts/<account>/token.json.",
+  "requires": {
+    "binaries": [],
+    "secrets": [
+      {
+        "key": "GOOGLE_CREDENTIALS",
+        "label": "Google OAuth Credentials",
+        "required": true,
+        "helpUrl": "https://console.cloud.google.com/apis/credentials"
+      }
+    ]
+  },
   "provides": {
     "tools": [
       "account_list",
       "account_switch",
       "account_current",
       "gmail_profile",
+      "gmail_history_list",
       "gmail_send",
       "gmail_search",
       "gmail_draft",
@@ -27,6 +44,7 @@
       "gmail_draft_delete",
       "gmail_draft_send",
       "gmail_get",
+      "gmail_get_raw",
       "gmail_list_attachments",
       "gmail_get_attachment",
       "gmail_reply",
@@ -58,6 +76,10 @@
       "docs_read",
       "docs_create",
       "docs_insert_image",
+      "slides_get_presentation",
+      "slides_get_slide",
+      "slides_get_thumbnail",
+      "slides_batch_update",
       "drive_list",
       "drive_upload",
       "drive_create_folder",
@@ -77,96 +99,19 @@
       "tasks_delete"
     ]
   },
-  "requires": {
-    "binaries": [],
-    "secrets": [
-      {
-        "description": "OAuth 2.0 credentials.json from Google Cloud Console",
-        "label": "Google OAuth Credentials",
-        "link": "https://console.cloud.google.com/apis/credentials",
-        "name": "GOOGLE_CREDENTIALS"
-      }
-    ]
+  "mcp": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": ["tsx", "src/index.ts"],
+    "cwd": "."
   },
+
   "meta": {
+    "description": "Workflow-focused tools for Gmail, Google Sheets, Docs, Slides, Drive, Calendar, and Tasks",
     "author": "CO-LLAB",
     "license": "MIT",
     "category": "api-integrations",
-    "tags": [
-      "google",
-      "gmail",
-      "sheets",
-      "docs",
-      "drive",
-      "calendar",
-      "slides",
-      "email",
-      "automation",
-      "workspace",
-      "tasks"
-    ],
+    "tags": ["google", "gmail", "sheets", "docs", "slides", "drive", "calendar", "tasks"],
     "icon": "📧"
-  },
-  "inputs": [
-    {
-      "name": "action",
-      "type": "string",
-      "description": "Action to perform",
-      "required": true,
-      "options": [
-        "draft_email",
-        "send_email",
-        "reply",
-        "read_sheet",
-        "write_sheet",
-        "create_doc",
-        "upload_drive"
-      ]
-    },
-    {
-      "name": "to",
-      "type": "string",
-      "description": "Recipient name or email (for email actions)",
-      "required": false
-    },
-    {
-      "name": "subject",
-      "type": "string",
-      "description": "Email subject",
-      "required": false
-    },
-    {
-      "name": "body",
-      "type": "string",
-      "description": "Email body or file path",
-      "required": false
-    },
-    {
-      "name": "spreadsheet_id",
-      "type": "string",
-      "description": "Google Sheets spreadsheet ID",
-      "required": false
-    },
-    {
-      "name": "range",
-      "type": "string",
-      "description": "Sheet range (e.g., Sheet1!A1:B10)",
-      "required": false
-    }
-  ],
-  "outputs": [
-    {
-      "name": "result",
-      "type": "string",
-      "description": "Operation result or data"
-    },
-    {
-      "name": "id",
-      "type": "string",
-      "description": "Created resource ID (email, doc, file)"
-    }
-  ],
-  "dependencies": {
-    "python": ">=3.8"
   }
 }

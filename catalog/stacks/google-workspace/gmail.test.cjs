@@ -23,6 +23,9 @@ async function main() {
   const {
     buildGmailDraftMessage,
     buildGmailRawMessage,
+    normalizeGmailHistoryPage,
+    normalizeGmailRawMessage,
+    normalizeGmailSendResult,
     resolveRequestedAccount,
   } = await import("./src/gmail.ts");
 
@@ -83,6 +86,17 @@ async function main() {
     ].join("\r\n")
   );
 
+  const serviceAccountMessage = buildGmailRawMessage({
+    from: "service@example.com",
+    to: "requester@example.com",
+    subject: "Service response",
+    body: "Completed",
+  });
+  assert.match(
+    decodeRaw(serviceAccountMessage),
+    /^From: service@example\.com\r\nTo: requester@example\.com\r\n/
+  );
+
   const utf8Body = "First line — ok\n\nSecond line · emoji ✅";
   const utf8Standalone = buildGmailDraftMessage({
     to: "new@example.com",
@@ -140,6 +154,137 @@ async function main() {
     /account must be a non-empty string/
   );
 
+  assert.deepEqual(
+    normalizeGmailSendResult({
+      id: "gmail-message-123",
+      threadId: "gmail-thread-456",
+      historyId: "789",
+      labelIds: ["SENT"],
+    }),
+    {
+      messageId: "gmail-message-123",
+      threadId: "gmail-thread-456",
+      historyId: "789",
+      labelIds: ["SENT"],
+    }
+  );
+  assert.throws(
+    () => normalizeGmailSendResult({ id: "gmail-message-123" }),
+    /threadId is required/
+  );
+
+  assert.deepEqual(
+    normalizeGmailHistoryPage({
+      history: [
+        {
+          id: "101",
+          messagesAdded: [
+            {
+              message: {
+                id: "gmail-message-101",
+                threadId: "gmail-thread-101",
+                labelIds: ["INBOX", "UNREAD"],
+              },
+            },
+          ],
+        },
+        {
+          id: "105",
+          messagesAdded: [
+            {
+              message: {
+                id: "gmail-message-105",
+                threadId: "gmail-thread-105",
+                labelIds: ["SENT"],
+              },
+            },
+          ],
+        },
+      ],
+      nextPageToken: "next-page",
+      historyId: "110",
+    }, "100"),
+    {
+      startHistoryId: "100",
+      records: [
+        {
+          historyId: "101",
+          messagesAdded: [
+            {
+              messageId: "gmail-message-101",
+              threadId: "gmail-thread-101",
+              labelIds: ["INBOX", "UNREAD"],
+            },
+          ],
+        },
+        {
+          historyId: "105",
+          messagesAdded: [
+            {
+              messageId: "gmail-message-105",
+              threadId: "gmail-thread-105",
+              labelIds: ["SENT"],
+            },
+          ],
+        },
+      ],
+      nextPageToken: "next-page",
+      historyId: "110",
+    }
+  );
+  assert.throws(
+    () => normalizeGmailHistoryPage({
+      history: [{ id: "105" }, { id: "101" }],
+      historyId: "110",
+    }, "100"),
+    /strictly increasing/
+  );
+
+  assert.deepEqual(
+    normalizeGmailRawMessage({
+      id: "gmail-message-raw",
+      threadId: "gmail-thread-raw",
+      historyId: "111",
+      internalDate: "1785372000000",
+      labelIds: ["INBOX"],
+      raw: "UmF3IG1lc3NhZ2U",
+    }),
+    {
+      messageId: "gmail-message-raw",
+      threadId: "gmail-thread-raw",
+      historyId: "111",
+      internalDate: "1785372000000",
+      labelIds: ["INBOX"],
+      rawBase64Url: "UmF3IG1lc3NhZ2U",
+    }
+  );
+  assert.equal(
+    normalizeGmailRawMessage({
+      id: "gmail-message-long-raw",
+      threadId: "gmail-thread-long-raw",
+      labelIds: ["INBOX"],
+      raw: Buffer.alloc(400, 0x61).toString("base64url"),
+    }).rawBase64Url.length > 512,
+    true
+  );
+  assert.equal(
+    normalizeGmailRawMessage({
+      id: "gmail-message-padded-raw",
+      threadId: "gmail-thread-padded-raw",
+      labelIds: ["INBOX"],
+      raw: "SGVsbG8=",
+    }).rawBase64Url,
+    "SGVsbG8"
+  );
+  assert.throws(
+    () => normalizeGmailRawMessage({
+      id: "gmail-message-raw",
+      threadId: "gmail-thread-raw",
+      raw: "not base64url!",
+    }),
+    /raw/
+  );
+
   await testGmailToolSchemas();
 }
 
@@ -164,6 +309,8 @@ async function testGmailToolSchemas() {
 
     for (const name of [
       "gmail_profile",
+      "gmail_history_list",
+      "gmail_get_raw",
       "gmail_draft_get",
       "gmail_message_trash",
       "gmail_message_untrash",
@@ -191,6 +338,10 @@ async function testGmailToolSchemas() {
     }
 
     assert.deepEqual(byName.gmail_draft_get.inputSchema.required, ["draft_id"]);
+    assert.deepEqual(byName.gmail_history_list.inputSchema.required, ["start_history_id"]);
+    assert.deepEqual(byName.gmail_get_raw.inputSchema.required, ["message_id"]);
+    assert(byName.gmail_history_list.inputSchema.properties.next_page_token, "gmail_history_list must support pagination");
+    assert(byName.gmail_history_list.inputSchema.properties.label_id, "gmail_history_list must support label filtering");
     assert.deepEqual(byName.gmail_message_delete.inputSchema.required, ["message_id"]);
     assert.deepEqual(byName.gmail_label_create.inputSchema.required, ["name"]);
     assert.deepEqual(byName.gmail_message_modify_labels.inputSchema.required, ["message_id"]);
