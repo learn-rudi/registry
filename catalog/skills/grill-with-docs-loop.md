@@ -1,7 +1,7 @@
 ---
 name: Grill With Docs Loop
-description: Complete a repo-first, multi-agent grill-with-docs loop for a repository. Use when the user wants agents to inspect repo docs, code, tests, fixtures, migrations, and generated artifacts; resolve unresolved contract or design questions from evidence; update CONTEXT.md and ADRs; and ask the human only for true product or domain decisions.
-version: 1.0.0
+description: Complete a repo-first, multi-agent grill-with-docs loop for a repository. Spawns isolated questioner, answerer, and skeptic subagents that grill each other over repo docs, code, tests, fixtures, migrations, and generated artifacts; resolves contract or design questions from that adversarial loop; updates CONTEXT.md and ADRs; and asks the human only for true product or domain decisions.
+version: 2.0.0
 category: coding
 tags: [architecture, domain-modeling, glossary, adr, documentation, multi-agent, repo-analysis]
 ---
@@ -10,16 +10,17 @@ tags: [architecture, domain-modeling, glossary, adr, documentation, multi-agent,
 
 Run an evidence-first documentation loop that resolves a repository's open contract, terminology, and design questions with minimal human interruption.
 
-This skill is different from `grill-with-docs`: the default mode is not an interview. Agents challenge each other first, and the human enters only when repo evidence cannot decide a real product or domain choice.
+This skill is different from `grill-with-docs`: the default mode is not an interview. Spawned subagents grill each other first — one poses each question, a second answers it cold from repo evidence, a third independently tries to refute the answer — and the human enters only when repo evidence cannot decide a real product or domain choice.
 
 ## Operating Contract
 
 - Prefer repo evidence over asking the user.
 - Ask the user one question at a time only when human judgment is required.
-- Keep one orchestrator responsible for final decisions, sequencing, and merge control.
-- Do not let multiple agents edit the same files concurrently.
-- Use separate scout, skeptic, docs, and review roles when subagents are available.
-- If subagents are unavailable, run the same roles sequentially and label each pass in your working notes.
+- Keep the main session as the orchestrator, responsible for final decisions, sequencing, and merge control. Never delegate orchestration.
+- Spawn a fresh subagent for each questioner, answerer, skeptic, docs-writer, and reviewer role. Never reuse an agent for another role or backlog question. Do not roleplay these roles inside the main context: a context that reviews its own reasoning will agree with itself.
+- Enforce information isolation. Spawn each role with no inherited conversation history (`fork_turns: "none"` or the runtime equivalent), then provide only the inputs listed in its role definition. Never forward one agent's reasoning or evidence trail to the agent whose job is to check it independently.
+- Do not let multiple agents edit the same files concurrently. Only the docs writer edits files.
+- Degraded mode: only if the runtime truly has no subagent capability may the roles run sequentially in one context. Label each pass in working notes and state in the final report that the loop ran degraded and why.
 - Stop only when the question backlog is exhausted, docs are updated, and verification passes or any remaining gap is explicitly blocked on a human decision.
 
 ## Goal Mode
@@ -60,7 +61,7 @@ Find backlog items from:
 Each backlog item should have:
 
 - question
-- recommended answer
+- recommended answer, left empty until an Answerer supplies it
 - evidence
 - counterargument or risk
 - decision status: `repo-evident`, `needs-human`, `accepted`, `blocked`, or `resolved`
@@ -83,11 +84,11 @@ When sources conflict, prefer current behavior for "what is true" and ADRs or us
 
 Repeat this loop until the backlog is exhausted.
 
-### 1. Scout
+### 1. Questioner (spawned subagent)
 
-The scout chooses the next highest-leverage unresolved question.
+Receives: the current backlog, a summary of the decision ledger, and the shallow repo map.
 
-Inspect only the files needed to answer that question, including relevant:
+The questioner chooses the next highest-leverage unresolved question. It inspects only the files needed to confirm the question is real and unresolved, including relevant:
 
 - `CONTEXT.md` and `CONTEXT-MAP.md`
 - ADRs
@@ -98,43 +99,55 @@ Inspect only the files needed to answer that question, including relevant:
 - generated artifacts
 - schema or API contract files
 
-Return:
+Returns:
 
-- the question
-- the recommended answer
-- evidence with file paths and line references when practical
+- the question, phrased so it can be answered with no further context
 - affected domain terms
 - likely doc target
+- starting-point file paths where the answer probably lives
+
+The questioner must not answer the question. If its report includes a recommended answer, the orchestrator discards the answer and keeps only the question.
+
+### 2. Answerer (spawned subagent, fresh context)
+
+Receives: the question, affected domain terms, and the questioner's starting-point paths. Nothing else.
+
+The answerer resolves the question from repo evidence: it reads the code, tests, fixtures, migrations, generated artifacts, and contracts itself, following the evidence hierarchy.
+
+Returns:
+
+- the recommended answer
+- evidence with file paths and line references
 - risks, migration concerns, and naming consistency concerns
 - whether the answer appears repo-evident or needs human judgment
 
-### 2. Skeptic
+### 3. Skeptic (spawned subagent, fresh context)
 
-The skeptic challenges the scout's recommendation without editing files.
+Receives: the question, the answerer's recommended answer as a bare claim, affected domain terms, and the claimed repo-evident or needs-human classification. It must not receive the answerer's evidence list or reasoning — the skeptic gathers its own evidence from the repo and tries to refute the claim.
 
-Check:
+Check independently against the repo:
 
-- whether the evidence actually supports the answer
+- whether the repo actually supports the answer
 - whether tests, fixtures, migrations, generated artifacts, or public contracts disagree
 - whether the recommended terminology is consistent with existing names
 - whether the answer would imply migration or compatibility risk
 - whether the issue is really a product/domain choice rather than a repo-evident fact
 - whether an ADR is justified or whether `CONTEXT.md` is enough
 
-Return one of:
+Return one of, each backed by the skeptic's own cited evidence:
 
-- `accept`: the recommendation is repo-evident
-- `revise`: the answer needs a narrower or different formulation
+- `accept`: the claim held up under independent verification
+- `revise`: the answer needs a narrower or different formulation, with counter-evidence
 - `ask-human`: repo evidence cannot decide the product/domain choice
 - `skip`: the question does not require documentation
 
-### 3. Orchestrator
+### 4. Orchestrator (main session, never delegated)
 
-The orchestrator owns the decision.
+The orchestrator owns the decision. It is the only role that sees both sides: the answerer's evidence and the skeptic's verdict with its counter-evidence.
 
-If the scout and skeptic agree and the evidence is sufficient, accept the repo-evident decision.
+If the answerer and skeptic converge and the evidence is sufficient, accept the repo-evident decision.
 
-If evidence is incomplete, do one more targeted repo inspection before asking the user.
+If they conflict, run one more round before involving the user: spawn a fresh answerer with the skeptic's counter-evidence included in its brief, or perform one targeted repo inspection directly.
 
 Ask the user only when:
 
@@ -145,9 +158,11 @@ Ask the user only when:
 
 Ask one concise question and wait. Include the recommended default and the evidence behind it.
 
-### 4. Docs Writer
+### 5. Docs Writer (spawned subagent, fresh context)
 
-Only one docs writer edits files at a time.
+Receives: the accepted decision, its evidence, and the doc target.
+
+Spawn with no inherited conversation history. Only one docs writer edits files at a time; the main session and every other role remain read-only while it works.
 
 Update the smallest set of docs that records the accepted decision:
 
@@ -157,7 +172,9 @@ Update the smallest set of docs that records the accepted decision:
 - Create a new ADR only when the decision deserves independent historical context.
 - Do not use docs as a scratch pad, implementation task list, or speculative roadmap.
 
-### 5. Reviewer
+### 6. Reviewer (spawned subagent, fresh context)
+
+Receives: the diff, the original question, and the accepted decision.
 
 The reviewer checks the diff before the next loop iteration.
 
@@ -246,4 +263,5 @@ Before stopping, provide:
 - docs changed
 - human questions asked, if any
 - verification commands and results
+- which roles ran as spawned subagents; if degraded sequential mode was used, say so and explain why
 - remaining blocked items, only if blocked on explicit human judgment

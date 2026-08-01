@@ -13,24 +13,26 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { YoutubeTranscript } from "youtube-transcript";
-import { writeFileSync, existsSync, statSync, mkdirSync } from "fs";
-import { exec } from "child_process";
+import { writeFileSync, existsSync, statSync, mkdirSync, readFileSync } from "fs";
+import { execFile } from "child_process";
 import { promisify } from "util";
 import { config } from "dotenv";
 import { fileURLToPath, pathToFileURL } from "url";
-import { dirname, join } from "path";
+import { delimiter, dirname, join } from "path";
 import { homedir } from "os";
+import { createHash } from "crypto";
 import * as cheerio from "cheerio";
 import { decode } from "html-entities";
 import { Readability } from "@mozilla/readability";
-import { JSDOM } from "jsdom";
+import { JSDOM, VirtualConsole } from "jsdom";
 import TurndownService from "turndown";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: join(__dirname, "..", ".env") });
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 const DEFAULT_OUTPUT_DIR = join(homedir(), ".rudi", "output");
+const READABILITY_VIRTUAL_CONSOLE = new VirtualConsole();
 
 // =============================================================================
 // UTILITIES
@@ -78,12 +80,106 @@ function hostnameMatches(parsed: URL, domains: string[]): boolean {
   return domains.some((domain) => hostname === domain || hostname.endsWith(`.${domain}`));
 }
 
+async function discardResponseBody(response: Response): Promise<void> {
+  try {
+    await response.body?.cancel();
+  } catch {
+    // Best-effort cleanup only; the original HTTP error is more useful.
+  }
+}
+
+async function throwHttpResponseError(response: Response, prefix = "HTTP"): Promise<never> {
+  await discardResponseBody(response);
+  throw new Error(`${prefix} ${response.status}: ${response.statusText}`);
+}
+
+function removeStyleBlocks(html: string): string {
+  return html.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "");
+}
+
 function requirePlatformUrl(rawUrl: unknown, platform: string, domains: string[]): string {
   const parsed = parseHttpUrl(rawUrl);
   if (!hostnameMatches(parsed, domains)) {
     throw new Error(`${platform} extractor requires a ${domains.join(" or ")} URL`);
   }
   return parsed.toString();
+}
+
+function wordCount(text: string): number {
+  return text.split(/\s+/).filter((word) => word.length > 0).length;
+}
+
+function hashText(text: string): string {
+  return createHash("sha256").update(text).digest("hex").slice(0, 12);
+}
+
+function safeSlug(text: string | undefined, fallback: string): string {
+  return slugify(text || fallback) || fallback;
+}
+
+function csvEscape(value: unknown): string {
+  const text = value === undefined || value === null ? "" : String(value);
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function csvLine(values: unknown[]): string {
+  return values.map(csvEscape).join(",");
+}
+
+function parseCsvRows(csv: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < csv.length; index += 1) {
+    const char = csv[index];
+    const next = csv[index + 1];
+
+    if (inQuotes) {
+      if (char === '"' && next === '"') {
+        cell += '"';
+        index += 1;
+      } else if (char === '"') {
+        inQuotes = false;
+      } else {
+        cell += char;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inQuotes = true;
+    } else if (char === ",") {
+      row.push(cell);
+      cell = "";
+    } else if (char === "\n") {
+      row.push(cell);
+      if (row.some((value) => value.trim().length > 0)) rows.push(row);
+      row = [];
+      cell = "";
+    } else if (char !== "\r") {
+      cell += char;
+    }
+  }
+
+  row.push(cell);
+  if (row.some((value) => value.trim().length > 0)) rows.push(row);
+  return rows;
+}
+
+function parseCsvRecords(csv: string): Record<string, string>[] {
+  const rows = parseCsvRows(csv);
+  if (rows.length === 0) return [];
+
+  const headers = rows[0].map((header) => header.trim());
+  return rows.slice(1).map((row) => {
+    const record: Record<string, string> = {};
+    headers.forEach((header, index) => {
+      if (header) record[header] = row[index] ?? "";
+    });
+    return record;
+  });
 }
 
 // =============================================================================
@@ -132,7 +228,7 @@ async function getYouTubeTranscriptViaSupaData(videoId: string, url: string) {
       headers: { "x-api-key": apiKey, "Content-Type": "application/json" },
     });
 
-    if (!response.ok) throw new Error(`Supadata API returned ${response.status}`);
+    if (!response.ok) await throwHttpResponseError(response, "Supadata API returned");
     const data = await response.json();
     if (!data.content) throw new Error("Supadata returned empty transcript");
 
@@ -349,7 +445,7 @@ async function resolveRedditUrl(url: string): Promise<string> {
 
     if (![301, 302, 303, 307, 308].includes(response.status)) {
       if (response.ok) return currentUrl;
-      throw new Error(`Failed to resolve Reddit link: HTTP ${response.status}: ${response.statusText}`);
+      await throwHttpResponseError(response, "Failed to resolve Reddit link: HTTP");
     }
 
     const location = response.headers.get("location");
@@ -424,7 +520,7 @@ async function getRedditOAuthToken(): Promise<{ token: string; retrievalMethod: 
   });
 
   if (!response.ok) {
-    throw new Error(`Reddit OAuth token request failed: HTTP ${response.status}: ${response.statusText}`);
+    await throwHttpResponseError(response, "Reddit OAuth token request failed: HTTP");
   }
 
   const tokenPayload = await response.json();
@@ -449,9 +545,10 @@ async function fetchPublicRedditData(url: string): Promise<RedditFetchResult> {
     }
 
     if (!isRetryableRedditStatus(response.status) || attempt === REDDIT_MAX_FETCH_ATTEMPTS) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      await throwHttpResponseError(response);
     }
 
+    await discardResponseBody(response);
     await delay(redditRetryDelayMs(response, attempt));
   }
 
@@ -469,7 +566,7 @@ async function fetchOAuthRedditData(url: string): Promise<RedditFetchResult> {
   });
 
   if (!response.ok) {
-    throw new Error(`Reddit OAuth JSON failed: HTTP ${response.status}: ${response.statusText}`);
+    await throwHttpResponseError(response, "Reddit OAuth JSON failed: HTTP");
   }
 
   return { data: await response.json(), retrievalMethod };
@@ -589,7 +686,7 @@ async function fetchOldRedditHtmlData(url: string): Promise<RedditFetchResult> {
   });
 
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    await throwHttpResponseError(response);
   }
 
   const html = await response.text();
@@ -823,7 +920,7 @@ export async function extractArticle(url: string): Promise<ArticleResult> {
     redirect: "follow",
   });
 
-  if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  if (!response.ok) await throwHttpResponseError(response);
 
   let html = await response.text();
   const finalUrl = response.url;
@@ -833,34 +930,1042 @@ export async function extractArticle(url: string): Promise<ArticleResult> {
     html = html.replace(/<!--([\s\S]*?)-->/g, "$1");
   }
 
-  const dom = new JSDOM(html, { url: finalUrl });
-  const reader = new Readability(dom.window.document);
-  const article = reader.parse();
+  const dom = new JSDOM(removeStyleBlocks(html), { url: finalUrl, virtualConsole: READABILITY_VIRTUAL_CONSOLE });
+  try {
+    const reader = new Readability(dom.window.document);
+    const article = reader.parse();
 
-  if (!article) throw new Error("Could not parse article");
+    if (!article) throw new Error("Could not parse article");
 
-  const articleContent = article.content || article.textContent;
-  if (!articleContent) throw new Error("Parsed article contained no content");
+    const articleContent = article.content || article.textContent;
+    if (!articleContent) throw new Error("Parsed article contained no content");
 
-  const markdown = article.content ? htmlToMarkdown(article.content) : articleContent;
-  const cleanText = markdown.replace(/\n{3,}/g, "\n\n").trim();
-  const wordCount = cleanText.split(/\s+/).filter((w) => w.length > 0).length;
-  const domain = new URL(finalUrl).hostname.replace("www.", "");
+    const markdown = article.content ? htmlToMarkdown(article.content) : articleContent;
+    const cleanText = markdown.replace(/\n{3,}/g, "\n\n").trim();
+    const wordCount = cleanText.split(/\s+/).filter((w) => w.length > 0).length;
+    const domain = new URL(finalUrl).hostname.replace("www.", "");
 
-  return {
-    url: finalUrl,
-    title: article.title || "Untitled",
-    author: article.byline || "Unknown",
-    siteName: article.siteName || domain,
-    domain,
-    excerpt: article.excerpt || cleanText.substring(0, 200) + "...",
-    content: cleanText,
-    wordCount,
-  };
+    return {
+      url: finalUrl,
+      title: article.title || "Untitled",
+      author: article.byline || "Unknown",
+      siteName: article.siteName || domain,
+      domain,
+      excerpt: article.excerpt || cleanText.substring(0, 200) + "...",
+      content: cleanText,
+      wordCount,
+    };
+  } finally {
+    dom.window.close();
+  }
 }
 
 function formatArticleResult(result: ArticleResult): string {
   return `**Article Extracted**\n\n**Title:** ${result.title}\n**Author:** ${result.author}\n**Source:** ${result.siteName}\n**URL:** ${result.url}\n**Words:** ${result.wordCount}\n\n---\n\n${result.content}`;
+}
+
+// =============================================================================
+// GITHUB EXTRACTOR
+// =============================================================================
+
+type GitHubKind = "repository" | "file" | "directory" | "release" | "gist" | "binary_asset";
+type GitHubStatus = "success" | "unsupported_binary";
+
+export interface GitHubResult {
+  platform: "github";
+  kind: GitHubKind;
+  status: GitHubStatus;
+  url: string;
+  title: string;
+  content: string;
+  metadata: Record<string, unknown>;
+}
+
+interface GitHubRepoApiResult {
+  full_name?: string;
+  description?: string | null;
+  html_url?: string;
+  default_branch?: string;
+  stargazers_count?: number;
+  forks_count?: number;
+  open_issues_count?: number;
+  language?: string | null;
+  topics?: string[];
+}
+
+interface GitHubReleaseApiResult {
+  name?: string | null;
+  tag_name?: string;
+  html_url?: string;
+  body?: string | null;
+  published_at?: string | null;
+  assets?: Array<{ name?: string; browser_download_url?: string; size?: number }>;
+}
+
+interface GitHubContentApiResult {
+  name?: string;
+  path?: string;
+  type?: string;
+  html_url?: string;
+  download_url?: string | null;
+  size?: number;
+}
+
+interface GitHubGistApiResult {
+  description?: string | null;
+  html_url?: string;
+  files?: Record<string, { filename?: string; language?: string | null; content?: string; raw_url?: string; truncated?: boolean }>;
+}
+
+const GITHUB_USER_AGENT = "ContentExtractorMCP/1.0";
+const GITHUB_TEXT_EXTENSIONS = new Set(["md", "markdown", "txt", "rst", "adoc", "json", "jsonl", "csv", "tsv", "yaml", "yml", "toml", "xml", "html", "css", "js", "jsx", "ts", "tsx", "py", "rb", "go", "rs", "java", "c", "cc", "cpp", "h", "hpp", "sh", "sql"]);
+const GITHUB_BINARY_EXTENSIONS = new Set(["7z", "avi", "bmp", "bz2", "dmg", "doc", "docx", "exe", "gif", "gz", "ico", "jpeg", "jpg", "mov", "mp3", "mp4", "ogg", "otf", "pdf", "pkg", "png", "ppt", "pptx", "rar", "tar", "tgz", "tif", "tiff", "ttf", "wav", "webm", "webp", "woff", "woff2", "xls", "xlsx", "xz", "zip"]);
+
+function githubHeaders(accept = "application/vnd.github+json"): Record<string, string> {
+  const headers: Record<string, string> = {
+    Accept: accept,
+    "User-Agent": GITHUB_USER_AGENT,
+  };
+  if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+  return headers;
+}
+
+function githubPathParts(parsed: URL): string[] {
+  return parsed.pathname.split("/").filter((part) => part.length > 0);
+}
+
+function pathExtension(pathname: string): string {
+  const cleanPath = pathname.split(/[?#]/)[0].toLowerCase();
+  const filename = cleanPath.split("/").pop() || "";
+  const dotIndex = filename.lastIndexOf(".");
+  return dotIndex >= 0 ? filename.slice(dotIndex + 1) : "";
+}
+
+function isLikelyGitHubBinary(pathname: string): boolean {
+  const extension = pathExtension(pathname);
+  if (!extension) return false;
+  if (GITHUB_TEXT_EXTENSIONS.has(extension)) return false;
+  return GITHUB_BINARY_EXTENSIONS.has(extension);
+}
+
+function releaseAssetResult(url: string, title: string, owner: string, repo: string): GitHubResult {
+  return {
+    platform: "github",
+    kind: "binary_asset",
+    status: "unsupported_binary",
+    url,
+    title,
+    content: `Unsupported binary GitHub asset: ${title}\n\nThe extractor intentionally does not download binary release assets. Use the URL directly if the binary artifact is needed.`,
+    metadata: { owner, repo, reason: "binary_asset" },
+  };
+}
+
+async function fetchGitHubJson<T>(url: string): Promise<T> {
+  const response = await fetch(url, { headers: githubHeaders() });
+  if (!response.ok) await throwHttpResponseError(response, "GitHub API returned");
+  return (await response.json()) as T;
+}
+
+async function fetchGitHubText(url: string): Promise<string> {
+  const response = await fetch(url, { headers: githubHeaders("text/plain, text/markdown, */*") });
+  if (!response.ok) await throwHttpResponseError(response, "GitHub content returned");
+  return response.text();
+}
+
+async function extractGitHubRepository(owner: string, repo: string, url: string): Promise<GitHubResult> {
+  const repoData = await fetchGitHubJson<GitHubRepoApiResult>(`https://api.github.com/repos/${owner}/${repo}`);
+  const title = repoData.full_name || `${owner}/${repo}`;
+  const defaultBranch = repoData.default_branch || "main";
+  const readmeUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${defaultBranch}/README.md`;
+  let readme = "";
+  let readmeError: string | undefined;
+
+  try {
+    readme = await fetchGitHubText(readmeUrl);
+  } catch (error: any) {
+    readmeError = error.message;
+  }
+
+  const lines = [
+    `# ${title}`,
+    "",
+    repoData.description || "No repository description provided.",
+    "",
+    `Repository: ${repoData.html_url || url}`,
+    `Default branch: ${defaultBranch}`,
+    `Stars: ${repoData.stargazers_count ?? 0}`,
+    `Forks: ${repoData.forks_count ?? 0}`,
+    `Open issues: ${repoData.open_issues_count ?? 0}`,
+  ];
+
+  if (repoData.language) lines.push(`Language: ${repoData.language}`);
+  if (repoData.topics?.length) lines.push(`Topics: ${repoData.topics.join(", ")}`);
+  lines.push("", "## README", "", readme || `README unavailable${readmeError ? `: ${readmeError}` : "."}`);
+
+  return {
+    platform: "github",
+    kind: "repository",
+    status: "success",
+    url: repoData.html_url || url,
+    title,
+    content: lines.join("\n").trim(),
+    metadata: {
+      owner,
+      repo,
+      defaultBranch,
+      stars: repoData.stargazers_count ?? 0,
+      forks: repoData.forks_count ?? 0,
+      openIssues: repoData.open_issues_count ?? 0,
+      language: repoData.language || null,
+      topics: Array.isArray(repoData.topics) ? repoData.topics : [],
+      readmeUrl,
+      readmeError,
+    },
+  };
+}
+
+async function extractGitHubFile(owner: string, repo: string, branch: string, filePath: string, url: string): Promise<GitHubResult> {
+  if (isLikelyGitHubBinary(filePath)) {
+    return releaseAssetResult(url, filePath.split("/").pop() || filePath, owner, repo);
+  }
+
+  const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${filePath}`;
+  const content = await fetchGitHubText(rawUrl);
+  const title = `${owner}/${repo}/${filePath}`;
+
+  return {
+    platform: "github",
+    kind: "file",
+    status: "success",
+    url,
+    title,
+    content: `# ${title}\n\nSource: ${url}\n\n---\n\n${content}`.trim(),
+    metadata: { owner, repo, branch, path: filePath, rawUrl, words: wordCount(content) },
+  };
+}
+
+async function extractGitHubDirectory(owner: string, repo: string, branch: string, dirPath: string, url: string): Promise<GitHubResult> {
+  const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(dirPath)}?ref=${encodeURIComponent(branch)}`;
+  const items = await fetchGitHubJson<GitHubContentApiResult[]>(apiUrl);
+  const title = `${owner}/${repo}/${dirPath}`;
+  const rows = items.map((item) => `- ${item.type || "item"}: ${item.path || item.name || "unknown"}${item.size !== undefined ? ` (${item.size} bytes)` : ""}`);
+
+  return {
+    platform: "github",
+    kind: "directory",
+    status: "success",
+    url,
+    title,
+    content: `# ${title}\n\nSource: ${url}\n\n## Directory contents\n\n${rows.join("\n")}`,
+    metadata: { owner, repo, branch, path: dirPath, itemCount: items.length },
+  };
+}
+
+async function extractGitHubRelease(owner: string, repo: string, releaseRef: string, url: string): Promise<GitHubResult> {
+  const apiUrl = releaseRef === "latest"
+    ? `https://api.github.com/repos/${owner}/${repo}/releases/latest`
+    : `https://api.github.com/repos/${owner}/${repo}/releases/tags/${encodeURIComponent(releaseRef)}`;
+  const release = await fetchGitHubJson<GitHubReleaseApiResult>(apiUrl);
+  const title = `${owner}/${repo} ${release.name || release.tag_name || releaseRef}`;
+  const assets = release.assets || [];
+  const assetLines = assets.map((asset) => `- ${asset.name || "asset"}${asset.size !== undefined ? ` (${asset.size} bytes)` : ""}${asset.browser_download_url ? `: ${asset.browser_download_url}` : ""}`);
+
+  return {
+    platform: "github",
+    kind: "release",
+    status: "success",
+    url: release.html_url || url,
+    title,
+    content: [`# ${title}`, "", `Tag: ${release.tag_name || releaseRef}`, release.published_at ? `Published: ${release.published_at}` : "", "", "## Notes", "", release.body || "No release notes provided.", "", "## Assets", "", assetLines.join("\n") || "No assets listed."].filter((line) => line !== "").join("\n"),
+    metadata: { owner, repo, tagName: release.tag_name || releaseRef, publishedAt: release.published_at || null, assetCount: assets.length },
+  };
+}
+
+async function extractGitHubGist(gistId: string, url: string): Promise<GitHubResult> {
+  const gist = await fetchGitHubJson<GitHubGistApiResult>(`https://api.github.com/gists/${gistId}`);
+  const files = Object.values(gist.files || {});
+  const sections: string[] = [];
+
+  for (const file of files) {
+    const filename = file.filename || "gist-file";
+    let content = file.content || "";
+    if (file.truncated && file.raw_url) {
+      content = await fetchGitHubText(file.raw_url);
+    }
+    sections.push(`## ${filename}\n\n${content}`);
+  }
+
+  return {
+    platform: "github",
+    kind: "gist",
+    status: "success",
+    url: gist.html_url || url,
+    title: gist.description || `gist:${gistId}`,
+    content: [`# ${gist.description || `Gist ${gistId}`}`, "", `Source: ${gist.html_url || url}`, "", ...sections].join("\n").trim(),
+    metadata: { gistId, fileCount: files.length, files: files.map((file) => file.filename || "gist-file") },
+  };
+}
+
+export async function extractGitHub(url: string): Promise<GitHubResult> {
+  const parsed = parseHttpUrl(url);
+  const hostname = parsed.hostname.replace(/^www\./, "").toLowerCase();
+
+  if (hostname === "raw.githubusercontent.com") {
+    const parts = githubPathParts(parsed);
+    if (parts.length < 4) throw new Error("Raw GitHub URL must include owner, repo, branch, and path");
+    const [owner, repoName, branch, ...fileParts] = parts;
+    return extractGitHubFile(owner, repoName.replace(/\.git$/, ""), branch, fileParts.join("/"), parsed.toString());
+  }
+
+  if (hostname === "gist.github.com") {
+    const parts = githubPathParts(parsed);
+    const gistId = parts[parts.length - 1];
+    if (!gistId) throw new Error("Gist URL must include a gist ID");
+    return extractGitHubGist(gistId, parsed.toString());
+  }
+
+  if (hostname !== "github.com") {
+    throw new Error("GitHub extractor requires a github.com, gist.github.com, or raw.githubusercontent.com URL");
+  }
+
+  const parts = githubPathParts(parsed);
+  if (parts.length < 2) throw new Error("GitHub URL must include owner and repository");
+  const [owner, repoPart, ...rest] = parts;
+  const repo = repoPart.replace(/\.git$/, "");
+
+  if (rest[0] === "releases" && rest[1] === "latest" && rest[2] === "download") {
+    const assetPath = rest.slice(3).join("/");
+    if (isLikelyGitHubBinary(assetPath)) return releaseAssetResult(parsed.toString(), assetPath.split("/").pop() || assetPath, owner, repo);
+    return extractGitHubFile(owner, repo, "HEAD", assetPath, parsed.toString());
+  }
+
+  if (rest[0] === "releases" && rest[1] === "latest") {
+    return extractGitHubRelease(owner, repo, "latest", parsed.toString());
+  }
+
+  if (rest[0] === "releases" && rest[1] === "tag" && rest[2]) {
+    return extractGitHubRelease(owner, repo, rest[2], parsed.toString());
+  }
+
+  if ((rest[0] === "blob" || rest[0] === "raw") && rest.length >= 3) {
+    return extractGitHubFile(owner, repo, rest[1], rest.slice(2).join("/"), parsed.toString());
+  }
+
+  if (rest[0] === "tree" && rest.length >= 3) {
+    return extractGitHubDirectory(owner, repo, rest[1], rest.slice(2).join("/"), parsed.toString());
+  }
+
+  return extractGitHubRepository(owner, repo, parsed.toString());
+}
+
+function formatGitHubResult(result: GitHubResult): string {
+  return `**GitHub Content Extracted**\n\n**Title:** ${result.title}\n**Kind:** ${result.kind}\n**Status:** ${result.status}\n**URL:** ${result.url}\n\n---\n\n${result.content}`;
+}
+
+// =============================================================================
+// BATCH EXTRACTOR
+// =============================================================================
+
+type BatchPlatform = "youtube" | "reddit" | "tiktok" | "github" | "article" | "unknown";
+type BatchStatus = "success" | "unsupported_binary" | "no_transcript" | "blocked" | "rate_limited" | "fetch_failed" | "error" | "invalid_url" | "browser_captured" | "browser_blocked" | "browser_empty" | "browser_not_found" | "browser_unclassified" | "browser_unavailable" | "browser_failed";
+type BrowserFallbackStatus = "captured" | "unavailable" | "failed";
+type BrowserCaptureClassification = "content" | "blocked" | "empty" | "not_found" | "unclassified";
+
+interface BrowserFallbackResult {
+  status: BrowserFallbackStatus;
+  binary?: string;
+  screenshotPath?: string;
+  classification?: BrowserCaptureClassification;
+  classifier?: string;
+  classifierError?: string;
+  textPath?: string;
+  textSample?: string;
+  textWordCount?: number;
+  error?: string;
+}
+
+interface BrowserFallbackOptions {
+  enabled: boolean;
+  timeoutMs: number;
+  statuses: Set<BatchStatus>;
+}
+
+export interface BatchInputItem {
+  id?: string;
+  url: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface BatchInput {
+  urls?: string[];
+  items?: BatchInputItem[];
+  csv_path?: string;
+  url_column?: string;
+  output_dir?: string;
+  max_concurrency?: number;
+  browser_fallback?: boolean;
+  browser_timeout_ms?: number;
+  browser_fallback_statuses?: BatchStatus[];
+}
+
+interface NormalizedBatchRow {
+  id: string;
+  rowNumber: number;
+  url: string;
+  normalizedUrl: string;
+  metadata: Record<string, unknown>;
+  validationError?: string;
+}
+
+export interface BatchExtractionResult {
+  url: string;
+  platform: BatchPlatform;
+  status: BatchStatus;
+  title: string;
+  content: string;
+  outputPath?: string;
+  artifactDir?: string;
+  sourcePath?: string;
+  resultPath?: string;
+  errorPath?: string;
+  screenshotPath?: string;
+  originalStatus?: BatchStatus;
+  browserFallback?: BrowserFallbackResult;
+  metadata: Record<string, unknown>;
+  error?: string;
+}
+
+export interface BatchMention {
+  id: string;
+  rowNumber: number;
+  url: string;
+  normalizedUrl: string;
+  platform: BatchPlatform;
+  status: BatchStatus;
+  title: string;
+  outputPath?: string;
+  artifactDir?: string;
+  errorPath?: string;
+  screenshotPath?: string;
+  error?: string;
+  duplicateOf?: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface BatchResult {
+  status: "complete";
+  totalRows: number;
+  uniqueUrls: number;
+  statusCounts: Record<string, number>;
+  outputDir: string;
+  manifestPath: string;
+  reportCsvPath: string;
+  resultsJsonlPath: string;
+  results: BatchExtractionResult[];
+  mentions: BatchMention[];
+}
+
+function normalizeBatchConcurrency(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return 4;
+  return Math.min(Math.max(Math.floor(value), 1), 10);
+}
+
+const DEFAULT_BROWSER_TIMEOUT_MS = 15_000;
+const MIN_BROWSER_TIMEOUT_MS = 1_000;
+const MAX_BROWSER_TIMEOUT_MS = 60_000;
+const DEFAULT_BROWSER_FALLBACK_STATUSES: BatchStatus[] = ["blocked", "rate_limited", "fetch_failed"];
+const ALLOWED_BROWSER_FALLBACK_STATUSES = new Set<BatchStatus>([
+  "blocked",
+  "rate_limited",
+  "fetch_failed",
+  "error",
+  "no_transcript",
+]);
+
+function normalizeBrowserTimeoutMs(value: unknown): number {
+  if (value === undefined || value === null) return DEFAULT_BROWSER_TIMEOUT_MS;
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error("browser_timeout_ms must be a finite number");
+  }
+  return Math.min(Math.max(Math.floor(value), MIN_BROWSER_TIMEOUT_MS), MAX_BROWSER_TIMEOUT_MS);
+}
+
+function normalizeBrowserFallbackStatuses(value: unknown): Set<BatchStatus> {
+  if (value === undefined || value === null) return new Set(DEFAULT_BROWSER_FALLBACK_STATUSES);
+  if (!Array.isArray(value)) {
+    throw new Error("browser_fallback_statuses must be an array of supported status strings");
+  }
+
+  return new Set(value.map((status) => {
+    if (typeof status !== "string" || !ALLOWED_BROWSER_FALLBACK_STATUSES.has(status as BatchStatus)) {
+      throw new Error(`Unsupported browser_fallback_statuses value: ${String(status)}`);
+    }
+    return status as BatchStatus;
+  }));
+}
+
+function browserFallbackOptions(input: BatchInput): BrowserFallbackOptions {
+  return {
+    enabled: input.browser_fallback === true,
+    timeoutMs: normalizeBrowserTimeoutMs(input.browser_timeout_ms),
+    statuses: normalizeBrowserFallbackStatuses(input.browser_fallback_statuses),
+  };
+}
+
+function batchOutputDir(inputDir: unknown): string {
+  if (typeof inputDir === "string" && inputDir.trim().length > 0) return inputDir.trim();
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  return join(DEFAULT_OUTPUT_DIR, `content-extractor-batch-${stamp}`);
+}
+
+function normalizeBatchUrl(rawUrl: unknown, rowNumber: number): { url: string; normalizedUrl: string; validationError?: string } {
+  const url = typeof rawUrl === "string" ? rawUrl.trim() : "";
+  try {
+    return { url, normalizedUrl: parseHttpUrl(url, `row ${rowNumber} url`).toString() };
+  } catch (error: any) {
+    return { url, normalizedUrl: `invalid:${rowNumber}:${hashText(String(rawUrl ?? ""))}`, validationError: error.message };
+  }
+}
+
+function objectMetadata(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return { ...(value as Record<string, unknown>) };
+}
+
+function normalizeBatchRows(input: BatchInput): NormalizedBatchRow[] {
+  const rows: NormalizedBatchRow[] = [];
+
+  const addRow = (rawUrl: unknown, id: string | undefined, metadata: Record<string, unknown>) => {
+    const rowNumber = rows.length + 1;
+    const normalized = normalizeBatchUrl(rawUrl, rowNumber);
+    rows.push({
+      id: id || `row-${rowNumber}`,
+      rowNumber,
+      url: normalized.url,
+      normalizedUrl: normalized.normalizedUrl,
+      metadata,
+      validationError: normalized.validationError,
+    });
+  };
+
+  if (Array.isArray(input.urls)) {
+    input.urls.forEach((url, index) => addRow(url, `url-${index + 1}`, {}));
+  }
+
+  if (Array.isArray(input.items)) {
+    input.items.forEach((item, index) => {
+      addRow(item?.url, item?.id || `item-${index + 1}`, objectMetadata(item?.metadata));
+    });
+  }
+
+  if (input.csv_path) {
+    const records = parseCsvRecords(readFileSync(input.csv_path, "utf8"));
+    const headers = records[0] ? Object.keys(records[0]) : [];
+    const urlColumn = input.url_column || headers.find((header) => header.toLowerCase() === "url");
+    if (!urlColumn) throw new Error("csv_path requires url_column when the CSV has no url header");
+
+    records.forEach((record, index) => {
+      const metadata: Record<string, unknown> = {};
+      Object.entries(record).forEach(([key, value]) => {
+        if (key !== urlColumn && key.toLowerCase() !== "id") metadata[key] = value;
+      });
+      addRow(record[urlColumn], record.id || record.ID || `csv-${index + 1}`, metadata);
+    });
+  }
+
+  if (rows.length === 0) throw new Error("extractBatch requires urls, items, or csv_path");
+  return rows;
+}
+
+function detectBatchPlatform(url: string): BatchPlatform {
+  try {
+    const parsed = parseHttpUrl(url);
+    if (hostnameMatches(parsed, ["youtube.com", "youtu.be"])) return "youtube";
+    if (hostnameMatches(parsed, ["reddit.com", "redd.it"])) return "reddit";
+    if (hostnameMatches(parsed, ["tiktok.com"])) return "tiktok";
+    if (hostnameMatches(parsed, ["github.com", "gist.github.com", "raw.githubusercontent.com"])) return "github";
+    return "article";
+  } catch {
+    return "unknown";
+  }
+}
+
+async function mapLimit<T, R>(items: T[], limit: number, worker: (item: T, index: number) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+  const workerCount = Math.min(limit, items.length);
+
+  await Promise.all(Array.from({ length: workerCount }, async () => {
+    while (nextIndex < items.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      results[index] = await worker(items[index], index);
+    }
+  }));
+
+  return results;
+}
+
+async function extractBatchUrl(row: NormalizedBatchRow): Promise<BatchExtractionResult> {
+  if (row.validationError) {
+    return {
+      url: row.url,
+      platform: "unknown",
+      status: "invalid_url",
+      title: row.url || `row-${row.rowNumber}`,
+      content: "",
+      metadata: {},
+      error: row.validationError,
+    };
+  }
+
+  const platform = detectBatchPlatform(row.normalizedUrl);
+
+  try {
+    switch (platform) {
+      case "youtube": {
+        const data = await extractYouTube(row.normalizedUrl);
+        return { url: data.url, platform, status: data.hasTranscript ? "success" : "no_transcript", title: data.title, content: formatYouTubeResult(data), metadata: { videoId: data.videoId, extractionMethod: data.extractionMethod } };
+      }
+      case "reddit": {
+        const data = await extractReddit(row.normalizedUrl);
+        return { url: data.url, platform, status: "success", title: data.title, content: formatRedditResult(data), metadata: data.metadata as unknown as Record<string, unknown> };
+      }
+      case "tiktok": {
+        const data = await extractTikTok(row.normalizedUrl);
+        return { url: data.url, platform, status: data.hasTranscript ? "success" : "no_transcript", title: data.metadata.description || `@${data.metadata.user}`, content: formatTikTokResult(data), metadata: data.metadata as unknown as Record<string, unknown> };
+      }
+      case "github": {
+        const data = await extractGitHub(row.normalizedUrl);
+        return { url: data.url, platform, status: data.status, title: data.title, content: formatGitHubResult(data), metadata: { kind: data.kind, ...data.metadata } };
+      }
+      case "article": {
+        const data = await extractArticle(row.normalizedUrl);
+        return { url: data.url, platform, status: "success", title: data.title, content: formatArticleResult(data), metadata: { author: data.author, siteName: data.siteName, domain: data.domain, wordCount: data.wordCount } };
+      }
+      default:
+        return { url: row.normalizedUrl, platform: "unknown", status: "error", title: row.url, content: "", metadata: {}, error: "Unsupported URL platform" };
+    }
+  } catch (error: any) {
+    const message = batchErrorMessage(error);
+    return {
+      url: row.normalizedUrl,
+      platform,
+      status: classifyBatchError(message),
+      title: row.url,
+      content: "",
+      metadata: {},
+      error: message,
+    };
+  }
+}
+
+function batchErrorMessage(error: any): string {
+  const message = error?.message ? String(error.message) : String(error);
+  const cause = error?.cause;
+  if (!cause) return message;
+  const causeParts = [cause.code, cause.message].filter(Boolean).map(String);
+  if (causeParts.length === 0) return message;
+  return `${message}: ${causeParts.join(": ")}`;
+}
+
+function classifyBatchError(message: string): BatchStatus {
+  if (/HTTP\s+429|Too Many Requests|rate limit|rate-limit/i.test(message)) return "rate_limited";
+  if (/HTTP\s+(401|403)|Forbidden|Access Denied|cf-mitigated|captcha|challenge/i.test(message)) return "blocked";
+  if (/fetch failed|UND_ERR_|Headers Overflow|ENOTFOUND|ECONNRESET|ECONNREFUSED|ETIMEDOUT|timeout/i.test(message)) return "fetch_failed";
+  return "error";
+}
+
+function isExecutableCandidate(path: string | undefined): path is string {
+  if (!path) return false;
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
+}
+
+function findExecutableOnPath(name: string): string | undefined {
+  const pathEntries = (process.env.PATH || "").split(delimiter).filter(Boolean);
+  for (const entry of pathEntries) {
+    const candidate = join(entry, name);
+    if (isExecutableCandidate(candidate)) return candidate;
+  }
+  return undefined;
+}
+
+function resolvePlaywrightBinary(): string | undefined {
+  const envCandidates = [process.env.RUDI_PLAYWRIGHT_BIN, process.env.PLAYWRIGHT_BIN]
+    .map((value) => (typeof value === "string" ? value.trim() : ""))
+    .filter(Boolean);
+
+  for (const candidate of envCandidates) {
+    if (isExecutableCandidate(candidate)) return candidate;
+  }
+
+  const rudiManagedBinary = join(homedir(), ".rudi", "bins", "playwright");
+  if (isExecutableCandidate(rudiManagedBinary)) return rudiManagedBinary;
+
+  return findExecutableOnPath("playwright");
+}
+
+function resolveTesseractBinary(): string | undefined {
+  const envCandidates = [process.env.RUDI_TESSERACT_BIN, process.env.TESSERACT_BIN]
+    .map((value) => (typeof value === "string" ? value.trim() : ""))
+    .filter(Boolean);
+
+  for (const candidate of envCandidates) {
+    if (isExecutableCandidate(candidate)) return candidate;
+  }
+
+  const rudiManagedBinary = join(homedir(), ".rudi", "bins", "tesseract");
+  if (isExecutableCandidate(rudiManagedBinary)) return rudiManagedBinary;
+
+  return findExecutableOnPath("tesseract");
+}
+
+function processExecutionErrorMessage(error: any): string {
+  const message = batchErrorMessage(error);
+  const stderr = typeof error?.stderr === "string" ? error.stderr.trim() : "";
+  if (!stderr) return message;
+  return `${message}: ${stderr.slice(0, 500)}`;
+}
+
+function normalizeBrowserCaptureText(value: string): string {
+  return value
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/[ \t]+/g, " ").trim())
+    .filter(Boolean)
+    .join("\n")
+    .trim();
+}
+
+function browserCaptureTextSample(value: string): string {
+  const sample = value.replace(/\s+/g, " ").trim();
+  return sample.length > 500 ? `${sample.slice(0, 500)}...` : sample;
+}
+
+function classifyBrowserCaptureText(text: string): BrowserCaptureClassification {
+  const normalized = text.toLowerCase();
+  const wordCount = text.split(/\s+/).filter(Boolean).length;
+
+  if (!text.trim()) return "empty";
+  if (/404|page not found|not found/i.test(text) && wordCount < 120) return "not_found";
+  if (
+    /not a robot|not a bot|malicious bots|security verification|verifying\.\.\.|unusual activity|access is temporarily restricted|automated \(bot\) activity|suspect that you're a robot|blocked from the new york times|press\s*&\s*hold to confirm you are a human|enable javascript and cookies|captcha|cloudflare/i.test(normalized)
+  ) {
+    return "blocked";
+  }
+  if (/sign in|log in|login|create account|register/i.test(text) && wordCount < 80) return "blocked";
+  if (wordCount >= 40) return "content";
+  return "unclassified";
+}
+
+function browserCaptureStatusForClassification(classification: BrowserCaptureClassification): BatchStatus {
+  if (classification === "content") return "browser_captured";
+  if (classification === "blocked") return "browser_blocked";
+  if (classification === "empty") return "browser_empty";
+  if (classification === "not_found") return "browser_not_found";
+  return "browser_unclassified";
+}
+
+async function classifyBrowserScreenshot(screenshotPath: string, timeoutMs: number): Promise<Pick<BrowserFallbackResult, "classification" | "classifier" | "classifierError" | "textPath" | "textSample" | "textWordCount">> {
+  const binary = resolveTesseractBinary();
+  if (!binary) {
+    return {
+      classification: "unclassified",
+      classifier: "tesseract_unavailable",
+      textWordCount: 0,
+    };
+  }
+
+  try {
+    const { stdout } = await execFileAsync(binary, [
+      screenshotPath,
+      "stdout",
+      "-l",
+      "eng",
+      "--psm",
+      "11",
+    ], {
+      timeout: Math.min(Math.max(timeoutMs, 5_000), 30_000),
+      maxBuffer: 1024 * 1024,
+    });
+    const text = normalizeBrowserCaptureText(stdout || "");
+    const textPath = join(dirname(screenshotPath), "browser_text.txt");
+    writeFileSync(textPath, text ? `${text}\n` : "", "utf8");
+    return {
+      classification: classifyBrowserCaptureText(text),
+      classifier: "tesseract",
+      textPath,
+      textSample: browserCaptureTextSample(text),
+      textWordCount: text.split(/\s+/).filter(Boolean).length,
+    };
+  } catch (error: any) {
+    return {
+      classification: "unclassified",
+      classifier: "tesseract_failed",
+      classifierError: processExecutionErrorMessage(error),
+      textWordCount: 0,
+    };
+  }
+}
+
+async function captureBrowserScreenshot(url: string, screenshotPath: string, timeoutMs: number): Promise<BrowserFallbackResult> {
+  let browserUrl: string;
+  try {
+    browserUrl = parseHttpUrl(url, "browser fallback url").toString();
+  } catch (error: any) {
+    return {
+      status: "failed",
+      error: error.message,
+    };
+  }
+
+  const binary = resolvePlaywrightBinary();
+  if (!binary) {
+    return {
+      status: "unavailable",
+      error: "Playwright binary not found. Install or expose the RUDI-managed playwright binary.",
+    };
+  }
+
+  ensureOutputDir(screenshotPath);
+
+  try {
+    await execFileAsync(binary, [
+      "screenshot",
+      "--browser",
+      "chromium",
+      "--full-page",
+      "--timeout",
+      String(timeoutMs),
+      browserUrl,
+      screenshotPath,
+    ], {
+      timeout: timeoutMs + 5_000,
+      maxBuffer: 1024 * 1024,
+    });
+
+    const classification = await classifyBrowserScreenshot(screenshotPath, timeoutMs);
+    return {
+      status: "captured",
+      binary,
+      screenshotPath,
+      ...classification,
+    };
+  } catch (error: any) {
+    return {
+      status: "failed",
+      binary,
+      error: processExecutionErrorMessage(error),
+    };
+  }
+}
+
+function shouldRunBrowserFallback(result: BatchExtractionResult, options: BrowserFallbackOptions): boolean {
+  return options.enabled && options.statuses.has(result.status);
+}
+
+function uniqueArtifactSlug(row: NormalizedBatchRow, result: BatchExtractionResult, usedSlugs: Set<string>): string {
+  const base = safeSlug(row.id || result.title, `row-${row.rowNumber}`);
+  if (!usedSlugs.has(base)) {
+    usedSlugs.add(base);
+    return base;
+  }
+  const withHash = `${base}-${hashText(row.normalizedUrl).slice(0, 6)}`;
+  usedSlugs.add(withHash);
+  return withHash;
+}
+
+async function writeBatchArtifactFiles(outputDir: string, rows: NormalizedBatchRow[], results: BatchExtractionResult[], browserFallback: BrowserFallbackOptions): Promise<BatchExtractionResult[]> {
+  const linksDir = join(outputDir, "links");
+  ensureOutputDir(linksDir);
+  const usedSlugs = new Set<string>();
+  const resultsWithArtifacts: BatchExtractionResult[] = [];
+
+  for (let index = 0; index < results.length; index += 1) {
+    const result = results[index];
+    const row = rows[index];
+    const artifactDir = join(linksDir, uniqueArtifactSlug(row, result, usedSlugs));
+    ensureOutputDir(artifactDir);
+
+    const sourcePath = join(artifactDir, "source.json");
+    writeFileSync(sourcePath, JSON.stringify({
+      id: row.id,
+      rowNumber: row.rowNumber,
+      url: row.url,
+      normalizedUrl: row.normalizedUrl,
+      metadata: row.metadata,
+    }, null, 2) + "\n", "utf8");
+
+    let withArtifacts: BatchExtractionResult = { ...result, artifactDir, sourcePath };
+    if (shouldRunBrowserFallback(withArtifacts, browserFallback)) {
+      const originalStatus = withArtifacts.status;
+      const screenshotPath = join(artifactDir, "page.png");
+      const fallback = await captureBrowserScreenshot(withArtifacts.url, screenshotPath, browserFallback.timeoutMs);
+
+      if (fallback.status === "captured") {
+        const browserStatus = browserCaptureStatusForClassification(fallback.classification || "unclassified");
+        withArtifacts = {
+          ...withArtifacts,
+          status: browserStatus,
+          originalStatus,
+          screenshotPath: fallback.screenshotPath,
+          browserFallback: fallback,
+        };
+      } else if (fallback.status === "unavailable") {
+        withArtifacts = {
+          ...withArtifacts,
+          status: "browser_unavailable",
+          originalStatus,
+          browserFallback: fallback,
+        };
+      } else {
+        withArtifacts = {
+          ...withArtifacts,
+          status: "browser_failed",
+          originalStatus,
+          browserFallback: fallback,
+        };
+      }
+    }
+
+    if (result.content) {
+      withArtifacts.outputPath = join(artifactDir, "content.md");
+      writeFileSync(withArtifacts.outputPath, result.content, "utf8");
+    }
+    if (result.error) {
+      withArtifacts.errorPath = join(artifactDir, "error.json");
+      writeFileSync(withArtifacts.errorPath, JSON.stringify({
+        url: result.url,
+        platform: result.platform,
+        status: withArtifacts.status,
+        originalStatus: withArtifacts.originalStatus,
+        title: result.title,
+        error: result.error,
+        browserFallback: withArtifacts.browserFallback,
+      }, null, 2) + "\n", "utf8");
+    }
+
+    withArtifacts.resultPath = join(artifactDir, "result.json");
+    const { content, ...serializableResult } = withArtifacts;
+    writeFileSync(withArtifacts.resultPath, JSON.stringify({
+      ...serializableResult,
+      contentBytes: Buffer.byteLength(content || "", "utf8"),
+    }, null, 2) + "\n", "utf8");
+
+    resultsWithArtifacts.push(withArtifacts);
+  }
+
+  return resultsWithArtifacts;
+}
+
+function buildBatchReport(mentions: BatchMention[]): string {
+  const headers = ["id", "row_number", "url", "normalized_url", "platform", "status", "title", "output_path", "artifact_dir", "error_path", "screenshot_path", "error", "duplicate_of", "metadata_json"];
+  const rows = mentions.map((mention) => [
+    mention.id,
+    mention.rowNumber,
+    mention.url,
+    mention.normalizedUrl,
+    mention.platform,
+    mention.status,
+    mention.title,
+    mention.outputPath || "",
+    mention.artifactDir || "",
+    mention.errorPath || "",
+    mention.screenshotPath || "",
+    mention.error || "",
+    mention.duplicateOf || "",
+    JSON.stringify(mention.metadata),
+  ]);
+  return [csvLine(headers), ...rows.map(csvLine)].join("\n");
+}
+
+export async function extractBatch(input: BatchInput): Promise<BatchResult> {
+  const rows = normalizeBatchRows(input || {});
+  const outputDir = batchOutputDir(input?.output_dir);
+  const maxConcurrency = normalizeBatchConcurrency(input?.max_concurrency);
+  const fallbackOptions = browserFallbackOptions(input || {});
+  ensureOutputDir(outputDir);
+
+  const uniqueRows = Array.from(new Map(rows.map((row) => [row.normalizedUrl, row])).values());
+  const extracted = await mapLimit(uniqueRows, maxConcurrency, extractBatchUrl);
+  const results = await writeBatchArtifactFiles(outputDir, uniqueRows, extracted, fallbackOptions);
+  const resultByUrl = new Map(results.map((result, index) => [uniqueRows[index].normalizedUrl, result]));
+  const firstRowIdByUrl = new Map<string, string>();
+
+  const mentions = rows.map((row): BatchMention => {
+    const result = resultByUrl.get(row.normalizedUrl);
+    const duplicateOf = firstRowIdByUrl.get(row.normalizedUrl);
+    if (!duplicateOf) firstRowIdByUrl.set(row.normalizedUrl, row.id);
+
+    return {
+      id: row.id,
+      rowNumber: row.rowNumber,
+      url: row.url,
+      normalizedUrl: row.normalizedUrl,
+      platform: result?.platform || "unknown",
+      status: result?.status || "error",
+      title: result?.title || row.url,
+      outputPath: result?.outputPath,
+      artifactDir: result?.artifactDir,
+      errorPath: result?.errorPath,
+      screenshotPath: result?.screenshotPath,
+      error: result?.error,
+      duplicateOf,
+      metadata: row.metadata,
+    };
+  });
+
+  const statusCounts = results.reduce<Record<string, number>>((acc, result) => {
+    acc[result.status] = (acc[result.status] || 0) + 1;
+    return acc;
+  }, {});
+
+  const manifestPath = join(outputDir, "batch_manifest.json");
+  const reportCsvPath = join(outputDir, "batch_report.csv");
+  const resultsJsonlPath = join(outputDir, "batch_results.jsonl");
+  const manifest = {
+    status: "complete",
+    generatedAt: new Date().toISOString(),
+    totalRows: rows.length,
+    uniqueUrls: uniqueRows.length,
+    maxConcurrency,
+    browserFallback: {
+      enabled: fallbackOptions.enabled,
+      timeoutMs: fallbackOptions.timeoutMs,
+      statuses: Array.from(fallbackOptions.statuses),
+    },
+    statusCounts,
+    outputDir,
+    reportCsvPath,
+    resultsJsonlPath,
+    results: results.map(({ content, ...result }) => ({ ...result, contentBytes: Buffer.byteLength(content || "", "utf8") })),
+  };
+
+  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), "utf8");
+  writeFileSync(reportCsvPath, buildBatchReport(mentions), "utf8");
+  writeFileSync(resultsJsonlPath, results.map((result) => JSON.stringify(result)).join("\n") + "\n", "utf8");
+
+  return {
+    status: "complete",
+    totalRows: rows.length,
+    uniqueUrls: uniqueRows.length,
+    statusCounts,
+    outputDir,
+    manifestPath,
+    reportCsvPath,
+    resultsJsonlPath,
+    results,
+    mentions,
+  };
+}
+
+function formatBatchResult(result: BatchResult): string {
+  const counts = Object.entries(result.statusCounts).map(([status, count]) => `${status}: ${count}`).join(", ");
+  return `**Batch Extraction Complete**\n\n**Rows:** ${result.totalRows}\n**Unique URLs fetched:** ${result.uniqueUrls}\n**Status counts:** ${counts || "none"}\n\n**Output directory:** ${result.outputDir}\n**Manifest:** ${result.manifestPath}\n**Report CSV:** ${result.reportCsvPath}\n**Results JSONL:** ${result.resultsJsonlPath}`;
 }
 
 // =============================================================================
@@ -958,10 +2063,11 @@ export async function extractLinks(url: string, maxLinks = 250): Promise<LinksRe
     redirect: "follow",
   });
 
-  if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  if (!response.ok) await throwHttpResponseError(response);
 
   const contentType = response.headers.get("content-type") || "";
   if (contentType && !contentType.includes("text/html")) {
+    await discardResponseBody(response);
     throw new Error(`Expected HTML content, received ${contentType}`);
   }
 
@@ -1055,6 +2161,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     {
+      name: "extract_github",
+      description: "Extract GitHub repository, file, gist, or release content. Repository URLs include metadata and README content; binary release assets are classified without downloading them.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          url: { type: "string", description: "GitHub repository, file, gist, release, or raw.githubusercontent.com URL" },
+          output: { type: "string", description: "Optional file path to save markdown output" },
+        },
+        required: ["url"],
+      },
+    },
+    {
       name: "extract_links",
       description: "Extract and categorize links from an HTML page. Returns internal, external, document, video, social, contact, and about links.",
       inputSchema: {
@@ -1066,6 +2184,44 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           output: { type: "string", description: "Optional file path to save output" },
         },
         required: ["url"],
+      },
+    },
+    {
+      name: "extract_batch",
+      description: "Batch extract content from URL arrays, metadata items, or a CSV file. Deduplicates normalized URLs, routes each URL to the right extractor, classifies blocked/rate-limited failures, and writes per-link artifact folders plus a manifest, CSV report, and JSONL results file. Optional Playwright browser screenshot fallback captures page images for selected failed statuses and, when Tesseract is available, classifies captured screenshots as browser_captured, browser_blocked, browser_empty, browser_not_found, or browser_unclassified.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          urls: {
+            type: "array",
+            items: { type: "string" },
+            description: "Optional list of URLs to extract",
+          },
+          items: {
+            type: "array",
+            description: "Optional list of URL items with per-row metadata",
+            items: {
+              type: "object",
+              properties: {
+                id: { type: "string", description: "Optional stable row identifier" },
+                url: { type: "string", description: "URL to extract" },
+                metadata: { type: "object", description: "Optional caller metadata copied to the report" },
+              },
+              required: ["url"],
+            },
+          },
+          csv_path: { type: "string", description: "Optional local CSV path to read URLs from" },
+          url_column: { type: "string", description: "CSV column containing URLs (default: url)" },
+          output_dir: { type: "string", description: "Directory where content, manifest, report, and JSONL files are written" },
+          max_concurrency: { type: "number", minimum: 1, maximum: 10, description: "Maximum concurrent unique URL extractions (default: 4)" },
+          browser_fallback: { type: "boolean", description: "Enable Playwright browser screenshot fallback for blocked/rate-limited/fetch-failed URLs (default: false)" },
+          browser_timeout_ms: { type: "number", minimum: 1000, maximum: 60000, description: "Playwright browser screenshot fallback timeout in milliseconds (default: 15000)" },
+          browser_fallback_statuses: {
+            type: "array",
+            items: { type: "string", enum: ["blocked", "rate_limited", "fetch_failed", "error", "no_transcript"] },
+            description: "Statuses that should trigger Playwright browser screenshot fallback (default: blocked, rate_limited, fetch_failed)",
+          },
+        },
       },
     },
   ],
@@ -1103,12 +2259,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (args?.output) outputPath = resolveOutputPath(args.output as string, "article", data.title);
         break;
       }
+      case "extract_github": {
+        const data = await extractGitHub(args?.url as string);
+        result = formatGitHubResult(data);
+        if (args?.output) outputPath = resolveOutputPath(args.output as string, "github", data.title);
+        break;
+      }
       case "extract_links": {
         const data = await extractLinks(args?.url as string, args?.max_links as number);
         const format = (args?.format as string) || "markdown";
         result = formatLinksResult(data, format);
         const extension = format === "csv" || format === "json" ? format : "md";
         if (args?.output) outputPath = resolveOutputPath(args.output as string, "links", new URL(data.url).hostname, extension);
+        break;
+      }
+      case "extract_batch": {
+        const data = await extractBatch(args as any);
+        result = formatBatchResult(data);
         break;
       }
       default:
@@ -1135,11 +2302,16 @@ const cliArgs = process.argv.slice(2);
 const isMainModule = process.argv[1] ? import.meta.url === pathToFileURL(process.argv[1]).href : false;
 
 function detectPlatform(url: string): string | null {
-  if (url.includes("youtube.com") || url.includes("youtu.be")) return "youtube";
-  if (url.includes("reddit.com")) return "reddit";
-  if (url.includes("tiktok.com")) return "tiktok";
-  if (url.startsWith("http://") || url.startsWith("https://")) return "article";
-  return null;
+  try {
+    const parsed = parseHttpUrl(url);
+    if (hostnameMatches(parsed, ["youtube.com", "youtu.be"])) return "youtube";
+    if (hostnameMatches(parsed, ["reddit.com", "redd.it"])) return "reddit";
+    if (hostnameMatches(parsed, ["tiktok.com"])) return "tiktok";
+    if (hostnameMatches(parsed, ["github.com", "gist.github.com", "raw.githubusercontent.com"])) return "github";
+    return "article";
+  } catch {
+    return null;
+  }
 }
 
 if (isMainModule && cliArgs[0] === "links") {
@@ -1205,6 +2377,12 @@ else if (isMainModule && cliArgs.length > 0 && cliArgs[0] !== "--mcp") {
           const data = await extractArticle(url);
           result = formatArticleResult(data);
           if (output) outputPath = resolveOutputPath(output, "article", data.title);
+          break;
+        }
+        case "github": {
+          const data = await extractGitHub(url);
+          result = formatGitHubResult(data);
+          if (output) outputPath = resolveOutputPath(output, "github", data.title);
           break;
         }
         default:

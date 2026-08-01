@@ -11,8 +11,8 @@
  * CLI Examples:
  *   node index.ts twitter post --text "Hello world!"
  *   node index.ts linkedin post --text "Professional update"
- *   node index.ts facebook post --text "Hello" --page "Engineer Marketing"
- *   node index.ts instagram post --image ./photo.jpg --caption "Check this out"
+ *   node index.ts facebook post --text "Hello" --page-id "116457714712169"
+ *   node index.ts instagram post --image ./photo.jpg --caption "Check this out" --account "@brandonzhoff"
  *   node index.ts tiktok upload --path ./video.mp4
  */
 
@@ -210,6 +210,22 @@ export function socialValidatePost(args: ValidationArgs): string {
 
 function isSelfTarget(target: SocialTarget): boolean {
   return ["preview", "self", "me", ""].includes(target.platform_asset_id);
+}
+
+function assertExplicitMetaTarget(platform: "facebook" | "instagram", target: SocialTarget, args: DirectPublishArgs): void {
+  if (platform === "facebook") {
+    if (optionalString(args.pageId) || optionalString(args.page) || !isSelfTarget(target)) {
+      return;
+    }
+
+    throw new Error("Facebook direct publishing requires an explicit pageId, page, or target.platform_asset_id; refusing to use the first active page.");
+  }
+
+  if (optionalString(args.account) || !isSelfTarget(target)) {
+    return;
+  }
+
+  throw new Error("Instagram direct publishing requires an explicit account or target.platform_asset_id; refusing to use the first active account.");
 }
 
 function getYouTubeCredential(): string {
@@ -450,6 +466,7 @@ async function getDirectPublishCredential(
   }
 
   if (platform === "facebook") {
+    assertExplicitMetaTarget("facebook", target, args);
     const pages = loadFacebookPages();
     const requestedPage = optionalString(args.page);
     const requestedPageId = optionalString(args.pageId) || (isSelfTarget(target) ? undefined : target.platform_asset_id);
@@ -474,6 +491,7 @@ async function getDirectPublishCredential(
   }
 
   if (platform === "instagram") {
+    assertExplicitMetaTarget("instagram", target, args);
     const accounts = loadInstagramAccounts();
     const requestedAccount = optionalString(args.account)?.replace("@", "");
     const requestedAccountId = isSelfTarget(target) ? undefined : target.platform_asset_id;
@@ -935,6 +953,9 @@ export async function facebookPost(
   options: { page?: string; pageId?: string; dryRun?: boolean } = {}
 ): Promise<string> {
   const pages = loadFacebookPages();
+  if (!options.pageId && !options.page) {
+    throw new Error("Facebook posting requires an explicit page or pageId; refusing to use the first active page.");
+  }
 
   // Find the page
   let page: FacebookPage | undefined;
@@ -1005,6 +1026,9 @@ export async function instagramPost(
   options: { account?: string; dryRun?: boolean } = {}
 ): Promise<string> {
   const accounts = loadInstagramAccounts();
+  if (!options.account) {
+    throw new Error("Instagram posting requires an explicit account; refusing to use the first active account.");
+  }
 
   // Find the account
   let account: InstagramAccount | undefined;
@@ -1738,12 +1762,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "facebook_post",
-      description: "Post to a Facebook Page. Use facebook_list_pages to see available pages.",
+      description: "Post to an explicit Facebook Page. Use facebook_list_pages to see available pages.",
       inputSchema: {
         type: "object",
         properties: {
           text: { type: "string", description: "Post text" },
-          page: { type: "string", description: "Page name (e.g., 'Engineer Marketing')" },
+          page: { type: "string", description: "Page name (e.g., 'Brandon Z. Hoff')" },
           pageId: { type: "string", description: "Page ID (alternative to page name)" },
           dryRun: { type: "boolean", description: "Preview without posting" },
         },
@@ -2109,7 +2133,7 @@ Platforms:
   twitter thread --tweets "..." "..."    Post a thread
   linkedin post --text "..."             Post to LinkedIn
   facebook list                          List available pages
-  facebook post --text "..." [--page ""] Post to Facebook page
+  facebook post --text "..." --page-id ""  Post to explicit Facebook page
   instagram list                         List available accounts
   instagram post --image <url> --caption "..." [--account @...]
   tiktok upload --path <file>            Upload video to TikTok inbox
@@ -2147,7 +2171,7 @@ Options:
           if (command === "list") {
             result = await facebookListPages();
           } else if (command === "post") {
-            result = await facebookPost(opts.text, { page: opts.page, dryRun: opts["dry-run"] });
+            result = await facebookPost(opts.text, { page: opts.page, pageId: opts["page-id"] || opts.pageId, dryRun: opts["dry-run"] });
           } else {
             throw new Error("Unknown facebook command. Use: list, post");
           }

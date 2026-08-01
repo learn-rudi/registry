@@ -2,8 +2,8 @@
  * Transcription pipeline: audio file → ffmpeg convert → whisper-cli → JSON + MD output.
  */
 
-import { execSync, execFileSync } from "child_process";
-import { existsSync, mkdirSync, writeFileSync, unlinkSync } from "fs";
+import { execFileSync } from "child_process";
+import { accessSync, constants, existsSync, mkdirSync, writeFileSync, unlinkSync } from "fs";
 import { join, basename } from "path";
 import { tmpdir } from "os";
 import { randomBytes } from "crypto";
@@ -38,15 +38,49 @@ function getDuration(filePath: string, ffprobe: string): number {
   }
 }
 
-function convertToWav(inputPath: string, ffmpeg: string): string | null {
+function assertExecutable(command: string, label: string): void {
+  try {
+    if (command.includes("/")) {
+      accessSync(command, constants.X_OK);
+      return;
+    }
+    if (process.platform === "win32") {
+      execFileSync("where", [command], { timeout: 10_000, stdio: "ignore" });
+    } else {
+      execFileSync("sh", ["-c", "command -v -- \"$1\" >/dev/null", "sh", command], { timeout: 10_000, stdio: "ignore" });
+    }
+  } catch (error: any) {
+    throw new Error(`${label} is not available in this runtime. Set the matching AUDIO_TOOLS_* environment variable or provision ${command}.`);
+  }
+}
+
+export function preflightTranscriptionTools(tools: {
+  ffmpeg: string;
+  ffprobe: string;
+  whisper: string;
+  whisper_model: string;
+}): void {
+  assertExecutable(tools.ffmpeg, "ffmpeg");
+  assertExecutable(tools.ffprobe, "ffprobe");
+  assertExecutable(tools.whisper, "whisper-cli");
+  if (!existsSync(tools.whisper_model)) {
+    throw new Error(`Whisper model not found: ${tools.whisper_model}. Set AUDIO_TOOLS_WHISPER_MODEL or provision the model file in this runtime.`);
+  }
+}
+
+function convertToWav(inputPath: string, ffmpeg: string): string {
   const wavPath = join(tmpdir(), `audio-tools-${randomBytes(4).toString("hex")}.wav`);
   try {
     execFileSync(ffmpeg, [
       "-i", inputPath, "-ar", "16000", "-ac", "1", "-y", wavPath,
-    ], { timeout: 120_000 });
-    return existsSync(wavPath) ? wavPath : null;
-  } catch {
-    return null;
+    ], { timeout: 120_000, stdio: ["ignore", "pipe", "pipe"] });
+    if (!existsSync(wavPath)) {
+      throw new Error("ffmpeg did not create a WAV file");
+    }
+    return wavPath;
+  } catch (error: any) {
+    const detail = error?.stderr?.toString?.().trim();
+    throw new Error(`FFmpeg conversion failed${detail ? `: ${detail}` : ""}`);
   }
 }
 
@@ -120,6 +154,8 @@ export async function transcribe(filePath: string, filename: string): Promise<Tr
   const cfg = getConfig();
   const { tools, output_dir } = cfg;
 
+  preflightTranscriptionTools(tools);
+
   // 1. Get duration
   const duration = getDuration(filePath, tools.ffprobe);
 
@@ -128,7 +164,6 @@ export async function transcribe(filePath: string, filename: string): Promise<Tr
 
   // 3. Convert to WAV
   const wavPath = convertToWav(filePath, tools.ffmpeg);
-  if (!wavPath) throw new Error("FFmpeg conversion failed");
 
   // 4. Transcribe
   let transcript: string;

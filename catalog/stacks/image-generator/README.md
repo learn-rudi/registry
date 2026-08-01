@@ -32,12 +32,17 @@ rudi secrets set REPLICATE_API_TOKEN "<token>"
 
 The default models are:
 
-- Gemini sketch: `gemini-3.1-flash-image-preview`
-- Gemini photoreal: `gemini-3-pro-image-preview`
+- Gemini sketch: `gemini-3.1-flash-image`
+- Gemini photoreal: `gemini-3-pro-image`
 - OpenAI sketch/photoreal/edit: `gpt-image-2`
 - Replicate sketch: `black-forest-labs/flux-schnell`
 - Replicate photoreal: `black-forest-labs/flux-1.1-pro`
 - Replicate edit: `black-forest-labs/flux-2-max`
+
+Gemini defaults were updated to the GA image model IDs on 2026-07-09 after
+Google deprecated the preview IDs. The previous
+`gemini-3.1-flash-image-preview` and `gemini-3-pro-image-preview` models remain
+listed for explicit compatibility only.
 
 Replicate is beta/model-specific in this stack. It remains available for
 open-source hosted image workflows, but agents should prefer Gemini or OpenAI
@@ -45,19 +50,32 @@ unless the user asks for Replicate, open-source models, or a Replicate-specific
 model. Use `list_models` to inspect Replicate aliases, reference-capable models,
 and `release_status` before generation.
 
-Older models remain available by passing an explicit `model` value, for example
-`gpt-image-1.5`, or by setting the provider override environment variables.
+Seedream is available through Replicate aliases:
+
+- `seedream-4` -> `bytedance/seedream-4`
+- `seedream-4.5` -> `bytedance/seedream-4.5`
+
+These aliases use the existing `REPLICATE_API_TOKEN`; no separate BytePlus key
+is needed for the Replicate route. Treat both as beta until live-smoked in the
+target account because Replicate model schemas are model-specific.
+
+Older or deprecated models remain available by passing an explicit `model`
+value, for example `gpt-image-1.5`, or by setting the provider override
+environment variables.
 
 Optional model override environment variables are supported for advanced users:
 `GEMINI_MODEL_SKETCH`, `GEMINI_MODEL_PHOTOREAL`, `OPENAI_MODEL_SKETCH`,
 `OPENAI_MODEL_PHOTOREAL`, `OPENAI_MODEL_EDIT`, `REPLICATE_MODEL_SKETCH`,
 `REPLICATE_MODEL_PHOTOREAL`, and `REPLICATE_MODEL_EDIT`.
 
-Live smoke baseline on 2026-05-17:
+Historical live smoke baseline on 2026-05-17:
 
 - Gemini `sketch` resolved to `gemini-3.1-flash-image-preview` and generated a square image.
 - OpenAI `sketch` resolved to `gpt-image-2` and generated a 9:16 story image.
 - Replicate is exposed as beta/model-specific until its aliases are live-smoked.
+
+The current Gemini GA defaults still need a live smoke in the target account
+after `GEMINI_API_KEY` is available to the router environment.
 
 ## Content Formats
 
@@ -134,6 +152,17 @@ Generate a landscape thumbnail with Replicate:
   "prompt": "A landscape thumbnail for a video about building a local AI content suite. Clear focal point, high contrast, no text.",
   "model": "flux-2",
   "format": "landscape"
+}
+```
+
+Generate a text-free Seedream background through Replicate:
+
+```json
+{
+  "provider": "replicate",
+  "prompt": "Text-free abstract AfroTech conference background, pure black base, deep teal organic forms, neon lime and periwinkle data-light accents, subtle grain, generous negative space for headline overlays, no words, no logos, no watermarks.",
+  "model": "seedream-4",
+  "format": "square"
 }
 ```
 

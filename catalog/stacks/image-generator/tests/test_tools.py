@@ -108,7 +108,19 @@ class ImageGeneratorToolsTest(unittest.TestCase):
         self.assertTrue(models["ok"])
         self.assertEqual(
             models["providers"]["gemini"]["presets"]["sketch"]["default_model"],
-            "gemini-3.1-flash-image-preview",
+            "gemini-3.1-flash-image",
+        )
+        self.assertEqual(
+            models["providers"]["gemini"]["known_models"]["gemini-3.1-flash-image"][
+                "status"
+            ],
+            "current",
+        )
+        self.assertEqual(
+            models["providers"]["gemini"]["known_models"][
+                "gemini-3.1-flash-image-preview"
+            ]["status"],
+            "deprecated",
         )
         self.assertEqual(
             models["providers"]["openai"]["presets"]["photoreal"]["default_model"],
@@ -117,7 +129,7 @@ class ImageGeneratorToolsTest(unittest.TestCase):
         self.assertIn("gpt-image-1.5", models["providers"]["openai"]["known_models"])
         self.assertEqual(
             models["providers"]["openai"]["known_models"]["gpt-image-1.5"]["status"],
-            "legacy",
+            "deprecated",
         )
 
     def test_list_models_marks_replicate_beta_and_model_specific(self) -> None:
@@ -133,6 +145,11 @@ class ImageGeneratorToolsTest(unittest.TestCase):
         )
         self.assertEqual(replicate["aliases"]["flux-2"]["status"], "beta")
         self.assertEqual(replicate["aliases"]["flux-2-pro"]["status"], "unverified")
+        self.assertEqual(replicate["aliases"]["seedream-4"]["status"], "beta")
+        self.assertEqual(
+            replicate["aliases"]["seedream-4"]["references"]["reference_param"],
+            "image_input",
+        )
 
     def test_list_models_reports_secret_status_without_provider_calls(self) -> None:
         with without_env("OPENAI_API_KEY"):

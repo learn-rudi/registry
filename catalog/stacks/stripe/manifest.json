@@ -2,53 +2,55 @@
   "id": "stack:stripe",
   "kind": "stack",
   "name": "Stripe",
-  "version": "1.0.0",
-
+  "version": "1.1.0",
   "delivery": "remote",
   "install": {
     "source": "catalog",
     "path": "catalog/stacks/stripe"
   },
-
   "runtime": "node",
   "requires": {
     "binaries": [],
     "secrets": [
       {
         "key": "STRIPE_API_KEY",
-        "label": "Stripe Secret Key",
+        "label": "Stripe API Key",
         "required": true,
-        "helpUrl": "https://dashboard.stripe.com/apikeys"
+        "helpUrl": "https://docs.stripe.com/keys"
       }
     ]
   },
   "provides": {
     "tools": [
-      "stripe_list_customers",
-      "stripe_get_customer",
-      "stripe_create_customer",
-      "stripe_list_invoices",
-      "stripe_get_invoice",
-      "stripe_create_invoice",
-      "stripe_list_subscriptions",
-      "stripe_get_subscription",
-      "stripe_list_payments",
-      "stripe_get_balance"
+      "stripe_config_status",
+      "stripe_list_products",
+      "stripe_list_prices",
+      "stripe_create_product",
+      "stripe_create_price",
+      "stripe_create_payment_link",
+      "stripe_create_one_time_payment_link"
     ]
   },
   "mcp": {
     "transport": "stdio",
     "command": "node",
-    "args": ["dist/index.js"],
+    "args": [
+      "src/index.js"
+    ],
     "cwd": "."
   },
-
   "meta": {
-    "description": "Manage Stripe payments, customers, invoices, and subscriptions",
+    "description": "Create and inspect Stripe products, one-time prices, and Payment Links through guarded RUDI MCP tools",
     "author": "RUDI",
     "license": "MIT",
-    "category": "business",
-    "tags": ["stripe", "payments", "invoices", "subscriptions", "billing"],
-    "icon": "💳"
+    "category": "payments",
+    "tags": [
+      "stripe",
+      "payments",
+      "products",
+      "prices",
+      "payment-links"
+    ],
+    "icon": "credit-card"
   }
 }

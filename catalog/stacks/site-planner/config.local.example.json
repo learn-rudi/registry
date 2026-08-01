@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "sitePlannerRoot": "/absolute/path/to/pinned/site-planner",
+  "workspaceRoot": "/absolute/path/to/site-planner-workspace",
+  "artifactRoot": "/absolute/path/to/private-adapter-artifacts",
+  "nodePath": "/absolute/path/to/node-22.18-or-newer",
+  "gitPath": "/usr/bin/git",
+  "expectedCommit": "0000000000000000000000000000000000000000",
+  "commandTimeoutMs": 120000,
+  "maxOutputBytes": 50331648
+}

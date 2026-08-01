@@ -4,6 +4,9 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+
 import { htmlToPdf, htmlToPng } from "../dist/index.js";
 import { analyzePgmBuffer, isPdfRasterizerAvailable } from "../dist/review-pdf.js";
 import { validateExportRequest } from "../dist/validate.js";
@@ -315,4 +318,42 @@ test("manifest no longer advertises phantom tools", () => {
     "html_to_png",
     "html_to_png_pdf",
   ]);
+});
+
+test("MCP tool schemas advertise required inputs and numeric bounds", async () => {
+  const client = new Client({ name: "web-export-schema-test", version: "1.0.0" });
+  const transport = new StdioClientTransport({
+    command: process.execPath,
+    args: ["dist/index.js", "--mcp"],
+    cwd: new URL("..", import.meta.url).pathname,
+    stderr: "pipe",
+  });
+
+  try {
+    await client.connect(transport);
+    const { tools } = await client.listTools();
+
+    for (const toolName of ["html_to_pdf", "html_to_png", "html_to_png_pdf"]) {
+      const tool = tools.find((candidate) => candidate.name === toolName);
+      assert.ok(tool, `Expected ${toolName} to be listed`);
+
+      const schema = tool.inputSchema;
+      assert.equal(schema.type, "object");
+      assert.ok(Array.isArray(schema.anyOf), `${toolName} should require input or html_path`);
+      assert.deepEqual(schema.anyOf, [
+        { required: ["input"] },
+        { required: ["html_path"] },
+      ]);
+      assert.equal(schema.properties.dpi.minimum, 72);
+      assert.equal(schema.properties.dpi.maximum, 600);
+      assert.equal(schema.properties.scale.minimum, 0.25);
+      assert.equal(schema.properties.scale.maximum, 4);
+      assert.equal(schema.properties.viewport_width.minimum, 320);
+      assert.equal(schema.properties.viewport_width.maximum, 7680);
+      assert.equal(schema.properties.viewport_height.minimum, 240);
+      assert.equal(schema.properties.viewport_height.maximum, 4320);
+    }
+  } finally {
+    await client.close();
+  }
 });

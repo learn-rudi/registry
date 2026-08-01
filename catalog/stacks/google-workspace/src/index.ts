@@ -1243,6 +1243,19 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     {
+      name: "drive_update",
+      description: "Replace a Drive file's content in place while preserving its file ID and shared links",
+      inputSchema: {
+        type: "object",
+        properties: {
+          file_id: { type: "string", description: "Existing Drive file ID" },
+          file_path: { type: "string", description: "Local replacement file path" },
+          name: { type: "string", description: "Optional replacement file name" },
+        },
+        required: ["file_id", "file_path"],
+      },
+    },
+    {
       name: "drive_create_folder",
       description: "Create a folder in Google Drive",
       inputSchema: {
@@ -2786,6 +2799,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         });
         return {
           content: [{ type: "text", text: `Uploaded: ${res.data.webViewLink}` }],
+        };
+      }
+
+      case "drive_update": {
+        const auth = getAuth();
+        const drive = google.drive({ version: "v3", auth });
+        const fs = await import("fs");
+        const fileId = requireString(args?.file_id, "file_id");
+        const filePath = requireString(args?.file_path, "file_path");
+        const name = optionalToolString(args, "name");
+        const res = await drive.files.update({
+          fileId,
+          requestBody: name ? { name } : undefined,
+          media: {
+            body: fs.createReadStream(filePath),
+          },
+          fields: "id, name, mimeType, modifiedTime, webViewLink",
+        });
+        return {
+          content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }],
         };
       }
 

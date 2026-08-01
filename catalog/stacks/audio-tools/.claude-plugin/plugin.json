@@ -1,0 +1,10 @@
+{
+  "name": "audio-tools",
+  "description": "Transcribe, enrich, index, and query speech from local audio/video files, direct media URLs, supported video-page URLs, or base64 media input.",
+  "version": "1.0.0",
+  "author": {
+    "name": "RUDI"
+  },
+  "license": "MIT",
+  "homepage": "https://rudi.local/stacks/audio-tools"
+}

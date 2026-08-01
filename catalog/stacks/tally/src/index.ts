@@ -89,6 +89,11 @@ const tools = [
           type: "string",
           description: "Form title",
         },
+        status: {
+          type: "string",
+          description: "Form status (default: PUBLISHED)",
+          enum: ["PUBLISHED", "DRAFT"],
+        },
         blocks: {
           type: "array",
           description: "Array of form blocks (fields, text, etc.)",
@@ -322,9 +327,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "tally_create_form": {
-        const { title, blocks = [] } = args as any;
+        const { title, status = "PUBLISHED", blocks = [] } = args as any;
         const data = await tallyRequest("/forms", "POST", {
           title,
+          status,
           blocks,
         });
         return {

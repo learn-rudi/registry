@@ -172,7 +172,8 @@
           "additionalProperties": false,
           "properties": {
             "audioCrossfadeSeconds": { "type": "number", "minimum": 0 },
-            "concurrency": { "type": "integer", "minimum": 1 }
+            "concurrency": { "type": "integer", "minimum": 1 },
+            "timeoutMs": { "type": "integer", "minimum": 1000 }
           }
         },
         "narrate": {

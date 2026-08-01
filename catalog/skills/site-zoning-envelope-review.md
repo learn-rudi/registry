@@ -1,7 +1,7 @@
 ---
 name: Site Zoning Envelope Review
-description: Run the Pre Dev Intel site-engine workflow from address, parcel key, rollup, or saved site-record through zoning and buildable envelope only. Use when the user asks whether a parcel's zoning can be determined, how zoning feeds the site envelope, what the net buildable area or largest rectangle is, or when frontage/MapLibre review is needed before shell frontier, building type fit, or parking feasibility. Stop before building-type fit, shell frontier, parking feasibility, site-option-set, or concept generation unless the user explicitly asks to continue.
-version: 1.0.0
+description: Run the site-engine workflow through zoning and buildable-envelope review using either a local Pre Dev Intel checkout or the RUDI Dwellow MCP stack. Use when the user asks whether a parcel's zoning can be determined, how zoning feeds the site envelope, what the net buildable area or largest rectangle is, or when frontage review is needed before shell frontier, building type fit, or parking feasibility. Stop before building-type fit, shell frontier, parking feasibility, site-option-set, or concept generation unless the user explicitly asks to continue.
+version: 1.1.0
 category: real-estate
 tags: [zoning, site-engine, envelope, frontage, parcels, feasibility]
 ---
@@ -11,6 +11,40 @@ tags: [zoning, site-engine, envelope, frontage, parcels, feasibility]
 Use this skill to answer: "Given this site or parcel, what zoning applies, what is the gross site geometry, and what legal net envelope does zoning create?"
 
 The decision boundary is `site-envelope.json`. Do not treat shell frontier, building type fit, parking feasibility, or unit yield as part of this skill unless explicitly requested.
+
+## Execution Mode Selection
+
+Choose the execution branch before running the workflow:
+
+1. Use **repo-native CLI mode** only when a current Pre Dev Intel checkout and
+   its `site-engine` commands are present on the host.
+2. Otherwise use **RUDI MCP mode** through `stack:dwellow-mcp`.
+3. Do not assume `/Users/admin/Dev/pre-dev-intel/app` or any other absolute
+   checkout path exists.
+4. Do not mix artifacts from the two modes in one review unless their site
+   identity and boundary hash are explicitly reconciled.
+
+### RUDI MCP mode
+
+Pass exactly one target selector, `address` or `parcel_key`, to each applicable
+tool:
+
+1. `lookup_location` — resolve the canonical location facts and zoning code.
+2. `get_site_boundary` — resolve the site-engine boundary before envelope work.
+3. `build_frontage_workspace` — establish the controlling frontage frame.
+4. `get_site_conditions` — read physical/site-condition evidence. If it reports
+   missing or stale computed evidence, use `refresh_site_conditions` and then
+   read conditions again.
+5. `get_zoning_rules` — pass the zoning code returned by location lookup.
+6. `run_site_envelope` — compute regulatory envelopes by form.
+7. `get_site_visual_context` — use when aerial or parcel-shape review materially
+   affects frontage confidence.
+
+Treat MCP results as the authoritative artifacts for this branch and preserve
+their provenance, warnings, boundary identity, and frontage status in the
+report. Stop after `run_site_envelope`. Do not call `run_building_fit`,
+`generate_site_plan`, financial-fit tools, or feasibility-package tools unless
+the user explicitly expands the scope.
 
 ## Workflow
 
@@ -74,7 +108,7 @@ If frontage is unconfirmed, report the legal/net envelope as provisional and rou
 - `maxLegalStories`: fractional legal story cap from zoning source.
 - `maxFullStories` / envelope `maxStories`: whole-floor count for shell frontier and rough GFA calculations.
 
-## Command Pattern
+## Repo-Native CLI Command Pattern
 
 Prefer individual commands so the workflow stops at the envelope boundary. Use full `run_phase1.py` only when the user asks for the complete phase1 pipeline.
 

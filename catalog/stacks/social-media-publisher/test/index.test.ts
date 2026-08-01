@@ -346,6 +346,36 @@ test("socialPublishDirect requires explicit confirmation outside dry runs", asyn
   );
 });
 
+test("socialPublishDirect refuses implicit Meta targets for live posts", async () => {
+  const hostedVideo = [{ media_kind: "video", source_url: "https://cdn.example.com/video.mp4", mime_type: "video/mp4" }];
+
+  await assert.rejects(
+    () =>
+      socialPublishDirect({
+        platform: "facebook",
+        body: "Facebook video caption",
+        media: hostedVideo,
+        metadata: { facebook: { media_type: "video" } },
+        target: { asset_type: "page", platform_asset_id: "self" },
+        confirmPost: true,
+      }),
+    /Facebook direct publishing requires an explicit/
+  );
+
+  await assert.rejects(
+    () =>
+      socialPublishDirect({
+        platform: "instagram",
+        body: "Instagram Reel caption",
+        media: hostedVideo,
+        metadata: { instagram: { media_type: "reels" } },
+        target: { asset_type: "profile", platform_asset_id: "self" },
+        confirmPost: true,
+      }),
+    /Instagram direct publishing requires an explicit/
+  );
+});
+
 test("tiktokVideoUpload supports local video dry runs", async () => {
   const result = await tiktokVideoUpload({
     videoPath: "/tmp/video.mp4",
