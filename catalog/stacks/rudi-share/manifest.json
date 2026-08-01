@@ -1,0 +1,64 @@
+{
+  "id": "stack:rudi-share",
+  "kind": "stack",
+  "name": "RUDI Share",
+  "version": "0.1.0",
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/rudi-share"
+  },
+  "runtime": "node",
+  "requires": {
+    "binaries": [],
+    "secrets": [
+      {
+        "key": "RUDI_SHARE_API_URL",
+        "label": "RUDI Share API URL",
+        "required": true
+      },
+      {
+        "key": "RUDI_SHARE_TOKEN",
+        "label": "RUDI Share Publisher Token",
+        "required": true
+      }
+    ]
+  },
+  "provides": {
+    "tools": [
+      "rudi_share_preflight",
+      "rudi_share_publish",
+      "rudi_share_get",
+      "rudi_share_unpublish"
+    ]
+  },
+  "related": {
+    "skills": [
+      "skill:share-web-app"
+    ]
+  },
+  "mcp": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": [
+      "tsx",
+      "src/index.ts"
+    ],
+    "cwd": "."
+  },
+  "meta": {
+    "description": "Publish locally built vanilla, Vite, and React-Vite static apps to revocable Anyone-with-the-link URLs.",
+    "author": "RUDI",
+    "license": "MIT",
+    "category": "deployment",
+    "tags": [
+      "hosting",
+      "static-site",
+      "vite",
+      "react",
+      "deployment",
+      "sharing"
+    ],
+    "icon": "cloud-upload"
+  }
+}
