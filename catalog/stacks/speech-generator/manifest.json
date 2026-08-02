@@ -1,0 +1,67 @@
+{
+  "id": "stack:speech-generator",
+  "kind": "stack",
+  "name": "Speech Generator",
+  "version": "0.1.0",
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/speech-generator"
+  },
+  "runtime": "python",
+  "requires": {
+    "binaries": [],
+    "secrets": [
+      {
+        "key": "OPENAI_API_KEY",
+        "label": "OpenAI API key",
+        "required": false,
+        "helpUrl": "https://platform.openai.com/api-keys"
+      },
+      {
+        "key": "ELEVENLABS_API_KEY",
+        "label": "ElevenLabs API key",
+        "required": false,
+        "helpUrl": "https://elevenlabs.io/app/settings/api-keys"
+      },
+      {
+        "key": "GEMINI_API_KEY",
+        "label": "Gemini API key",
+        "required": false,
+        "helpUrl": "https://aistudio.google.com/apikey"
+      }
+    ]
+  },
+  "provides": {
+    "tools": [
+      "list_speech_models",
+      "list_speech_voices",
+      "generate_speech"
+    ]
+  },
+  "mcp": {
+    "transport": "stdio",
+    "command": "python",
+    "args": [
+      "src/server.py"
+    ],
+    "cwd": "."
+  },
+  "meta": {
+    "description": "Validated multi-provider text-to-speech generation with OpenAI, ElevenLabs, and Gemini.",
+    "author": "RUDI",
+    "license": "MIT",
+    "category": "ai-generation",
+    "tags": [
+      "speech",
+      "text-to-speech",
+      "tts",
+      "audio",
+      "openai",
+      "elevenlabs",
+      "gemini",
+      "content-creation"
+    ],
+    "icon": "audio-lines"
+  }
+}
