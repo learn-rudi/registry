@@ -102,9 +102,23 @@ job and artifact metadata without submitting another paid job. If a browser
 failure occurs after submission but before a job ID is known, replay fails with
 `idempotency_in_doubt` instead of risking a duplicate charge.
 
-The v1 browser surface intentionally excludes arbitrary navigation and
-selectors, likes, follows, deletes, edits, uploads, billing, and account
-management. Midjourney UI controls are matched exactly and fail closed on drift.
+Image-generation settings can be supplied as structured fields. The adapter
+maps Aspect Ratio, Stylization, Weirdness, Variety, model version, SD/HD, Raw,
+and GPU speed to documented per-prompt Midjourney parameters. This keeps each
+request deterministic without changing persistent account defaults. Video
+resolution and video batch size are intentionally excluded from the image tool.
+
+Image Prompts, Style References, and one Omni Reference can also be supplied as
+validated local image paths. Relative paths resolve under
+`~/.rudi/inputs/midjourney`; absolute paths must remain inside that directory or
+`~/.rudi/outputs`. The adapter uploads those images and assigns their semantic
+roles with per-request prompt parameters. Start Frame remains outside this image
+tool because it initiates a video workflow.
+
+The browser surface intentionally excludes arbitrary navigation and selectors,
+likes, follows, deletes, edits, billing, and account management. Reference
+uploads are restricted to validated RUDI input/output roots. Midjourney UI
+controls are matched exactly and fail closed on drift.
 
 ## Content Formats
 
@@ -125,6 +139,12 @@ Prompts are literal strings. The stack does not read prompt files.
 
 Reference images must be local PNG, JPEG, or WebP files under 50 MB. Output
 paths must be inside `~/.rudi/outputs`, and existing files are not overwritten.
+
+Midjourney reference uploads use a stricter 10 MB limit and accept only regular,
+non-symlink files staged under `~/.rudi/inputs/midjourney` or generated under
+`~/.rudi/outputs`. SHA-256 content digests are included in request idempotency.
+Midjourney retains uploaded images in the account's uploads library; reference
+details may be visible with the creation unless the account uses Stealth Mode.
 
 Midjourney downloads are written to new job-scoped directories under
 `~/.rudi/outputs/midjourney`. The stack verifies source URL, variation index,
@@ -237,8 +257,21 @@ Generate and export all four Midjourney variations:
   "request_id": "campaign-greenhouse-20260803-001",
   "prompt": "A tiny glass greenhouse glowing in a misty pine forest at dawn.",
   "aspect_ratio": "16:9",
+  "stylization": 250,
+  "weirdness": 0,
+  "variety": 20,
+  "model_version": "8.2",
+  "resolution": "hd",
+  "raw": true,
+  "speed": "fast",
+  "image_prompts": ["composition.png"],
+  "image_weight": 1.5,
+  "style_references": ["/Users/example/.rudi/outputs/brand-style.png"],
+  "style_weight": 250,
+  "omni_reference": "character.png",
+  "omni_weight": 125,
   "timeout_seconds": 300,
-  "show_browser": false
+  "show_browser": true
 }
 ```
 
@@ -259,11 +292,16 @@ Export two variations from an existing job:
   capability matches the request.
 - `validation`: check prompt length, local reference paths, output location, and
   the maximum of eight `compare_providers` specs.
+- `upload_failed`: Midjourney rejected a validated staged reference image.
+- `reference_changed`: a staged reference changed after validation; retry with
+  a new request ID only after confirming the intended file.
 - `provider_error` or `timeout`: the stack reached the provider but the provider
   call failed or exceeded 120 seconds.
 - `authentication_required`: call `midjourney_login` and complete sign-in in
   the dedicated browser window.
 - `browser_dependency`: install Chromium or a Playwright-managed Chromium.
+- `browser_challenge`: retry in visible mode and complete Midjourney's browser
+  verification challenge if prompted; visible mode is the default.
 - `ui_drift`: Midjourney changed a required control; do not retry blindly.
 - `idempotency_conflict`: reuse the request ID only with the exact same prompt
   and aspect-ratio request.

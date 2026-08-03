@@ -1,6 +1,6 @@
 # Image Generator API Contract
 
-Version: `0.2.0`
+Version: `0.4.0`
 
 This stack exposes MCP tools for agent-facing content image generation. The
 contract is intentionally provider-portable: callers choose a provider and a
@@ -39,10 +39,13 @@ Failure:
 - `write_failed` - generated output could not be written safely
 - `authentication_required` - the dedicated Midjourney profile is not signed in
 - `browser_dependency` - Chromium or Python Playwright could not be acquired
+- `browser_challenge` - Midjourney presented a browser verification challenge
 - `browser_busy` - another call owns the dedicated Midjourney profile
 - `ui_drift` - an exact Midjourney UI invariant no longer holds
 - `idempotency_conflict` - a request ID was reused with different generation input
 - `idempotency_in_doubt` - a prior browser submission may have succeeded but has no known job ID
+- `upload_failed` - Midjourney rejected a validated local reference upload
+- `reference_changed` - a reference file changed between validation and browser upload
 - `download_failed` - exported bytes or artifact metadata failed validation
 - `offline` - a Midjourney browser call was attempted during offline verification
 - `unknown_tool` - MCP tool name is not supported
@@ -326,18 +329,63 @@ Request:
   "request_id": "campaign-greenhouse-20260803-001",
   "prompt": "A tiny glass greenhouse glowing in a misty forest.",
   "aspect_ratio": "16:9",
+  "stylization": 250,
+  "weirdness": 0,
+  "variety": 20,
+  "model_version": "8.2",
+  "resolution": "hd",
+  "raw": true,
+  "speed": "fast",
+  "image_prompts": ["composition.png"],
+  "image_weight": 1.5,
+  "style_references": ["/home/user/.rudi/outputs/brand-style.png"],
+  "style_weight": 250,
+  "omni_reference": "character.png",
+  "omni_weight": 125,
   "timeout_seconds": 300,
-  "show_browser": false
+  "show_browser": true
 }
 ```
 
 | Field | Required | Notes |
 |---|---:|---|
-| `request_id` | yes | 8-128 safe characters; idempotency scope is the submitted prompt including aspect ratio |
+| `request_id` | yes | 8-128 safe characters; idempotency scope includes the prompt and every appended setting |
 | `prompt` | yes | literal prompt, 1-6,000 characters |
 | `aspect_ratio` | no | `N:N`, each side 1-99; rejected when prompt already contains `--ar` or `--aspect` |
+| `stylization` | no | integer 0-1,000; appends `--stylize` |
+| `weirdness` | no | integer 0-3,000; appends `--weird` |
+| `variety` | no | integer 0-100; the website's Variety control maps to `--chaos` |
+| `model_version` | no | safe numeric version such as `8.2`; appends `--v` |
+| `resolution` | no | `sd` or `hd`; appends the matching resolution override |
+| `raw` | no | when true, appends `--raw`; false or omission adds no Raw override |
+| `speed` | no | `fast`, `relax`, or `turbo`; plan/model availability is enforced by Midjourney |
+| `image_prompts` | no | 1-4 local PNG/JPEG/WebP paths that influence content, composition, and color |
+| `style_references` | no | 1-4 local PNG/JPEG/WebP paths that influence visual style |
+| `omni_reference` | no | one local PNG/JPEG/WebP path for a person, character, or object's form |
+| `image_weight` | no | number 0-3; requires `image_prompts` and maps to `--iw` |
+| `style_weight` | no | number 0-1,000; requires `style_references` and maps to `--sw` |
+| `omni_weight` | no | number 1-1,000; requires `omni_reference` and maps to `--ow` |
 | `timeout_seconds` | no | 30-600, default 180 |
-| `show_browser` | no | display Chromium while the bounded workflow runs; default false |
+| `show_browser` | no | display Chromium while the bounded workflow runs; default true because Midjourney challenges isolated headless sessions |
+
+Settings are appended as documented Midjourney prompt parameters rather than
+changing persistent account defaults. A caller may still write parameters
+directly in `prompt`, but it must not also provide the corresponding structured
+field; ambiguous duplicates fail validation. The prompt plus appended
+parameters must remain within 6,000 characters.
+
+Relative reference paths resolve under `~/.rudi/inputs/midjourney`. Absolute
+paths are accepted only inside that directory or `~/.rudi/outputs`. Each file
+must be a regular non-symlink PNG, JPEG, or WebP no larger than 10 MB, with a
+matching signature and extension. Arbitrary URLs are not accepted as structured
+references. Validated files are uploaded to the dedicated account's Midjourney
+uploads library before prompt submission; uploads may remain in that library
+even if generation later fails.
+
+Reference roles are translated to Midjourney's Image Prompt, `--sref`, and
+`--oref` semantics. Start Frame is intentionally excluded because it creates a
+video rather than an image. Omni Reference is provider-limited to one image and
+has model/speed compatibility rules enforced by Midjourney.
 
 The stack persists `pending -> submitted -> complete` locally. Completed replay
 returns the same job and validated artifacts with `replayed: true`. A pending
@@ -353,6 +401,7 @@ Success:
   "status": "complete",
   "request_id": "campaign-greenhouse-20260803-001",
   "prompt_sha256": "<sha256>",
+  "request_sha256": "<sha256 including reference roles, weights, and file digests>",
   "job_id": "7f86d4ed-d706-448a-9dfa-56be726abad4",
   "replayed": false,
   "artifacts": [
@@ -380,7 +429,7 @@ Request:
   "job_id": "7f86d4ed-d706-448a-9dfa-56be726abad4",
   "indexes": [0, 2],
   "timeout_seconds": 180,
-  "show_browser": false
+  "show_browser": true
 }
 ```
 
@@ -392,8 +441,9 @@ artifact shape used by `midjourney_generate`.
 
 - Login, UI drift, dependency, timeout, and download failures are structured;
   browser exceptions and session data are not exposed.
-- Generation retry is safe only with the same `request_id` and exact submitted
-  prompt. Different input returns `idempotency_conflict`.
+- Generation retry is safe only with the same `request_id`, submitted prompt,
+  reference roles, weights, and file content digests. Different input returns
+  `idempotency_conflict`.
 - `idempotency_in_doubt` is deliberately not auto-retried. A human must inspect
   the provider before choosing a new request ID.
 - Export is safe to retry because each attempt uses a new bounded directory.

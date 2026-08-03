@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from errors import ToolError  # noqa: E402
 from midjourney import JsonRequestStore, MidjourneyService  # noqa: E402
+from midjourney_references import compose_reference_prompt  # noqa: E402
 
 
 JOB_ID = "7f86d4ed-d706-448a-9dfa-56be726abad4"
@@ -41,12 +42,14 @@ class FakeMidjourneyDriver:
         self,
         *,
         prompt: str,
+        references: dict,
         timeout_seconds: int,
         show_browser: bool,
     ) -> dict:
         self.generate_calls.append(
             {
                 "prompt": prompt,
+                "references": references,
                 "timeout_seconds": timeout_seconds,
                 "show_browser": show_browser,
             }
@@ -133,7 +136,6 @@ class MidjourneyServiceTest(unittest.TestCase):
             "prompt": "A glowing greenhouse in a misty forest.",
             "aspect_ratio": "16:9",
             "timeout_seconds": 75,
-            "show_browser": False,
         }
 
         first = asyncio.run(self.service.generate(request))
@@ -152,6 +154,183 @@ class MidjourneyServiceTest(unittest.TestCase):
             self.driver.generate_calls[0]["prompt"],
             "A glowing greenhouse in a misty forest. --ar 16:9",
         )
+        self.assertTrue(self.driver.generate_calls[0]["show_browser"])
+
+    def test_generate_appends_validated_image_settings_in_stable_order(self) -> None:
+        request = {
+            "request_id": "test-request-settings-0001",
+            "prompt": "A lunar greenhouse.",
+            "aspect_ratio": "3:2",
+            "stylization": 250,
+            "weirdness": 750,
+            "variety": 40,
+            "model_version": "8.2",
+            "resolution": "hd",
+            "raw": True,
+            "speed": "relax",
+        }
+
+        result = asyncio.run(self.service.generate(request))
+        replay = asyncio.run(self.service.generate(request))
+
+        submitted_prompt = (
+            "A lunar greenhouse. --ar 3:2 --stylize 250 --weird 750 "
+            "--chaos 40 --v 8.2 --hd --raw --relax"
+        )
+        self.assertEqual(self.driver.generate_calls[0]["prompt"], submitted_prompt)
+        self.assertEqual(
+            result["prompt_sha256"],
+            hashlib.sha256(submitted_prompt.encode("utf-8")).hexdigest(),
+        )
+        self.assertTrue(replay["replayed"])
+        self.assertEqual(len(self.driver.generate_calls), 1)
+
+    def test_generate_validates_and_passes_typed_local_references(self) -> None:
+        image_prompt = self.service.reference_input_root / "image-prompt.png"
+        style_reference = self.output_root / "style-reference.png"
+        omni_reference = self.output_root / "omni-reference.png"
+        image_prompt.write_bytes(PNG_BYTES + b"-image")
+        style_reference.write_bytes(PNG_BYTES + b"-style")
+        omni_reference.write_bytes(PNG_BYTES + b"-omni")
+
+        result = asyncio.run(
+            self.service.generate(
+                {
+                    "request_id": "test-request-references-0001",
+                    "prompt": "A fox astronaut in a geometric garden.",
+                    "image_prompts": [image_prompt.name],
+                    "style_references": [str(style_reference)],
+                    "omni_reference": str(omni_reference),
+                    "image_weight": 1.5,
+                    "style_weight": 300,
+                    "omni_weight": 125,
+                    "model_version": "7",
+                    "speed": "relax",
+                }
+            )
+        )
+
+        references = self.driver.generate_calls[0]["references"]
+        self.assertTrue(result["ok"])
+        self.assertEqual(len(references["image_prompts"]), 1)
+        self.assertEqual(len(references["style_references"]), 1)
+        self.assertEqual(references["omni_reference"]["size_bytes"], len(PNG_BYTES + b"-omni"))
+        self.assertEqual(references["image_weight"], 1.5)
+        self.assertEqual(references["style_weight"], 300)
+        self.assertEqual(references["omni_weight"], 125)
+        self.assertEqual(
+            self.driver.generate_calls[0]["prompt"],
+            "A fox astronaut in a geometric garden. --v 7 --relax",
+        )
+        uploaded_urls = {
+            references["image_prompts"][0]["sha256"]: (
+                "https://cdn.midjourney.com/11111111-1111-4111-8111-111111111111/image.png?x=1"
+            ),
+            references["style_references"][0]["sha256"]: (
+                "https://cdn.midjourney.com/22222222-2222-4222-8222-222222222222/style.png"
+            ),
+            references["omni_reference"]["sha256"]: (
+                "https://cdn.midjourney.com/33333333-3333-4333-8333-333333333333/omni.png"
+            ),
+        }
+        self.assertEqual(
+            compose_reference_prompt(
+                self.driver.generate_calls[0]["prompt"],
+                references,
+                uploaded_urls,
+            ),
+            "https://cdn.midjourney.com/11111111-1111-4111-8111-111111111111/image.png "
+            "A fox astronaut in a geometric garden. --v 7 --relax --iw 1.5 "
+            "--sref https://cdn.midjourney.com/22222222-2222-4222-8222-222222222222/style.png "
+            "--sw 300 --oref "
+            "https://cdn.midjourney.com/33333333-3333-4333-8333-333333333333/omni.png "
+            "--ow 125",
+        )
+
+    def test_reference_content_change_conflicts_before_replay(self) -> None:
+        reference = self.output_root / "changing-reference.png"
+        reference.write_bytes(PNG_BYTES + b"-before")
+        request = {
+            "request_id": "test-reference-change-0001",
+            "prompt": "A stable prompt.",
+            "image_prompts": [str(reference)],
+        }
+
+        asyncio.run(self.service.generate(request))
+        reference.write_bytes(PNG_BYTES + b"-after")
+
+        with self.assertRaises(ToolError) as raised:
+            asyncio.run(self.service.generate(request))
+        self.assertEqual(raised.exception.error_kind, "idempotency_conflict")
+        self.assertEqual(len(self.driver.generate_calls), 1)
+
+    def test_generate_rejects_symlink_and_non_image_references(self) -> None:
+        valid = self.output_root / "valid-reference.png"
+        valid.write_bytes(PNG_BYTES)
+        symlink = self.output_root / "linked-reference.png"
+        symlink.symlink_to(valid)
+        invalid = self.output_root / "not-an-image.png"
+        invalid.write_text("not an image", encoding="utf-8")
+        oversized = self.output_root / "oversized-reference.png"
+        with oversized.open("wb") as file:
+            file.write(PNG_BYTES)
+            file.truncate(10 * 1024 * 1024 + 1)
+
+        for counter, path in enumerate((symlink, invalid, oversized), start=1):
+            with self.subTest(path=path):
+                with self.assertRaises(ToolError) as raised:
+                    asyncio.run(
+                        self.service.generate(
+                            {
+                                "request_id": f"test-reference-file-{counter:04d}",
+                                "prompt": "Valid prompt.",
+                                "image_prompts": [str(path)],
+                            }
+                        )
+                    )
+                self.assertEqual(raised.exception.error_kind, "validation")
+
+    def test_generate_rejects_reference_exfiltration_and_invalid_weights(self) -> None:
+        outside = self.root / "outside-reference.png"
+        outside.write_bytes(PNG_BYTES)
+        inside = self.output_root / "inside-reference.png"
+        inside.write_bytes(PNG_BYTES)
+
+        invalid_requests = (
+            {
+                "request_id": "test-reference-invalid-0001",
+                "prompt": "Valid prompt.",
+                "image_prompts": [str(outside)],
+            },
+            {
+                "request_id": "test-reference-invalid-0002",
+                "prompt": "Valid prompt.",
+                "image_prompts": [str(inside)] * 5,
+            },
+            {
+                "request_id": "test-reference-invalid-0003",
+                "prompt": "Valid prompt.",
+                "image_weight": 1.5,
+            },
+            {
+                "request_id": "test-reference-invalid-0004",
+                "prompt": "Valid prompt.",
+                "style_references": [str(inside)],
+                "style_weight": 1001,
+            },
+            {
+                "request_id": "test-reference-invalid-0005",
+                "prompt": "Valid prompt.",
+                "omni_reference": str(inside),
+                "omni_weight": 0,
+            },
+        )
+
+        for request in invalid_requests:
+            with self.subTest(request=request):
+                with self.assertRaises(ToolError) as raised:
+                    asyncio.run(self.service.generate(request))
+                self.assertEqual(raised.exception.error_kind, "validation")
 
     def test_request_id_conflicts_when_prompt_or_parameters_change(self) -> None:
         request = {
@@ -171,6 +350,20 @@ class MidjourneyServiceTest(unittest.TestCase):
             )
 
         self.assertEqual(raised.exception.error_kind, "idempotency_conflict")
+        self.assertEqual(len(self.driver.generate_calls), 1)
+
+        with self.assertRaises(ToolError) as parameter_raised:
+            asyncio.run(
+                self.service.generate(
+                    {
+                        "request_id": "test-request-0002",
+                        "prompt": "First prompt.",
+                        "stylization": 250,
+                    }
+                )
+            )
+
+        self.assertEqual(parameter_raised.exception.error_kind, "idempotency_conflict")
         self.assertEqual(len(self.driver.generate_calls), 1)
 
     def test_retry_after_unknown_submission_fails_closed(self) -> None:
@@ -239,7 +432,7 @@ class MidjourneyServiceTest(unittest.TestCase):
                     asyncio.run(self.service.export_job(invalid))
                 self.assertEqual(raised.exception.error_kind, "validation")
 
-    def test_generate_rejects_invalid_request_id_aspect_ratio_and_extra_fields(self) -> None:
+    def test_generate_rejects_invalid_request_id_settings_and_extra_fields(self) -> None:
         invalid_requests = (
             {"request_id": "short", "prompt": "Valid prompt."},
             {
@@ -249,6 +442,46 @@ class MidjourneyServiceTest(unittest.TestCase):
             },
             {
                 "request_id": "test-request-0006",
+                "prompt": "Valid prompt.",
+                "stylization": 1001,
+            },
+            {
+                "request_id": "test-request-0007",
+                "prompt": "Valid prompt.",
+                "weirdness": -1,
+            },
+            {
+                "request_id": "test-request-0008",
+                "prompt": "Valid prompt.",
+                "variety": True,
+            },
+            {
+                "request_id": "test-request-0009",
+                "prompt": "Valid prompt.",
+                "model_version": "8.2 --raw",
+            },
+            {
+                "request_id": "test-request-0010",
+                "prompt": "Valid prompt.",
+                "resolution": "4k",
+            },
+            {
+                "request_id": "test-request-0011",
+                "prompt": "Valid prompt.",
+                "raw": "yes",
+            },
+            {
+                "request_id": "test-request-0012",
+                "prompt": "Valid prompt.",
+                "speed": "instant",
+            },
+            {
+                "request_id": "test-request-0013",
+                "prompt": "Valid prompt. --stylize 100",
+                "stylization": 250,
+            },
+            {
+                "request_id": "test-request-0014",
                 "prompt": "Valid prompt.",
                 "extra": True,
             },

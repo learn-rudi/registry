@@ -8,17 +8,18 @@ from typing import Any, Protocol
 from errors import ToolError, ok_result
 from midjourney_contract import (
     JsonRequestStore,
-    aspect_ratio,
     boolean,
     bounded_timeout,
     exact_keys,
     fingerprint,
+    generation_prompt,
     indexes,
     job_id,
     prompt,
     request_id,
     validate_artifacts,
 )
+from midjourney_references import reference_inputs, request_fingerprint
 
 
 class MidjourneyDriver(Protocol):
@@ -30,6 +31,7 @@ class MidjourneyDriver(Protocol):
         self,
         *,
         prompt: str,
+        references: dict[str, Any],
         timeout_seconds: int,
         show_browser: bool,
     ) -> dict[str, Any]: ...
@@ -56,6 +58,8 @@ class MidjourneyService:
         self.request_store = request_store
         self.output_root = output_root.expanduser().resolve()
         self.output_root.mkdir(parents=True, exist_ok=True)
+        self.reference_input_root = self.output_root.parent / "inputs" / "midjourney"
+        self.reference_input_root.mkdir(parents=True, exist_ok=True)
 
     async def session_status(self, args: dict[str, Any]) -> dict[str, Any]:
         exact_keys(args, set())
@@ -86,19 +90,40 @@ class MidjourneyService:
     async def generate(self, args: dict[str, Any]) -> dict[str, Any]:
         exact_keys(
             args,
-            {"aspect_ratio", "prompt", "request_id", "show_browser", "timeout_seconds"},
+            {
+                "aspect_ratio",
+                "image_prompts",
+                "image_weight",
+                "model_version",
+                "omni_reference",
+                "omni_weight",
+                "prompt",
+                "raw",
+                "request_id",
+                "resolution",
+                "show_browser",
+                "speed",
+                "style_references",
+                "style_weight",
+                "stylization",
+                "timeout_seconds",
+                "variety",
+                "weirdness",
+            },
         )
         request_id_value = request_id(args.get("request_id"))
         prompt_value = prompt(args.get("prompt"))
-        aspect_ratio_value = aspect_ratio(args.get("aspect_ratio"), prompt_value)
-        submitted_prompt = (
-            f"{prompt_value} --ar {aspect_ratio_value}"
-            if aspect_ratio_value
-            else prompt_value
+        submitted_prompt = generation_prompt(args, prompt_value)
+        references = reference_inputs(
+            args,
+            prompt_value=prompt_value,
+            input_root=self.reference_input_root,
+            output_root=self.output_root,
         )
         timeout_seconds = bounded_timeout(args.get("timeout_seconds"))
-        show_browser = boolean(args.get("show_browser"), "show_browser")
-        fingerprint_value = fingerprint(submitted_prompt)
+        show_browser = boolean(args.get("show_browser"), "show_browser", default=True)
+        prompt_fingerprint = fingerprint(submitted_prompt)
+        fingerprint_value = request_fingerprint(submitted_prompt, references)
 
         record = self.request_store.load(request_id_value)
         replayed = record is not None
@@ -147,6 +172,7 @@ class MidjourneyService:
                 )
             generated = await self.driver.generate(
                 prompt=submitted_prompt,
+                references=references,
                 timeout_seconds=timeout_seconds,
                 show_browser=show_browser,
             )
@@ -173,7 +199,8 @@ class MidjourneyService:
             provider="midjourney",
             status="complete",
             request_id=request_id_value,
-            prompt_sha256=fingerprint_value,
+            prompt_sha256=prompt_fingerprint,
+            request_sha256=fingerprint_value,
             job_id=job_id_value,
             artifacts=validated,
             replayed=replayed,
@@ -189,7 +216,7 @@ class MidjourneyService:
         job_id_value = job_id(args.get("job_id"))
         indexes_value = indexes(args.get("indexes"))
         timeout_seconds = bounded_timeout(args.get("timeout_seconds"))
-        show_browser = boolean(args.get("show_browser"), "show_browser")
+        show_browser = boolean(args.get("show_browser"), "show_browser", default=True)
         artifacts = await self.driver.export_job(
             job_id=job_id_value,
             indexes=indexes_value,

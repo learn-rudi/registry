@@ -40,6 +40,41 @@ class ImageGeneratorMcpStdioTest(unittest.IsolatedAsyncioTestCase):
                             "midjourney_export_job",
                         },
                     )
+                    midjourney_generate = next(
+                        tool for tool in tools.tools if tool.name == "midjourney_generate"
+                    )
+                    properties = midjourney_generate.inputSchema["properties"]
+                    self.assertTrue(
+                        {
+                            "aspect_ratio",
+                            "stylization",
+                            "weirdness",
+                            "variety",
+                            "model_version",
+                            "resolution",
+                            "raw",
+                            "speed",
+                            "image_prompts",
+                            "style_references",
+                            "omni_reference",
+                            "image_weight",
+                            "style_weight",
+                            "omni_weight",
+                        }.issubset(properties)
+                    )
+                    self.assertEqual(properties["stylization"]["maximum"], 1000)
+                    self.assertEqual(properties["weirdness"]["maximum"], 3000)
+                    self.assertEqual(properties["variety"]["maximum"], 100)
+                    self.assertEqual(properties["resolution"]["enum"], ["sd", "hd"])
+                    self.assertEqual(
+                        properties["speed"]["enum"],
+                        ["fast", "relax", "turbo"],
+                    )
+                    self.assertEqual(properties["image_prompts"]["maxItems"], 4)
+                    self.assertEqual(properties["style_references"]["maxItems"], 4)
+                    self.assertEqual(properties["image_weight"]["maximum"], 3)
+                    self.assertEqual(properties["style_weight"]["maximum"], 1000)
+                    self.assertEqual(properties["omni_weight"]["minimum"], 1)
 
                     result = await session.call_tool("list_models", {})
 

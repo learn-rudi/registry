@@ -22,6 +22,7 @@ from midjourney_contract import (
     file_digest,
     source_url,
 )
+from midjourney_uploads import upload_reference_prompt
 from outputs import ensure_output_path, nonce, timestamp
 
 
@@ -233,10 +234,16 @@ class PlaywrightMidjourneyDriver:
             if state is not None:
                 return state
             await asyncio.sleep(0.25)
+        if "just a moment" in (await page.title()).lower():
+            raise ToolError(
+                "browser_challenge",
+                "Midjourney presented a browser verification challenge.",
+                {"remediation": "Retry with show_browser=true and complete the visible challenge if prompted."},
+            )
         raise ToolError("ui_drift", "Midjourney authentication controls changed.")
 
     async def session_status(self) -> dict[str, Any]:
-        async with self._page(show_browser=False) as page:
+        async with self._page(show_browser=True) as page:
             await self._navigate_imagine(page, 60)
             return {"authenticated": await self._authenticated(page)}
 
@@ -273,6 +280,7 @@ class PlaywrightMidjourneyDriver:
         self,
         *,
         prompt: str,
+        references: dict[str, Any],
         timeout_seconds: int,
         show_browser: bool,
     ) -> dict[str, Any]:
@@ -291,8 +299,14 @@ class PlaywrightMidjourneyDriver:
             )
             if await prompt_box.count() != 1:
                 raise ToolError("ui_drift", "Midjourney prompt control changed.")
+            submitted_prompt = await upload_reference_prompt(
+                page,
+                prompt_value=prompt,
+                references=references,
+                timeout_seconds=timeout_seconds,
+            )
             baseline = await self._job_ids(page)
-            await prompt_box.fill(prompt)
+            await prompt_box.fill(submitted_prompt)
             await prompt_box.press("Enter")
 
             deadline = time.monotonic() + timeout_seconds

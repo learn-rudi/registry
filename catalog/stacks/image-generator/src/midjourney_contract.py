@@ -29,6 +29,16 @@ JOB_ID_PATTERN = re.compile(
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$")
 ASPECT_RATIO_PATTERN = re.compile(r"^([1-9][0-9]?):([1-9][0-9]?)$")
 ASPECT_PARAMETER_PATTERN = re.compile(r"(?:^|\s)--(?:ar|aspect)(?:\s|=)", re.IGNORECASE)
+MODEL_VERSION_PATTERN = re.compile(r"^[1-9][0-9]?(?:\.[0-9]{1,2})?$")
+GENERATION_PARAMETER_PATTERNS = {
+    "stylization": re.compile(r"(?:^|\s)--(?:s|stylize)(?=\s|=|$)", re.IGNORECASE),
+    "weirdness": re.compile(r"(?:^|\s)--(?:w|weird)(?=\s|=|$)", re.IGNORECASE),
+    "variety": re.compile(r"(?:^|\s)--(?:c|chaos)(?=\s|=|$)", re.IGNORECASE),
+    "model_version": re.compile(r"(?:^|\s)--(?:v|version)(?=\s|=|$)", re.IGNORECASE),
+    "resolution": re.compile(r"(?:^|\s)--(?:sd|hd)(?=\s|$)", re.IGNORECASE),
+    "raw": re.compile(r"(?:^|\s)--raw(?=\s|$)", re.IGNORECASE),
+    "speed": re.compile(r"(?:^|\s)--(?:fast|relax|turbo)(?=\s|$)", re.IGNORECASE),
+}
 IMAGE_MEDIA_TYPES = {
     "png": "image/png",
     "jpg": "image/jpeg",
@@ -125,6 +135,129 @@ def aspect_ratio(value: Any, prompt_value: str) -> str | None:
             {"field": "aspect_ratio"},
         )
     return value
+
+
+def _reject_duplicate_parameter(field: str, prompt_value: str) -> None:
+    if GENERATION_PARAMETER_PATTERNS[field].search(prompt_value):
+        raise ToolError(
+            "validation",
+            f"Do not provide `{field}` when the prompt already contains its Midjourney parameter.",
+            {"field": field},
+        )
+
+
+def _integer_setting(
+    value: Any,
+    *,
+    field: str,
+    minimum: int,
+    maximum: int,
+    prompt_value: str,
+) -> int | None:
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ToolError(
+            "validation",
+            f"`{field}` must be an integer between {minimum} and {maximum}.",
+            {"field": field, "minimum": minimum, "maximum": maximum},
+        )
+    if value < minimum or value > maximum:
+        raise ToolError(
+            "validation",
+            f"`{field}` must be between {minimum} and {maximum}.",
+            {"field": field, "minimum": minimum, "maximum": maximum},
+        )
+    _reject_duplicate_parameter(field, prompt_value)
+    return value
+
+
+def _choice_setting(
+    value: Any,
+    *,
+    field: str,
+    allowed: tuple[str, ...],
+    prompt_value: str,
+) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str) or value not in allowed:
+        raise ToolError(
+            "validation",
+            f"`{field}` must be one of: {', '.join(allowed)}.",
+            {"field": field, "allowed": list(allowed)},
+        )
+    _reject_duplicate_parameter(field, prompt_value)
+    return value
+
+
+def generation_prompt(args: dict[str, Any], prompt_value: str) -> str:
+    """Append validated per-request settings without mutating account defaults."""
+    parameters: list[str] = []
+    aspect_ratio_value = aspect_ratio(args.get("aspect_ratio"), prompt_value)
+    if aspect_ratio_value:
+        parameters.extend(("--ar", aspect_ratio_value))
+
+    integer_parameters = (
+        ("stylization", 0, 1000, "--stylize"),
+        ("weirdness", 0, 3000, "--weird"),
+        ("variety", 0, 100, "--chaos"),
+    )
+    for field, minimum, maximum, parameter in integer_parameters:
+        value = _integer_setting(
+            args.get(field),
+            field=field,
+            minimum=minimum,
+            maximum=maximum,
+            prompt_value=prompt_value,
+        )
+        if value is not None:
+            parameters.extend((parameter, str(value)))
+
+    model_version = args.get("model_version")
+    if model_version is not None:
+        if not isinstance(model_version, str) or not MODEL_VERSION_PATTERN.fullmatch(model_version):
+            raise ToolError(
+                "validation",
+                "`model_version` must be a numeric Midjourney version such as 8.2.",
+                {"field": "model_version"},
+            )
+        _reject_duplicate_parameter("model_version", prompt_value)
+        parameters.extend(("--v", model_version))
+
+    resolution = _choice_setting(
+        args.get("resolution"),
+        field="resolution",
+        allowed=("sd", "hd"),
+        prompt_value=prompt_value,
+    )
+    if resolution:
+        parameters.append(f"--{resolution}")
+
+    raw_value = args.get("raw")
+    if raw_value is not None:
+        raw_value = boolean(raw_value, "raw")
+        _reject_duplicate_parameter("raw", prompt_value)
+        if raw_value:
+            parameters.append("--raw")
+
+    speed = _choice_setting(
+        args.get("speed"),
+        field="speed",
+        allowed=("fast", "relax", "turbo"),
+        prompt_value=prompt_value,
+    )
+    if speed:
+        parameters.append(f"--{speed}")
+
+    submitted = " ".join((prompt_value, *parameters))
+    if len(submitted) > MAX_MIDJOURNEY_PROMPT_CHARS:
+        raise ToolError(
+            "validation",
+            "The prompt plus Midjourney parameters exceeds the 6,000-character limit.",
+            {"field": "prompt", "max_chars": MAX_MIDJOURNEY_PROMPT_CHARS},
+        )
+    return submitted
 
 
 def job_id(value: Any) -> str:
