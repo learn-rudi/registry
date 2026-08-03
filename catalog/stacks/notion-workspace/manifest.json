@@ -33,7 +33,19 @@
       "notion_list_databases",
       "notion_query_database",
       "notion_create_database",
-      "notion_add_database_row"
+      "notion_add_database_row",
+      "notion_db_list",
+      "notion_db_add",
+      "notion_db_remove",
+      "notion_batch_add_rows",
+      "notion_update_row",
+      "notion_get_database_schema",
+      "notion_search_all_databases",
+      "notion_duplicate_page",
+      "notion_add_block",
+      "notion_move_page",
+      "notion_update_page_properties",
+      "notion_get_page_tree"
     ]
   },
   "mcp": {

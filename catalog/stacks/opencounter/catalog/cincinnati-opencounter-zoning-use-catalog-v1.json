@@ -1,0 +1,1086 @@
+{
+  "catalogId": "cincinnati-opencounter-zoning-use-catalog-v1",
+  "categories": [
+    {
+      "categoryId": "accessory_uses",
+      "displayOrder": 0,
+      "entries": [
+        {
+          "catalogEntryId": "accessory_uses.refuse_storage_areas",
+          "description": null,
+          "displayOrder": 0,
+          "providerLabel": "Refuse storage areas",
+          "providerUseSlug": "refuse-storage-areas"
+        },
+        {
+          "catalogEntryId": "accessory_uses.composting_facilities",
+          "description": null,
+          "displayOrder": 1,
+          "providerLabel": "Composting facilities",
+          "providerUseSlug": "composting-facilities"
+        },
+        {
+          "catalogEntryId": "accessory_uses.cemetery_incidental_buildings_and_structures",
+          "description": null,
+          "displayOrder": 3,
+          "providerLabel": "Cemetery, incidental buildings and structures",
+          "providerUseSlug": "cemetery-incidental-buildings-and-structures"
+        },
+        {
+          "catalogEntryId": "accessory_uses.drive_box",
+          "description": "An enclosable container temporary in nature for receiving recyclable or reusable material.",
+          "displayOrder": 4,
+          "providerLabel": "Drive Box",
+          "providerUseSlug": "drive-box"
+        },
+        {
+          "catalogEntryId": "accessory_uses.exterior_lighting",
+          "description": null,
+          "displayOrder": 5,
+          "providerLabel": "Exterior lighting",
+          "providerUseSlug": "exterior-lighting"
+        },
+        {
+          "catalogEntryId": "accessory_uses.laundries_and_commissaries",
+          "description": null,
+          "displayOrder": 6,
+          "providerLabel": "Laundries and commissaries",
+          "providerUseSlug": "laundries-and-commissaries"
+        },
+        {
+          "catalogEntryId": "accessory_uses.portable_storage_containers",
+          "description": null,
+          "displayOrder": 7,
+          "providerLabel": "Portable storage containers",
+          "providerUseSlug": "portable-storage-containers"
+        },
+        {
+          "catalogEntryId": "accessory_uses.retail_and_repair",
+          "description": null,
+          "displayOrder": 8,
+          "providerLabel": "Retail and repair",
+          "providerUseSlug": "retail-and-repair"
+        },
+        {
+          "catalogEntryId": "accessory_uses.rooming_unit",
+          "description": null,
+          "displayOrder": 9,
+          "providerLabel": "Rooming Unit",
+          "providerUseSlug": "rooming-unit"
+        },
+        {
+          "catalogEntryId": "accessory_uses.small_scale_specialized_incinerator",
+          "description": null,
+          "displayOrder": 10,
+          "providerLabel": "Small scale specialized incinerator",
+          "providerUseSlug": "small-scale-specialized-incinerator"
+        },
+        {
+          "catalogEntryId": "accessory_uses.fences_and_walls",
+          "description": null,
+          "displayOrder": 22,
+          "providerLabel": "Fences and walls",
+          "providerUseSlug": "fences-and-walls"
+        },
+        {
+          "catalogEntryId": "accessory_uses.outside_equipment_storage_areas",
+          "description": null,
+          "displayOrder": 25,
+          "providerLabel": "Outside equipment storage areas",
+          "providerUseSlug": "outside-equipment-storage-areas"
+        },
+        {
+          "catalogEntryId": "accessory_uses.home_occupation",
+          "description": null,
+          "displayOrder": 115,
+          "providerLabel": "Home Occupation",
+          "providerUseSlug": "home-occupation"
+        }
+      ],
+      "groups": [],
+      "label": "Accessory Uses",
+      "providerCategoryId": 3260,
+      "providerCategorySlug": "accessory-uses"
+    },
+    {
+      "categoryId": "agriculture_and_extractive_uses",
+      "displayOrder": 1,
+      "entries": [
+        {
+          "catalogEntryId": "agriculture_and_extractive_uses.accessory_uses",
+          "description": "A use or structure subordinate, customarily incidental and exclusive to the principal use of a building or land and located on the same lot as the principal building or use except as otherwise specified.",
+          "displayOrder": 11,
+          "providerLabel": "Accessory Uses",
+          "providerUseSlug": "accessory-uses"
+        },
+        {
+          "catalogEntryId": "agriculture_and_extractive_uses.mining_and_quarrying",
+          "description": "The extraction of metallic and nonmetallic minerals, including sand and gravel pit operations.",
+          "displayOrder": 12,
+          "providerLabel": "Mining and quarrying",
+          "providerUseSlug": "mining-and-quarrying"
+        },
+        {
+          "catalogEntryId": "agriculture_and_extractive_uses.portable_storage_containers_b3c834e7_8de3_4e51_905d_421e59c1855e",
+          "description": "Any container designed for the storage of personal property of a non-hazardous nature which is typically rented to owners or occupants of property for their temporary use and which is delivered and removed by truck.",
+          "displayOrder": 13,
+          "providerLabel": "Portable storage containers",
+          "providerUseSlug": "portable-storage-containers-b3c834e7-8de3-4e51-905d-421e59c1855e"
+        },
+        {
+          "catalogEntryId": "agriculture_and_extractive_uses.refuse_storage_areas_070d1e51_3400_4e57_933a_c381ad34a88e",
+          "description": null,
+          "displayOrder": 14,
+          "providerLabel": "Refuse storage areas",
+          "providerUseSlug": "refuse-storage-areas-070d1e51-3400-4e57-933a-c381ad34a88e"
+        },
+        {
+          "catalogEntryId": "agriculture_and_extractive_uses.rooming_unit_21f357ae_0569_4585_9216_7b91dee88b54",
+          "description": "A room available for rental occupancy for periods of seven days or longer but not equipped with a kitchen facility so as to constitute a dwelling unit.",
+          "displayOrder": 15,
+          "providerLabel": "Rooming unit",
+          "providerUseSlug": "rooming-unit-21f357ae-0569-4585-9216-7b91dee88b54"
+        },
+        {
+          "catalogEntryId": "agriculture_and_extractive_uses.small_scale_specialized_incinerator_23f7313a_1261_4f71_85b5_fb8ffd9cb690",
+          "description": null,
+          "displayOrder": 16,
+          "providerLabel": "Small-scale specialized incinerator",
+          "providerUseSlug": "small-scale-specialized-incinerator-23f7313a-1261-4f71-85b5-fb8ffd9cb690"
+        },
+        {
+          "catalogEntryId": "agriculture_and_extractive_uses.farming",
+          "description": "The raising of tree, vine, field, forage and other plant crops, as well as the keeping, grazing or feeding of animals and incidental processing, storage and retail sales facilities.",
+          "displayOrder": 23,
+          "providerLabel": "Farming",
+          "providerUseSlug": "farming"
+        },
+        {
+          "catalogEntryId": "agriculture_and_extractive_uses.community_gardens",
+          "description": "A site operated and maintained by an individual or group to cultivate trees, herbs, fruits, vegetables, flowers, or other ornamental foliage for the following uses: personal use, consumption, donation or off site sale of items grown on the site.",
+          "displayOrder": 124,
+          "providerLabel": "Community gardens",
+          "providerUseSlug": "community-gardens"
+        }
+      ],
+      "groups": [],
+      "label": "Agriculture and Extractive Uses",
+      "providerCategoryId": 3261,
+      "providerCategorySlug": "agriculture-and-extractive-uses"
+    },
+    {
+      "categoryId": "commercial_uses",
+      "displayOrder": 2,
+      "entries": [
+        {
+          "catalogEntryId": "commercial_uses.parking_facilities",
+          "description": "A parking lot or a parking garage offering parking to the public and is the principal use of the premises.",
+          "displayOrder": 2,
+          "providerLabel": "Parking facilities",
+          "providerUseSlug": "parking-facilities"
+        },
+        {
+          "catalogEntryId": "commercial_uses.ambulance_services",
+          "description": "Administrative facilities for emergency medical care, including the provision of transportation services and the maintenance of vehicles.",
+          "displayOrder": 17,
+          "providerLabel": "Ambulance services",
+          "providerUseSlug": "ambulance-services"
+        },
+        {
+          "catalogEntryId": "commercial_uses.atm_stand_alone",
+          "description": "An electronic device used by the public for conducting financial transactions such as withdrawing or depositing cash from a bank, savings, credit union, credit card or similar account wherein the customer operates the device independently.",
+          "displayOrder": 18,
+          "providerLabel": "ATM, Stand Alone",
+          "providerUseSlug": "atm-stand-alone"
+        },
+        {
+          "catalogEntryId": "commercial_uses.banks_and_financial_institutions",
+          "description": "An establishment that provides retail banking, credit and mortgage services to individuals and businesses. This classification includes banks and savings and loan establishments, brokerage firms, check cashing and currency exchange outlets and stand-alone automated teller machines.",
+          "displayOrder": 20,
+          "providerLabel": "Banks and financial institutions",
+          "providerUseSlug": "banks-and-financial-institutions"
+        },
+        {
+          "catalogEntryId": "commercial_uses.building_maintenance_services",
+          "description": "An establishment providing carpet cleaning, carpentry, roofing, exterminator, glazing, janitorial services, electrical repair, plumbing, heating and air conditioning, upholstery, painting and paper hanging and sign painting.",
+          "displayOrder": 21,
+          "providerLabel": "Building maintenance services",
+          "providerUseSlug": "building-maintenance-services"
+        },
+        {
+          "catalogEntryId": "commercial_uses.bed_and_breakfast",
+          "description": "An establishment licensed, pursuant to Chapter 855 of the Municipal Code, of no more than five guest rooms providing lodging and meal accommodations to paying guests and a maximum stay of no more than four consecutive weeks. Kitchen facilities are not provided for use by guests.",
+          "displayOrder": 24,
+          "providerLabel": "Bed and breakfast",
+          "providerUseSlug": "bed-and-breakfast"
+        },
+        {
+          "catalogEntryId": "commercial_uses.business_services",
+          "description": "An establishment providing document delivery, mail receiving and boxes, blueprinting, typesetting, copying, desktop publishing and photographic services.",
+          "displayOrder": 26,
+          "providerLabel": "Business services",
+          "providerUseSlug": "business-services"
+        },
+        {
+          "catalogEntryId": "commercial_uses.funeral_and_interment_services",
+          "description": "An establishment primarily engaged in the provision of services involving the care, preparation or disposition of human dead. Typical uses include funeral parlors, crematories, mortuaries or columbaria.",
+          "displayOrder": 29,
+          "providerLabel": "Funeral and interment services",
+          "providerUseSlug": "funeral-and-interment-services"
+        },
+        {
+          "catalogEntryId": "commercial_uses.garden_supply_stores_and_nurseries",
+          "description": "An establishment primarily engaged in the retail sale of garden supplies and plants grown on the premises or elsewhere. This classification includes the sale of landscape materials, topsoil and rental of landscaping equipment.",
+          "displayOrder": 30,
+          "providerLabel": "Garden supply stores and nurseries",
+          "providerUseSlug": "garden-supply-stores-and-nurseries"
+        },
+        {
+          "catalogEntryId": "commercial_uses.hotels_and_commercial_lodging",
+          "description": "A facility with six or more guest rooms or suites designed for transient habitation, where access to individual units is predominantly through a common lobby that may provide additional services, such as conference and meeting rooms, restaurants, bars or recreation facilities available to guests or to the general public. This classification includes motor lodges, motels, hostels, extended stay hotels and tourist courts, but does not include rooming houses, boarding houses or residential hotels that are used, designed or intended to be used for sleeping for a period of 30 consecutive days or longer.",
+          "displayOrder": 32,
+          "providerLabel": "Hotels and commercial lodging",
+          "providerUseSlug": "hotels-and-commercial-lodging"
+        },
+        {
+          "catalogEntryId": "commercial_uses.laboratories_commercial",
+          "description": "A facility for medical, optical, orthotic, prosthetic, or dental laboratory services, photographic, analytical, or testing services and scientific research facilities.",
+          "displayOrder": 33,
+          "providerLabel": "Laboratories, commercial",
+          "providerUseSlug": "laboratories-commercial"
+        },
+        {
+          "catalogEntryId": "commercial_uses.maintenance_and_repair_services",
+          "description": "An establishment providing repair services for personal and household goods, such as household appliances, computers, television, audio or video equipment, office machines, furniture and leather goods. This classification excludes building maintenance services and maintenance and repair of automobiles and other vehicles and equipment.",
+          "displayOrder": 34,
+          "providerLabel": "Maintenance and repair services",
+          "providerUseSlug": "maintenance-and-repair-services"
+        },
+        {
+          "catalogEntryId": "commercial_uses.medical_services_and_clinics",
+          "description": "Offices organized as a unified facility for more than two licensed physicians, dentists, chiropractors, or other health care professionals providing diagnosis or care of sick or injured persons but are not provided with room and board and are not kept overnight on the premises. Medical Services and medical clinics include medical and dental laboratories incidental to the medical office use.",
+          "displayOrder": 35,
+          "providerLabel": "Medical services and clinics",
+          "providerUseSlug": "medical-services-and-clinics"
+        },
+        {
+          "catalogEntryId": "commercial_uses.offices",
+          "description": "A facility for a firm or organization that primarily provides professional, executive, management or administrative services, such as accounting, advertising, architectural, city planning, computer software consulting, data management, engineering, medical, dental, chiropractors, or other health care professionals, environmental analysis, insurance, interior design, investment, graphic design, landscape design, law and real estate offices, drafting and recording studios. It excludes medical offices with more than two licensed health care professionals, banks and savings and loan associations and offices that are incidental to retail, production, storage or other activities.",
+          "displayOrder": 36,
+          "providerLabel": "Offices",
+          "providerUseSlug": "offices"
+        },
+        {
+          "catalogEntryId": "commercial_uses.food_markets",
+          "description": "An establishment for retail sales of food and beverages for off-site preparation and consumption. Typical uses include supermarkets, specialty food stores, or delicatessens. This category also includes large-scale stores that sell food items and beverages in bulk.",
+          "displayOrder": 37,
+          "providerLabel": "Food markets",
+          "providerUseSlug": "food-markets"
+        },
+        {
+          "catalogEntryId": "commercial_uses.commercial_meeting_facility",
+          "description": "A facility used for assemblies or meetings of the members or representatives of a group, such as convention centers and banquet halls. This classification does not include clubs, lodges or other meeting facilities of private or non-profit groups that are primarily used by group members.",
+          "displayOrder": 38,
+          "providerLabel": "Commercial meeting facility",
+          "providerUseSlug": "commercial-meeting-facility"
+        },
+        {
+          "catalogEntryId": "commercial_uses.food_preparation",
+          "description": "A business that prepares food and beverages for off-site consumption, including delivery services. This classification includes catering kitchens, bakeries with on-site retail sales and the small-scale production of specialty foods, such as sweets. This classification excludes food production of an industrial character.",
+          "displayOrder": 40,
+          "providerLabel": "Food preparation",
+          "providerUseSlug": "food-preparation"
+        },
+        {
+          "catalogEntryId": "commercial_uses.convenience_markets",
+          "description": "Establishments that retail a limited line of goods that generally include milk, bread, soda, and snacks. Convenience markets may or may not include fuel sales.",
+          "displayOrder": 41,
+          "providerLabel": "Convenience markets",
+          "providerUseSlug": "convenience-markets"
+        },
+        {
+          "catalogEntryId": "commercial_uses.loft_dwelling_units",
+          "description": "A dwelling unit which may contain a studio, gallery, office or business.",
+          "displayOrder": 42,
+          "providerLabel": "Loft dwelling units",
+          "providerUseSlug": "loft-dwelling-units"
+        },
+        {
+          "catalogEntryId": "commercial_uses.building_materials_sales_and_services",
+          "description": "Retailing, wholesaling or rental of building supplies or construction equipment. This classification includes lumberyards, home improvement sales and services, tool and equipment sales or rental establishments.",
+          "displayOrder": 43,
+          "providerLabel": "Building materials sales and services",
+          "providerUseSlug": "building-materials-sales-and-services"
+        },
+        {
+          "catalogEntryId": "commercial_uses.retail_sales_3940b3b6_7aa8_4b95_a240_71862f1876e9",
+          "description": "An establishment engaged in sales of goods, including, but not limited to: alcoholic beverage sales, furniture and home furnishings, electronics and appliances, clothing and shoes, jewelry, luggage and leather goods, sporting goods and hobbies, books, periodicals and music, tobacco sales, department stores, florists, office supplies and stationary, gifts and novelties, pets, hardware, pawn shops, video stores and auto parts. This classification includes the retail sale or rental of merchandise not specifically listed under another use classification.",
+          "displayOrder": 49,
+          "providerLabel": "Retail sales",
+          "providerUseSlug": "retail-sales-3940b3b6-7aa8-4b95-a240-71862f1876e9"
+        },
+        {
+          "catalogEntryId": "commercial_uses.personal_services",
+          "description": "The provision of recurrently needed services of a personal nature. This classification includes barber and beauty shops, nail salons, tanning salons, massage therapy, electrolysis, seamstresses, tailors, shoe repair, dry cleaners (excluding dry cleaning plants), self-service laundries and photographic studios.",
+          "displayOrder": 50,
+          "providerLabel": "Personal services",
+          "providerUseSlug": "personal-services"
+        },
+        {
+          "catalogEntryId": "commercial_uses.sexually_oriented_business",
+          "description": "An adult arcade, adult bookstore, adult novelty store, adult video store, adult cabaret, adult motel or adult entertainment out-call service in the form of semi-nude dancing or exhibition, adult motion picture theater, adult theater, semi-nude model studio or sexual establishment as further defined in Chapter 899 of the Municipal Code.",
+          "displayOrder": 55,
+          "providerLabel": "Sexually oriented business",
+          "providerUseSlug": "sexually-oriented-business"
+        },
+        {
+          "catalogEntryId": "commercial_uses.private_vehicular_storage_lot",
+          "description": "A lot used for the purpose of storing non-disabled cars removed because of trespassing on private property or illegal parking on public property or the public right-of-way.",
+          "displayOrder": 116,
+          "providerLabel": "Private vehicular storage lot",
+          "providerUseSlug": "private-vehicular-storage-lot"
+        },
+        {
+          "catalogEntryId": "commercial_uses.personal_instructional_services",
+          "description": "The provision of instructional services including: tutoring, photography, fine arts, crafts, dance or music studios, art studios, driving schools, vocation and trade schools not including automotive repair, diet centers, reducing salons, martial arts, yoga and workout studios with incidental retail sales.",
+          "displayOrder": 117,
+          "providerLabel": "Personal instructional services",
+          "providerUseSlug": "personal-instructional-services"
+        },
+        {
+          "catalogEntryId": "commercial_uses.animal_services",
+          "description": "The boarding, grooming or medical care for small animals for no more than 30 days. This classification does not include dog walking and similar pet care services that are not carried out at a fixed location.",
+          "displayOrder": 119,
+          "providerLabel": "Animal services",
+          "providerUseSlug": "animal-services"
+        }
+      ],
+      "groups": [
+        {
+          "displayOrder": 0,
+          "entries": [
+            {
+              "catalogEntryId": "commercial_uses.vehicle_and_equipment_services.automobile_holding_facility",
+              "description": "A building or ground area used for the parking of vehicles needing mechanical, body or chassis repair being vehicles not owned by the person who towed the vehicle or the person who will make the repairs and not involving the removing of parts, accessories, equipment or sections or portions thereof for sale to others or the keeping, buying or selling of junked, wrecked, scrapped, ruined or dismantled motor vehicles.",
+              "displayOrder": 19,
+              "providerLabel": "Automobile holding facility",
+              "providerUseSlug": "automobile-holding-facility"
+            },
+            {
+              "catalogEntryId": "commercial_uses.vehicle_and_equipment_services.car_wash",
+              "description": "The washing, waxing or cleaning of automobiles or similar light vehicles.",
+              "displayOrder": 27,
+              "providerLabel": "Car wash",
+              "providerUseSlug": "car-wash"
+            },
+            {
+              "catalogEntryId": "commercial_uses.vehicle_and_equipment_services.fuel_sales",
+              "description": "The retail sale of gasoline, diesel and kerosene fuels.",
+              "displayOrder": 28,
+              "providerLabel": "Fuel sales",
+              "providerUseSlug": "fuel-sales"
+            },
+            {
+              "catalogEntryId": "commercial_uses.vehicle_and_equipment_services.vehicle_and_equipment_sales_and_rental",
+              "description": "A facility for the sale or rental of automobiles, motorcycles, trucks, tractors, construction or agricultural equipment, motor homes and RV's, boats and similar equipment, including storage and incidental maintenance.",
+              "displayOrder": 45,
+              "providerLabel": "Vehicle and equipment sales and rental",
+              "providerUseSlug": "vehicle-and-equipment-sales-and-rental"
+            },
+            {
+              "catalogEntryId": "commercial_uses.vehicle_and_equipment_services.vehicle_and_equipment_services",
+              "description": "A facility for vehicle and equipment sales and rental, car wash, fuel sales, vehicle repair, automobile holding facility, or heavy vehicle repair.",
+              "displayOrder": 46,
+              "providerLabel": "Vehicle and equipment services",
+              "providerUseSlug": "vehicle-and-equipment-services"
+            },
+            {
+              "catalogEntryId": "commercial_uses.vehicle_and_equipment_services.vehicle_repair",
+              "description": "An establishment engaged in repair of automobiles, trucks, motorcycles, motor homes or recreational vehicles or boats, including the sale, installation and servicing of related equipment and parts including quick-service oil, tire sales and installation, tune-up, brake and muffler shops. This classification includes auto repair shops, body and fender shops and upholstery shops, but excludes vehicle dismantling or salvage and tire re-treading or recapping, towing or repair of heavy trucks or construction vehicles.",
+              "displayOrder": 47,
+              "providerLabel": "Vehicle repair",
+              "providerUseSlug": "vehicle-repair"
+            }
+          ],
+          "groupId": "vehicle_and_equipment_services",
+          "label": "Vehicle and equipment services",
+          "providerCategoryId": 3263,
+          "providerCategorySlug": "vehicle-and-equipment-services"
+        },
+        {
+          "displayOrder": 1,
+          "entries": [
+            {
+              "catalogEntryId": "commercial_uses.eating_and_drinking_establishments.drinking_establishments",
+              "description": "Bars, nightclubs, lounges or dance halls serving beverages for consumption on the premises as a primary use and including on-site service of alcohol, including beer, wine and mixed drinks.",
+              "displayOrder": 39,
+              "providerLabel": "Drinking establishments",
+              "providerUseSlug": "drinking-establishments"
+            },
+            {
+              "catalogEntryId": "commercial_uses.eating_and_drinking_establishments.restaurants_limited",
+              "description": "Restaurants providing food and beverage services to patrons who order and pay before eating. Food and beverages may be consumed on the premises, taken out or delivered. Table service is not provided. This classification includes cafeterias, cafes, fast-food outlets, pizza delivery, snack bars and takeout eating places.",
+              "displayOrder": 44,
+              "providerLabel": "Restaurants, limited",
+              "providerUseSlug": "restaurants-limited"
+            },
+            {
+              "catalogEntryId": "commercial_uses.eating_and_drinking_establishments.restaurants_full_service",
+              "description": "Restaurants providing food and beverage services to patrons who order and are served while seated (table service) and pay after eating. Takeout service may be provided.",
+              "displayOrder": 56,
+              "providerLabel": "Restaurants, full service",
+              "providerUseSlug": "restaurants-full-service"
+            }
+          ],
+          "groupId": "eating_and_drinking_establishments",
+          "label": "Eating and drinking establishments",
+          "providerCategoryId": 3264,
+          "providerCategorySlug": "eating-and-drinking-establishments"
+        },
+        {
+          "displayOrder": 2,
+          "entries": [
+            {
+              "catalogEntryId": "commercial_uses.recreation_and_entertainment.indoor_or_small_scale_recreation_and_entertainment",
+              "description": "This classification includes small, generally indoor facilities, although some facilities may be outdoor, including: fitness centers, gymnasiums, handball, racquetball or tennis club facilities, ice or roller skating rinks, movie theaters (three or fewer screens); bingo parlors, billiard parlors, bowling centers, poolrooms, miniature golf courses and amusement arcades.",
+              "displayOrder": 118,
+              "providerLabel": "Indoor or small-scale recreation and entertainment",
+              "providerUseSlug": "indoor-or-small-scale-recreation-and-entertainment"
+            },
+            {
+              "catalogEntryId": "commercial_uses.recreation_and_entertainment.outdoor_or_large_scale_recreation_and_entertainment",
+              "description": "This classification includes large, generally outdoor facilities, including: sports stadiums and arenas; amusement and theme parks; racetracks; driving ranges; swimming or wave pools; entertainment complexes; movie theaters (4 or more screens); drive-in theaters; archery or shooting ranges; riding stables; campgrounds; recreational vehicle parks; etc.",
+              "displayOrder": 125,
+              "providerLabel": "Outdoor or large-scale recreation and entertainment",
+              "providerUseSlug": "outdoor-or-large-scale-recreation-and-entertainment"
+            }
+          ],
+          "groupId": "recreation_and_entertainment",
+          "label": "Recreation and entertainment",
+          "providerCategoryId": 3265,
+          "providerCategorySlug": "recreation-and-entertainment"
+        }
+      ],
+      "label": "Commercial Uses",
+      "providerCategoryId": 3262,
+      "providerCategorySlug": "commercial-uses"
+    },
+    {
+      "categoryId": "transportation_communications_and_utilities_uses",
+      "displayOrder": 3,
+      "entries": [
+        {
+          "catalogEntryId": "transportation_communications_and_utilities_uses.radio_and_television_broadcast_antenna",
+          "description": null,
+          "displayOrder": 87,
+          "providerLabel": "Radio and television broadcast antenna",
+          "providerUseSlug": "radio-and-television-broadcast-antenna"
+        },
+        {
+          "catalogEntryId": "transportation_communications_and_utilities_uses.communications_facilities",
+          "description": "Broadcasting and other communication services accomplished through electronic mechanisms. This classification includes radio, television or recording studios, switching centers and cable transmitting stations.",
+          "displayOrder": 102,
+          "providerLabel": "Communications facilities",
+          "providerUseSlug": "communications-facilities"
+        },
+        {
+          "catalogEntryId": "transportation_communications_and_utilities_uses.public_utility_distribution_system",
+          "description": "A facility for the distribution of gas, electricity, water, steam, hot water, chilled water and landline communications.",
+          "displayOrder": 106,
+          "providerLabel": "Public utility distribution system",
+          "providerUseSlug": "public-utility-distribution-system"
+        },
+        {
+          "catalogEntryId": "transportation_communications_and_utilities_uses.public_utility_maintenance_yard",
+          "description": "A building, other structure, or open area used by a public utility for the storage, maintenance or repair of materials and equipment or vehicle parking.",
+          "displayOrder": 107,
+          "providerLabel": "Public utility maintenance yard",
+          "providerUseSlug": "public-utility-maintenance-yard"
+        },
+        {
+          "catalogEntryId": "transportation_communications_and_utilities_uses.public_utility_plant",
+          "description": "A building or other structure for water supply or wastewater treatment or the production of electricity, steam, hot water or chilled water for consumption by the general public.",
+          "displayOrder": 108,
+          "providerLabel": "Public utility plant",
+          "providerUseSlug": "public-utility-plant"
+        },
+        {
+          "catalogEntryId": "transportation_communications_and_utilities_uses.wireless_communication_antenna",
+          "description": "An antenna designed to transmit or receive communications as authorized by the Federal Communication Commission, excluding amateur radio operator antennae and parabolic antennae.",
+          "displayOrder": 112,
+          "providerLabel": "Wireless communication antenna",
+          "providerUseSlug": "wireless-communication-antenna"
+        },
+        {
+          "catalogEntryId": "transportation_communications_and_utilities_uses.wireless_communication_tower",
+          "description": "A structure that elevates the wireless communication antenna and may include accessory transmission and receiving equipment, including, but not limited to, self-supporting lattice, guyed or monopole towers.",
+          "displayOrder": 113,
+          "providerLabel": "Wireless communication tower",
+          "providerUseSlug": "wireless-communication-tower"
+        }
+      ],
+      "groups": [
+        {
+          "displayOrder": 0,
+          "entries": [
+            {
+              "catalogEntryId": "transportation_communications_and_utilities_uses.transportation_facilities.airports",
+              "description": "Facilities for the takeoff and landing of airplanes and helicopters, including runways, aircraft storage buildings, public terminal buildings and parking, helicopter pads and support activities such as airport operations and air traffic control.",
+              "displayOrder": 48,
+              "providerLabel": "Airports",
+              "providerUseSlug": "airports"
+            },
+            {
+              "catalogEntryId": "transportation_communications_and_utilities_uses.transportation_facilities.heliports",
+              "description": "Facilities intended solely for takeoff and landing of helicopters.",
+              "displayOrder": 103,
+              "providerLabel": "Heliports",
+              "providerUseSlug": "heliports"
+            },
+            {
+              "catalogEntryId": "transportation_communications_and_utilities_uses.transportation_facilities.railroad_right_of_way",
+              "description": "Railroad land used for through tracks. Railroad, train yard uses are prohibited.",
+              "displayOrder": 109,
+              "providerLabel": "Railroad right-of-way",
+              "providerUseSlug": "railroad-right-of-way"
+            },
+            {
+              "catalogEntryId": "transportation_communications_and_utilities_uses.transportation_facilities.railroad_train_yards",
+              "description": "Railroad areas used for classification yards, switch tracks, team tracks, storage tracks and freight yards.",
+              "displayOrder": 110,
+              "providerLabel": "Railroad train yards",
+              "providerUseSlug": "railroad-train-yards"
+            },
+            {
+              "catalogEntryId": "transportation_communications_and_utilities_uses.transportation_facilities.transportation_passenger_terminals",
+              "description": "Facilities for passenger transportation operations, holding facilities and maintenance operations, which includes rail stations, bus terminals, urban and regional transit stations and scenic and sightseeing facilities, but does not include airports and heliports.",
+              "displayOrder": 111,
+              "providerLabel": "Transportation passenger terminals",
+              "providerUseSlug": "transportation-passenger-terminals"
+            }
+          ],
+          "groupId": "transportation_facilities",
+          "label": "Transportation facilities",
+          "providerCategoryId": 3267,
+          "providerCategorySlug": "transportation-facilities"
+        },
+        {
+          "displayOrder": 1,
+          "entries": [
+            {
+              "catalogEntryId": "transportation_communications_and_utilities_uses.watercraft_and_riverfront_facilities.barge_terminals",
+              "description": "Facilities for launching, mooring, docking, loading, unloading and servicing river barges, including backup land for storage and transshipment.",
+              "displayOrder": 99,
+              "providerLabel": "Barge terminals",
+              "providerUseSlug": "barge-terminals"
+            },
+            {
+              "catalogEntryId": "transportation_communications_and_utilities_uses.watercraft_and_riverfront_facilities.boat_and_ship_yards",
+              "description": "A facility for construction of recreational marine craft in enclosed structures, boat storage, boat repair yards and ship yards for the construction, repairing and servicing of commercial vessels including tug boats, barges and ferries.",
+              "displayOrder": 100,
+              "providerLabel": "Boat and ship yards",
+              "providerUseSlug": "boat-and-ship-yards"
+            },
+            {
+              "catalogEntryId": "transportation_communications_and_utilities_uses.watercraft_and_riverfront_facilities.commercial_piers_and_ports",
+              "description": "A facility for launching, mooring, docking and servicing commercial watercraft, ferry boats and excursion boats, including passenger terminals and berthing areas, storage, employee or passenger parking, administrative functions, etc.",
+              "displayOrder": 101,
+              "providerLabel": "Commercial piers and ports",
+              "providerUseSlug": "commercial-piers-and-ports"
+            },
+            {
+              "catalogEntryId": "transportation_communications_and_utilities_uses.watercraft_and_riverfront_facilities.marinas",
+              "description": "A facility for launching, mooring, berthing, storing or securing watercraft for primarily recreational use. A marina provides services to recreational watercraft and occupants thereof, including sanitary and other minor servicing and repair to watercraft while in the water and the sale of fuel and supplies. A marina may provide food, lodging, goods, beverages, recreation and entertainment as accessory uses. This classification includes public docks, yacht clubs, boat clubs and boatels.",
+              "displayOrder": 104,
+              "providerLabel": "Marinas",
+              "providerUseSlug": "marinas"
+            },
+            {
+              "catalogEntryId": "transportation_communications_and_utilities_uses.watercraft_and_riverfront_facilities.marine_sales_and_services",
+              "description": "An establishment engaged in the sale and service of marine equipment, boats and recreational watercraft and accessory parts and supplies.",
+              "displayOrder": 105,
+              "providerLabel": "Marine sales and services",
+              "providerUseSlug": "marine-sales-and-services"
+            }
+          ],
+          "groupId": "watercraft_and_riverfront_facilities",
+          "label": "Watercraft and riverfront facilities",
+          "providerCategoryId": 3279,
+          "providerCategorySlug": "watercraft-and-riverfront-facilities"
+        }
+      ],
+      "label": "Transportation, Communications and Utilities Uses",
+      "providerCategoryId": 3266,
+      "providerCategorySlug": "transportation-communications-and-utilities-uses"
+    },
+    {
+      "categoryId": "industrial_uses",
+      "displayOrder": 4,
+      "entries": [
+        {
+          "catalogEntryId": "industrial_uses.metal_waste_salvage_yard_junk_yards",
+          "description": "An establishment for the storage and dismantling of vehicles and equipment for sale of parts, as well as the collection, storage, exchange or sale of goods including, but not limited to, any used building material, used containers or steel drums and similar or related articles or property.",
+          "displayOrder": 58,
+          "providerLabel": "Metal waste salvage yard/junk yards",
+          "providerUseSlug": "metal-waste-salvage-yard-junk-yards"
+        },
+        {
+          "catalogEntryId": "industrial_uses.research_and_development",
+          "description": "An establishment primarily engaged in the research, development and controlled production of high technology electronic, industrial or scientific products or commodities for sale. This classification includes biotechnology firms and manufacturers of nontoxic computer components.",
+          "displayOrder": 61,
+          "providerLabel": "Research and development",
+          "providerUseSlug": "research-and-development"
+        },
+        {
+          "catalogEntryId": "industrial_uses.truck_terminal_and_warehouse",
+          "description": "A facility for the storage of commercial goods within an enclosed building for distribution by truck. This includes bulk mail handling facilities.",
+          "displayOrder": 62,
+          "providerLabel": "Truck terminal and warehouse",
+          "providerUseSlug": "truck-terminal-and-warehouse"
+        }
+      ],
+      "groups": [
+        {
+          "displayOrder": 0,
+          "entries": [
+            {
+              "catalogEntryId": "industrial_uses.production_industry.artisan_production",
+              "description": "Establishments primarily engaged in on-site production of goods by hand manufacturing, involving the use of hand tools and small-scale equipment.",
+              "displayOrder": 51,
+              "providerLabel": "Artisan Production",
+              "providerUseSlug": "artisan-production"
+            },
+            {
+              "catalogEntryId": "industrial_uses.production_industry.general_production",
+              "description": "Manufacturing of products, from extracted or raw materials, or recycled or secondary materials, or bulk storage and handling of such products and materials. This classification includes: food, beverage and tobacco product manufacturing; textile mills; textile product mills; apparel manufacturing; leather and allied product manufacturing; wood product manufacturing; paper manufacturing; chemical manufacturing; plastics and rubber products manufacturing; nonmetallic mineral product manufacturing; transportation equipment manufacturing; primary metal manufacturing; and fabricated metal product manufacturing.",
+              "displayOrder": 52,
+              "providerLabel": "General Production",
+              "providerUseSlug": "general-production"
+            },
+            {
+              "catalogEntryId": "industrial_uses.production_industry.intensive_high_impact_production",
+              "description": "Manufacturing of acetylene, cement, lime, gypsum or plaster-of-Paris, chlorine, corrosive acid or fertilizer, insecticides, disinfectants, poisons, explosives, paint, lacquer, varnish, petroleum products, coal products, plastic and synthetic resins and radioactive materials. This group also includes smelting, animal slaughtering and oil refining.",
+              "displayOrder": 53,
+              "providerLabel": "Intensive high-impact Production",
+              "providerUseSlug": "intensive-high-impact-production"
+            },
+            {
+              "catalogEntryId": "industrial_uses.production_industry.limited_production",
+              "description": "Manufacturing of finished parts or products, primarily from previously prepared materials. This classification includes: printing and related support activities; machinery manufacturing, food manufacturing, computer and electronic product manufacturing; electrical equipment, appliance, component manufacturing, furniture and related product manufacturing; and other uses as determined by the Zoning Administrator.",
+              "displayOrder": 54,
+              "providerLabel": "Limited Production",
+              "providerUseSlug": "limited-production"
+            }
+          ],
+          "groupId": "production_industry",
+          "label": "Production industry",
+          "providerCategoryId": 3269,
+          "providerCategorySlug": "production-industry"
+        },
+        {
+          "displayOrder": 1,
+          "entries": [
+            {
+              "catalogEntryId": "industrial_uses.warehousing_and_storage.contractor_s_storage",
+              "description": "A yard for storage of building, construction, or landscaping materials or equipment.",
+              "displayOrder": 31,
+              "providerLabel": "Contractor's storage",
+              "providerUseSlug": "contractor-s-storage"
+            },
+            {
+              "catalogEntryId": "industrial_uses.warehousing_and_storage.indoor_storage",
+              "description": "A facility for the keeping of business, personal property and office records, including mini warehouses.",
+              "displayOrder": 57,
+              "providerLabel": "Indoor storage",
+              "providerUseSlug": "indoor-storage"
+            },
+            {
+              "catalogEntryId": "industrial_uses.warehousing_and_storage.oil_and_gas_storage",
+              "description": "A tank farm or outdoor facility for the storage of oil and gas.",
+              "displayOrder": 59,
+              "providerLabel": "Oil and gas storage",
+              "providerUseSlug": "oil-and-gas-storage"
+            },
+            {
+              "catalogEntryId": "industrial_uses.warehousing_and_storage.outdoor_storage",
+              "description": "The keeping of commercial goods, equipment and raw materials in an open lot.",
+              "displayOrder": 60,
+              "providerLabel": "Outdoor storage",
+              "providerUseSlug": "outdoor-storage"
+            },
+            {
+              "catalogEntryId": "industrial_uses.warehousing_and_storage.wholesaling_and_distribution",
+              "description": "A facility for storage and wholesale distribution of merchandise and bulk goods and non-retail store sales, including electronic shopping, mail-order houses and other direct-selling establishments. This use classification excludes retail sale of goods at discount prices for individual consumption.",
+              "displayOrder": 66,
+              "providerLabel": "Wholesaling and distribution",
+              "providerUseSlug": "wholesaling-and-distribution"
+            }
+          ],
+          "groupId": "warehousing_and_storage",
+          "label": "Warehousing and storage",
+          "providerCategoryId": 3270,
+          "providerCategorySlug": "warehousing-and-storage"
+        },
+        {
+          "displayOrder": 2,
+          "entries": [
+            {
+              "catalogEntryId": "industrial_uses.waste_management.waste_collection",
+              "description": "Facilities where waste material, other than hazardous or infectious waste, is received and temporarily stored in closed containers without processing or disposition, including but not limited to: recycling drop-off point, yard waste depot, charitable drive box and other similar uses limited in volume and means of storage and posing no nuisance by reason of odor, noise, runoff, underground seepage or unsightly conditions.",
+              "displayOrder": 63,
+              "providerLabel": "Waste collection",
+              "providerUseSlug": "waste-collection"
+            },
+            {
+              "catalogEntryId": "industrial_uses.waste_management.waste_disposal",
+              "description": "Facilities where waste material, including hazardous or infectious waste, is incinerated, land filled or put to other final disposition.",
+              "displayOrder": 64,
+              "providerLabel": "Waste disposal",
+              "providerUseSlug": "waste-disposal"
+            },
+            {
+              "catalogEntryId": "industrial_uses.waste_management.waste_transfer",
+              "description": "Facilities where waste material, other than hazardous or infectious waste, is received and processed for transportation to another place for recycling, re-use, incineration or final disposal, including but not limited to: biological treatment facility, composting yard, resource recovery facility, recycling center, buy-back center, tire shredding facility, tire recycling facility, refuse-derived fuel manufacturing facility, transfer station and other similar uses, limited by the volume and type of material processed, or the characteristics of the equipment or methods used to process the waste material.",
+              "displayOrder": 65,
+              "providerLabel": "Waste transfer",
+              "providerUseSlug": "waste-transfer"
+            }
+          ],
+          "groupId": "waste_management",
+          "label": "Waste management",
+          "providerCategoryId": 3271,
+          "providerCategorySlug": "waste-management"
+        }
+      ],
+      "label": "Industrial Uses",
+      "providerCategoryId": 3268,
+      "providerCategorySlug": "industrial-uses"
+    },
+    {
+      "categoryId": "public_and_semipublic_uses",
+      "displayOrder": 5,
+      "entries": [
+        {
+          "catalogEntryId": "public_and_semipublic_uses.cemeteries",
+          "description": "A burial ground for the interment of the human dead, including columbaria and mausoleums, but excluding crematories or mortuaries classified as Undertaking, funeral and interment services.",
+          "displayOrder": 67,
+          "providerLabel": "Cemeteries",
+          "providerUseSlug": "cemeteries"
+        },
+        {
+          "catalogEntryId": "public_and_semipublic_uses.colleges_public_or_private",
+          "description": "An institution of higher education providing curricula of a general, religious, or professional nature, typically granting recognized degrees, including conference centers and academic retreats associated with such institutions. This classification includes business and computer schools, management training, technical and trade schools, but excludes personal instructional services.",
+          "displayOrder": 68,
+          "providerLabel": "Colleges, Public or Private",
+          "providerUseSlug": "colleges-public-or-private"
+        },
+        {
+          "catalogEntryId": "public_and_semipublic_uses.community_service_facilities",
+          "description": "A noncommercial facility established primarily for the benefit and service of the populations of the communities in which they are located, such as YMCA or YWCA facilities, boys and girls clubs and offices of community councils, non-profit civic, religious, welfare or philanthropic organizations.",
+          "displayOrder": 69,
+          "providerLabel": "Community service facilities",
+          "providerUseSlug": "community-service-facilities"
+        },
+        {
+          "catalogEntryId": "public_and_semipublic_uses.hospitals",
+          "description": "A state-licensed facility providing medical, surgical, psychiatric or emergency medical services to sick or injured persons. This classification includes facilities for inpatient or outpatient treatment, including drug and alcohol abuse programs as well as training, research and administrative services for patients and employees.",
+          "displayOrder": 73,
+          "providerLabel": "Hospitals",
+          "providerUseSlug": "hospitals"
+        },
+        {
+          "catalogEntryId": "public_and_semipublic_uses.clubs_and_lodges",
+          "description": "A meeting, recreational, or social facility of a private or nonprofit organization or public institution primarily for use by members or guests including residential accommodations that are available to members or guests on a temporary basis but excluding residential hotels. This classification includes union halls and social clubs.",
+          "displayOrder": 74,
+          "providerLabel": "Clubs and lodges",
+          "providerUseSlug": "clubs-and-lodges"
+        },
+        {
+          "catalogEntryId": "public_and_semipublic_uses.cultural_institutions",
+          "description": "A nonprofit institution engaged primarily in the performing arts or in the display or preservation of objects of interest in the arts or sciences that are open to the public on a regular basis. This classification includes performing arts centers for theater, dance and events, museums, historical sites, art galleries, libraries, aquariums and observatories.",
+          "displayOrder": 75,
+          "providerLabel": "Cultural institutions",
+          "providerUseSlug": "cultural-institutions"
+        },
+        {
+          "catalogEntryId": "public_and_semipublic_uses.juvenile_detention_facilities",
+          "description": "A facility operated as a place for juvenile detention under the jurisdiction of the Court of Common Pleas, Juvenile Division of Hamilton County for children alleged or adjudicated as delinquent, unruly, dependent, neglected, abused or juvenile traffic offenders.",
+          "displayOrder": 76,
+          "providerLabel": "Juvenile detention facilities",
+          "providerUseSlug": "juvenile-detention-facilities"
+        },
+        {
+          "catalogEntryId": "public_and_semipublic_uses.parks_and_recreation_facilities",
+          "description": "A park, playground, recreation facility and open space. This classification includes community centers, playing fields, courts, gymnasiums, swimming pools, wave pools, spraygrounds, picnic facilities, golf courses and country clubs, zoos and botanical gardens, as well as related food concessions.",
+          "displayOrder": 77,
+          "providerLabel": "Parks and recreation facilities",
+          "providerUseSlug": "parks-and-recreation-facilities"
+        },
+        {
+          "catalogEntryId": "public_and_semipublic_uses.public_maintenance_facilities",
+          "description": "A governmentally owned facility providing maintenance and repair services for vehicles and equipment and areas for storage of equipment and supplies. This classification includes governmentally owned construction yards, equipment service centers and similar facilities.",
+          "displayOrder": 78,
+          "providerLabel": "Public maintenance facilities",
+          "providerUseSlug": "public-maintenance-facilities"
+        },
+        {
+          "catalogEntryId": "public_and_semipublic_uses.public_safety_facilities",
+          "description": "A facility for public safety and emergency services, including police and fire protection and police and fire training facilities.",
+          "displayOrder": 79,
+          "providerLabel": "Public safety facilities",
+          "providerUseSlug": "public-safety-facilities"
+        },
+        {
+          "catalogEntryId": "public_and_semipublic_uses.religious_assembly",
+          "description": "An establishment for religious worship and other religious ceremonies, including religious education, rectories and parsonages, offices, social services, columbaria and community programs.",
+          "displayOrder": 90,
+          "providerLabel": "Religious assembly",
+          "providerUseSlug": "religious-assembly"
+        },
+        {
+          "catalogEntryId": "public_and_semipublic_uses.schools_public_or_private",
+          "description": "A facility for educational purposes that offers a general course of study at primary, middle, or high school levels and vocational and trade programs that are incidental to the operation of such schools.",
+          "displayOrder": 94,
+          "providerLabel": "Schools, public or private",
+          "providerUseSlug": "schools-public-or-private"
+        },
+        {
+          "catalogEntryId": "public_and_semipublic_uses.day_care_center_4c569c68_2087_4735_b151_cca4bc1b8971",
+          "description": "An establishment, other than a Day Care Home, licensed by the State of Ohio when required and providing care and supervision for seven or more persons on a less than 24-hour basis. This classification includes nursery schools, preschools, day care centers for children or adults and any other day care facility licensed by the State of Ohio.",
+          "displayOrder": 121,
+          "providerLabel": "Day Care Center",
+          "providerUseSlug": "day-care-center-4c569c68-2087-4735-b151-cca4bc1b8971"
+        }
+      ],
+      "groups": [
+        {
+          "displayOrder": 0,
+          "entries": [
+            {
+              "catalogEntryId": "public_and_semipublic_uses.government_facilities_and_offices.correctional_institutions",
+              "description": "A facility where persons are detained pending adjudication or confined under sentences of two years or less provided that the facility is operated by a Hamilton County law enforcement agency or under contract with the Board of County Commissioners of Hamilton County.",
+              "displayOrder": 70,
+              "providerLabel": "Correctional institutions",
+              "providerUseSlug": "correctional-institutions"
+            },
+            {
+              "catalogEntryId": "public_and_semipublic_uses.government_facilities_and_offices.facilities_and_installations",
+              "description": "Major mail processing centers, military installations, vehicle emissions testing facilities and other similar facilities.",
+              "displayOrder": 71,
+              "providerLabel": "Facilities and installations",
+              "providerUseSlug": "facilities-and-installations"
+            },
+            {
+              "catalogEntryId": "public_and_semipublic_uses.government_facilities_and_offices.government_offices",
+              "description": "Administrative, clerical or public contact offices of a government agency, together with incidental storage and maintenance of vehicles, including post offices.",
+              "displayOrder": 72,
+              "providerLabel": "Government Offices",
+              "providerUseSlug": "government-offices"
+            }
+          ],
+          "groupId": "government_facilities_and_offices",
+          "label": "Government Facilities and Offices",
+          "providerCategoryId": 3273,
+          "providerCategorySlug": "government-facilities-and-offices"
+        }
+      ],
+      "label": "Public and Semipublic Uses",
+      "providerCategoryId": 3272,
+      "providerCategorySlug": "public-and-semipublic-uses"
+    },
+    {
+      "categoryId": "residential_uses",
+      "displayOrder": 6,
+      "entries": [
+        {
+          "catalogEntryId": "residential_uses.day_care_home_child",
+          "description": "A child care facility located in a permanent residence where an occupant of the residence provides care and supervision for 1 to 12 children at one time, including children under the age of 6 related to the provider.",
+          "displayOrder": 89,
+          "providerLabel": "Day Care Home, Child",
+          "providerUseSlug": "day-care-home-child"
+        },
+        {
+          "catalogEntryId": "residential_uses.day_care_home_adult",
+          "description": "A day care facility located in a permanent residence where an occupant of the residence provides care and supervision for three or fewer adults at one time with no outside employees.",
+          "displayOrder": 92,
+          "providerLabel": "Day Care Home, Adult",
+          "providerUseSlug": "day-care-home-adult"
+        }
+      ],
+      "groups": [
+        {
+          "displayOrder": 0,
+          "entries": [
+            {
+              "catalogEntryId": "residential_uses.residential_care_facilities.assisted_living",
+              "description": "An institution, residence or facility licensed by the State of Ohio that provides accommodation and personal assistance to more than three residents who are dependent on the services of others by reason of age and physical or mental impairment, but that is not licensed to provide skilled nursing care.",
+              "displayOrder": 80,
+              "providerLabel": "Assisted living",
+              "providerUseSlug": "assisted-living"
+            },
+            {
+              "catalogEntryId": "residential_uses.residential_care_facilities.developmental_disability_dwelling",
+              "description": "An establishment licensed by the State of Ohio that is located in a single-family residence and provides accommodation, personal care, habilitation services and supervision in a family setting for not more than eight residents with developmental disabilities and employees caring for such residents.",
+              "displayOrder": 83,
+              "providerLabel": "Developmental disability dwelling",
+              "providerUseSlug": "developmental-disability-dwelling"
+            },
+            {
+              "catalogEntryId": "residential_uses.residential_care_facilities.nursing_home",
+              "description": "An institution, residence or facility licensed by the State of Ohio that provides accommodation, personal assistance and skilled nursing care to more than three residents who are dependent on the services of others by reason of age and physical or mental impairment.",
+              "displayOrder": 86,
+              "providerLabel": "Nursing home",
+              "providerUseSlug": "nursing-home"
+            },
+            {
+              "catalogEntryId": "residential_uses.residential_care_facilities.transitional_housing_1a4e203b_792a_445a_af9a_8a302ce8f545",
+              "description": "Housing designed to assist persons in obtaining skills necessary for independent living in permanent housing, including homes for adjustment and halfway houses. Transitional housing is housing in which: (a) An organization provides a program of therapy, counseling or training for the residential occupants; and (b) The organization operating the program is licensed or authorized by a governmental authority having jurisdiction over operation.",
+              "displayOrder": 93,
+              "providerLabel": "Transitional Housing",
+              "providerUseSlug": "transitional-housing-1a4e203b-792a-445a-af9a-8a302ce8f545"
+            },
+            {
+              "catalogEntryId": "residential_uses.residential_care_facilities.special_assistance_shelter",
+              "description": "A facility for the short-term housing for individuals who are homeless and who may require special services.",
+              "displayOrder": 98,
+              "providerLabel": "Special assistance shelter",
+              "providerUseSlug": "special-assistance-shelter"
+            }
+          ],
+          "groupId": "residential_care_facilities",
+          "label": "Residential care facilities",
+          "providerCategoryId": 3275,
+          "providerCategorySlug": "residential-care-facilities"
+        },
+        {
+          "displayOrder": 1,
+          "entries": [
+            {
+              "catalogEntryId": "residential_uses.permanent_residential.attached_single_family_dwelling",
+              "description": "A dwelling unit that is attached to one or more dwelling units, each with independent exterior access and each with no less than two exterior walls. Attached single-family dwellings include cluster housing.",
+              "displayOrder": 91,
+              "providerLabel": "Attached single-family dwelling",
+              "providerUseSlug": "attached-single-family-dwelling"
+            },
+            {
+              "catalogEntryId": "residential_uses.permanent_residential.multi_family_dwelling",
+              "description": "A building or group of buildings that contain four or more dwelling units.",
+              "displayOrder": 95,
+              "providerLabel": "Multi-family dwelling",
+              "providerUseSlug": "multi-family-dwelling"
+            },
+            {
+              "catalogEntryId": "residential_uses.permanent_residential.single_family_dwelling",
+              "description": "A freestanding building designed for occupancy by one family; or a dwelling unit that is attached to one or more dwelling units, each with independent exterior access and each with no less than two exterior walls.",
+              "displayOrder": 114,
+              "providerLabel": "Single-family dwelling",
+              "providerUseSlug": "single-family-dwelling"
+            },
+            {
+              "catalogEntryId": "residential_uses.permanent_residential.rowhouse_single_family_dwelling",
+              "description": "A dwelling unit on its own lot that is part of a rowhouse building.",
+              "displayOrder": 120,
+              "providerLabel": "Rowhouse, single-family dwelling",
+              "providerUseSlug": "rowhouse-single-family-dwelling"
+            },
+            {
+              "catalogEntryId": "residential_uses.permanent_residential.two_family_dwelling",
+              "description": "A single building that contains two dwelling units.",
+              "displayOrder": 122,
+              "providerLabel": "Two-family dwelling",
+              "providerUseSlug": "two-family-dwelling"
+            },
+            {
+              "catalogEntryId": "residential_uses.permanent_residential.three_family_dwelling",
+              "description": "A single building that contains three dwelling units.",
+              "displayOrder": 123,
+              "providerLabel": "Three-family dwelling",
+              "providerUseSlug": "three-family-dwelling"
+            }
+          ],
+          "groupId": "permanent_residential",
+          "label": "Permanent residential",
+          "providerCategoryId": 3276,
+          "providerCategorySlug": "permanent-residential"
+        },
+        {
+          "displayOrder": 2,
+          "entries": [
+            {
+              "catalogEntryId": "residential_uses.group_residential.congregate_housing",
+              "description": "Apartments and dwellings with communal dining facilities and services, such as housekeeping, organized social and recreational activities, transportation services and other support services appropriate for the residents.",
+              "displayOrder": 81,
+              "providerLabel": "Congregate housing",
+              "providerUseSlug": "congregate-housing"
+            },
+            {
+              "catalogEntryId": "residential_uses.group_residential.convents_and_monasteries",
+              "description": "Group dwellings for members of religious orders.",
+              "displayOrder": 82,
+              "providerLabel": "Convents and monasteries",
+              "providerUseSlug": "convents-and-monasteries"
+            },
+            {
+              "catalogEntryId": "residential_uses.group_residential.dormitories",
+              "description": null,
+              "displayOrder": 84,
+              "providerLabel": "Dormitories",
+              "providerUseSlug": "dormitories"
+            },
+            {
+              "catalogEntryId": "residential_uses.group_residential.fraternities_and_sororities",
+              "description": "A building used as group living quarters for students of a college or university, who are members of a fraternity or sorority recognized by the college or university.",
+              "displayOrder": 85,
+              "providerLabel": "Fraternities and sororities",
+              "providerUseSlug": "fraternities-and-sororities"
+            },
+            {
+              "catalogEntryId": "residential_uses.group_residential.patient_family_homes",
+              "description": "A residential facility for the temporary residence of families of patients under medical care with common kitchen, dining and living spaces, owned, operated, managed or supervised by a non-profit organization.",
+              "displayOrder": 88,
+              "providerLabel": "Patient family homes",
+              "providerUseSlug": "patient-family-homes"
+            },
+            {
+              "catalogEntryId": "residential_uses.group_residential.rooming_house",
+              "description": "A building containing three or more rooming units not offering nursing or dietary care, therapy or counseling for its occupants.",
+              "displayOrder": 96,
+              "providerLabel": "Rooming house",
+              "providerUseSlug": "rooming-house"
+            },
+            {
+              "catalogEntryId": "residential_uses.group_residential.shared_housing_for_the_elderly",
+              "description": "A residence for not more than ten adults, the majority of whom are 60 years of age or older, either cooperatively established by the residents or under the sponsorship of a non-profit organization; provided that the residents are living together as a family and are all capable of self-preservation without assistance in the event of an emergency.",
+              "displayOrder": 97,
+              "providerLabel": "Shared housing for the elderly",
+              "providerUseSlug": "shared-housing-for-the-elderly"
+            }
+          ],
+          "groupId": "group_residential",
+          "label": "Group residential",
+          "providerCategoryId": 3277,
+          "providerCategorySlug": "group-residential"
+        }
+      ],
+      "label": "Residential Uses",
+      "providerCategoryId": 3274,
+      "providerCategorySlug": "residential-uses"
+    }
+  ],
+  "jurisdiction": "cincinnati-oh",
+  "provider": {
+    "catalogEndpoint": "https://opencounter.cincinnati-oh.gov/api/tenants/71",
+    "name": "opencounter",
+    "observedAt": "2026-08-02T22:36:05.000Z",
+    "origin": "https://opencounter.cincinnati-oh.gov",
+    "responseEtag": "W/\"136d5c8209ee70c3aa0ee25eb291e533\"",
+    "responseLastModified": "Mon, 13 Jul 2026 18:51:18 GMT",
+    "responseSha256": "baaceb3253bf7902fb1bd97c6fff42c2b4cab93489e3e917a72bfe7064bde052",
+    "tenantId": 71,
+    "tenantSlug": "cincinnati",
+    "tenantVersion": 307
+  },
+  "schemaVersion": 1,
+  "workflow": "zoning",
+  "catalogSha256": "0fa60c5b7588d51676961de779f2757ed0fb99f58d8cd257ced313a941c26bf0"
+}

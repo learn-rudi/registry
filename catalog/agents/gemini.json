@@ -20,12 +20,15 @@
   "auth": {
     "required": true,
     "command": "gemini",
-    "instructions": "Run 'gemini' to authenticate with your Google account"
+    "instructions": "For headless Gemini CLI use a Gemini API key, Vertex AI, or eligible enterprise Code Assist credentials. For a personal Google AI Pro/Ultra subscription, use Antigravity CLI instead."
   },
 
   "meta": {
     "description": "Google Gemini CLI - AI coding assistant",
     "category": "ai-assistant",
-    "homepage": "https://gemini.google.com"
+    "homepage": "https://geminicli.com/docs/",
+    "executionOwner": "google",
+    "credentialModes": ["api-key", "vertex-ai", "enterprise-code-assist"],
+    "headlessCommand": "gemini --prompt <prompt> --output-format stream-json"
   }
 }

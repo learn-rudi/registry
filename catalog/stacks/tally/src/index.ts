@@ -8,11 +8,13 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 
 const API_BASE = "https://api.tally.so";
-const API_KEY = process.env.TALLY_API_KEY;
 
-if (!API_KEY) {
-  console.error("Error: TALLY_API_KEY environment variable is required");
-  process.exit(1);
+function getApiKey(): string {
+  const apiKey = process.env.TALLY_API_KEY;
+  if (!apiKey) {
+    throw new Error("TALLY_API_KEY environment variable is required");
+  }
+  return apiKey;
 }
 
 // API Helper
@@ -25,7 +27,7 @@ async function tallyRequest(
   const options: RequestInit = {
     method,
     headers: {
-      Authorization: `Bearer ${API_KEY}`,
+      Authorization: `Bearer ${getApiKey()}`,
       "Content-Type": "application/json",
     },
   };

@@ -7,7 +7,8 @@
   "scripts": {
     "build": "tsc && chmod +x dist/index.js",
     "dev": "tsx src/index.ts",
-    "watch": "tsc --watch"
+    "watch": "tsc --watch",
+    "verify": "npm run build && node ../../../scripts/verify-node-stack.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4"

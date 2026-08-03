@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "maxLines": 800,
+  "oversized": {
+    "catalog/stacks/creator-intelligence/src/index.ts": 1101,
+    "catalog/stacks/github/src/core.ts": 2618,
+    "catalog/stacks/google-workspace/src/index.ts": 3229,
+    "catalog/stacks/macos-automation/src/core.ts": 2399,
+    "catalog/stacks/municode/src/core.js": 1485,
+    "catalog/stacks/notion-workspace/src/index.ts": 1150,
+    "catalog/stacks/rudi-crm/src/contract.ts": 1179,
+    "catalog/stacks/social-media-publisher/src/adapters/youtube-channel.js": 807,
+    "catalog/stacks/social-media-publisher/src/index.ts": 2237,
+    "catalog/stacks/swe-engineering/src/tools/agent-debt-scan.cjs": 1280,
+    "catalog/stacks/video-editor/src/cli.js": 820,
+    "catalog/stacks/video-editor/src/index.ts": 1151
+  }
+}

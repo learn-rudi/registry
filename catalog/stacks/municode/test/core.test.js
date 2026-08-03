@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import { createMunicodeClient } from "../src/core.js";
@@ -236,4 +237,194 @@ test("rejects malformed node identifiers before network access", async () => {
     (error) => error?.code === "invalid_input"
   );
   assert.equal(calls, 0);
+});
+
+test("builds one reviewed zoning evidence bundle against the accepted fixed job", async () => {
+  const manifest = JSON.parse(readFileSync(
+    new URL("../manifest.json", import.meta.url),
+    "utf8"
+  ));
+  const publicServerSource = readFileSync(
+    new URL("../src/index.js", import.meta.url),
+    "utf8"
+  );
+  assert.deepEqual(manifest.provides.tools, [
+    "municode_get_reviewed_zoning_evidence_bundle"
+  ]);
+  assert.doesNotMatch(publicServerSource, /name: "municode_(?:get_publication|list_code_sections|get_code_section)"/);
+  const selectorPolicy = {
+    schemaVersion: 1,
+    sectionReasons: [
+      { nodeId: "NODE DEFINITION", reasonCode: "use_definition" },
+      { nodeId: "NODE USE TABLE", reasonCode: "base_district_use_table" },
+      { nodeId: "NODE CONDITIONS", reasonCode: "use_specific_condition" },
+      { nodeId: "NODE PARKING", reasonCode: "parking_and_loading" }
+    ],
+    selectorPolicyId: "cincinnati-restaurant-zoning-evidence-v1"
+  };
+  const selectorPolicySha256 = createHash("sha256")
+    .update(JSON.stringify(selectorPolicy))
+    .digest("hex");
+  const snapshot = {
+    schemaVersion: 1,
+    snapshotId: "synthetic-cincinnati-zoning-v1",
+    jurisdiction: "cincinnati-oh",
+    clientId: 1650,
+    productId: 19996,
+    jobId: 700001,
+    publicationName: "Synthetic Cincinnati Publication",
+    isLatest: false,
+    observedAt: "2026-08-02T12:00:00.000Z",
+    selectorPolicyId: "cincinnati-restaurant-zoning-evidence-v1",
+    selectorPolicySha256,
+    attestation: {
+      kind: "synthetic_fixture",
+      attestorRef: "synthetic-fixture-only"
+    },
+    parents: [{
+      nodeId: "PARENT ZONING",
+      title: "Synthetic Zoning Parent",
+      children: [
+        { nodeId: "NODE DEFINITION", title: "Synthetic Definition" },
+        { nodeId: "NODE USE TABLE", title: "Synthetic Use Table" },
+        { nodeId: "NODE CONDITIONS", title: "Synthetic Conditions" },
+        { nodeId: "NODE PARKING", title: "Synthetic Parking" }
+      ]
+    }],
+    selections: [{
+      zoningCode: "SYNTHETIC-ZONE-1",
+      zoningOverlayDistrictNames: ["Synthetic Overlay A"],
+      proposedUseCategory: "restaurant_full_service",
+      sectionNodeIds: [
+        "NODE DEFINITION",
+        "NODE USE TABLE",
+        "NODE CONDITIONS",
+        "NODE PARKING"
+      ]
+    }]
+  };
+  const snapshotSha256 = createHash("sha256")
+    .update(JSON.stringify(snapshot))
+    .digest("hex");
+  const requestedUrls = [];
+  const client = createMunicodeClient({
+    fetchImpl: async (url) => {
+      const requestedUrl = String(url);
+      requestedUrls.push(requestedUrl);
+      assert.doesNotMatch(requestedUrl, /\/Jobs\/product\//);
+      if (requestedUrl.includes("/api/codesToc/children?")) {
+        return new Response(JSON.stringify(snapshot.parents[0].children.map(
+          ({ nodeId, title }) => ({
+            HasChildren: false,
+            Heading: title,
+            Id: nodeId
+          })
+        )), { status: 200 });
+      }
+      const nodeId = new URL(requestedUrl).searchParams.get("nodeId");
+      const child = snapshot.parents[0].children.find(
+        (candidate) => candidate.nodeId === nodeId
+      );
+      assert.ok(child);
+      return new Response(JSON.stringify({
+        Docs: [{
+          ChunkGroupStartingNodeId: child.nodeId,
+          Content: `<p>${child.title} evidence.</p>`,
+          DocType: 1,
+          Id: child.nodeId,
+          Title: child.title
+        }]
+      }), { status: 200 });
+    },
+    now: () => new Date("2026-08-02T13:00:00.000Z"),
+    reviewedZoningEvidenceRelease: {
+      selectorPolicy,
+      snapshot,
+      snapshotSha256
+    }
+  });
+
+  const readiness = client.getReviewedZoningEvidenceReadiness();
+  assert.deepEqual(readiness, {
+    productionReady: false,
+    reason: "planning_domain_attestation_required",
+    selectorPolicyId: snapshot.selectorPolicyId,
+    selectorPolicySha256,
+    snapshotId: snapshot.snapshotId,
+    snapshotSha256
+  });
+
+  const result = await client.getReviewedZoningEvidenceBundle({
+    operationInput: {
+      jurisdiction: "cincinnati-oh",
+      proposedUseCategory: "restaurant_full_service",
+      schemaVersion: 1,
+      selectorPolicyId: "cincinnati-restaurant-zoning-evidence-v1"
+    },
+    cagisContext: {
+      auditorParcelId: "014-5000-1002-9",
+      parcelKey: "014500010029",
+      provider: "cagis",
+      resultSha256: "a".repeat(64),
+      retrievedAt: "2026-08-02T12:30:00.000Z",
+      sourceUrl: "https://example.invalid/synthetic-cagis-result",
+      zoningCode: "SYNTHETIC-ZONE-1",
+      zoningContextComplete: true,
+      zoningFetchedAt: "2026-08-02T12:30:00.000Z",
+      zoningOverlayDistrictNames: ["Synthetic Overlay A"],
+      zoningSource: "synthetic_fixture"
+    }
+  });
+
+  assert.equal(requestedUrls.length, 5);
+  assert.equal(
+    requestedUrls.filter((url) => url.includes("/codesToc/children?")).length,
+    1
+  );
+  for (const requestedUrl of requestedUrls) {
+    assert.match(requestedUrl, /productId=19996/);
+    assert.match(requestedUrl, /jobId=700001/);
+  }
+  assert.deepEqual(result.selection, {
+    selectorPolicyId: snapshot.selectorPolicyId,
+    selectorPolicySha256,
+    snapshotId: snapshot.snapshotId,
+    snapshotSha256
+  });
+  assert.deepEqual(
+    result.sections.map(({ nodeId, reasonCode, title }) => ({
+      nodeId,
+      reasonCode,
+      title
+    })),
+    [
+      {
+        nodeId: "NODE DEFINITION",
+        reasonCode: "use_definition",
+        title: "Synthetic Definition"
+      },
+      {
+        nodeId: "NODE USE TABLE",
+        reasonCode: "base_district_use_table",
+        title: "Synthetic Use Table"
+      },
+      {
+        nodeId: "NODE CONDITIONS",
+        reasonCode: "use_specific_condition",
+        title: "Synthetic Conditions"
+      },
+      {
+        nodeId: "NODE PARKING",
+        reasonCode: "parking_and_loading",
+        title: "Synthetic Parking"
+      }
+    ]
+  );
+  assert.equal(result.status, "succeeded");
+  assert.equal(result.mappingContext.zoningCode, "SYNTHETIC-ZONE-1");
+  assert.equal(result.publication.jobId, 700001);
+  assert.equal(
+    result.disclaimer,
+    "This reviewed baseline zoning-code evidence bundle is source evidence only. It is not legal advice and does not determine legal completeness, applicability, approval, or permitting."
+  );
 });

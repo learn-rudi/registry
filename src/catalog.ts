@@ -488,6 +488,15 @@ export function assertCatalogReferences(packages: CatalogPackageFile[]): void {
   );
 
   for (const item of packages) {
+    const replacementId = item.manifest.lifecycle?.deprecation?.replacementId;
+    if (replacementId !== undefined && !byId.has(replacementId)) {
+      throw new CatalogPackageError(
+        `lifecycle.deprecation.replacementId references unknown package: ${replacementId}`,
+        item.path,
+        item.manifest.id
+      );
+    }
+
     for (const skillId of item.manifest.related?.skills ?? []) {
       if (!skillIds.has(skillId)) {
         throw new CatalogPackageError(

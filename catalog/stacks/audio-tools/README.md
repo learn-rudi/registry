@@ -33,8 +33,8 @@ Only `http` and `https` URLs are accepted.
 The stack defaults to user-local RUDI state:
 
 ```text
-~/.rudi/output/audio-tools/transcripts
-~/.rudi/output/audio-tools/audio.db
+~/.rudi/outputs/audio-tools/transcripts
+~/.rudi/outputs/audio-tools/audio.db
 ~/.rudi/models/whisper/ggml-base.en.bin
 ```
 

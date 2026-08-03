@@ -6,7 +6,8 @@
   "main": "src/index.ts",
   "scripts": {
     "start": "npx tsx src/index.ts",
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "verify": "npm run build && node ../../../scripts/verify-node-stack.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",

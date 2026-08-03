@@ -1,0 +1,46 @@
+{
+  "ignore": [
+    "node_modules",
+    ".git",
+    "dist"
+  ],
+  "entrypoints": [
+    "src/catalog-hygiene.ts",
+    "src/compile.ts",
+    "src/index-sync.ts",
+    "src/public-readiness.ts",
+    "src/validate.ts",
+    "src/verify-release.ts",
+    "src/verify-stacks.ts"
+  ],
+  "testPatterns": [
+    ".test.",
+    ".spec.",
+    "__tests__",
+    "__mocks__"
+  ],
+  "fixturePatterns": [
+    "__fixtures__",
+    "fixtures"
+  ],
+  "thresholds": {
+    "maxLines": 800,
+    "maxImports": 30,
+    "maxFunctions": 80,
+    "maxDeps": 40
+  },
+  "profiles": {
+    "ci": {
+      "graphRoot": "src",
+      "scope": "src",
+      "checks": [
+        "orphans",
+        "shims",
+        "boundaries",
+        "deprecated-imports",
+        "canonical-imports",
+        "large-files"
+      ]
+    }
+  }
+}

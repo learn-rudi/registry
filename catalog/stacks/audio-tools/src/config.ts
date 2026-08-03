@@ -29,7 +29,7 @@ export interface AudioConfig {
 let _config: AudioConfig | null = null;
 
 export function resolveAudioConfig(env: NodeJS.ProcessEnv = process.env, home = homedir()): AudioConfig {
-  const outputRoot = env.RUDI_OUTPUT_DIR || join(home, ".rudi", "output");
+  const outputRoot = env.RUDI_OUTPUT_DIR || join(home, ".rudi", "outputs");
   const outputDir = env.AUDIO_TOOLS_OUTPUT_DIR || join(outputRoot, "audio-tools", "transcripts");
   const dbPath = env.AUDIO_TOOLS_DB_PATH || join(outputRoot, "audio-tools", "audio.db");
 

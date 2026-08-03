@@ -22,7 +22,7 @@ import { homedir } from "os";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: join(__dirname, "..", ".env") });
 
-const DEFAULT_OUTPUT_DIR = join(homedir(), ".rudi", "output");
+const DEFAULT_OUTPUT_DIR = join(homedir(), ".rudi", "outputs");
 
 function ensureOutputDir() {
   if (!existsSync(DEFAULT_OUTPUT_DIR)) mkdirSync(DEFAULT_OUTPUT_DIR, { recursive: true });
@@ -93,7 +93,10 @@ export async function generateImage(
   }
 
   const response = await client.images.generate(params);
-  const imageData = response.data[0];
+  const imageData = response.data?.[0];
+  if (!imageData) {
+    throw new Error("OpenAI image response did not include image data");
+  }
 
   const result: ImageResult = {
     url: imageData.url,
@@ -178,15 +181,20 @@ export async function transcribeAudio(
 
   const response = await client.audio.transcriptions.create(params);
 
-  const result: TranscriptionResult = {
-    text: typeof response === "string" ? response : response.text,
-  };
-
-  if (typeof response !== "string" && "duration" in response) {
-    result.duration = response.duration;
+  const responseRecord = typeof response === "string"
+    ? undefined
+    : response as { text?: unknown; duration?: unknown; language?: unknown };
+  const responseText = typeof response === "string" ? response : responseRecord?.text;
+  if (typeof responseText !== "string") {
+    throw new Error("OpenAI transcription response did not include text");
   }
-  if (typeof response !== "string" && "language" in response) {
-    result.language = response.language;
+  const result: TranscriptionResult = { text: responseText };
+
+  if (typeof responseRecord?.duration === "number") {
+    result.duration = responseRecord.duration;
+  }
+  if (typeof responseRecord?.language === "string") {
+    result.language = responseRecord.language;
   }
 
   // Save transcript if output specified

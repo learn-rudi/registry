@@ -1,8 +1,31 @@
-const WORKFLOWS = new Set(["zoning", "business", "special_events", "residential"]);
+import path from "node:path";
 
-export function createOpenCounterService({ driver, now = () => new Date().toISOString() }) {
+const WORKFLOWS = new Set(["zoning", "business", "special_events", "residential"]);
+const OPENCOUNTER_ORIGIN = "https://opencounter.cincinnati-oh.gov";
+
+export function createOpenCounterService({
+  driver,
+  now = () => new Date().toISOString(),
+  zoningCatalog
+}) {
   if (!driver || typeof driver !== "object") throw new Error("driver is required.");
+  const zoningCatalogIndex = zoningCatalog === undefined
+    ? null
+    : indexZoningCatalog(zoningCatalog);
   return {
+    async getZoningUseCatalog(input) {
+      exactKeys(input, []);
+      if (zoningCatalogIndex === null) throw new Error("opencounter_catalog_unavailable");
+      return structuredClone(zoningCatalogIndex.catalog);
+    },
+    async startZoningGuidance(input) {
+      if (zoningCatalogIndex === null) throw new Error("opencounter_catalog_unavailable");
+      const normalized = validateCatalogBoundZoningStart(input, zoningCatalogIndex);
+      return validateDriverResult(
+        await driver.startZoningGuidance(normalized),
+        now
+      );
+    },
     async startGuidance(input) {
       const normalized = validateStart(input);
       return validateDriverResult(await driver.startGuidance(normalized), now);
@@ -18,8 +41,107 @@ export function createOpenCounterService({ driver, now = () => new Date().toISOS
     async reconcileGuidance(input) {
       const providerReference = validateProviderReference(input?.providerReference);
       return validateDriverResult(await driver.reconcileGuidance({ providerReference }), now);
+    },
+    async exportGuidance(input) {
+      exactKeys(input, ["providerReference"]);
+      const providerReference = validateProviderReference(input.providerReference);
+      return validateExportResult(
+        await driver.exportGuidance({ providerReference }),
+        providerReference
+      );
     }
   };
+}
+
+function validateCatalogBoundZoningStart(input, catalogIndex) {
+  exactKeys(input, [
+    "address",
+    "catalogEntryId",
+    "catalogId",
+    "jurisdiction",
+    "schemaVersion"
+  ]);
+  if (input.schemaVersion !== 1) throw new Error("schemaVersion must be 1.");
+  if (input.jurisdiction !== "cincinnati-oh") {
+    throw new Error("jurisdiction must be cincinnati-oh.");
+  }
+  if (input.catalogId !== catalogIndex.catalog.catalogId) {
+    throw new Error("catalog_version_mismatch");
+  }
+  const catalogEntryId = boundedText(input.catalogEntryId, "catalogEntryId", 200);
+  if (!/^[a-z0-9_]+(?:\.[a-z0-9_]+)+$/.test(catalogEntryId)) {
+    throw new Error("catalogEntryId is invalid.");
+  }
+  const selected = catalogIndex.entries.get(catalogEntryId);
+  if (selected === undefined) throw new Error("opencounter_use_not_found");
+  return {
+    address: boundedText(input.address, "address", 500),
+    catalogEntryId,
+    catalogId: catalogIndex.catalog.catalogId,
+    catalogSha256: catalogIndex.catalog.catalogSha256,
+    categoryPath: selected.categoryPath,
+    description: selected.entry.description,
+    jurisdiction: "cincinnati-oh",
+    proposedUse: selected.entry.providerLabel,
+    providerUseSlug: selected.entry.providerUseSlug,
+    workflow: "zoning"
+  };
+}
+
+function indexZoningCatalog(catalog) {
+  if (!catalog || typeof catalog !== "object" || Array.isArray(catalog)) {
+    throw new Error("zoningCatalog is invalid.");
+  }
+  if (
+    catalog.schemaVersion !== 1
+    || catalog.workflow !== "zoning"
+    || catalog.jurisdiction !== "cincinnati-oh"
+    || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(catalog.catalogId)
+    || !/^[0-9a-f]{64}$/.test(catalog.catalogSha256)
+    || !Array.isArray(catalog.categories)
+    || catalog.categories.length < 1
+    || catalog.categories.length > 50
+  ) {
+    throw new Error("zoningCatalog is invalid.");
+  }
+  const entries = new Map();
+  const addEntries = (values, categoryPath) => {
+    if (!Array.isArray(values)) throw new Error("zoningCatalog entries are invalid.");
+    for (const entry of values) {
+      if (
+        !entry
+        || typeof entry !== "object"
+        || Array.isArray(entry)
+        || !/^[a-z0-9_]+(?:\.[a-z0-9_]+)+$/.test(entry.catalogEntryId)
+        || typeof entry.providerLabel !== "string"
+        || typeof entry.providerUseSlug !== "string"
+        || (entry.description !== null && typeof entry.description !== "string")
+        || entries.has(entry.catalogEntryId)
+      ) {
+        throw new Error("zoningCatalog entry is invalid.");
+      }
+      entries.set(entry.catalogEntryId, { categoryPath, entry });
+    }
+  };
+  for (const category of catalog.categories) {
+    if (
+      !category
+      || typeof category !== "object"
+      || typeof category.label !== "string"
+      || !Array.isArray(category.groups)
+    ) {
+      throw new Error("zoningCatalog category is invalid.");
+    }
+    addEntries(category.entries, [category.label]);
+    for (const group of category.groups) {
+      if (!group || typeof group !== "object" || typeof group.label !== "string") {
+        throw new Error("zoningCatalog group is invalid.");
+      }
+      addEntries(group.entries, [category.label, group.label]);
+    }
+  }
+  if (entries.size === 0) throw new Error("zoningCatalog has no entries.");
+  return { catalog, entries };
 }
 
 function validateStart(input) {
@@ -100,6 +222,65 @@ function validateDriverResult(value, now) {
     };
   }
   throw new Error("browser driver status is unsupported.");
+}
+
+function validateExportResult(value, requestedProviderReference) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("browser driver returned invalid export data.");
+  }
+  if (value.status === "not_found") {
+    exactKeys(value, ["status"]);
+    return {
+      failureClass: "not_found",
+      schemaVersion: 1,
+      source: "opencounter",
+      status: "not_found"
+    };
+  }
+  exactKeys(value, ["artifact", "providerReference", "sourceUrl", "status"]);
+  if (value.status !== "exported") throw new Error("browser driver export status is unsupported.");
+  const providerReference = validateProviderReference(value.providerReference);
+  if (providerReference !== requestedProviderReference) {
+    throw new Error("browser driver returned a mismatched provider reference.");
+  }
+  const projectId = providerReference.split(":").pop();
+  const expectedSourceUrl = `${OPENCOUNTER_ORIGIN}/projects/${projectId}/apply/summary`;
+  if (value.sourceUrl !== expectedSourceUrl) throw new Error("browser driver returned an invalid source URL.");
+  const artifact = validateArtifact(value.artifact, projectId);
+  return {
+    artifact,
+    providerReference,
+    schemaVersion: 1,
+    source: "opencounter",
+    sourceUrl: expectedSourceUrl,
+    status: "exported"
+  };
+}
+
+function validateArtifact(value, projectId) {
+  exactKeys(value, ["artifactRef", "fileName", "localPath", "mediaType", "sha256", "sizeBytes"]);
+  if (!/^[0-9a-f]{64}$/.test(value.sha256)) throw new Error("artifact sha256 is invalid.");
+  if (value.artifactRef !== `rudi-artifact:opencounter:${value.sha256}`) {
+    throw new Error("artifact reference is invalid.");
+  }
+  const expectedFileName = `opencounter-project-${projectId}-${value.sha256}.pdf`;
+  if (value.fileName !== expectedFileName) throw new Error("artifact fileName is invalid.");
+  if (value.mediaType !== "application/pdf") throw new Error("artifact mediaType is invalid.");
+  if (!Number.isSafeInteger(value.sizeBytes) || value.sizeBytes < 5 || value.sizeBytes > 25 * 1024 * 1024) {
+    throw new Error("artifact sizeBytes is invalid.");
+  }
+  const localPath = boundedText(value.localPath, "artifact.localPath", 4_096);
+  if (!path.isAbsolute(localPath) || path.basename(localPath) !== expectedFileName) {
+    throw new Error("artifact localPath is invalid.");
+  }
+  return {
+    artifactRef: value.artifactRef,
+    fileName: expectedFileName,
+    localPath,
+    mediaType: "application/pdf",
+    sha256: value.sha256,
+    sizeBytes: value.sizeBytes
+  };
 }
 
 function validateQuestion(question) {

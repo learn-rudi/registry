@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-DEFAULT_OUTPUT_DIR = Path.home() / ".rudi" / "outputs"
+DEFAULT_OUTPUT_DIR = (Path.home() / ".rudi" / "outputs").resolve()
 
 MAX_PROMPT_CHARS = 4000
 MAX_REFERENCE_COUNT = 3

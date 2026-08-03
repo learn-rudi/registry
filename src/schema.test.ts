@@ -231,6 +231,66 @@ describe("schema validation - valid manifests", () => {
     expect(valid).toBe(true);
   });
 
+  it("should accept additive lifecycle and deprecation metadata", () => {
+    const manifest = {
+      id: "stack:test",
+      kind: "stack",
+      name: "Test Stack",
+      version: "1.0.0",
+      delivery: "remote",
+      install: {
+        source: "catalog",
+        path: "catalog/stacks/test",
+      },
+      lifecycle: {
+        maturity: "stable",
+        support: "maintenance",
+        deprecation: {
+          announcedAt: "2026-08-02",
+          message: "Use the replacement stack for new installations.",
+          replacementId: "stack:replacement",
+          removalAfter: "2026-11-01",
+        },
+      },
+      runtime: "node",
+      provides: { tools: ["test_tool"] },
+      mcp: { transport: "stdio", command: "node", args: ["index.js"] },
+    };
+
+    expect(validate(manifest)).toBe(true);
+  });
+
+  it("should reject invalid or incomplete lifecycle metadata", () => {
+    const base = {
+      id: "stack:test",
+      kind: "stack",
+      name: "Test Stack",
+      version: "1.0.0",
+      delivery: "remote",
+      install: { source: "catalog", path: "catalog/stacks/test" },
+      runtime: "node",
+      provides: { tools: ["test_tool"] },
+      mcp: { transport: "stdio", command: "node" },
+    };
+
+    expect(validate({
+      ...base,
+      lifecycle: { maturity: "beta", support: "supported" },
+    })).toBe(false);
+    expect(validate({
+      ...base,
+      lifecycle: {
+        maturity: "stable",
+        support: "unsupported",
+        deprecation: { announcedAt: "2026-08-02" },
+      },
+    })).toBe(false);
+    expect(validate({
+      ...base,
+      lifecycle: { maturity: "stable", support: "supported", unknown: true },
+    })).toBe(false);
+  });
+
   it("should accept minimal skill manifest", () => {
     const manifest = {
       id: "skill:grill-with-docs",
@@ -284,6 +344,21 @@ describe("schema validation - valid manifests", () => {
 
     const valid = validate(manifest);
     expect(valid).toBe(true);
+  });
+
+  it("should accept a detected system-installed agent", () => {
+    const manifest = {
+      id: "agent:antigravity",
+      kind: "agent",
+      name: "Antigravity CLI",
+      version: "system",
+      delivery: "system",
+      install: { source: "system" },
+      bins: ["agy"],
+      detect: { command: "agy --version", expectExitCode: 0 },
+    };
+
+    expect(validate(manifest)).toBe(true);
   });
 
   it("should accept full binary manifest with all optional fields", () => {

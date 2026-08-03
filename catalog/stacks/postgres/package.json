@@ -4,7 +4,8 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "start": "npx tsx src/index.ts"
+    "start": "npx tsx src/index.ts",
+    "verify": "node ../../../scripts/verify-node-stack.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",

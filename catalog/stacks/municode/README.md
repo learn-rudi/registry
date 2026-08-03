@@ -1,72 +1,68 @@
 # Municode Public Codes
 
-`stack:municode` is a read-only MCP boundary for published municipal-code text
-and provenance from reviewed Municode jurisdictions. The package is named for
-the provider, not for its first municipality. Cincinnati, Ohio is the first
-registered profile; additional jurisdictions require their own reviewed,
-versioned profile metadata and contract fixtures.
+`stack:municode` is a read-only MCP boundary for one release-configured,
+fixed-job reviewed baseline Cincinnati zoning-code evidence bundle. Callers do
+not browse Municode or select sections. The configured selector policy and
+accepted snapshot map complete CAGIS zoning context plus one admitted
+restaurant category to a bounded set of provider-native nodes.
 
 ## Tools
 
-### `municode_get_publication`
-
-Input:
-
-```json
-{ "jurisdiction": "cincinnati-oh" }
-```
-
-Returns the configured client/product identity, current publication job and
-name, retrieval time, and exact public library URL.
-
-### `municode_list_code_sections`
+### `municode_get_reviewed_zoning_evidence_bundle`
 
 Input:
 
 ```json
 {
-  "jurisdiction": "cincinnati-oh",
-  "parentNodeId": "TIXIZOCOCI",
-  "limit": 50,
-  "cursor": "0"
+  "operationInput": {
+    "jurisdiction": "cincinnati-oh",
+    "proposedUseCategory": "restaurant_full_service",
+    "schemaVersion": 1,
+    "selectorPolicyId": "cincinnati-restaurant-zoning-evidence-v1"
+  },
+  "cagisContext": {
+    "auditorParcelId": "014-5000-1002-9",
+    "parcelKey": "014500010029",
+    "provider": "cagis",
+    "resultSha256": "<sha256>",
+    "retrievedAt": "2026-08-02T12:30:00.000Z",
+    "sourceUrl": "https://example.invalid/synthetic-cagis-result",
+    "zoningCode": "SYNTHETIC-ZONE-1",
+    "zoningContextComplete": true,
+    "zoningFetchedAt": "2026-08-02T12:30:00.000Z",
+    "zoningOverlayDistrictNames": ["Synthetic Overlay A"],
+    "zoningSource": "synthetic_fixture"
+  }
 }
 ```
 
-Returns at most 100 direct child nodes and an opaque-for-callers decimal cursor
-for the next page. The provider response is bounded before parsing.
-
-### `municode_get_code_section`
-
-Input:
-
-```json
-{
-  "jurisdiction": "cincinnati-oh",
-  "nodeId": "TIXIZOCOCI_CH1403SIMIDI"
-}
-```
-
-Returns bounded normalized text, a SHA-256 content digest, publication
-identity, retrieval time, and exact public source URL. HTML-backed code is
-normalized directly. PDF-backed code is fetched only from Municode's canonical
-code-content blob origin and converted with Poppler's `pdftotext`.
+Returns a closed success/failure union. Success preserves fixed publication,
+policy, snapshot, mapping-context, section-content, digest, URL, retrieval-time,
+and reason provenance with the required non-legal disclaimer.
 
 ## Boundary And Failure Behavior
 
-- Tool callers cannot provide an origin, product ID, client ID, job ID, or raw
-  endpoint.
-- Every call is bound to a closed jurisdiction profile and its fixed Municode
-  product.
+- Tool callers cannot provide an origin, publication ID, product ID, client ID,
+  job ID, node ID, or raw endpoint.
+- The public MCP surface exposes the composite only; publication, inventory,
+  and section-read primitives remain internal implementation details.
+- Each call uses one accepted numeric job ID. It never resolves `latest` for a
+  child call, reads each configured parent inventory once, compares the full
+  ordered inventory, then reads all selected sections against that same job.
 - Requests use exact HTTPS origins, reject redirects, enforce a 30-second
   timeout, and do not retry internally.
-- JSON, PDF, collection, node, and rendered-text sizes are bounded.
+- JSON, PDF, collection, node, rendered-text, parent, child, and aggregate
+  inventory sizes are bounded.
 - Unknown fields, unknown jurisdictions, malformed node IDs, invalid provider
   JSON, missing sections, unsupported content, dependency failures, and PDF
   extraction failures return stable machine-readable MCP error payloads.
 - Raw provider bodies and internal exception details are not included in public
   errors.
-- The stack reports published source text. It does not determine which zoning
-  designation applies to a parcel and does not produce legal conclusions.
+- Synthetic fixtures prove the engine only and report production readiness
+  false. Production requires release-configured live-observed artifacts and a
+  named planning-domain attestor.
+- The stack reports source evidence. It does not determine legal completeness,
+  applicability, approval, permitting, or legal conclusions.
 
 ## Relationship To Dwellow And Site Engines
 

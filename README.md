@@ -63,6 +63,10 @@ Minimal manifest:
   "kind": "stack",
   "name": "My Stack",
   "version": "1.0.0",
+  "lifecycle": {
+    "maturity": "experimental",
+    "support": "supported"
+  },
   "delivery": "remote",
   "install": {
     "source": "catalog",
@@ -93,6 +97,12 @@ Minimal manifest:
 
 Use `related.skills` for companion workflows. `provides.tools` is only for MCP
 tools exposed by the stack.
+
+`lifecycle` is optional and omission means unclassified. Do not claim
+`stable` or `supported` without evidence. Deprecated packages carry an
+announcement date and migration message; retired packages are removed from the
+canonical catalog rather than left as installable placeholders. See
+[SCHEMA.md](SCHEMA.md#package-lifecycle).
 
 ## Creating a Skill
 
@@ -126,7 +136,10 @@ npm run validate
 npm run indexes:sync
 npm run indexes:check
 npm run catalog:clean:check
+npm run stacks:verify -- --changed-from origin/main --prepare
+npm run debt:scan
 npm run build
+npm run release:verify
 npm pack --dry-run --json
 ```
 

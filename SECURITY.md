@@ -21,6 +21,16 @@ The registry must never contain API keys, tokens, or credentials. All secrets ar
 
 Packages in the official registry are reviewed before inclusion. Third-party packages should be reviewed by users before installation.
 
+Changed official stacks must also pass their repository-owned offline
+verification contract. The runner invokes argv without a shell, removes parent
+tokens and provider secrets from the child environment, isolates user state,
+and refuses unlocked Node dependency preparation. Hosted bridges are checked
+statically and must not contact their provider during verification.
+
+Generated release metadata binds every index and the catalog hash tree to an
+exact SHA-256 value plus source revision context. `npm run release:verify`
+fails closed on missing, extra, traversing, or mismatched artifact paths.
+
 ### Binary Sources
 
 Binaries are sourced from:

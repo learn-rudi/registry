@@ -60,6 +60,8 @@
       "description": "Display and categorization metadata"
     },
 
+    "lifecycle": { "$ref": "#/$defs/Lifecycle" },
+
     "runtime": {
       "type": "string",
       "enum": ["node", "python", "deno", "bun"],
@@ -345,6 +347,62 @@
         "winget": { "type": "string", "description": "winget install command" },
         "choco": { "type": "string", "description": "Chocolatey install command" },
         "manual": { "type": "string", "description": "Manual installation instructions" }
+      }
+    },
+
+    "Lifecycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maturity", "support"],
+      "properties": {
+        "maturity": {
+          "type": "string",
+          "enum": ["experimental", "stable"],
+          "description": "Readiness posture; omission of lifecycle means unclassified"
+        },
+        "support": {
+          "type": "string",
+          "enum": ["supported", "maintenance", "unsupported"],
+          "description": "Current support posture"
+        },
+        "deprecation": { "$ref": "#/$defs/Deprecation" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "support": { "const": "unsupported" } },
+            "required": ["support"]
+          },
+          "then": { "required": ["deprecation"] }
+        }
+      ]
+    },
+
+    "Deprecation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["announcedAt", "message"],
+      "properties": {
+        "announcedAt": {
+          "type": "string",
+          "format": "date",
+          "description": "Calendar date when deprecation was announced"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Actionable human-readable migration notice"
+        },
+        "replacementId": {
+          "type": "string",
+          "pattern": "^(runtime|binary|agent|stack|skill|prompt):[a-z0-9][a-z0-9-_]*$",
+          "description": "Canonical replacement package ID when one exists"
+        },
+        "removalAfter": {
+          "type": "string",
+          "format": "date",
+          "description": "Earliest communicated removal date; informational, never an automatic timer"
+        }
       }
     },
 

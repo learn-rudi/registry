@@ -273,6 +273,49 @@ describe("resolve", () => {
 // =============================================================================
 
 describe("assertEffectivePolicy", () => {
+  describe("lifecycle constraints", () => {
+    it("rejects a removal date before the deprecation announcement", () => {
+      const pkg: Package = {
+        ...minimalStack,
+        lifecycle: {
+          maturity: "stable",
+          support: "maintenance",
+          deprecation: {
+            announcedAt: "2026-08-02",
+            message: "Use stack:replacement.",
+            replacementId: "stack:replacement",
+            removalAfter: "2026-08-01",
+          },
+        },
+      };
+      const resolved = resolve(pkg, { os: "darwin", arch: "arm64" });
+
+      expect(() => assertEffectivePolicy(resolved)).toThrow(
+        "lifecycle.deprecation.removalAfter must not precede announcedAt"
+      );
+    });
+
+    it("rejects a package that names itself as its replacement", () => {
+      const pkg: Package = {
+        ...minimalStack,
+        lifecycle: {
+          maturity: "stable",
+          support: "maintenance",
+          deprecation: {
+            announcedAt: "2026-08-02",
+            message: "This package has no replacement.",
+            replacementId: minimalStack.id,
+          },
+        },
+      };
+      const resolved = resolve(pkg, { os: "darwin", arch: "arm64" });
+
+      expect(() => assertEffectivePolicy(resolved)).toThrow(
+        "lifecycle.deprecation.replacementId cannot reference the same package"
+      );
+    });
+  });
+
   describe("kind constraints", () => {
     it("should require runtime to use download source", () => {
       const pkg: Package = {
@@ -293,21 +336,39 @@ describe("assertEffectivePolicy", () => {
       );
     });
 
-    it("should require agent to use npm source", () => {
+    it("should allow a system-installed agent with explicit detection", () => {
+      const pkg: Package = {
+        id: "agent:antigravity",
+        kind: "agent",
+        name: "Antigravity CLI",
+        version: "system",
+        delivery: "system",
+        install: { source: "system" },
+        bins: ["agy"],
+        detect: { command: "agy --version", expectExitCode: 0 },
+      };
+      const ctx: ResolveContext = { os: "darwin", arch: "arm64" };
+      const resolved = resolve(pkg, ctx);
+
+      expect(() => assertEffectivePolicy(resolved)).not.toThrow();
+    });
+
+    it("should reject unsupported agent install sources", () => {
       const pkg: Package = {
         id: "agent:claude",
         kind: "agent",
         name: "Claude",
         version: "1.0.0",
         delivery: "remote",
-        install: { source: "download" },
+        install: { source: "pip", package: "claude" },
+        bins: ["claude"],
       };
       const ctx: ResolveContext = { os: "darwin", arch: "arm64" };
       const resolved = resolve(pkg, ctx);
 
       expect(() => assertEffectivePolicy(resolved)).toThrow(PolicyError);
       expect(() => assertEffectivePolicy(resolved)).toThrow(
-        "agent must use install.source=npm"
+        "agent must use install.source=npm or system"
       );
     });
 

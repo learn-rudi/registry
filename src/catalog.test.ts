@@ -183,6 +183,29 @@ requires:
     );
   });
 
+  it("rejects deprecation replacement references to unknown packages", async () => {
+    await writeDemoStack();
+    const manifestPath = path.join(tmpDir, "catalog/stacks/demo/manifest.json");
+    const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8"));
+    await writeJson(manifestPath, {
+      ...manifest,
+      lifecycle: {
+        maturity: "stable",
+        support: "maintenance",
+        deprecation: {
+          announcedAt: "2026-08-02",
+          message: "Use the replacement stack.",
+          replacementId: "stack:missing",
+        },
+      },
+    });
+
+    const packages = await discoverCatalogPackages(tmpDir);
+    expect(() => assertCatalogReferences(packages)).toThrow(
+      "[stack:demo] lifecycle.deprecation.replacementId references unknown package: stack:missing"
+    );
+  });
+
   it("rejects version-suffixed catalog metadata paths", async () => {
     await writeJson(path.join(tmpDir, "catalog/stacks/demo/manifest.v2.json"), {
       id: "stack:demo",

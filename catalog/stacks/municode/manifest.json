@@ -2,7 +2,7 @@
   "id": "stack:municode",
   "kind": "stack",
   "name": "Municode Public Codes",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "delivery": "remote",
   "install": {
     "source": "catalog",
@@ -17,9 +17,7 @@
   },
   "provides": {
     "tools": [
-      "municode_get_publication",
-      "municode_list_code_sections",
-      "municode_get_code_section"
+      "municode_get_reviewed_zoning_evidence_bundle"
     ]
   },
   "mcp": {
@@ -31,7 +29,7 @@
     "cwd": "."
   },
   "meta": {
-    "description": "Read-only publication, table-of-contents, and bounded code-section access for reviewed Municode jurisdiction profiles. Cincinnati, Ohio is the first profile.",
+    "description": "Read-only, fixed-job reviewed baseline zoning-code evidence bundles for Cincinnati from release-configured mappings and complete CAGIS zoning context.",
     "author": "RUDI",
     "license": "MIT",
     "category": "government-data",
@@ -42,6 +40,6 @@
       "government-data",
       "zoning"
     ],
-    "boundary": "Read-only access to fixed Municode code products for reviewed jurisdiction profiles. No arbitrary URL, search, export, email, notification, browser, or mutation tools are exposed. Provider text is evidence, not legal interpretation."
+    "boundary": "Exposes one release-configured composite only. Callers cannot choose publication IDs, node IDs, origins, or primitive browse/read operations. Synthetic fixtures are never production-ready. Provider text is source evidence, not legal advice, completeness, applicability, approval, or permitting."
   }
 }

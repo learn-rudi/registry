@@ -99,6 +99,22 @@ export interface Related {
   skills?: string[];
 }
 
+export type PackageMaturity = "experimental" | "stable";
+export type PackageSupport = "supported" | "maintenance" | "unsupported";
+
+export interface Deprecation {
+  announcedAt: string;
+  message: string;
+  replacementId?: string;
+  removalAfter?: string;
+}
+
+export interface Lifecycle {
+  maturity: PackageMaturity;
+  support: PackageSupport;
+  deprecation?: Deprecation;
+}
+
 export interface Mcp {
   transport: "stdio" | "http";
   command: string;
@@ -119,6 +135,7 @@ export interface Package {
   installHints?: InstallHints;
   auth?: Auth;
   meta?: Record<string, unknown>;
+  lifecycle?: Lifecycle;
   aliases?: string[];
   // Stack-specific
   runtime?: "node" | "python" | "deno" | "bun";
@@ -259,13 +276,30 @@ export class PolicyError extends Error {
 export function assertEffectivePolicy(resolved: ResolvedPackage): void {
   const { id, kind, version, install, delivery, detect } = resolved;
 
+  const deprecation = resolved.lifecycle?.deprecation;
+  if (deprecation?.replacementId === id) {
+    throw new PolicyError(
+      id,
+      "lifecycle.deprecation.replacementId cannot reference the same package"
+    );
+  }
+  if (
+    deprecation?.removalAfter !== undefined &&
+    deprecation.removalAfter < deprecation.announcedAt
+  ) {
+    throw new PolicyError(
+      id,
+      "lifecycle.deprecation.removalAfter must not precede announcedAt"
+    );
+  }
+
   // KIND constraints
   if (kind === "runtime" && install.source !== "download") {
     throw new PolicyError(id, `runtime must use install.source=download`);
   }
 
-  if (kind === "agent" && install.source !== "npm") {
-    throw new PolicyError(id, `agent must use install.source=npm`);
+  if (kind === "agent" && install.source !== "npm" && install.source !== "system") {
+    throw new PolicyError(id, `agent must use install.source=npm or system`);
   }
 
   if ((kind === "stack" || kind === "skill" || kind === "prompt") && install.source !== "catalog") {

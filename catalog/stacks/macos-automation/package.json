@@ -10,7 +10,8 @@
     "start": "node dist/index.js",
     "dev": "npx tsx src/index.ts",
     "dashboard": "node dist/dashboard.js",
-    "test": "npm run build && node --test tests/*.test.mjs"
+    "test": "npm run build && node --test tests/*.test.mjs",
+    "verify": "npm test"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0"

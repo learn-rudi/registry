@@ -12,6 +12,9 @@
     "indexes:check": "npm run compile && tsx src/index-sync.ts --check",
     "catalog:clean:check": "tsx src/catalog-hygiene.ts --dry-run",
     "catalog:clean": "tsx src/catalog-hygiene.ts --apply",
+    "stacks:verify": "tsx src/verify-stacks.ts",
+    "release:verify": "tsx src/verify-release.ts",
+    "debt:scan": "node catalog/stacks/swe-engineering/src/tools/agent-debt-scan.cjs --repo . --config .debt-scan.json --profile ci --severity warning --json",
     "build": "npm run validate && npm run compile",
     "test": "vitest run",
     "test:watch": "vitest"

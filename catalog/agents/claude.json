@@ -2,12 +2,11 @@
   "id": "agent:claude",
   "kind": "agent",
   "name": "Claude Code",
-  "version": "latest",
+  "version": "system",
 
-  "delivery": "remote",
+  "delivery": "system",
   "install": {
-    "source": "npm",
-    "package": "@anthropic-ai/claude-code"
+    "source": "system"
   },
 
   "bins": ["claude"],
@@ -17,15 +16,21 @@
     "expectExitCode": 0
   },
 
+  "installHints": {
+    "manual": "Install or update with Anthropic's native installer: curl -fsSL https://claude.ai/install.sh | bash"
+  },
+
   "auth": {
     "required": true,
-    "command": "claude login",
-    "instructions": "Run 'claude login' to authenticate with your Anthropic account"
+    "command": "claude auth login",
+    "instructions": "Run 'claude auth login' to authenticate with your Claude subscription or Anthropic Console account"
   },
 
   "meta": {
     "description": "Anthropic Claude Code CLI - AI coding assistant",
     "category": "ai-assistant",
-    "homepage": "https://claude.ai"
+    "homepage": "https://code.claude.com/docs/en/overview",
+    "executionOwner": "anthropic",
+    "headlessCommand": "claude --print <prompt> --output-format stream-json"
   }
 }

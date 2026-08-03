@@ -22,10 +22,6 @@ from mcp import types
 
 # Data analysis
 import pandas as pd
-import numpy as np
-import matplotlib
-matplotlib.use('Agg')  # Non-interactive backend
-import matplotlib.pyplot as plt
 
 # ============================================================================
 # CONFIGURATION
@@ -242,6 +238,11 @@ def create_chart(
     **kwargs
 ) -> dict:
     """Create a chart and save it."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
     if name not in _dataframes:
         raise ValueError(f"No dataframe named '{name}'. Load data first.")
 

@@ -8,7 +8,8 @@
     "start": "npx tsx src/index.ts",
     "cli": "npx tsx bin/plaid.ts",
     "build": "tsc --noEmit",
-    "test": "node --import tsx --test tests/*.test.ts"
+    "test": "node --import tsx --test tests/*.test.ts",
+    "verify": "npm test"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",

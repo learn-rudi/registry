@@ -31,6 +31,7 @@ import {
   CATALOG_ARTIFACT_IGNORE,
   CATALOG_PAYLOAD_PATTERNS,
 } from "./catalog-artifacts.js";
+import { RELEASE_ARTIFACTS } from "./release-provenance.js";
 
 // =============================================================================
 // Types
@@ -96,7 +97,25 @@ function resolveGeneratedAt(): string {
   }
 }
 
+function resolveSourceRevision(): string {
+  const configuredRevision = process.env.SOURCE_REVISION;
+  if (configuredRevision !== undefined) {
+    if (!/^[a-f0-9]{40,64}$/i.test(configuredRevision)) {
+      throw new Error("SOURCE_REVISION must be a 40- or 64-character hexadecimal commit ID");
+    }
+    return configuredRevision.toLowerCase();
+  }
+
+  return execFileSync("git", ["rev-parse", "HEAD"], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
+  }).trim().toLowerCase();
+}
+
 const GENERATED_AT = resolveGeneratedAt();
+const SOURCE_REVISION = resolveSourceRevision();
+const SOURCE_REPOSITORY = "https://github.com/learnrudi/registry";
 
 // =============================================================================
 // File Utilities
@@ -283,16 +302,29 @@ async function main() {
   }
 
   // Write a simple manifest for release
+  const releaseFiles = [...RELEASE_ARTIFACTS];
+  const artifactHashes = Object.fromEntries(
+    await Promise.all(
+      releaseFiles.map(async (file) => [file, await hashFile(path.join("dist", file))])
+    )
+  );
   const releaseManifest = {
     version: "2.0.0",
     generatedAt: baseIndex.generatedAt,
-    files: [
-      "index.json",
-      ...PLATFORMS.map((p) => `index.${p.os}-${p.arch}.json`),
-      "catalog.sha256.json",
-    ],
+    files: releaseFiles,
     stats: baseIndex.stats,
     catalogRoot: catalogHash.root,
+    provenance: {
+      source: {
+        repository: SOURCE_REPOSITORY,
+        revision: SOURCE_REVISION,
+      },
+      catalog: {
+        algorithm: catalogHash.algorithm,
+        root: catalogHash.root,
+      },
+      artifacts: artifactHashes,
+    },
   };
   await writeJson("dist/release.json", releaseManifest);
   console.log(`\n  → dist/release.json`);

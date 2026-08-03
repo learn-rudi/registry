@@ -4,6 +4,11 @@
   "name": "Content Extractor",
   "version": "1.0.0",
 
+  "lifecycle": {
+    "maturity": "stable",
+    "support": "supported"
+  },
+
   "delivery": "remote",
   "install": {
     "source": "catalog",

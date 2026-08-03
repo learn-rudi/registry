@@ -21,6 +21,36 @@ const server = new Server(
   }
 );
 
+function asArgs(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function optionalString(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value.trim() ? value.trim() : fallback;
+}
+
+function requireString(value: unknown, name: string): string {
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new Error(`${name} must be a non-empty string`);
+  }
+  return value;
+}
+
+function boundedNumber(
+  value: unknown,
+  fallback: number,
+  name: string,
+  minimum: number,
+  maximum: number,
+): number {
+  const parsed = value === undefined ? fallback : value;
+  if (typeof parsed !== 'number' || !Number.isFinite(parsed) || parsed < minimum || parsed > maximum) {
+    throw new Error(`${name} must be a number between ${minimum} and ${maximum}`);
+  }
+  return parsed;
+}
+
 // Helper function to fetch and parse HTML
 async function fetchHTML(url: string): Promise<cheerio.CheerioAPI> {
   const response = await fetch(url);
@@ -176,7 +206,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           },
           db_path: {
             type: 'string',
-            description: 'Path to save the SQLite database (e.g., "/Users/hoff/nba.db")'
+            description: 'Absolute path to save the SQLite database (for example, ~/.rudi/outputs/nba.db)'
           },
           season: {
             type: 'string',
@@ -210,13 +240,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
-    const { name, arguments: args } = request.params;
+    const { name } = request.params;
+    const args = asArgs(request.params.arguments);
 
     switch (name) {
       case 'extract_nba_stats': {
-        const season = args.season || '2026';
-        const count = args.count || 30;
-        const min_ppg = args.min_ppg || 20;
+        const season = optionalString(args.season, '2026');
+        const count = boundedNumber(args.count, 30, 'count', 1, 100);
+        const min_ppg = boundedNumber(args.min_ppg, 20, 'min_ppg', 0, 100);
 
         // Extract player stats
         const players = await extractPlayerStats(season);
@@ -251,7 +282,7 @@ STEP 2: After ALL agents complete, compile the JSON results into an array.
 
 STEP 3: Call save_nba_splits tool with:
 - splits_data: [array of all player JSON objects]
-- db_path: "/Users/hoff/nba.db" (or user's specified path)
+- db_path: "~/.rudi/outputs/nba.db" (or the user's specified absolute path)
 - season: "${season}"
 
 Player list to extract:
@@ -268,8 +299,8 @@ ${topPlayers.map((p, i) => `${i + 1}. ${p.name} (${p.ppg} PPG) - ${p.player_url}
       }
 
       case 'save_nba_splits': {
-        const dbPath = args.db_path;
-        const season = args.season || '2026';
+        const dbPath = requireString(args.db_path, 'db_path');
+        const season = optionalString(args.season, '2026');
         const splitsData = args.splits_data;
 
         if (!Array.isArray(splitsData)) {
@@ -287,7 +318,10 @@ ${topPlayers.map((p, i) => `${i + 1}. ${p.name} (${p.ppg} PPG) - ${p.player_url}
       }
 
       case 'query_nba_db': {
-        const results = queryDatabase(args.db_path, args.query);
+        const results = queryDatabase(
+          requireString(args.db_path, 'db_path'),
+          requireString(args.query, 'query'),
+        );
 
         return {
           content: [{

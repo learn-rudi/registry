@@ -19,13 +19,15 @@
 
   "auth": {
     "required": true,
-    "command": "codex auth",
-    "instructions": "Run 'codex auth' to authenticate with your OpenAI account"
+    "command": "codex login",
+    "instructions": "Run 'codex login' to authenticate with your ChatGPT account or configure an OpenAI API key"
   },
 
   "meta": {
     "description": "OpenAI Codex CLI - AI coding assistant",
     "category": "ai-assistant",
-    "homepage": "https://openai.com"
+    "homepage": "https://developers.openai.com/codex/cli",
+    "executionOwner": "openai",
+    "headlessCommand": "codex exec --json <prompt>"
   }
 }

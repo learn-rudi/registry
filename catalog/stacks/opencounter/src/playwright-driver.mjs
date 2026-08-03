@@ -13,9 +13,15 @@ const ROOT_BUTTONS = {
   zoning: { heading: "Zoning Portal", button: "Check my zoning" }
 };
 
-export function createPlaywrightOpenCounterDriver({ stateStore }) {
+export function createPlaywrightOpenCounterDriver({ artifactStore, stateStore }) {
   if (!stateStore) throw new Error("OpenCounter encrypted state store is required.");
+  if (!artifactStore) throw new Error("OpenCounter artifact store is required.");
   return {
+    startZoningGuidance: (input) => withPage(null, async (page, context) => {
+      const result = await start(page, input);
+      await saveState(stateStore, context, result.providerReference);
+      return result;
+    }),
     startGuidance: (input) => withPage(null, async (page, context) => {
       const result = await start(page, input);
       await saveState(stateStore, context, result.providerReference);
@@ -36,6 +42,10 @@ export function createPlaywrightOpenCounterDriver({ stateStore }) {
     reconcileGuidance: (input) => withPage(
       stateStore.load(input.providerReference),
       (page) => readExisting(page, input.providerReference)
+    ),
+    exportGuidance: (input) => withPage(
+      stateStore.load(input.providerReference),
+      (page) => exportGuidancePdfFromSummary(page, artifactStore, input)
     )
   };
 }
@@ -68,6 +78,9 @@ async function saveState(stateStore, context, providerReference) {
 }
 
 async function start(page, input) {
+  if (input.catalogEntryId !== undefined) {
+    await verifyZoningUseBeforeProjectMutation(page, input);
+  }
   await page.goto(`${ORIGIN}/`, { waitUntil: "networkidle", timeout: 30_000 });
   const profile = ROOT_BUTTONS[input.workflow];
   const portal = page.getByRole("heading", { name: profile.heading, exact: true }).locator("..");
@@ -88,12 +101,20 @@ async function start(page, input) {
   const search = page.getByRole("button", { name: "Search", exact: true });
   if (await search.count() !== 1) throw new Error("opencounter_ui_drift:search");
   await search.click();
-  const useChoice = page.getByText(input.proposedUse, { exact: true });
-  await useChoice.waitFor({ state: "visible", timeout: 15_000 });
-  if (await useChoice.count() !== 1) throw new Error("opencounter_use_not_found");
-  const useLabel = page.locator("label", { hasText: input.proposedUse });
-  const useRadio = useLabel.locator("input[type=radio]");
-  if (await useRadio.count() !== 1) throw new Error("opencounter_ui_drift:use_radio");
+  const useRadio = input.providerUseSlug === undefined
+    ? page.locator("label", { hasText: input.proposedUse }).locator("input[type=radio]")
+    : page.locator(
+      `input[type="radio"][value="use_code:${cssEscape(input.providerUseSlug)}"]`
+    );
+  await useRadio.waitFor({ state: "visible", timeout: 15_000 });
+  const radioCount = await useRadio.count();
+  if (radioCount === 0) throw new Error("provider_ui_changed:use_radio");
+  if (radioCount > 1) throw new Error("opencounter_use_ambiguous");
+  const useLabel = useRadio.locator("xpath=ancestor::label");
+  if (await useLabel.count() !== 1) throw new Error("provider_ui_changed:use_label");
+  if ((await useLabel.textContent())?.trim() !== input.proposedUse) {
+    throw new Error("provider_ui_changed:use_label");
+  }
   await useLabel.click({ force: true });
   if (!(await useRadio.isChecked())) throw new Error("opencounter_ui_drift:use_not_selected");
   await clickUnique(page, "Next");
@@ -114,6 +135,136 @@ async function start(page, input) {
         && element.textContent.includes("Cincinnati, Ohio"))
   ), input.address.split(",")[0].trim(), { timeout: 15_000 });
   return await readPageState(page, providerReference);
+}
+
+export async function verifyZoningUseBeforeProjectMutation(page, input) {
+  if (
+    !page?.request
+    || typeof page.request.get !== "function"
+    || typeof input?.proposedUse !== "string"
+    || typeof input.providerUseSlug !== "string"
+    || !Array.isArray(input.categoryPath)
+    || input.categoryPath.length < 1
+    || input.categoryPath.length > 2
+    || (input.description !== null && typeof input.description !== "string")
+  ) {
+    throw new Error("opencounter_catalog_contract_invalid");
+  }
+  const response = await page.request.get(`${ORIGIN}/api/zoning/uses`, {
+    headers: { accept: "application/json" },
+    params: { "filter[query_string]": input.proposedUse },
+    timeout: 15_000
+  });
+  if (!response.ok()) {
+    throw new Error(`opencounter_dependency_failure:${response.status()}`);
+  }
+  const contentType = response.headers()["content-type"] ?? "";
+  if (!/^application\/json(?:;|$)/i.test(contentType)) {
+    throw new Error("provider_ui_changed:use_search_content_type");
+  }
+  const bytes = await response.body();
+  if (!Buffer.isBuffer(bytes) || bytes.byteLength > 100_000) {
+    throw new Error("provider_ui_changed:use_search_size");
+  }
+  let value;
+  try {
+    value = JSON.parse(bytes.toString("utf8"));
+  } catch {
+    throw new Error("provider_ui_changed:use_search_json");
+  }
+  exactProviderKeys(value, ["data"], "use search response");
+  if (!Array.isArray(value.data) || value.data.length > 20) {
+    throw new Error("provider_ui_changed:use_search_results");
+  }
+  const results = value.data.map((item, index) =>
+    validateProviderUseSearchResult(item, index)
+  );
+  const exactLabelMatches = results.filter((result) =>
+    result.name === input.proposedUse
+  );
+  if (exactLabelMatches.length > 1) throw new Error("opencounter_use_ambiguous");
+  if (exactLabelMatches.length === 0) {
+    if (results.some((result) => result.slug === input.providerUseSlug)) {
+      throw new Error("provider_ui_changed:use_label");
+    }
+    throw new Error("opencounter_use_not_found");
+  }
+  const match = exactLabelMatches[0];
+  const expectedFullName = `${input.categoryPath.join(" > ")} > ${input.proposedUse}`;
+  if (
+    match.slug !== input.providerUseSlug
+    || match.fullName !== expectedFullName
+    || normalizeProviderDescription(match.description)
+      !== normalizeProviderDescription(input.description)
+    || match.categoryName !== input.categoryPath[0]
+    || match.categoryIds.length !== input.categoryPath.length
+  ) {
+    throw new Error("provider_ui_changed:use_fingerprint");
+  }
+}
+
+function validateProviderUseSearchResult(value, index) {
+  const path = `use search response.data[${index}]`;
+  exactProviderKeys(value, ["attributes", "id"], path);
+  if (!Number.isSafeInteger(value.id) || value.id < 1) {
+    throw new Error(`provider_ui_changed:${path}.id`);
+  }
+  const attributes = value.attributes;
+  exactProviderKeys(attributes, [
+    "category_id",
+    "category_ids",
+    "category_name",
+    "description",
+    "featured",
+    "full_name",
+    "name",
+    "reference_url",
+    "slug"
+  ], `${path}.attributes`);
+  if (
+    !Number.isSafeInteger(attributes.category_id)
+    || attributes.category_id < 1
+    || !Array.isArray(attributes.category_ids)
+    || attributes.category_ids.length < 1
+    || attributes.category_ids.length > 2
+    || attributes.category_ids.some((id) => !Number.isSafeInteger(id) || id < 1)
+    || attributes.category_id !== attributes.category_ids.at(-1)
+    || typeof attributes.category_name !== "string"
+    || typeof attributes.full_name !== "string"
+    || typeof attributes.name !== "string"
+    || typeof attributes.slug !== "string"
+    || (attributes.description !== null && typeof attributes.description !== "string")
+  ) {
+    throw new Error(`provider_ui_changed:${path}.attributes`);
+  }
+  return {
+    categoryIds: attributes.category_ids,
+    categoryName: attributes.category_name,
+    description: attributes.description,
+    fullName: attributes.full_name,
+    name: attributes.name,
+    slug: attributes.slug
+  };
+}
+
+function exactProviderKeys(value, expected, path) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`provider_ui_changed:${path}`);
+  }
+  const actual = Object.keys(value).sort();
+  const sorted = [...expected].sort();
+  if (
+    actual.length !== sorted.length
+    || actual.some((key, index) => key !== sorted[index])
+  ) {
+    throw new Error(`provider_ui_changed:${path}`);
+  }
+}
+
+function normalizeProviderDescription(value) {
+  if (value === null) return null;
+  const normalized = value.trim();
+  return normalized === "" ? null : normalized;
 }
 
 async function continueRun(page, input) {
@@ -178,6 +329,36 @@ async function readExisting(page, providerReference) {
   const response = await page.goto(`${ORIGIN}/projects/${id}/guide/location`, { waitUntil: "networkidle", timeout: 30_000 });
   if (response?.status() === 404) return { status: "not_found" };
   return await readPageState(page, reference);
+}
+
+export async function exportGuidancePdfFromSummary(page, artifactStore, input) {
+  const providerReference = validateProviderReference(input?.providerReference);
+  if (!artifactStore || typeof artifactStore.persistPdf !== "function") {
+    throw new Error("OpenCounter artifact store is invalid.");
+  }
+  const projectId = providerReference.split(":").pop();
+  const sourceUrl = `${ORIGIN}/projects/${projectId}/apply/summary`;
+  const response = await page.goto(sourceUrl, { waitUntil: "networkidle", timeout: 30_000 });
+  if (response?.status() === 404) return { status: "not_found" };
+  if (response && response.status() >= 400) {
+    throw new Error(`opencounter_dependency_failure:${response.status()}`);
+  }
+
+  const downloadButton = page.getByRole("button", { name: "Download PDF", exact: true });
+  if (await downloadButton.count() !== 1
+    || !(await downloadButton.isVisible())
+    || !(await downloadButton.isEnabled())) {
+    throw new Error("opencounter_ui_drift:download_pdf");
+  }
+  const downloadPromise = page.waitForEvent("download", { timeout: 30_000 });
+  await downloadButton.click();
+  const download = await downloadPromise;
+  const downloadFailure = await download.failure();
+  if (downloadFailure) throw new Error("opencounter_download_failed");
+  const downloadPath = await download.path();
+  if (!downloadPath) throw new Error("opencounter_download_path_missing");
+  const artifact = await artifactStore.persistPdf({ downloadPath, providerReference });
+  return { artifact, providerReference, sourceUrl, status: "exported" };
 }
 
 async function readPageState(page, providerReference) {

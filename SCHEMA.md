@@ -121,6 +121,41 @@ For `source: "catalog"`, the payload lives inside the registry itself:
 
 Catalog source must remain portable. Do not publish generated runtime state, local account state, dependency installs, downloaded media, rendered outputs, browser profiles, or private workflow artifacts under `catalog/`. Stack state belongs under `~/.rudi/state/stacks/{stack-id}` by default, and registry checks exclude forbidden stack-local paths such as `node_modules`, `runs`, `downloads`, `tmp`, `.chrome-profiles`, `.test-rudi`, `clips`, `output`, `outputs`, and `composer/public/media`.
 
+## Package Lifecycle
+
+Lifecycle metadata is optional so existing schema-v2 consumers remain
+compatible. Omission means **unclassified**; it must not be interpreted as
+stable or supported.
+
+```json
+{
+  "lifecycle": {
+    "maturity": "experimental",
+    "support": "maintenance",
+    "deprecation": {
+      "announcedAt": "2026-08-02",
+      "message": "Use stack:replacement for new installations.",
+      "replacementId": "stack:replacement",
+      "removalAfter": "2026-11-01"
+    }
+  }
+}
+```
+
+- `maturity` is `experimental` or `stable`.
+- `support` is `supported`, `maintenance`, or `unsupported`.
+- `deprecation`, when present, requires an ISO calendar `announcedAt` date and
+  a non-empty migration `message`. `replacementId` must resolve to another
+  published package. `removalAfter`, when present, cannot precede
+  `announcedAt`.
+- `support: "unsupported"` requires deprecation guidance while the package is
+  still published.
+- Dates are informational contract data. The compiler and CLI never change
+  behavior based on the wall clock.
+- Retirement is physical removal from the canonical catalog and generated
+  public indexes. Retired definitions do not remain as hidden or versioned
+  schema-v2 packages.
+
 ### Skill Packages
 
 Skills use either a legacy-compatible flat Markdown file at `catalog/skills/{name}.md` or a bundle rooted at `catalog/skills/{name}/SKILL.md`. Bundles may carry `scripts/`, `references/`, and `assets/`; the complete directory is the install payload.
@@ -669,6 +704,8 @@ Validation applies to the **effective resolved config** (after platform merge):
 4. **If effective `source == "catalog"`**: no checksum required (registry-level integrity)
 5. **If `kind == "stack"`**: `runtime` and `mcp` required
 6. **All packages**: `name` required (used for display)
+7. **If `lifecycle.support == "unsupported"`**: `lifecycle.deprecation` required
+8. **If `lifecycle.deprecation.replacementId` is present**: it must reference another published package
 
 ---
 

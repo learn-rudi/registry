@@ -21,7 +21,7 @@ import { homedir } from "os";
 import mammoth from "mammoth";
 import * as XLSX from "xlsx";
 
-const DEFAULT_OUTPUT_DIR = join(homedir(), ".rudi", "output");
+const DEFAULT_OUTPUT_DIR = join(homedir(), ".rudi", "outputs");
 
 // =============================================================================
 // CORE API - The actual functionality

@@ -2,6 +2,10 @@
   "name": "@rudi/stack-hamilton-county-auditor",
   "version": "0.1.0",
   "type": "module",
-  "scripts": { "start": "node src/index.mjs", "test": "node --test test/*.test.mjs" },
+  "scripts": {
+    "start": "node src/index.mjs",
+    "test": "node --test test/*.test.mjs",
+    "verify": "npm test"
+  },
   "dependencies": { "@modelcontextprotocol/sdk": "^1.0.0" }
 }

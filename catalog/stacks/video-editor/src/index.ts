@@ -28,7 +28,7 @@ import { isTemplateVideoTool, runTemplateVideoTool, templateVideoTools } from ".
 import { isTranscriptionVideoTool, runTranscriptionVideoTool, transcriptionVideoTools } from "./transcription-tools.js";
 
 const execAsync = promisify(exec);
-const DEFAULT_OUTPUT_DIR = join(homedir(), ".rudi", "output");
+const DEFAULT_OUTPUT_DIR = join(homedir(), ".rudi", "outputs");
 
 // Use homebrew ffmpeg/ffprobe if available, otherwise fall back to PATH
 const FFMPEG = existsSync("/opt/homebrew/bin/ffmpeg") ? "/opt/homebrew/bin/ffmpeg" : "ffmpeg";

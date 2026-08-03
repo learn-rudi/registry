@@ -91,12 +91,12 @@ const MODELS: Record<string, ModelConfig> = {
 };
 
 // =============================================================================
-// OUTPUT DIRECTORY - Default: ~/.rudi/output/
+// OUTPUT DIRECTORY - Default: ~/.rudi/outputs/
 // =============================================================================
 
 import { homedir } from "os";
 
-const DEFAULT_OUTPUT_DIR = join(homedir(), ".rudi", "output");
+const DEFAULT_OUTPUT_DIR = join(homedir(), ".rudi", "outputs");
 if (!existsSync(DEFAULT_OUTPUT_DIR)) {
   mkdirSync(DEFAULT_OUTPUT_DIR, { recursive: true });
 }

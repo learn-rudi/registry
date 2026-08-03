@@ -31,7 +31,7 @@ def output_path(value: str | None, audio_format: str) -> Path:
         Path(value).expanduser().resolve()
         if value
         else DEFAULT_OUTPUT_DIR / f"speech-{_timestamp()}-{_nonce()}.{audio_format}"
-    )
+    ).resolve()
     output_root = DEFAULT_OUTPUT_DIR.resolve()
     if not _is_relative_to(path, output_root):
         raise ToolError(

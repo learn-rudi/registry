@@ -10,6 +10,7 @@
     "start": "node dist/index.js",
     "dev": "npx tsx src/index.ts",
     "test": "npm run build && node --test tests/*.test.mjs",
+    "verify": "npm test",
     "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {

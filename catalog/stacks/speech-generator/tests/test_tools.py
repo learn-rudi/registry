@@ -117,7 +117,11 @@ class SpeechGeneratorAsyncToolsTest(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(ToolError) as raised:
                 await generate_speech({"provider": "openai", "text": "Hello from RUDI."})
 
-        self.assertEqual(raised.exception.error_kind, "missing_secret")
+        self.assertEqual(
+            raised.exception.error_kind,
+            "missing_secret",
+            msg=f"unexpected error: {raised.exception.message} {raised.exception.details}",
+        )
         self.assertEqual(raised.exception.details["secret_name"], "OPENAI_API_KEY")
         self.assertIn("rudi secrets set OPENAI_API_KEY", raised.exception.details["remediation"])
 

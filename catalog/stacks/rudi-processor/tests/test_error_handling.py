@@ -6,6 +6,7 @@ Test error handling and edge cases in RUDI processor
 import os
 import sys
 import tempfile
+import unittest
 from pathlib import Path
 
 # Add parent to path
@@ -189,5 +190,12 @@ def test_error_handling():
 
     return results
 
+
+class TestErrorHandling(unittest.TestCase):
+    def test_all_error_handling_cases(self):
+        results = test_error_handling()
+        self.assertEqual(results["failed"], [])
+        self.assertEqual(results["errors"], [])
+
 if __name__ == "__main__":
-    test_error_handling()
+    unittest.main()

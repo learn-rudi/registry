@@ -25,8 +25,8 @@ test("audio default config is portable and env-overridable", () => {
     home
   );
 
-  assert.equal(cfg.output_dir, "/tmp/rudi-home/.rudi/output/audio-tools/transcripts");
-  assert.equal(cfg.db_path, "/tmp/rudi-home/.rudi/output/audio-tools/audio.db");
+  assert.equal(cfg.output_dir, "/tmp/rudi-home/.rudi/outputs/audio-tools/transcripts");
+  assert.equal(cfg.db_path, "/tmp/rudi-home/.rudi/outputs/audio-tools/audio.db");
   assert.equal(cfg.tools.ffmpeg, "/custom/ffmpeg");
   assert.equal(cfg.tools.ffprobe, "/custom/ffprobe");
   assert.equal(cfg.tools.whisper, "/custom/whisper-cli");

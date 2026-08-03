@@ -43,6 +43,11 @@
       "mcp",
       "oauth"
     ],
-    "icon": "otter"
+    "icon": "otter",
+    "remoteMcp": {
+      "url": "https://mcp.otter.ai/mcp",
+      "auth": "oauth",
+      "bridgePackage": "mcp-remote@0.1.38"
+    }
   }
 }

@@ -9,9 +9,12 @@ const MUNICODE_LIBRARY_ORIGIN = "https://library.municode.com";
 const MUNICODE_API_ORIGIN = `${MUNICODE_LIBRARY_ORIGIN}/api`;
 const MUNICODE_PDF_ORIGIN = "https://mcclibrary.blob.core.usgovcloudapi.net";
 const MAX_JSON_BYTES = 5_000_000;
+const MAX_REVIEWED_LISTING_METADATA_BYTES = 500_000;
 const MAX_PDF_BYTES = 25_000_000;
 const MAX_SECTION_TEXT_CHARS = 200_000;
 const REQUEST_TIMEOUT_MS = 30_000;
+const REVIEWED_BUNDLE_DISCLAIMER =
+  "This reviewed baseline zoning-code evidence bundle is source evidence only. It is not legal advice and does not determine legal completeness, applicability, approval, or permitting.";
 const execFileAsync = promisify(execFile);
 
 const NAMED_HTML_ENTITIES = Object.freeze({
@@ -52,7 +55,8 @@ export class MunicodeError extends Error {
 export function createMunicodeClient({
   extractPdfText = extractPdfTextWithPdftotext,
   fetchImpl = fetch,
-  now = () => new Date()
+  now = () => new Date(),
+  reviewedZoningEvidenceRelease
 } = {}) {
   if (typeof fetchImpl !== "function") {
     throw new MunicodeError("invalid_configuration", "fetchImpl must be a function.");
@@ -63,6 +67,9 @@ export function createMunicodeClient({
   if (typeof extractPdfText !== "function") {
     throw new MunicodeError("invalid_configuration", "extractPdfText must be a function.");
   }
+  const reviewedRelease = reviewedZoningEvidenceRelease === undefined
+    ? null
+    : validateReviewedRelease(reviewedZoningEvidenceRelease);
 
   async function resolvePublication(profile) {
     const jobs = await fetchJson(
@@ -87,6 +94,168 @@ export function createMunicodeClient({
   }
 
   return {
+    getReviewedZoningEvidenceReadiness() {
+      if (reviewedRelease === null) {
+        return {
+          productionReady: false,
+          reason: "reviewed_release_not_configured"
+        };
+      }
+      const lineage = reviewedReleaseLineage(reviewedRelease);
+      if (reviewedRelease.snapshot.attestation.kind !== "planning_domain") {
+        return {
+          productionReady: false,
+          reason: "planning_domain_attestation_required",
+          ...lineage
+        };
+      }
+      return {
+        productionReady: true,
+        reason: "ready",
+        ...lineage
+      };
+    },
+
+    async getReviewedZoningEvidenceBundle(input) {
+      try {
+        if (reviewedRelease === null) {
+          throw new MunicodeError(
+            "selection_not_supported",
+            "No reviewed zoning evidence release is configured."
+          );
+        }
+        const request = validateReviewedBundleInput(input);
+        const { selectorPolicy, snapshot, snapshotSha256 } = reviewedRelease;
+        if (
+          request.operationInput.selectorPolicyId !== snapshot.selectorPolicyId
+          || request.operationInput.selectorPolicyId
+            !== selectorPolicy.selectorPolicyId
+        ) {
+          throw new MunicodeError(
+            "selector_drift",
+            "The requested selector policy does not match the accepted release."
+          );
+        }
+        const selection = snapshot.selections.find((candidate) =>
+          candidate.zoningCode === request.cagisContext.zoningCode
+          && arraysEqual(
+            candidate.zoningOverlayDistrictNames,
+            request.cagisContext.zoningOverlayDistrictNames
+          )
+          && candidate.proposedUseCategory
+            === request.operationInput.proposedUseCategory
+        );
+        if (selection === undefined) {
+          throw new MunicodeError(
+            "selection_not_supported",
+            "The complete CAGIS zoning context and proposed-use category have no accepted reviewed bundle."
+          );
+        }
+
+        const publication = {
+          clientId: snapshot.clientId,
+          isLatest: snapshot.isLatest,
+          jobId: snapshot.jobId,
+          name: snapshot.publicationName,
+          productId: snapshot.productId
+        };
+        let listingMetadataBytes = 0;
+        for (const parent of snapshot.parents) {
+          const payload = await fetchFixedJobChildren(
+            fetchImpl,
+            publication,
+            parent.nodeId
+          );
+          listingMetadataBytes += Buffer.byteLength(
+            JSON.stringify(payload),
+            "utf8"
+          );
+          if (listingMetadataBytes > MAX_REVIEWED_LISTING_METADATA_BYTES) {
+            throw new MunicodeError(
+              "provider_response_too_large",
+              "Municode reviewed inventory metadata exceeds the size limit."
+            );
+          }
+          const observedChildren = validateObservedChildren(payload);
+          if (!arraysEqualByJson(observedChildren, parent.children)) {
+            throw new MunicodeError(
+              "publication_drift",
+              "Municode reviewed inventory does not match the accepted snapshot."
+            );
+          }
+        }
+
+        const reasonByNodeId = new Map(
+          selectorPolicy.sectionReasons.map((entry) => [
+            entry.nodeId,
+            entry.reasonCode
+          ])
+        );
+        const profile = JURISDICTION_PROFILES[snapshot.jurisdiction];
+        const sections = [];
+        for (const nodeId of selection.sectionNodeIds) {
+          const selected = await getFixedJobCodeSection({
+            extractPdfText,
+            fetchImpl,
+            nodeId,
+            profile,
+            publication
+          });
+          const reasonCode = reasonByNodeId.get(nodeId);
+          if (reasonCode === undefined) {
+            throw new MunicodeError(
+              "selector_drift",
+              "The accepted policy omits a selected section reason."
+            );
+          }
+          const retainedContent = selected.text.length <= 20_000
+            ? {
+                contentForm: "text",
+                text: selected.text
+              }
+            : {
+                contentForm: "excerpt",
+                excerpt: selected.text.slice(0, 20_000)
+              };
+          sections.push({
+            applicableDate: "not_reported",
+            ...retainedContent,
+            contentSha256: selected.contentSha256,
+            nodeId,
+            reasonCode,
+            retrievedAt: requireTimestamp(now()),
+            sourceUrl: libraryUrl(profile, nodeId),
+            title: selected.title
+          });
+        }
+
+        return {
+          disclaimer: REVIEWED_BUNDLE_DISCLAIMER,
+          jurisdiction: snapshot.jurisdiction,
+          mappingContext: {
+            zoningCode: request.cagisContext.zoningCode,
+            zoningContextSha256: sha256(JSON.stringify(request.cagisContext)),
+            zoningOverlayDistrictNames:
+              request.cagisContext.zoningOverlayDistrictNames
+          },
+          publication,
+          retrievedAt: requireTimestamp(now()),
+          schemaVersion: 1,
+          sections,
+          selection: {
+            selectorPolicyId: snapshot.selectorPolicyId,
+            selectorPolicySha256: snapshot.selectorPolicySha256,
+            snapshotId: snapshot.snapshotId,
+            snapshotSha256
+          },
+          source: "municode",
+          status: "succeeded"
+        };
+      } catch (error) {
+        return reviewedBundleFailure(error);
+      }
+    },
+
     async getPublication(input) {
       const profile = requireProfileInput(input, ["jurisdiction"]);
       const publication = await resolvePublication(profile);
@@ -234,6 +403,743 @@ export function createMunicodeClient({
       });
     }
   };
+}
+
+async function fetchFixedJobChildren(fetchImpl, publication, parentNodeId) {
+  const url = new URL("/api/codesToc/children", MUNICODE_LIBRARY_ORIGIN);
+  url.searchParams.set("productId", String(publication.productId));
+  url.searchParams.set("jobId", String(publication.jobId));
+  url.searchParams.set("nodeId", parentNodeId);
+  return fetchJson(fetchImpl, url);
+}
+
+async function getFixedJobCodeSection({
+  extractPdfText,
+  fetchImpl,
+  nodeId,
+  profile,
+  publication
+}) {
+  const url = new URL("/api/CodesContent", MUNICODE_LIBRARY_ORIGIN);
+  url.searchParams.set("productId", String(publication.productId));
+  url.searchParams.set("jobId", String(publication.jobId));
+  url.searchParams.set("nodeId", nodeId);
+  const payload = await fetchJson(fetchImpl, url);
+  const docs = selectCodeDocuments(payload, nodeId);
+  const htmlDocs = docs.filter((doc) => typeof doc?.Content === "string");
+  const primaryDoc = docs.find((doc) => doc?.Id === nodeId) ?? docs[0];
+  let text;
+  if (htmlDocs.length > 0) {
+    text = htmlDocs
+      .map((doc) => htmlToText(doc.Content))
+      .filter(Boolean)
+      .join("\n\n")
+      .trim();
+  } else if (primaryDoc?.DocType === 2) {
+    const documentUrl = pdfUrl(publication, nodeId);
+    const pdfBytes = await fetchPdf(fetchImpl, documentUrl);
+    let extracted;
+    try {
+      extracted = await extractPdfText(pdfBytes, {
+        documentUrl,
+        jurisdiction: profile.jurisdiction,
+        jobId: publication.jobId,
+        nodeId,
+        productId: publication.productId
+      });
+    } catch (error) {
+      if (error instanceof MunicodeError) throw error;
+      throw new MunicodeError(
+        "invalid_provider_response",
+        "Municode PDF text extraction failed.",
+        { cause: error }
+      );
+    }
+    if (typeof extracted !== "string") {
+      throw new MunicodeError(
+        "invalid_provider_response",
+        "Municode PDF text extraction returned invalid text."
+      );
+    }
+    text = normalizeText(extracted);
+  } else {
+    throw new MunicodeError(
+      "unsupported_content_type",
+      "The selected Municode section has an unsupported content type."
+    );
+  }
+  if (text.length === 0) {
+    throw new MunicodeError(
+      "invalid_provider_response",
+      "Municode returned an empty selected code section."
+    );
+  }
+  if (text.length > MAX_SECTION_TEXT_CHARS) {
+    throw new MunicodeError(
+      "provider_response_too_large",
+      "Municode selected section text exceeds the size limit."
+    );
+  }
+  return {
+    contentSha256: sha256(text),
+    text,
+    title: requireBoundedText(
+      primaryDoc?.Title,
+      "provider section title",
+      1_000
+    )
+  };
+}
+
+function validateReviewedRelease(value) {
+  const release = requireConfigRecord(value, "reviewed release");
+  requireExactConfigKeys(
+    release,
+    ["selectorPolicy", "snapshot", "snapshotSha256"],
+    "reviewed release"
+  );
+  const selectorPolicy = validateSelectorPolicy(release.selectorPolicy);
+  const selectorPolicySha256 = sha256(JSON.stringify(selectorPolicy));
+  const snapshot = validateAcceptedSnapshot(release.snapshot);
+  const snapshotSha256 = requireSha256Config(
+    release.snapshotSha256,
+    "snapshotSha256"
+  );
+  if (snapshotSha256 !== sha256(JSON.stringify(snapshot))) {
+    throw new MunicodeError(
+      "invalid_configuration",
+      "The reviewed snapshot digest does not match its bytes."
+    );
+  }
+  if (
+    snapshot.selectorPolicyId !== selectorPolicy.selectorPolicyId
+    || snapshot.selectorPolicySha256 !== selectorPolicySha256
+  ) {
+    throw new MunicodeError(
+      "invalid_configuration",
+      "The reviewed selector policy does not match the accepted snapshot."
+    );
+  }
+  const inventoryNodeIds = new Set(
+    snapshot.parents.flatMap((parent) =>
+      parent.children.map((child) => child.nodeId)
+    )
+  );
+  const policyNodeIds = new Set(
+    selectorPolicy.sectionReasons.map((entry) => entry.nodeId)
+  );
+  for (const selection of snapshot.selections) {
+    for (const nodeId of selection.sectionNodeIds) {
+      if (!inventoryNodeIds.has(nodeId) || !policyNodeIds.has(nodeId)) {
+        throw new MunicodeError(
+          "invalid_configuration",
+          "A reviewed selection references an unbound section node."
+        );
+      }
+    }
+  }
+  return Object.freeze({ selectorPolicy, snapshot, snapshotSha256 });
+}
+
+function validateSelectorPolicy(value) {
+  const policy = requireConfigRecord(value, "selector policy");
+  requireExactConfigKeys(
+    policy,
+    ["schemaVersion", "sectionReasons", "selectorPolicyId"],
+    "selector policy"
+  );
+  if (policy.schemaVersion !== 1) {
+    throw new MunicodeError(
+      "invalid_configuration",
+      "The selector policy schemaVersion must be 1."
+    );
+  }
+  const selectorPolicyId = requireConfigText(
+    policy.selectorPolicyId,
+    "selectorPolicyId",
+    200
+  );
+  if (
+    !Array.isArray(policy.sectionReasons)
+    || policy.sectionReasons.length < 4
+    || policy.sectionReasons.length > 400
+  ) {
+    throw new MunicodeError(
+      "invalid_configuration",
+      "The selector policy sectionReasons collection is invalid."
+    );
+  }
+  const supportedReasons = new Set([
+    "use_definition",
+    "base_district_use_table",
+    "use_specific_condition",
+    "parking_and_loading",
+    "overlay_condition",
+    "reviewed_cross_reference"
+  ]);
+  const sectionReasons = policy.sectionReasons.map((value, index) => {
+    const entry = requireConfigRecord(
+      value,
+      `selector policy sectionReasons[${index}]`
+    );
+    requireExactConfigKeys(
+      entry,
+      ["nodeId", "reasonCode"],
+      `selector policy sectionReasons[${index}]`
+    );
+    const nodeId = requireProviderNodeIdConfig(entry.nodeId, "policy nodeId");
+    if (!supportedReasons.has(entry.reasonCode)) {
+      throw new MunicodeError(
+        "invalid_configuration",
+        "The selector policy reasonCode is unsupported."
+      );
+    }
+    return { nodeId, reasonCode: entry.reasonCode };
+  });
+  assertUnique(
+    sectionReasons.map((entry) => entry.nodeId),
+    "selector policy node IDs"
+  );
+  return { schemaVersion: 1, sectionReasons, selectorPolicyId };
+}
+
+function validateAcceptedSnapshot(value) {
+  const snapshot = requireConfigRecord(value, "accepted snapshot");
+  requireExactConfigKeys(snapshot, [
+    "schemaVersion",
+    "snapshotId",
+    "jurisdiction",
+    "clientId",
+    "productId",
+    "jobId",
+    "publicationName",
+    "isLatest",
+    "observedAt",
+    "selectorPolicyId",
+    "selectorPolicySha256",
+    "attestation",
+    "parents",
+    "selections"
+  ], "accepted snapshot");
+  if (snapshot.schemaVersion !== 1 || snapshot.jurisdiction !== "cincinnati-oh") {
+    throw new MunicodeError(
+      "invalid_configuration",
+      "The accepted snapshot identity is invalid."
+    );
+  }
+  const profile = JURISDICTION_PROFILES["cincinnati-oh"];
+  const clientId = requirePositiveSafeIntegerConfig(snapshot.clientId, "clientId");
+  const productId = requirePositiveSafeIntegerConfig(snapshot.productId, "productId");
+  const jobId = requirePositiveSafeIntegerConfig(snapshot.jobId, "jobId");
+  if (clientId !== profile.clientId || productId !== profile.productId) {
+    throw new MunicodeError(
+      "invalid_configuration",
+      "The accepted snapshot does not match the reviewed jurisdiction profile."
+    );
+  }
+  if (typeof snapshot.isLatest !== "boolean") {
+    throw new MunicodeError(
+      "invalid_configuration",
+      "The accepted snapshot isLatest value is invalid."
+    );
+  }
+  requireUtcTimestampConfig(snapshot.observedAt, "observedAt");
+  const attestation = validateAttestation(snapshot.attestation);
+  if (!Array.isArray(snapshot.parents) || snapshot.parents.length < 1 || snapshot.parents.length > 20) {
+    throw new MunicodeError(
+      "invalid_configuration",
+      "The accepted snapshot parent inventory is invalid."
+    );
+  }
+  const parents = snapshot.parents.map(validateSnapshotParent);
+  assertUnique(parents.map((parent) => parent.nodeId), "snapshot parent node IDs");
+  const allChildren = parents.flatMap((parent) => parent.children);
+  assertUnique(allChildren.map((child) => child.nodeId), "snapshot child node IDs");
+  if (!Array.isArray(snapshot.selections) || snapshot.selections.length < 1 || snapshot.selections.length > 2_000) {
+    throw new MunicodeError(
+      "invalid_configuration",
+      "The accepted snapshot selections are invalid."
+    );
+  }
+  const selections = snapshot.selections.map(validateSnapshotSelection);
+  assertUnique(selections.map((selection) => JSON.stringify([
+    selection.zoningCode,
+    selection.zoningOverlayDistrictNames,
+    selection.proposedUseCategory
+  ])), "snapshot selection tuples");
+  return {
+    schemaVersion: 1,
+    snapshotId: requireConfigText(snapshot.snapshotId, "snapshotId", 200),
+    jurisdiction: "cincinnati-oh",
+    clientId,
+    productId,
+    jobId,
+    publicationName: requireConfigText(
+      snapshot.publicationName,
+      "publicationName",
+      500
+    ),
+    isLatest: snapshot.isLatest,
+    observedAt: snapshot.observedAt,
+    selectorPolicyId: requireConfigText(
+      snapshot.selectorPolicyId,
+      "selectorPolicyId",
+      200
+    ),
+    selectorPolicySha256: requireSha256Config(
+      snapshot.selectorPolicySha256,
+      "selectorPolicySha256"
+    ),
+    attestation,
+    parents,
+    selections
+  };
+}
+
+function validateAttestation(value) {
+  const attestation = requireConfigRecord(value, "snapshot attestation");
+  requireExactConfigKeys(
+    attestation,
+    ["kind", "attestorRef"],
+    "snapshot attestation"
+  );
+  if (
+    attestation.kind !== "synthetic_fixture"
+    && attestation.kind !== "planning_domain"
+  ) {
+    throw new MunicodeError(
+      "invalid_configuration",
+      "The snapshot attestation kind is invalid."
+    );
+  }
+  const attestorRef = requireConfigText(
+    attestation.attestorRef,
+    "attestorRef",
+    200
+  );
+  if (
+    attestation.kind === "synthetic_fixture"
+    && attestorRef !== "synthetic-fixture-only"
+  ) {
+    throw new MunicodeError(
+      "invalid_configuration",
+      "Synthetic snapshot attestation is invalid."
+    );
+  }
+  return { kind: attestation.kind, attestorRef };
+}
+
+function validateSnapshotParent(value, index) {
+  const parent = requireConfigRecord(value, `snapshot parents[${index}]`);
+  requireExactConfigKeys(
+    parent,
+    ["nodeId", "title", "children"],
+    `snapshot parents[${index}]`
+  );
+  if (!Array.isArray(parent.children) || parent.children.length < 1 || parent.children.length > 2_000) {
+    throw new MunicodeError(
+      "invalid_configuration",
+      "A snapshot child inventory is invalid."
+    );
+  }
+  const children = parent.children.map((entry, childIndex) => {
+    const child = requireConfigRecord(
+      entry,
+      `snapshot parents[${index}].children[${childIndex}]`
+    );
+    requireExactConfigKeys(
+      child,
+      ["nodeId", "title"],
+      `snapshot parents[${index}].children[${childIndex}]`
+    );
+    return {
+      nodeId: requireProviderNodeIdConfig(child.nodeId, "snapshot child nodeId"),
+      title: requireConfigText(child.title, "snapshot child title", 1_000)
+    };
+  });
+  assertUnique(children.map((child) => child.nodeId), "snapshot child node IDs");
+  return {
+    nodeId: requireProviderNodeIdConfig(parent.nodeId, "snapshot parent nodeId"),
+    title: requireConfigText(parent.title, "snapshot parent title", 1_000),
+    children
+  };
+}
+
+function validateSnapshotSelection(value, index) {
+  const selection = requireConfigRecord(value, `snapshot selections[${index}]`);
+  requireExactConfigKeys(selection, [
+    "zoningCode",
+    "zoningOverlayDistrictNames",
+    "proposedUseCategory",
+    "sectionNodeIds"
+  ], `snapshot selections[${index}]`);
+  if (
+    selection.proposedUseCategory !== "restaurant_full_service"
+    && selection.proposedUseCategory !== "restaurant_limited_service"
+  ) {
+    throw new MunicodeError(
+      "invalid_configuration",
+      "A snapshot proposed-use category is unsupported."
+    );
+  }
+  if (!Array.isArray(selection.sectionNodeIds) || selection.sectionNodeIds.length < 4 || selection.sectionNodeIds.length > 20) {
+    throw new MunicodeError(
+      "invalid_configuration",
+      "A snapshot section selection must contain four through twenty nodes."
+    );
+  }
+  const sectionNodeIds = selection.sectionNodeIds.map((nodeId) =>
+    requireProviderNodeIdConfig(nodeId, "snapshot selected nodeId")
+  );
+  assertUnique(sectionNodeIds, "snapshot selected node IDs");
+  return {
+    zoningCode: requireConfigText(selection.zoningCode, "zoningCode", 200),
+    zoningOverlayDistrictNames: requireSortedUniqueTextArrayConfig(
+      selection.zoningOverlayDistrictNames,
+      "zoningOverlayDistrictNames",
+      10,
+      300
+    ),
+    proposedUseCategory: selection.proposedUseCategory,
+    sectionNodeIds
+  };
+}
+
+function validateReviewedBundleInput(value) {
+  const input = requireInputRecord(value, "reviewed bundle input");
+  requireExactInputKeys(
+    input,
+    ["operationInput", "cagisContext"],
+    "reviewed bundle input"
+  );
+  const operationInput = requireInputRecord(
+    input.operationInput,
+    "operationInput"
+  );
+  requireExactInputKeys(operationInput, [
+    "jurisdiction",
+    "proposedUseCategory",
+    "schemaVersion",
+    "selectorPolicyId"
+  ], "operationInput");
+  if (
+    operationInput.jurisdiction !== "cincinnati-oh"
+    || operationInput.schemaVersion !== 1
+    || (
+      operationInput.proposedUseCategory !== "restaurant_full_service"
+      && operationInput.proposedUseCategory !== "restaurant_limited_service"
+    )
+  ) {
+    throw new MunicodeError(
+      "invalid_input",
+      "The reviewed bundle Operation input is unsupported."
+    );
+  }
+  const cagisContext = requireInputRecord(input.cagisContext, "cagisContext");
+  requireExactInputKeys(cagisContext, [
+    "auditorParcelId",
+    "parcelKey",
+    "provider",
+    "resultSha256",
+    "retrievedAt",
+    "sourceUrl",
+    "zoningCode",
+    "zoningContextComplete",
+    "zoningFetchedAt",
+    "zoningOverlayDistrictNames",
+    "zoningSource"
+  ], "cagisContext");
+  const auditorParcelId = optionalNullableInputText(
+    cagisContext.auditorParcelId,
+    "auditorParcelId",
+    100
+  );
+  const parcelKey = optionalNullableInputText(
+    cagisContext.parcelKey,
+    "parcelKey",
+    100
+  );
+  if (auditorParcelId === null && parcelKey === null) {
+    throw new MunicodeError(
+      "invalid_input",
+      "CAGIS context requires at least one parcel identifier."
+    );
+  }
+  if (cagisContext.provider !== "cagis" || cagisContext.zoningContextComplete !== true) {
+    throw new MunicodeError(
+      "invalid_input",
+      "CAGIS context identity or completeness is invalid."
+    );
+  }
+  const sourceUrl = requireHttpsInputUrl(cagisContext.sourceUrl, "sourceUrl");
+  return {
+    operationInput: {
+      jurisdiction: "cincinnati-oh",
+      proposedUseCategory: operationInput.proposedUseCategory,
+      schemaVersion: 1,
+      selectorPolicyId: requireInputText(
+        operationInput.selectorPolicyId,
+        "selectorPolicyId",
+        200
+      )
+    },
+    cagisContext: {
+      auditorParcelId,
+      parcelKey,
+      provider: "cagis",
+      resultSha256: requireSha256Input(cagisContext.resultSha256, "resultSha256"),
+      retrievedAt: requireUtcTimestampInput(cagisContext.retrievedAt, "retrievedAt"),
+      sourceUrl,
+      zoningCode: requireInputText(cagisContext.zoningCode, "zoningCode", 200),
+      zoningContextComplete: true,
+      zoningFetchedAt: requireUtcTimestampInput(
+        cagisContext.zoningFetchedAt,
+        "zoningFetchedAt"
+      ),
+      zoningOverlayDistrictNames: requireSortedUniqueTextArrayInput(
+        cagisContext.zoningOverlayDistrictNames,
+        "zoningOverlayDistrictNames",
+        10,
+        300
+      ),
+      zoningSource: requireInputText(cagisContext.zoningSource, "zoningSource", 200)
+    }
+  };
+}
+
+function validateObservedChildren(value) {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 2_000) {
+    throw new MunicodeError(
+      "invalid_provider_response",
+      "Municode returned an invalid reviewed child inventory."
+    );
+  }
+  const children = value.map((entry) => ({
+    nodeId: requireProviderNodeIdResponse(entry?.Id, "provider child node ID"),
+    title: requireBoundedText(entry?.Heading, "provider child title", 1_000)
+  }));
+  const ids = children.map((child) => child.nodeId);
+  if (new Set(ids).size !== ids.length) {
+    throw new MunicodeError(
+      "publication_drift",
+      "Municode returned duplicate reviewed child nodes."
+    );
+  }
+  return children;
+}
+
+function reviewedReleaseLineage(release) {
+  return {
+    selectorPolicyId: release.snapshot.selectorPolicyId,
+    selectorPolicySha256: release.snapshot.selectorPolicySha256,
+    snapshotId: release.snapshot.snapshotId,
+    snapshotSha256: release.snapshotSha256
+  };
+}
+
+function reviewedBundleFailure(error) {
+  const supportedCodes = new Set([
+    "invalid_input",
+    "selection_not_supported",
+    "publication_drift",
+    "selector_drift",
+    "provider_reference_not_found",
+    "provider_response_too_large",
+    "invalid_provider_response",
+    "unsupported_content_type",
+    "dependency_unavailable",
+    "dependency_http_error"
+  ]);
+  const failureCode = error instanceof MunicodeError && supportedCodes.has(error.code)
+    ? error.code
+    : "invalid_provider_response";
+  return {
+    detail: error instanceof MunicodeError
+      ? requireSafeFailureDetail(error.message)
+      : "The reviewed Municode bundle failed closed.",
+    failureCode,
+    retryClassification:
+      error instanceof MunicodeError
+      && error.retryable
+      && (error.code === "dependency_unavailable" || error.code === "dependency_http_error")
+        ? "definitive_retryable_pre_effect"
+        : "definitive_nonretryable",
+    schemaVersion: 1,
+    status: "failed"
+  };
+}
+
+function requireSafeFailureDetail(value) {
+  const text = typeof value === "string" ? value.trim().slice(0, 500) : "";
+  return text.length > 0 && !/[\u0000-\u001f\u007f]/u.test(text)
+    ? text
+    : "The reviewed Municode bundle failed closed.";
+}
+
+function requireConfigRecord(value, label) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new MunicodeError("invalid_configuration", `${label} must be an object.`);
+  }
+  return value;
+}
+
+function requireInputRecord(value, label) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new MunicodeError("invalid_input", `${label} must be an object.`);
+  }
+  return value;
+}
+
+function requireExactConfigKeys(value, expected, label) {
+  const keys = Object.keys(value).sort();
+  if (!arraysEqual(keys, [...expected].sort())) {
+    throw new MunicodeError("invalid_configuration", `${label} has unsupported fields.`);
+  }
+}
+
+function requireExactInputKeys(value, expected, label) {
+  const keys = Object.keys(value).sort();
+  if (!arraysEqual(keys, [...expected].sort())) {
+    throw new MunicodeError("invalid_input", `${label} has unsupported fields.`);
+  }
+}
+
+function requireConfigText(value, field, maxLength) {
+  if (
+    typeof value !== "string"
+    || value.length === 0
+    || value.length > maxLength
+    || value !== value.trim()
+    || /[\u0000-\u001f\u007f]/u.test(value)
+  ) {
+    throw new MunicodeError("invalid_configuration", `${field} is invalid.`);
+  }
+  return value;
+}
+
+function requireProviderNodeIdConfig(value, field) {
+  return requireConfigText(value, field, 300);
+}
+
+function requireProviderNodeIdResponse(value, field) {
+  if (
+    typeof value !== "string"
+    || value.length === 0
+    || value.length > 300
+    || value !== value.trim()
+    || /[\u0000-\u001f\u007f]/u.test(value)
+  ) {
+    throw new MunicodeError("invalid_provider_response", `${field} is invalid.`);
+  }
+  return value;
+}
+
+function requirePositiveSafeIntegerConfig(value, field) {
+  if (!Number.isSafeInteger(value) || value < 1) {
+    throw new MunicodeError("invalid_configuration", `${field} is invalid.`);
+  }
+  return value;
+}
+
+function requireSha256Config(value, field) {
+  if (typeof value !== "string" || !/^[0-9a-f]{64}$/u.test(value)) {
+    throw new MunicodeError("invalid_configuration", `${field} is invalid.`);
+  }
+  return value;
+}
+
+function requireSha256Input(value, field) {
+  if (typeof value !== "string" || !/^[0-9a-f]{64}$/u.test(value)) {
+    throw new MunicodeError("invalid_input", `${field} is invalid.`);
+  }
+  return value;
+}
+
+function requireUtcTimestampConfig(value, field) {
+  let normalized;
+  try {
+    normalized = typeof value === "string" ? new Date(value).toISOString() : "";
+  } catch {
+    normalized = "";
+  }
+  if (typeof value !== "string" || value.length < 20 || value.length > 35 || normalized !== value) {
+    throw new MunicodeError("invalid_configuration", `${field} is invalid.`);
+  }
+  return value;
+}
+
+function requireUtcTimestampInput(value, field) {
+  if (typeof value !== "string" || value.length < 20 || value.length > 35) {
+    throw new MunicodeError("invalid_input", `${field} is invalid.`);
+  }
+  let normalized;
+  try {
+    normalized = new Date(value).toISOString();
+  } catch {
+    throw new MunicodeError("invalid_input", `${field} is invalid.`);
+  }
+  if (normalized !== value) {
+    throw new MunicodeError("invalid_input", `${field} is invalid.`);
+  }
+  return value;
+}
+
+function requireHttpsInputUrl(value, field) {
+  const text = requireInputText(value, field, 2_000);
+  let url;
+  try {
+    url = new URL(text);
+  } catch {
+    throw new MunicodeError("invalid_input", `${field} is invalid.`);
+  }
+  if (url.protocol !== "https:" || url.username || url.password || url.toString() !== text) {
+    throw new MunicodeError("invalid_input", `${field} is invalid.`);
+  }
+  return text;
+}
+
+function optionalNullableInputText(value, field, maxLength) {
+  return value === null ? null : requireInputText(value, field, maxLength);
+}
+
+function requireSortedUniqueTextArrayConfig(value, field, maxItems, maxLength) {
+  if (!Array.isArray(value) || value.length > maxItems) {
+    throw new MunicodeError("invalid_configuration", `${field} is invalid.`);
+  }
+  const items = value.map((entry) => requireConfigText(entry, field, maxLength));
+  if (!arraysEqual(items, [...new Set(items)].sort())) {
+    throw new MunicodeError("invalid_configuration", `${field} must be sorted and unique.`);
+  }
+  return items;
+}
+
+function requireSortedUniqueTextArrayInput(value, field, maxItems, maxLength) {
+  if (!Array.isArray(value) || value.length > maxItems) {
+    throw new MunicodeError("invalid_input", `${field} is invalid.`);
+  }
+  const items = value.map((entry) => requireInputText(entry, field, maxLength));
+  if (!arraysEqual(items, [...new Set(items)].sort())) {
+    throw new MunicodeError("invalid_input", `${field} must be sorted and unique.`);
+  }
+  return items;
+}
+
+function assertUnique(values, label) {
+  if (new Set(values).size !== values.length) {
+    throw new MunicodeError("invalid_configuration", `${label} must be unique.`);
+  }
+}
+
+function arraysEqual(left, right) {
+  return left.length === right.length
+    && left.every((value, index) => value === right[index]);
+}
+
+function arraysEqualByJson(left, right) {
+  return arraysEqual(
+    left.map((value) => JSON.stringify(value)),
+    right.map((value) => JSON.stringify(value))
+  );
 }
 
 function selectCodeDocuments(payload, requestedNodeId) {

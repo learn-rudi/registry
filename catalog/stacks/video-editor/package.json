@@ -14,6 +14,7 @@
     "check": "node src/cli.js --help",
     "build": "tsc",
     "test": "RUDI_VIDEO_EDITOR_STATE_DIR=.test-rudi/state RUDI_VIDEO_EDITOR_OUTPUT_DIR=.test-rudi/outputs node --test test/*.test.js test/*.test.mjs && RUDI_VIDEO_EDITOR_STATE_DIR=.test-rudi/state RUDI_VIDEO_EDITOR_OUTPUT_DIR=.test-rudi/outputs node --import tsx --test test/*.test.ts",
+    "verify": "npm test",
     "composer:render": "npm --prefix composer run render"
   },
   "dependencies": {

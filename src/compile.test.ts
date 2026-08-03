@@ -27,6 +27,11 @@ function hashObject(obj: unknown): string {
   return crypto.createHash("sha256").update(json).digest("hex");
 }
 
+async function hashFile(file: string): Promise<string> {
+  const content = await fs.readFile(file);
+  return crypto.createHash("sha256").update(content).digest("hex");
+}
+
 async function runCompiler(): Promise<void> {
   const tsxBin = path.join(
     process.cwd(),
@@ -172,23 +177,38 @@ describe("index structure", () => {
     };
 
     expect(index.stats.byKind.skill).toBeGreaterThan(0);
-    expect(index.packages["skill:shortform-your-words-script"]).toMatchObject({
-      kind: "skill",
-      install: {
-        source: "catalog",
-        path: "catalog/skills/shortform-your-words-script.md",
-      },
-    });
+    const skills = Object.values(index.packages).filter((pkg) => pkg.kind === "skill");
+    expect(skills.length).toBe(index.stats.byKind.skill);
+    expect(skills.every((skill) => (
+      skill.install.source === "catalog" &&
+      /^catalog\/skills\/[a-z0-9][a-z0-9-]*(?:\.md)?$/.test(skill.install.path)
+    ))).toBe(true);
+    expect(skills.some((skill) => skill.install.path.endsWith(".md"))).toBe(true);
   });
 
   it("should preserve related skill relationships in generated indexes", async () => {
     const index = (await readJson("dist/index.json")) as {
-      packages: Record<string, { related?: { skills?: string[] } }>;
+      packages: Record<string, { kind: string; related?: { skills?: string[] } }>;
     };
 
-    expect(index.packages["stack:video-editor"].related?.skills).toContain(
-      "skill:shortform-your-words-script"
-    );
+    const relatedSkillIds = Object.values(index.packages)
+      .flatMap((pkg) => pkg.related?.skills ?? []);
+    expect(relatedSkillIds.length).toBeGreaterThan(0);
+    expect(relatedSkillIds.every((id) => index.packages[id]?.kind === "skill")).toBe(true);
+  });
+
+  it("publishes declared lifecycle metadata and excludes retired packages", async () => {
+    const index = (await readJson("dist/index.json")) as {
+      packages: Record<string, {
+        lifecycle?: { maturity: string; support: string };
+      }>;
+    };
+
+    expect(index.packages["stack:content-extractor"]?.lifecycle).toEqual({
+      maturity: "stable",
+      support: "supported",
+    });
+    expect(index.packages).not.toHaveProperty("stack:stripe");
   });
 });
 
@@ -355,5 +375,29 @@ describe("release manifest", () => {
     };
 
     expect(release.catalogRoot).toBe(catalogHash.root);
+  });
+
+  it("should record source revision context and generated artifact SHA-256 hashes", async () => {
+    const release = (await readJson("dist/release.json")) as {
+      files: string[];
+      provenance: {
+        source: { repository: string; revision: string };
+        artifacts: Record<string, string>;
+      };
+    };
+
+    expect(release.provenance.source.repository).toBe(
+      "https://github.com/learnrudi/registry"
+    );
+    expect(release.provenance.source.revision).toMatch(/^[a-f0-9]{40,64}$/);
+    expect(Object.keys(release.provenance.artifacts).sort()).toEqual(
+      [...release.files].sort()
+    );
+
+    for (const file of release.files) {
+      expect(release.provenance.artifacts[file]).toBe(
+        await hashFile(path.join("dist", file))
+      );
+    }
   });
 });

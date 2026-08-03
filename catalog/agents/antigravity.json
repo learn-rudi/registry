@@ -1,0 +1,31 @@
+{
+  "id": "agent:antigravity",
+  "kind": "agent",
+  "name": "Antigravity CLI",
+  "version": "system",
+  "delivery": "system",
+  "install": {
+    "source": "system"
+  },
+  "bins": ["agy"],
+  "detect": {
+    "command": "agy --version",
+    "expectExitCode": 0
+  },
+  "installHints": {
+    "manual": "Install with Google's checksum-verifying bootstrapper: curl -fsSL https://antigravity.google/cli/install.sh | bash"
+  },
+  "auth": {
+    "required": true,
+    "command": "agy",
+    "instructions": "Run 'agy' and complete Google sign-in. Antigravity is the native headless CLI for personal Google AI Pro/Ultra subscription access."
+  },
+  "meta": {
+    "description": "Google Antigravity CLI - subscription-backed native agent host",
+    "category": "ai-assistant",
+    "homepage": "https://antigravity.google/cli",
+    "executionOwner": "google",
+    "credentialModes": ["google-ai-subscription"],
+    "headlessCommand": "agy --print <prompt> --output-format stream-json"
+  }
+}

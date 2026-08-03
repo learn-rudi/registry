@@ -18,8 +18,8 @@ import { homedir } from "os";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: join(__dirname, "..", ".env") });
 
-// Default output: ~/.rudi/output/
-const DEFAULT_OUTPUT_DIR = join(homedir(), ".rudi", "output");
+// Default output: ~/.rudi/outputs/
+const DEFAULT_OUTPUT_DIR = join(homedir(), ".rudi", "outputs");
 if (!existsSync(DEFAULT_OUTPUT_DIR)) {
   mkdirSync(DEFAULT_OUTPUT_DIR, { recursive: true });
 }

@@ -1,27 +1,61 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-08-01T21:06:30.000Z",
+  "generatedAt": "2026-08-02T16:51:10.000Z",
   "stats": {
     "total": 100,
     "byKind": {
-      "agent": 4,
+      "agent": 5,
       "binary": 27,
       "runtime": 5,
       "skill": 20,
-      "stack": 44
+      "stack": 43
     }
   },
   "packages": {
+    "agent:antigravity": {
+      "id": "agent:antigravity",
+      "kind": "agent",
+      "name": "Antigravity CLI",
+      "version": "system",
+      "delivery": "system",
+      "install": {
+        "source": "system"
+      },
+      "bins": [
+        "agy"
+      ],
+      "detect": {
+        "command": "agy --version",
+        "expectExitCode": 0
+      },
+      "installHints": {
+        "manual": "Install with Google's checksum-verifying bootstrapper: curl -fsSL https://antigravity.google/cli/install.sh | bash"
+      },
+      "auth": {
+        "required": true,
+        "command": "agy",
+        "instructions": "Run 'agy' and complete Google sign-in. Antigravity is the native headless CLI for personal Google AI Pro/Ultra subscription access."
+      },
+      "meta": {
+        "description": "Google Antigravity CLI - subscription-backed native agent host",
+        "category": "ai-assistant",
+        "homepage": "https://antigravity.google/cli",
+        "executionOwner": "google",
+        "credentialModes": [
+          "google-ai-subscription"
+        ],
+        "headlessCommand": "agy --print <prompt> --output-format stream-json"
+      }
+    },
     "agent:claude": {
       "id": "agent:claude",
       "kind": "agent",
       "name": "Claude Code",
-      "version": "latest",
-      "delivery": "remote",
+      "version": "system",
+      "delivery": "system",
       "install": {
-        "source": "npm",
-        "package": "@anthropic-ai/claude-code"
+        "source": "system"
       },
       "bins": [
         "claude"
@@ -30,15 +64,20 @@
         "command": "claude --version",
         "expectExitCode": 0
       },
+      "installHints": {
+        "manual": "Install or update with Anthropic's native installer: curl -fsSL https://claude.ai/install.sh | bash"
+      },
       "auth": {
         "required": true,
-        "command": "claude login",
-        "instructions": "Run 'claude login' to authenticate with your Anthropic account"
+        "command": "claude auth login",
+        "instructions": "Run 'claude auth login' to authenticate with your Claude subscription or Anthropic Console account"
       },
       "meta": {
         "description": "Anthropic Claude Code CLI - AI coding assistant",
         "category": "ai-assistant",
-        "homepage": "https://claude.ai"
+        "homepage": "https://code.claude.com/docs/en/overview",
+        "executionOwner": "anthropic",
+        "headlessCommand": "claude --print <prompt> --output-format stream-json"
       }
     },
     "agent:codex": {
@@ -60,13 +99,15 @@
       },
       "auth": {
         "required": true,
-        "command": "codex auth",
-        "instructions": "Run 'codex auth' to authenticate with your OpenAI account"
+        "command": "codex login",
+        "instructions": "Run 'codex login' to authenticate with your ChatGPT account or configure an OpenAI API key"
       },
       "meta": {
         "description": "OpenAI Codex CLI - AI coding assistant",
         "category": "ai-assistant",
-        "homepage": "https://openai.com"
+        "homepage": "https://developers.openai.com/codex/cli",
+        "executionOwner": "openai",
+        "headlessCommand": "codex exec --json <prompt>"
       }
     },
     "agent:copilot": {
@@ -118,12 +159,19 @@
       "auth": {
         "required": true,
         "command": "gemini",
-        "instructions": "Run 'gemini' to authenticate with your Google account"
+        "instructions": "For headless Gemini CLI use a Gemini API key, Vertex AI, or eligible enterprise Code Assist credentials. For a personal Google AI Pro/Ultra subscription, use Antigravity CLI instead."
       },
       "meta": {
         "description": "Google Gemini CLI - AI coding assistant",
         "category": "ai-assistant",
-        "homepage": "https://gemini.google.com"
+        "homepage": "https://geminicli.com/docs/",
+        "executionOwner": "google",
+        "credentialModes": [
+          "api-key",
+          "vertex-ai",
+          "enterprise-code-assist"
+        ],
+        "headlessCommand": "gemini --prompt <prompt> --output-format stream-json"
       }
     },
     "binary:chromium": {
@@ -2129,7 +2177,7 @@
       "id": "stack:cagis",
       "kind": "stack",
       "name": "CAGIS Public Data",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -2165,7 +2213,7 @@
         "cwd": "."
       },
       "meta": {
-        "description": "Read-only Cincinnati and Hamilton County parcel, zoning, and property activity lookup through the configured public-data API.",
+        "description": "Read-only Cincinnati and Hamilton County parcel, complete provider-native zoning context, and property activity lookup through the configured public-data API.",
         "author": "RUDI",
         "license": "MIT",
         "category": "government-data",
@@ -2176,7 +2224,7 @@
           "parcels",
           "zoning"
         ],
-        "boundary": "Read-only CAGIS facts only. No permit, case, inspection, or parcel mutation tools are exposed."
+        "boundary": "Read-only CAGIS facts only. Zoning context is marked complete only for a matched Cincinnati provider result with valid code, overlay array, source identity, and fetched time. No permit, case, inspection, or parcel mutation tools are exposed."
       }
     },
     "stack:cloudinary": {
@@ -2256,6 +2304,10 @@
       "kind": "stack",
       "name": "Content Extractor",
       "version": "1.0.0",
+      "lifecycle": {
+        "maturity": "stable",
+        "support": "supported"
+      },
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -3125,7 +3177,7 @@
       "id": "stack:municode",
       "kind": "stack",
       "name": "Municode Public Codes",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -3140,9 +3192,7 @@
       },
       "provides": {
         "tools": [
-          "municode_get_publication",
-          "municode_list_code_sections",
-          "municode_get_code_section"
+          "municode_get_reviewed_zoning_evidence_bundle"
         ]
       },
       "mcp": {
@@ -3154,7 +3204,7 @@
         "cwd": "."
       },
       "meta": {
-        "description": "Read-only publication, table-of-contents, and bounded code-section access for reviewed Municode jurisdiction profiles. Cincinnati, Ohio is the first profile.",
+        "description": "Read-only, fixed-job reviewed baseline zoning-code evidence bundles for Cincinnati from release-configured mappings and complete CAGIS zoning context.",
         "author": "RUDI",
         "license": "MIT",
         "category": "government-data",
@@ -3165,7 +3215,7 @@
           "government-data",
           "zoning"
         ],
-        "boundary": "Read-only access to fixed Municode code products for reviewed jurisdiction profiles. No arbitrary URL, search, export, email, notification, browser, or mutation tools are exposed. Provider text is evidence, not legal interpretation."
+        "boundary": "Exposes one release-configured composite only. Callers cannot choose publication IDs, node IDs, origins, or primitive browse/read operations. Synthetic fixtures are never production-ready. Provider text is source evidence, not legal advice, completeness, applicability, approval, or permitting."
       }
     },
     "stack:neon": {
@@ -3318,7 +3368,19 @@
           "notion_list_databases",
           "notion_query_database",
           "notion_create_database",
-          "notion_add_database_row"
+          "notion_add_database_row",
+          "notion_db_list",
+          "notion_db_add",
+          "notion_db_remove",
+          "notion_batch_add_rows",
+          "notion_update_row",
+          "notion_get_database_schema",
+          "notion_search_all_databases",
+          "notion_duplicate_page",
+          "notion_add_block",
+          "notion_move_page",
+          "notion_update_page_properties",
+          "notion_get_page_tree"
         ]
       },
       "mcp": {
@@ -3403,7 +3465,7 @@
       "id": "stack:opencounter",
       "kind": "stack",
       "name": "OpenCounter Cincinnati Guidance",
-      "version": "0.1.0",
+      "version": "0.3.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -3427,8 +3489,11 @@
       },
       "provides": {
         "tools": [
+          "opencounter_get_zoning_use_catalog",
+          "opencounter_start_zoning_guidance",
           "opencounter_start_guidance",
           "opencounter_continue_guidance",
+          "opencounter_export_guidance",
           "opencounter_get_guidance_result",
           "opencounter_reconcile_guidance"
         ]
@@ -3455,8 +3520,8 @@
           "residential",
           "playwright"
         ],
-        "boundary": "Guidance only. No account creation, sign-in, terms acceptance, uploads, staff messages, application submission, downloads, or payment.",
-        "mcpSafety": "Every tool is Cincinnati-scoped and exact-schema. Browser contexts are isolated and closed after each bounded call; resumable anonymous state is encrypted at rest and expires after 24 hours."
+        "boundary": "Catalog-bound Zoning guidance, compatibility guidance, and requester-triggered provider PDF export only. No account creation, sign-in, terms acceptance, uploads, staff messages, application submission, or payment.",
+        "mcpSafety": "The Zoning start tool accepts only a packaged catalog identity and entry identity, resolves the exact provider label/slug internally, and performs a read-only provider fingerprint preflight before project creation. Compatibility tools remain available but are not admitted for the Service Desk Zoning Check. Browser contexts are isolated and closed after each bounded call; resumable anonymous state is encrypted at rest and expires after 24 hours. Export accepts only an opaque project reference, verifies bounded PDF bytes, and writes a content-addressed local RUDI artifact."
       }
     },
     "stack:otter-mcp": {
@@ -3501,7 +3566,12 @@
           "mcp",
           "oauth"
         ],
-        "icon": "otter"
+        "icon": "otter",
+        "remoteMcp": {
+          "url": "https://mcp.otter.ai/mcp",
+          "auth": "oauth",
+          "bridgePackage": "mcp-remote@0.1.38"
+        }
       }
     },
     "stack:plaid": {
@@ -3879,7 +3949,7 @@
         "command": "npx",
         "args": [
           "tsx",
-          "node/src/index.ts"
+          "src/index.ts"
         ],
         "cwd": "."
       },
@@ -4327,65 +4397,6 @@
           "local"
         ],
         "icon": "📊"
-      }
-    },
-    "stack:stripe": {
-      "id": "stack:stripe",
-      "kind": "stack",
-      "name": "Stripe",
-      "version": "1.0.0",
-      "delivery": "remote",
-      "install": {
-        "source": "catalog",
-        "path": "catalog/stacks/stripe"
-      },
-      "runtime": "node",
-      "requires": {
-        "binaries": [],
-        "secrets": [
-          {
-            "key": "STRIPE_API_KEY",
-            "label": "Stripe Secret Key",
-            "required": true,
-            "helpUrl": "https://dashboard.stripe.com/apikeys"
-          }
-        ]
-      },
-      "provides": {
-        "tools": [
-          "stripe_list_customers",
-          "stripe_get_customer",
-          "stripe_create_customer",
-          "stripe_list_invoices",
-          "stripe_get_invoice",
-          "stripe_create_invoice",
-          "stripe_list_subscriptions",
-          "stripe_get_subscription",
-          "stripe_list_payments",
-          "stripe_get_balance"
-        ]
-      },
-      "mcp": {
-        "transport": "stdio",
-        "command": "node",
-        "args": [
-          "dist/index.js"
-        ],
-        "cwd": "."
-      },
-      "meta": {
-        "description": "Manage Stripe payments, customers, invoices, and subscriptions",
-        "author": "RUDI",
-        "license": "MIT",
-        "category": "business",
-        "tags": [
-          "stripe",
-          "payments",
-          "invoices",
-          "subscriptions",
-          "billing"
-        ],
-        "icon": "💳"
       }
     },
     "stack:supabase-mcp": {

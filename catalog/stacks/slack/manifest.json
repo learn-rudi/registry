@@ -42,7 +42,7 @@
   "mcp": {
     "transport": "stdio",
     "command": "npx",
-    "args": ["tsx", "node/src/index.ts"],
+    "args": ["tsx", "src/index.ts"],
     "cwd": "."
   },
 

@@ -33,6 +33,7 @@ export function createCagisClient({ baseUrl, apiKey, fetchImpl = fetch }) {
       if (!auditorParcelId && !parcelKey) {
         throw new Error("CAGIS parcel is missing both authoritative parcel identifiers.");
       }
+      const zoning = parseZoningContext(payload.live_zoning);
       return {
         address,
         auditorParcelId,
@@ -41,10 +42,70 @@ export function createCagisClient({ baseUrl, apiKey, fetchImpl = fetch }) {
         retrievedAt: optionalText(payload._retrieved_at, 35) ?? new Date().toISOString(),
         schemaVersion: 1,
         source: "cagis",
-        sourceUrl: url.toString()
+        sourceUrl: url.toString(),
+        ...zoning
       };
     }
   };
+}
+
+function parseZoningContext(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return incompleteZoningContext();
+  }
+  const zoningCode = optionalText(value.code, 200);
+  const zoningFetchedAt = optionalIsoTimestamp(value.fetched_at);
+  const zoningSource = optionalText(
+    value.source_identity ?? value.source,
+    200
+  );
+  const overlays = Array.isArray(value.overlay_districts)
+    ? value.overlay_districts.map((entry) => optionalText(entry, 300))
+    : null;
+  const zoningOverlayDistrictNames = overlays !== null
+    && overlays.every((entry) => entry !== null)
+      ? [...new Set(overlays)].sort()
+      : null;
+  const jurisdictionSlug = optionalText(value.jurisdiction?.slug, 100);
+  const zoningContextComplete =
+    zoningCode !== null
+    && zoningFetchedAt !== null
+    && zoningSource !== null
+    && zoningOverlayDistrictNames !== null
+    && value.outcome === "matched"
+    && value.source === "cagis_zoning_service"
+    && jurisdictionSlug === "cincinnati";
+
+  return zoningContextComplete
+    ? {
+        zoningCode,
+        zoningContextComplete: true,
+        zoningFetchedAt,
+        zoningOverlayDistrictNames,
+        zoningSource
+      }
+    : incompleteZoningContext();
+}
+
+function incompleteZoningContext() {
+  return {
+    zoningCode: null,
+    zoningContextComplete: false,
+    zoningFetchedAt: null,
+    zoningOverlayDistrictNames: [],
+    zoningSource: null
+  };
+}
+
+function optionalIsoTimestamp(value) {
+  if (typeof value !== "string" || value.length < 20 || value.length > 35) {
+    return null;
+  }
+  try {
+    return new Date(value).toISOString() === value ? value : null;
+  } catch {
+    return null;
+  }
 }
 
 function parseBaseUrl(value) {
