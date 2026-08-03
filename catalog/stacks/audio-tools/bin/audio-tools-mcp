@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+DATA="${CLAUDE_PLUGIN_DATA:-${HOME}/.claude/plugins/data/audio-tools}"
+WORK="${DATA}/runtime"
+
+mkdir -p "${WORK}"
+
+hash_inputs() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    (
+      cd "${ROOT}"
+      find package.json package-lock.json tsconfig.json src scripts -type f -print0 | sort -z | xargs -0 sha256sum
+    ) | sha256sum | awk '{print $1}'
+  else
+    (
+      cd "${ROOT}"
+      find package.json package-lock.json tsconfig.json src scripts -type f -print0 | sort -z | xargs -0 shasum -a 256
+    ) | shasum -a 256 | awk '{print $1}'
+  fi
+}
+
+SOURCE_HASH="$(hash_inputs)"
+
+if [ ! -f "${WORK}/.source-hash" ] || [ "$(cat "${WORK}/.source-hash")" != "${SOURCE_HASH}" ] || [ ! -f "${WORK}/dist/index.js" ]; then
+  rm -rf "${WORK:?}/"*
+  cp "${ROOT}/package.json" "${WORK}/package.json"
+  cp "${ROOT}/package-lock.json" "${WORK}/package-lock.json"
+  cp "${ROOT}/tsconfig.json" "${WORK}/tsconfig.json"
+  cp -R "${ROOT}/src" "${WORK}/src"
+  cp -R "${ROOT}/scripts" "${WORK}/scripts"
+  (
+    cd "${WORK}"
+    npm ci
+    npm run build
+  )
+  printf '%s\n' "${SOURCE_HASH}" > "${WORK}/.source-hash"
+fi
+
+if [ "${AUDIO_TOOLS_MCP_PREPARE_ONLY:-}" = "1" ]; then
+  echo "audio-tools MCP runtime prepared at ${WORK}"
+  exit 0
+fi
+
+exec node "${WORK}/dist/index.js"

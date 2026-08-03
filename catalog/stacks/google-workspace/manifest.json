@@ -3,19 +3,16 @@
   "kind": "stack",
   "name": "Google Workspace Tools",
   "version": "1.0.0",
-
   "delivery": "remote",
   "install": {
     "source": "catalog",
     "path": "catalog/stacks/google-workspace"
   },
-
   "auth": {
     "required": true,
     "command": "rudi auth google-workspace user@example.com",
     "instructions": "Run `rudi secrets set GOOGLE_CREDENTIALS` with Google OAuth client credentials JSON or a path to credentials.json, then run `rudi auth google-workspace user@example.com`. Register the localhost OAuth callback URI used by the helper, normally http://localhost:3456/callback, and any fallback ports you expect to use. Tokens are stored under ~/.rudi/state/stacks/google-workspace/accounts/<account>/token.json."
   },
-
   "runtime": "node",
   "requires": {
     "binaries": [],
@@ -82,6 +79,7 @@
       "slides_batch_update",
       "drive_list",
       "drive_upload",
+      "drive_update",
       "drive_create_folder",
       "drive_move_file",
       "drive_download",
@@ -102,16 +100,27 @@
   "mcp": {
     "transport": "stdio",
     "command": "npx",
-    "args": ["tsx", "src/index.ts"],
+    "args": [
+      "tsx",
+      "src/index.ts"
+    ],
     "cwd": "."
   },
-
   "meta": {
     "description": "Workflow-focused tools for Gmail, Google Sheets, Docs, Slides, Drive, Calendar, and Tasks",
     "author": "CO-LLAB",
     "license": "MIT",
     "category": "api-integrations",
-    "tags": ["google", "gmail", "sheets", "docs", "slides", "drive", "calendar", "tasks"],
+    "tags": [
+      "google",
+      "gmail",
+      "sheets",
+      "docs",
+      "slides",
+      "drive",
+      "calendar",
+      "tasks"
+    ],
     "icon": "📧"
   }
 }

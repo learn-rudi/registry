@@ -4,15 +4,18 @@
   "oversized": {
     "catalog/stacks/creator-intelligence/src/index.ts": 1101,
     "catalog/stacks/github/src/core.ts": 2618,
-    "catalog/stacks/google-workspace/src/index.ts": 3229,
+    "catalog/stacks/google-workspace/src/index.ts": 3262,
     "catalog/stacks/macos-automation/src/core.ts": 2399,
     "catalog/stacks/municode/src/core.js": 1485,
     "catalog/stacks/notion-workspace/src/index.ts": 1150,
     "catalog/stacks/rudi-crm/src/contract.ts": 1179,
+    "catalog/stacks/site-planner/src/core.js": 941,
     "catalog/stacks/social-media-publisher/src/adapters/youtube-channel.js": 807,
-    "catalog/stacks/social-media-publisher/src/index.ts": 2237,
+    "catalog/stacks/social-media-publisher/src/index.ts": 2261,
+    "catalog/stacks/stripe/src/index.js": 892,
     "catalog/stacks/swe-engineering/src/tools/agent-debt-scan.cjs": 1280,
-    "catalog/stacks/video-editor/src/cli.js": 820,
-    "catalog/stacks/video-editor/src/index.ts": 1151
+    "catalog/stacks/video-editor/src/cli.js": 824,
+    "catalog/stacks/video-editor/src/index.ts": 1151,
+    "catalog/stacks/zoho-mail/src/index.ts": 1258
   }
 }

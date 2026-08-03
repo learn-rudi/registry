@@ -242,12 +242,13 @@ Commands:
   cut-silence-batch <output-dir> <video...> [options]
                                   Silence-cut multiple videos
   first-pass <source-video> [options]
-                                  Process a new source into rough-v1 with long-silence cleanup, QA, and review
+                                  Fast rough intake; transcript safety is post-render evidence only
   watch-downloads [downloads-dir] [options]
                                   Poll a Downloads folder and first-pass each stable new video
   silence-presets                 List silence-cut presets
-  lower-third <run> <title> [subtitle] [at] [duration] [style] [position]
+  lower-third <run> <title> [subtitle] [at] [duration] [style] [position] [offsetY]
                                   Add a Remotion lower-third overlay to a run
+                                  styles: modern, classic, minimal, cinematic
   apply-overlays <request.json|json>
                                   Apply full-screen image overlays to an existing video
 
@@ -288,25 +289,27 @@ Examples:
   node src/cli.js cut-silence-batch ./edited video-1.mp4 video-2.mp4 --threshold -28
   node src/cli.js first-pass ~/Downloads/take.mov --silence-duration 1.5
   node src/cli.js watch-downloads ~/Downloads --silence-duration 1.5 --stable-seconds 10
-  node src/cli.js lower-third movie-2026-05-08-1229 "Jane Smith" "Founder" 12 5 modern bottom-left
+  node src/cli.js lower-third movie-2026-05-08-1229 "Jane Smith" "Founder" 12 5 cinematic bottom-left
   node src/cli.js apply-overlays ./overlay-request.json
   node src/cli.js init "/path/to/video.mov" movie-2026-05-08-1229
   node src/cli.js init movie-2026-05-08-1229 --refresh
   node src/cli.js probe movie-2026-05-08-1229
   node src/cli.js normalize movie-2026-05-08-1229
   node src/cli.js transcribe movie-2026-05-08-1229 source
+  # Review transcript-source.json and write transcript-corrections.json if needed.
   node src/cli.js cluster movie-2026-05-08-1229
-  node src/cli.js transcribe movie-2026-05-08-1229 output rough-v3.mp4
   node src/cli.js silence movie-2026-05-08-1229
   node src/cli.js cut-audit movie-2026-05-08-1229
   node src/cli.js plan movie-2026-05-08-1229
   node src/cli.js render-rough movie-2026-05-08-1229 rough-v1.mp4
+  node src/cli.js transcribe movie-2026-05-08-1229 output rough-v1.mp4
+  node src/cli.js cut-audit movie-2026-05-08-1229
+  node src/cli.js qa movie-2026-05-08-1229 rough-v1.mp4
+  node src/cli.js review movie-2026-05-08-1229 rough-v1.mp4
   node src/cli.js render-captions movie-2026-05-08-1229 rough-v1.mp4 rough-v1-captions.mp4
   node src/cli.js grade-source movie-2026-05-08-1229 talking-head
   node src/cli.js grade-render movie-2026-05-08-1229 rough-v1-captions.mp4 rough-v1-captions-graded.mp4 talking-head
   node src/cli.js captions movie-2026-05-08-1229
-  node src/cli.js qa movie-2026-05-08-1229 rough-v1.mp4
-  node src/cli.js review movie-2026-05-08-1229 rough-v1.mp4
   node src/cli.js promote movie-2026-05-08-1229 rough-v1.mp4 /path/to/topic/videos/renders/drafts --output-name rough-v1.mp4
 `);
 }
@@ -428,7 +431,7 @@ async function main() {
   if (command === 'first-pass') {
     const { positionals, options } = parseDownloadIntakeArgs(args, command);
     if (positionals.length !== 1) {
-      throw new Error('Usage: first-pass <source-video> [--silence-duration seconds] [--move-source]');
+      throw new Error('Usage: first-pass <source-video> [--silence-duration seconds] [--no-move-source]');
     }
 
     const result = await processFirstPass(positionals[0], options);
@@ -498,7 +501,8 @@ async function main() {
       at: args[3],
       duration: args[4],
       style: args[5],
-      position: args[6]
+      position: args[6],
+      offsetY: args[7]
     });
     console.log(`Updated ${path.relative(process.cwd(), result.outputPath)}`);
     console.log(JSON.stringify({

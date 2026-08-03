@@ -13,6 +13,16 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 
 from errors import ToolError, error_result
+from midjourney import (
+    DEFAULT_TIMEOUT_SECONDS,
+    MAX_MIDJOURNEY_PROMPT_CHARS,
+    MAX_TIMEOUT_SECONDS,
+    MIN_TIMEOUT_SECONDS,
+    midjourney_export_job,
+    midjourney_generate,
+    midjourney_login,
+    midjourney_session_status,
+)
 from tools import (
     ASSET_FORMATS,
     MAX_COMPARE_SPECS,
@@ -156,6 +166,121 @@ async def list_tools() -> list[types.Tool]:
                 },
             },
         ),
+        types.Tool(
+            name="midjourney_session_status",
+            description=(
+                "Check whether the dedicated RUDI Midjourney browser profile "
+                "is authenticated. This performs a read-only Midjourney page check."
+            ),
+            inputSchema={
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {},
+            },
+        ),
+        types.Tool(
+            name="midjourney_login",
+            description=(
+                "Open the dedicated RUDI Chromium profile so the user can sign in "
+                "to Midjourney. Credentials are entered by the user in the browser "
+                "and are never returned through MCP."
+            ),
+            inputSchema={
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "timeout_seconds": {
+                        "type": "integer",
+                        "minimum": MIN_TIMEOUT_SECONDS,
+                        "maximum": MAX_TIMEOUT_SECONDS,
+                        "default": DEFAULT_TIMEOUT_SECONDS,
+                    },
+                },
+            },
+        ),
+        types.Tool(
+            name="midjourney_generate",
+            description=(
+                "Submit one idempotent Midjourney browser generation and export "
+                "all four variations to ~/.rudi/outputs. Requires prior login in "
+                "the dedicated RUDI browser profile."
+            ),
+            inputSchema={
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "request_id": {
+                        "type": "string",
+                        "minLength": 8,
+                        "maxLength": 128,
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$",
+                        "description": "Caller-provided idempotency key for this exact prompt request.",
+                    },
+                    "prompt": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": MAX_MIDJOURNEY_PROMPT_CHARS,
+                    },
+                    "aspect_ratio": {
+                        "type": "string",
+                        "pattern": "^[1-9][0-9]?:[1-9][0-9]?$",
+                        "description": "Optional Midjourney aspect ratio such as 16:9.",
+                    },
+                    "timeout_seconds": {
+                        "type": "integer",
+                        "minimum": MIN_TIMEOUT_SECONDS,
+                        "maximum": MAX_TIMEOUT_SECONDS,
+                        "default": DEFAULT_TIMEOUT_SECONDS,
+                    },
+                    "show_browser": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Show Chromium while the bounded workflow runs.",
+                    },
+                },
+                "required": ["request_id", "prompt"],
+            },
+        ),
+        types.Tool(
+            name="midjourney_export_job",
+            description=(
+                "Download selected variations from an existing Midjourney UUID "
+                "job into a new bounded directory under ~/.rudi/outputs."
+            ),
+            inputSchema={
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "job_id": {
+                        "type": "string",
+                        "format": "uuid",
+                    },
+                    "indexes": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 4,
+                        "uniqueItems": True,
+                        "items": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 3,
+                        },
+                        "default": [0, 1, 2, 3],
+                    },
+                    "timeout_seconds": {
+                        "type": "integer",
+                        "minimum": MIN_TIMEOUT_SECONDS,
+                        "maximum": MAX_TIMEOUT_SECONDS,
+                        "default": DEFAULT_TIMEOUT_SECONDS,
+                    },
+                    "show_browser": {
+                        "type": "boolean",
+                        "default": False,
+                    },
+                },
+                "required": ["job_id"],
+            },
+        ),
     ]
 
 
@@ -169,6 +294,14 @@ async def call_tool(name: str, arguments: dict | None) -> list[types.TextContent
             return json_content(await compare_providers(args))
         if name == "list_models":
             return json_content(list_models(args))
+        if name == "midjourney_session_status":
+            return json_content(await midjourney_session_status(args))
+        if name == "midjourney_login":
+            return json_content(await midjourney_login(args))
+        if name == "midjourney_generate":
+            return json_content(await midjourney_generate(args))
+        if name == "midjourney_export_job":
+            return json_content(await midjourney_export_job(args))
         return json_content(error_result("unknown_tool", f"Unknown tool: {name}"))
     except ToolError as exc:
         return json_content(exc.to_result())

@@ -1,8 +1,13 @@
 import assert from "node:assert/strict";
+import { chmod, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 
 import {
   extractArticle,
+  extractBatch,
+  extractGitHub,
   extractLinks,
   extractReddit,
   extractTikTok,
@@ -399,6 +404,428 @@ test("extractLinks collects unique categorized page links and CSV output", async
     assert.match(result.csv, /"Annual Report","https:\/\/example.com\/files\/report.pdf","example.com","document","\/files\/report.pdf"/);
   } finally {
     globalThis.fetch = originalFetch;
+  }
+});
+
+test("extractGitHub extracts repository README and metadata", async () => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+
+  globalThis.fetch = async (url) => {
+    const requestUrl = String(url);
+    calls.push(requestUrl);
+
+    if (requestUrl === "https://api.github.com/repos/acme/widget") {
+      return makeJsonResponse({
+        full_name: "acme/widget",
+        description: "Widget toolkit",
+        html_url: "https://github.com/acme/widget",
+        default_branch: "main",
+        stargazers_count: 42,
+        forks_count: 7,
+        open_issues_count: 3,
+        language: "TypeScript",
+        topics: ["widgets", "toolkit"],
+      }, {
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    if (requestUrl === "https://raw.githubusercontent.com/acme/widget/main/README.md") {
+      return makeJsonResponse("# Widget\n\nThis README documents the widget toolkit.", {
+        headers: { "content-type": "text/markdown" },
+      });
+    }
+
+    throw new Error(`unexpected request: ${requestUrl}`);
+  };
+
+  try {
+    const result = await extractGitHub("https://github.com/acme/widget");
+
+    assert.equal(result.platform, "github");
+    assert.equal(result.kind, "repository");
+    assert.equal(result.status, "success");
+    assert.equal(result.title, "acme/widget");
+    assert.match(result.content, /Widget toolkit/);
+    assert.match(result.content, /This README documents/);
+    assert.equal(result.metadata.defaultBranch, "main");
+    assert.equal(result.metadata.stars, 42);
+    assert.deepEqual(result.metadata.topics, ["widgets", "toolkit"]);
+    assert.deepEqual(calls, [
+      "https://api.github.com/repos/acme/widget",
+      "https://raw.githubusercontent.com/acme/widget/main/README.md",
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("extractGitHub classifies release binary assets without downloading them", async () => {
+  const originalFetch = globalThis.fetch;
+  let fetchCalled = false;
+  globalThis.fetch = async () => {
+    fetchCalled = true;
+    throw new Error("fetch should not be called for binary assets");
+  };
+
+  try {
+    const result = await extractGitHub("https://github.com/palmier-io/palmier-pro/releases/latest/download/PalmierPro.dmg");
+
+    assert.equal(result.platform, "github");
+    assert.equal(result.kind, "binary_asset");
+    assert.equal(result.status, "unsupported_binary");
+    assert.match(result.content, /Unsupported binary GitHub asset/);
+    assert.equal(fetchCalled, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("extractBatch routes URLs, dedupes fetches, and writes output artifacts", async () => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  const outputDir = await mkdtemp(join(tmpdir(), "content-extractor-batch-"));
+
+  globalThis.fetch = async (url, options = {}) => {
+    const requestUrl = String(url);
+    calls.push(requestUrl);
+
+    if (requestUrl === "https://news.example.com/story") {
+      assert.equal(options.headers.Accept, "text/html");
+      return makeJsonResponse(`
+        <!doctype html>
+        <html>
+          <head><title>Batch Article</title></head>
+          <body>
+            <article>
+              <h1>Batch Article</h1>
+              <p>This batch article has enough readable body copy for extraction to succeed.</p>
+              <p>The second paragraph proves the article extractor was routed by the batch tool.</p>
+            </article>
+          </body>
+        </html>
+      `, { url: "https://news.example.com/story" });
+    }
+
+    if (requestUrl === "https://api.github.com/repos/acme/widget") {
+      return makeJsonResponse({
+        full_name: "acme/widget",
+        description: "Widget toolkit",
+        html_url: "https://github.com/acme/widget",
+        default_branch: "main",
+        stargazers_count: 1,
+        forks_count: 0,
+        open_issues_count: 0,
+        language: "TypeScript",
+        topics: [],
+      });
+    }
+
+    if (requestUrl === "https://raw.githubusercontent.com/acme/widget/main/README.md") {
+      return makeJsonResponse("# Widget\n\nReadme body.");
+    }
+
+    throw new Error(`unexpected request: ${requestUrl}`);
+  };
+
+  try {
+    const result = await extractBatch({
+      output_dir: outputDir,
+      max_concurrency: 1,
+      items: [
+        { id: "article-1", url: "https://news.example.com/story", metadata: { source: "newsletter", profile: "ai" } },
+        { id: "article-duplicate", url: "https://news.example.com/story", metadata: { source: "newsletter", profile: "finance" } },
+        { id: "github-1", url: "https://github.com/acme/widget", metadata: { source: "newsletter" } },
+      ],
+    });
+
+    assert.equal(result.status, "complete");
+    assert.equal(result.totalRows, 3);
+    assert.equal(result.uniqueUrls, 2);
+    assert.deepEqual(result.statusCounts, { success: 2 });
+    assert.equal(result.results.length, 2);
+    assert.equal(result.mentions.length, 3);
+    assert.ok(result.manifestPath.endsWith("batch_manifest.json"));
+    assert.ok(result.reportCsvPath.endsWith("batch_report.csv"));
+    assert.ok(result.resultsJsonlPath.endsWith("batch_results.jsonl"));
+
+    const manifest = JSON.parse(await readFile(result.manifestPath, "utf8"));
+    assert.equal(manifest.totalRows, 3);
+    assert.equal(manifest.uniqueUrls, 2);
+
+    const report = await readFile(result.reportCsvPath, "utf8");
+    assert.match(report, /article-duplicate/);
+    assert.match(report, /github/);
+
+    assert.equal(calls.filter((url) => url === "https://news.example.com/story").length, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("extractBatch writes per-link artifact folders and classifies blocked failures", async () => {
+  const originalFetch = globalThis.fetch;
+  const outputDir = await mkdtemp(join(tmpdir(), "content-extractor-batch-artifacts-"));
+
+  globalThis.fetch = async (url) => {
+    const requestUrl = String(url);
+
+    if (requestUrl === "https://blocked.example.com/story") {
+      return makeJsonResponse("<html>challenge</html>", {
+        ok: false,
+        status: 403,
+        statusText: "Forbidden",
+        url: requestUrl,
+        headers: { "content-type": "text/html", "cf-mitigated": "challenge" },
+      });
+    }
+
+    if (requestUrl === "https://limited.example.com/story") {
+      return makeJsonResponse("Edge: Too Many Requests", {
+        ok: false,
+        status: 429,
+        statusText: "Too Many Requests",
+        url: requestUrl,
+        headers: { "content-type": "text/html" },
+      });
+    }
+
+    if (requestUrl === "https://overflow.example.com/story") {
+      const error = new TypeError("fetch failed");
+      error.cause = { code: "UND_ERR_HEADERS_OVERFLOW", message: "Headers Overflow Error" };
+      throw error;
+    }
+
+    throw new Error(`unexpected request: ${requestUrl}`);
+  };
+
+  try {
+    const result = await extractBatch({
+      output_dir: outputDir,
+      max_concurrency: 1,
+      items: [
+        { id: "openai-story", url: "https://blocked.example.com/story", metadata: { source: "newsletter" } },
+        { id: "yahoo-story", url: "https://limited.example.com/story", metadata: { source: "newsletter" } },
+        { id: "overflow-story", url: "https://overflow.example.com/story", metadata: { source: "newsletter" } },
+      ],
+    });
+
+    assert.deepEqual(result.statusCounts, { blocked: 1, rate_limited: 1, fetch_failed: 1 });
+    assert.equal(result.results.length, 3);
+
+    const blocked = result.results.find((item) => item.url === "https://blocked.example.com/story");
+    assert.equal(blocked.status, "blocked");
+    assert.ok(blocked.artifactDir.endsWith("/links/openai-story"));
+    assert.ok(blocked.errorPath.endsWith("/links/openai-story/error.json"));
+
+    const rateLimited = result.results.find((item) => item.url === "https://limited.example.com/story");
+    assert.equal(rateLimited.status, "rate_limited");
+    assert.ok(rateLimited.errorPath.endsWith("/links/yahoo-story/error.json"));
+
+    const fetchFailed = result.results.find((item) => item.url === "https://overflow.example.com/story");
+    assert.equal(fetchFailed.status, "fetch_failed");
+    assert.match(fetchFailed.error, /UND_ERR_HEADERS_OVERFLOW/);
+
+    const source = JSON.parse(await readFile(join(outputDir, "links", "openai-story", "source.json"), "utf8"));
+    assert.equal(source.id, "openai-story");
+    assert.equal(source.normalizedUrl, "https://blocked.example.com/story");
+
+    const error = JSON.parse(await readFile(join(outputDir, "links", "openai-story", "error.json"), "utf8"));
+    assert.equal(error.status, "blocked");
+    assert.match(error.error, /HTTP 403/);
+
+    const report = await readFile(result.reportCsvPath, "utf8");
+    assert.match(report.split("\n")[0], /artifact_dir/);
+    assert.match(report.split("\n")[0], /error_path/);
+    assert.match(report, /links\/openai-story/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("extractBatch captures a browser screenshot for blocked URLs when Playwright is available", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalPlaywrightBin = process.env.RUDI_PLAYWRIGHT_BIN;
+  const originalTesseractBin = process.env.RUDI_TESSERACT_BIN;
+  const outputDir = await mkdtemp(join(tmpdir(), "content-extractor-browser-fallback-"));
+  const binDir = await mkdtemp(join(tmpdir(), "content-extractor-playwright-bin-"));
+  const playwrightBin = join(binDir, "playwright");
+  const tesseractBin = join(binDir, "tesseract");
+
+  await writeFile(playwrightBin, `#!/usr/bin/env node
+const { writeFileSync } = require("node:fs");
+const args = process.argv.slice(2);
+const outputPath = args[args.length - 1];
+writeFileSync(outputPath, "fake png");
+`, "utf8");
+  await chmod(playwrightBin, 0o755);
+  await writeFile(tesseractBin, `#!/usr/bin/env node
+process.stdout.write("Article headline\\nThis rendered article page contains enough body text to classify the browser screenshot as content. It includes multiple sentences about the topic, context for the reader, and visible article copy from the body of the page. The classifier should treat this page as content-bearing evidence.");
+`, "utf8");
+  await chmod(tesseractBin, 0o755);
+
+  process.env.RUDI_PLAYWRIGHT_BIN = playwrightBin;
+  process.env.RUDI_TESSERACT_BIN = tesseractBin;
+  globalThis.fetch = async (url) => makeJsonResponse("<html>challenge</html>", {
+    ok: false,
+    status: 403,
+    statusText: "Forbidden",
+    url: String(url),
+    headers: { "content-type": "text/html" },
+  });
+
+  try {
+    const result = await extractBatch({
+      output_dir: outputDir,
+      max_concurrency: 1,
+      browser_fallback: true,
+      browser_timeout_ms: 5000,
+      items: [
+        { id: "blocked-story", url: "https://blocked.example.com/story", metadata: { source: "newsletter" } },
+      ],
+    });
+
+    assert.deepEqual(result.statusCounts, { browser_captured: 1 });
+    assert.equal(result.results[0].status, "browser_captured");
+    assert.equal(result.results[0].originalStatus, "blocked");
+    assert.ok(result.results[0].screenshotPath.endsWith("/links/blocked-story/page.png"));
+    assert.equal(await readFile(result.results[0].screenshotPath, "utf8"), "fake png");
+
+    const report = await readFile(result.reportCsvPath, "utf8");
+    assert.match(report.split("\n")[0], /screenshot_path/);
+    assert.match(report, /browser_captured/);
+
+    const resultJson = JSON.parse(await readFile(join(outputDir, "links", "blocked-story", "result.json"), "utf8"));
+    assert.equal(resultJson.status, "browser_captured");
+    assert.equal(resultJson.browserFallback.status, "captured");
+    assert.equal(resultJson.browserFallback.classification, "content");
+    assert.ok(resultJson.browserFallback.textPath.endsWith("/links/blocked-story/browser_text.txt"));
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalPlaywrightBin === undefined) {
+      delete process.env.RUDI_PLAYWRIGHT_BIN;
+    } else {
+      process.env.RUDI_PLAYWRIGHT_BIN = originalPlaywrightBin;
+    }
+    if (originalTesseractBin === undefined) {
+      delete process.env.RUDI_TESSERACT_BIN;
+    } else {
+      process.env.RUDI_TESSERACT_BIN = originalTesseractBin;
+    }
+  }
+});
+
+test("extractBatch classifies browser fallback bot walls instead of treating any screenshot as captured content", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalPlaywrightBin = process.env.RUDI_PLAYWRIGHT_BIN;
+  const originalTesseractBin = process.env.RUDI_TESSERACT_BIN;
+  const outputDir = await mkdtemp(join(tmpdir(), "content-extractor-browser-blocked-"));
+  const binDir = await mkdtemp(join(tmpdir(), "content-extractor-browser-blocked-bin-"));
+  const playwrightBin = join(binDir, "playwright");
+  const tesseractBin = join(binDir, "tesseract");
+
+  await writeFile(playwrightBin, `#!/usr/bin/env node
+const { writeFileSync } = require("node:fs");
+const args = process.argv.slice(2);
+const outputPath = args[args.length - 1];
+writeFileSync(outputPath, "fake png");
+`, "utf8");
+  await chmod(playwrightBin, 0o755);
+  await writeFile(tesseractBin, `#!/usr/bin/env node
+process.stdout.write("Just a moment... Performing security verification. This website uses a security service to protect against malicious bots.");
+`, "utf8");
+  await chmod(tesseractBin, 0o755);
+
+  process.env.RUDI_PLAYWRIGHT_BIN = playwrightBin;
+  process.env.RUDI_TESSERACT_BIN = tesseractBin;
+  globalThis.fetch = async (url) => makeJsonResponse("<html>challenge</html>", {
+    ok: false,
+    status: 403,
+    statusText: "Forbidden",
+    url: String(url),
+    headers: { "content-type": "text/html" },
+  });
+
+  try {
+    const result = await extractBatch({
+      output_dir: outputDir,
+      max_concurrency: 1,
+      browser_fallback: true,
+      browser_timeout_ms: 5000,
+      items: [
+        { id: "bot-wall-story", url: "https://blocked.example.com/story", metadata: { source: "newsletter" } },
+      ],
+    });
+
+    assert.deepEqual(result.statusCounts, { browser_blocked: 1 });
+    assert.equal(result.results[0].status, "browser_blocked");
+    assert.equal(result.results[0].originalStatus, "blocked");
+    assert.ok(result.results[0].screenshotPath.endsWith("/links/bot-wall-story/page.png"));
+
+    const report = await readFile(result.reportCsvPath, "utf8");
+    assert.match(report, /browser_blocked/);
+
+    const resultJson = JSON.parse(await readFile(join(outputDir, "links", "bot-wall-story", "result.json"), "utf8"));
+    assert.equal(resultJson.status, "browser_blocked");
+    assert.equal(resultJson.browserFallback.status, "captured");
+    assert.equal(resultJson.browserFallback.classification, "blocked");
+    assert.match(resultJson.browserFallback.textSample, /security verification/i);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalPlaywrightBin === undefined) {
+      delete process.env.RUDI_PLAYWRIGHT_BIN;
+    } else {
+      process.env.RUDI_PLAYWRIGHT_BIN = originalPlaywrightBin;
+    }
+    if (originalTesseractBin === undefined) {
+      delete process.env.RUDI_TESSERACT_BIN;
+    } else {
+      process.env.RUDI_TESSERACT_BIN = originalTesseractBin;
+    }
+  }
+});
+
+test("extractArticle suppresses stylesheet parser diagnostics", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalConsoleError = console.error;
+  const errors = [];
+
+  globalThis.fetch = async (url) => makeJsonResponse(`
+    <html>
+      <head>
+        <title>Modern CSS Article</title>
+        <style>
+          @layer components {
+            .card {
+              color: red;
+              .nested { color: blue; }
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <article>
+          <h1>Modern CSS Article</h1>
+          <p>This story has enough body copy for readability extraction.</p>
+          <p>The parser should ignore stylesheet diagnostics entirely.</p>
+        </article>
+      </body>
+    </html>
+  `, {
+    url: String(url),
+    headers: { "content-type": "text/html" },
+  });
+  console.error = (...args) => errors.push(args.map(String).join(" "));
+
+  try {
+    const result = await extractArticle("https://example.com/modern-css");
+
+    assert.equal(result.title, "Modern CSS Article");
+    assert.equal(errors.length, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+    console.error = originalConsoleError;
   }
 });
 

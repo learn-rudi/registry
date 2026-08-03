@@ -30,7 +30,15 @@ class ImageGeneratorMcpStdioTest(unittest.IsolatedAsyncioTestCase):
                     tool_names = {tool.name for tool in tools.tools}
                     self.assertEqual(
                         tool_names,
-                        {"generate_image", "compare_providers", "list_models"},
+                        {
+                            "generate_image",
+                            "compare_providers",
+                            "list_models",
+                            "midjourney_session_status",
+                            "midjourney_login",
+                            "midjourney_generate",
+                            "midjourney_export_job",
+                        },
                     )
 
                     result = await session.call_tool("list_models", {})

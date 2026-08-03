@@ -8,6 +8,7 @@
     "dev": "node ./node_modules/tsx/dist/cli.mjs src/index.ts",
     "build": "node ./node_modules/typescript/bin/tsc -p tsconfig.json",
     "start": "node dist/index.js",
+    "pretest": "npm run install-browser",
     "test": "npm run build && node --test test/*.test.mjs",
     "verify:prepare": "npm run install-browser",
     "verify": "npm test",

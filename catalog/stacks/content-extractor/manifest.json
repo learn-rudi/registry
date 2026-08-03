@@ -14,10 +14,12 @@
     "source": "catalog",
     "path": "catalog/stacks/content-extractor"
   },
-
   "runtime": "node",
   "requires": {
-    "binaries": [],
+    "binaries": [
+      "playwright",
+      "tesseract"
+    ],
     "secrets": [
       {
         "key": "SUPA_DATA_API",
@@ -46,21 +48,42 @@
     ]
   },
   "provides": {
-    "tools": ["extract_youtube", "extract_reddit", "extract_tiktok", "extract_article", "extract_links"]
+    "tools": [
+      "extract_youtube",
+      "extract_reddit",
+      "extract_tiktok",
+      "extract_article",
+      "extract_github",
+      "extract_links",
+      "extract_batch"
+    ]
   },
   "mcp": {
     "transport": "stdio",
     "command": "npx",
-    "args": ["tsx", "src/index.ts"],
+    "args": [
+      "tsx",
+      "src/index.ts"
+    ],
     "cwd": "."
   },
-
   "meta": {
-    "description": "Extract content from YouTube, Reddit, TikTok, web articles, and link pages",
+    "description": "Extract content from YouTube, Reddit, TikTok, web articles, GitHub, and link batches",
     "author": "CO-LLAB",
     "license": "MIT",
     "category": "data-extraction",
-    "tags": ["youtube", "reddit", "tiktok", "article", "links", "transcript"],
+    "tags": [
+      "youtube",
+      "reddit",
+      "tiktok",
+      "article",
+      "github",
+      "links",
+      "batch",
+      "transcript",
+      "extraction",
+      "scraping"
+    ],
     "icon": "📥"
   }
 }

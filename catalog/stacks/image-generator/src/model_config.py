@@ -13,8 +13,8 @@ REPLICATE_BETA_REASON = (
 
 DEFAULT_MODELS: dict[str, dict[str, str]] = {
     "gemini": {
-        "sketch": "gemini-3.1-flash-image-preview",
-        "photoreal": "gemini-3-pro-image-preview",
+        "sketch": "gemini-3.1-flash-image",
+        "photoreal": "gemini-3-pro-image",
     },
     "openai": {
         "sketch": "gpt-image-2",
@@ -30,17 +30,29 @@ DEFAULT_MODELS: dict[str, dict[str, str]] = {
 
 KNOWN_MODELS: dict[str, dict[str, dict[str, object]]] = {
     "gemini": {
-        "gemini-3.1-flash-image-preview": {
+        "gemini-3.1-flash-image": {
             "label": "Nano Banana 2",
             "status": "current",
             "default_for": ["sketch"],
-            "notes": "Fast all-around Gemini image generation model.",
+            "notes": "GA Gemini 3.1 Flash Image model optimized for high-volume image generation.",
         },
-        "gemini-3-pro-image-preview": {
+        "gemini-3-pro-image": {
             "label": "Nano Banana Pro",
             "status": "current",
             "default_for": ["photoreal"],
-            "notes": "Professional asset production model for complex instructions.",
+            "notes": "GA Gemini 3 Pro Image model for professional asset production.",
+        },
+        "gemini-3.1-flash-image-preview": {
+            "label": "Nano Banana 2 Preview",
+            "status": "deprecated",
+            "default_for": [],
+            "notes": "Deprecated preview predecessor; use gemini-3.1-flash-image.",
+        },
+        "gemini-3-pro-image-preview": {
+            "label": "Nano Banana Pro Preview",
+            "status": "deprecated",
+            "default_for": [],
+            "notes": "Deprecated preview predecessor; use gemini-3-pro-image.",
         },
         "gemini-2.5-flash-image": {
             "label": "Nano Banana",
@@ -58,9 +70,9 @@ KNOWN_MODELS: dict[str, dict[str, dict[str, object]]] = {
         },
         "gpt-image-1.5": {
             "label": "GPT Image 1.5",
-            "status": "legacy",
+            "status": "deprecated",
             "default_for": [],
-            "notes": "Previous OpenAI image model, still selectable explicitly or by env override.",
+            "notes": "Previous OpenAI image model retained for explicit compatibility only.",
         },
         "gpt-image-1": {
             "label": "GPT Image 1",
@@ -70,9 +82,9 @@ KNOWN_MODELS: dict[str, dict[str, dict[str, object]]] = {
         },
         "gpt-image-1-mini": {
             "label": "GPT Image 1 Mini",
-            "status": "legacy",
+            "status": "deprecated",
             "default_for": [],
-            "notes": "Lower-cost GPT Image 1 family model retained for explicit compatibility.",
+            "notes": "Lower-cost GPT Image 1 family model retained for explicit compatibility only.",
         },
         "dall-e-3": {
             "label": "DALL-E 3",
@@ -106,6 +118,18 @@ KNOWN_MODELS: dict[str, dict[str, dict[str, object]]] = {
             "default_for": ["sketch"],
             "notes": "Beta in this stack; fast sketch/default draft model.",
         },
+        "bytedance/seedream-4": {
+            "label": "Seedream 4",
+            "status": "beta",
+            "default_for": [],
+            "notes": "Beta in this stack; ByteDance text-to-image and image-to-image model on Replicate.",
+        },
+        "bytedance/seedream-4.5": {
+            "label": "Seedream 4.5",
+            "status": "beta",
+            "default_for": [],
+            "notes": "Beta in this stack; upgraded ByteDance image model on Replicate.",
+        },
     },
 }
 
@@ -127,6 +151,8 @@ REPLICATE_PRESET_ALIASES: dict[str, str] = {
     "flux-schnell": "black-forest-labs/flux-schnell",
     "sd-3.5": "stability-ai/stable-diffusion-3.5-large",
     "ideogram-v3": "ideogram-ai/ideogram-v3",
+    "seedream-4": "bytedance/seedream-4",
+    "seedream-4.5": "bytedance/seedream-4.5",
 }
 
 REPLICATE_REFERENCE_CONFIG: dict[str, tuple[str, bool, int]] = {
@@ -143,6 +169,8 @@ REPLICATE_REFERENCE_CONFIG: dict[str, tuple[str, bool, int]] = {
     "black-forest-labs/flux-redux-dev": ("redux_image", False, 1),
     "black-forest-labs/flux-fill-pro": ("image", False, 1),
     "stability-ai/stable-diffusion-3.5-large": ("image", False, 1),
+    "bytedance/seedream-4": ("image_input", True, 10),
+    "bytedance/seedream-4.5": ("image_input", True, 10),
 }
 
 REPLICATE_ASPECT_RATIO_MODELS = {
@@ -155,6 +183,8 @@ REPLICATE_ASPECT_RATIO_MODELS = {
     "black-forest-labs/flux-2-klein-4b",
     "black-forest-labs/flux-1.1-pro-ultra",
     "stability-ai/stable-diffusion-3.5-large",
+    "bytedance/seedream-4",
+    "bytedance/seedream-4.5",
 }
 
 OPENAI_GPT_IMAGE_2_SIZE_BY_ASPECT_RATIO = {

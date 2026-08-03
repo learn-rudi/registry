@@ -1,0 +1,15 @@
+{
+  "name": "@rudi/stripe-stack",
+  "version": "1.1.0",
+  "description": "RUDI MCP stack for Stripe products, prices, and Payment Links.",
+  "private": true,
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --check src/index.js",
+    "verify": "npm test && node ../../../scripts/verify-node-stack.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

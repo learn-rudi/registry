@@ -386,9 +386,10 @@ export async function captionsRun(runDir) {
     timeline: {
       ...composition.timeline,
       captions: {
+        ...composition.timeline.captions,
         enabled: true,
         source: captionsArtifact,
-        style: 'lower-readable',
+        style: composition.timeline.captions?.style || 'lower-readable',
         cues: captions.cues
       }
     }

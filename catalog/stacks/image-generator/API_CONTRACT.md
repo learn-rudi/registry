@@ -1,6 +1,6 @@
 # Image Generator API Contract
 
-Version: `0.1.0`
+Version: `0.2.0`
 
 This stack exposes MCP tools for agent-facing content image generation. The
 contract is intentionally provider-portable: callers choose a provider and a
@@ -37,6 +37,14 @@ Failure:
 - `provider_error` - provider SDK or provider response failed
 - `timeout` - provider call exceeded the stack timeout
 - `write_failed` - generated output could not be written safely
+- `authentication_required` - the dedicated Midjourney profile is not signed in
+- `browser_dependency` - Chromium or Python Playwright could not be acquired
+- `browser_busy` - another call owns the dedicated Midjourney profile
+- `ui_drift` - an exact Midjourney UI invariant no longer holds
+- `idempotency_conflict` - a request ID was reused with different generation input
+- `idempotency_in_doubt` - a prior browser submission may have succeeded but has no known job ID
+- `download_failed` - exported bytes or artifact metadata failed validation
+- `offline` - a Midjourney browser call was attempted during offline verification
 - `unknown_tool` - MCP tool name is not supported
 - `internal_error` - unexpected server failure after redaction
 
@@ -270,3 +278,124 @@ Per-spec provider failures are captured in `results`; the comparison continues
 and still returns `ok: true` if the gallery can be written. Request-level
 validation failures, such as too many `specs`, return the common failure
 envelope instead.
+
+## Midjourney Browser Contract
+
+Midjourney is a provider-specific browser adapter inside the canonical
+image-generator stack. It uses a dedicated profile under local RUDI state; it
+does not accept cookies, tokens, URLs, selectors, or profile paths from callers.
+The browser surface is bounded to `https://www.midjourney.com` Create and job
+detail pages.
+
+### `midjourney_session_status`
+
+Request: `{}`
+
+The tool opens the Create page read-only and returns:
+
+```json
+{
+  "ok": true,
+  "provider": "midjourney",
+  "authenticated": true,
+  "profile_mode": "dedicated",
+  "login_required": false
+}
+```
+
+### `midjourney_login`
+
+Request:
+
+```json
+{
+  "timeout_seconds": 300
+}
+```
+
+This opens visible Chromium and waits for the user to complete Midjourney's own
+login flow. `timeout_seconds` is 30-600 and defaults to 180. The stack never
+reads or returns credentials. Success returns `authenticated: true`.
+
+### `midjourney_generate`
+
+Request:
+
+```json
+{
+  "request_id": "campaign-greenhouse-20260803-001",
+  "prompt": "A tiny glass greenhouse glowing in a misty forest.",
+  "aspect_ratio": "16:9",
+  "timeout_seconds": 300,
+  "show_browser": false
+}
+```
+
+| Field | Required | Notes |
+|---|---:|---|
+| `request_id` | yes | 8-128 safe characters; idempotency scope is the submitted prompt including aspect ratio |
+| `prompt` | yes | literal prompt, 1-6,000 characters |
+| `aspect_ratio` | no | `N:N`, each side 1-99; rejected when prompt already contains `--ar` or `--aspect` |
+| `timeout_seconds` | no | 30-600, default 180 |
+| `show_browser` | no | display Chromium while the bounded workflow runs; default false |
+
+The stack persists `pending -> submitted -> complete` locally. Completed replay
+returns the same job and validated artifacts with `replayed: true`. A pending
+record without a job ID returns `idempotency_in_doubt` and is never resubmitted.
+A submitted record with a job ID resumes export without generating again.
+
+Success:
+
+```json
+{
+  "ok": true,
+  "provider": "midjourney",
+  "status": "complete",
+  "request_id": "campaign-greenhouse-20260803-001",
+  "prompt_sha256": "<sha256>",
+  "job_id": "7f86d4ed-d706-448a-9dfa-56be726abad4",
+  "replayed": false,
+  "artifacts": [
+    {
+      "index": 0,
+      "file_name": "variation-1.png",
+      "local_path": "/home/user/.rudi/outputs/midjourney/<run>/variation-1.png",
+      "media_type": "image/png",
+      "sha256": "<sha256>",
+      "size_bytes": 123456,
+      "source_url": "https://www.midjourney.com/jobs/7f86d4ed-d706-448a-9dfa-56be726abad4?index=0"
+    }
+  ]
+}
+```
+
+The real response contains four artifacts, indexes 0-3.
+
+### `midjourney_export_job`
+
+Request:
+
+```json
+{
+  "job_id": "7f86d4ed-d706-448a-9dfa-56be726abad4",
+  "indexes": [0, 2],
+  "timeout_seconds": 180,
+  "show_browser": false
+}
+```
+
+`job_id` must be a UUID. `indexes` defaults to all four unique values 0-3.
+Each call writes into a new output directory and returns the same validated
+artifact shape used by `midjourney_generate`.
+
+## Midjourney Failure and Retry Rules
+
+- Login, UI drift, dependency, timeout, and download failures are structured;
+  browser exceptions and session data are not exposed.
+- Generation retry is safe only with the same `request_id` and exact submitted
+  prompt. Different input returns `idempotency_conflict`.
+- `idempotency_in_doubt` is deliberately not auto-retried. A human must inspect
+  the provider before choosing a new request ID.
+- Export is safe to retry because each attempt uses a new bounded directory.
+- Browser calls are disabled when `RUDI_VERIFY_OFFLINE=1`; tests use a fake
+  driver and make no provider requests.

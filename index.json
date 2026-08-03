@@ -1,15 +1,15 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-08-02T16:51:10.000Z",
+  "generatedAt": "2026-08-03T17:49:00.000Z",
   "stats": {
-    "total": 100,
+    "total": 104,
     "byKind": {
       "agent": 5,
       "binary": 27,
       "runtime": 5,
       "skill": 20,
-      "stack": 43
+      "stack": 47
     }
   },
   "packages": {
@@ -1704,14 +1704,14 @@
       "id": "skill:grill-with-docs-loop",
       "kind": "skill",
       "name": "Grill With Docs Loop",
-      "version": "1.0.0",
+      "version": "2.0.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
         "path": "catalog/skills/grill-with-docs-loop.md"
       },
       "meta": {
-        "description": "Complete a repo-first, multi-agent grill-with-docs loop for a repository. Use when the user wants agents to inspect repo docs, code, tests, fixtures, migrations, and generated artifacts; resolve unresolved contract or design questions from evidence; update CONTEXT.md and ADRs; and ask the human only for true product or domain decisions.",
+        "description": "Complete a repo-first, multi-agent grill-with-docs loop for a repository. Spawns isolated questioner, answerer, and skeptic subagents that grill each other over repo docs, code, tests, fixtures, migrations, and generated artifacts; resolves contract or design questions from that adversarial loop; updates CONTEXT.md and ADRs; and asks the human only for true product or domain decisions.",
         "category": "coding",
         "tags": [
           "architecture",
@@ -2030,14 +2030,14 @@
       "id": "skill:site-zoning-envelope-review",
       "kind": "skill",
       "name": "Site Zoning Envelope Review",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
         "path": "catalog/skills/site-zoning-envelope-review.md"
       },
       "meta": {
-        "description": "Run the Pre Dev Intel site-engine workflow from address, parcel key, rollup, or saved site-record through zoning and buildable envelope only. Use when the user asks whether a parcel's zoning can be determined, how zoning feeds the site envelope, what the net buildable area or largest rectangle is, or when frontage/MapLibre review is needed before shell frontier, building type fit, or parking feasibility. Stop before building-type fit, shell frontier, parking feasibility, site-option-set, or concept generation unless the user explicitly asks to continue.",
+        "description": "Run the site-engine workflow through zoning and buildable-envelope review using either a local Pre Dev Intel checkout or the RUDI Dwellow MCP stack. Use when the user asks whether a parcel's zoning can be determined, how zoning feeds the site envelope, what the net buildable area or largest rectangle is, or when frontage review is needed before shell frontier, building type fit, or parking feasibility. Stop before building-type fit, shell frontier, parking feasibility, site-option-set, or concept generation unless the user explicitly asks to continue.",
         "category": "real-estate",
         "tags": [
           "zoning",
@@ -2117,6 +2117,58 @@
           "architecture",
           "testing",
           "repo-analysis"
+        ]
+      }
+    },
+    "stack:agent-hosts": {
+      "id": "stack:agent-hosts",
+      "kind": "stack",
+      "name": "Agent Hosts",
+      "version": "0.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/agent-hosts"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "DEEPSEEK_API_KEY",
+            "label": "DeepSeek API key",
+            "required": false,
+            "helpUrl": "https://platform.deepseek.com/api_keys"
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "agent_host_list",
+          "agent_host_probe",
+          "agent_host_invoke"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "node",
+        "args": [
+          "src/index.js"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Governed synchronous MCP gateway for a fixed local DeepSeek, Claude Code, and Codex Agent Host fleet.",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "ai-generation",
+        "tags": [
+          "agent-host",
+          "codex",
+          "claude-code",
+          "deepseek",
+          "headless",
+          "mcp"
         ]
       }
     },
@@ -2315,7 +2367,10 @@
       },
       "runtime": "node",
       "requires": {
-        "binaries": [],
+        "binaries": [
+          "playwright",
+          "tesseract"
+        ],
         "secrets": [
           {
             "key": "SUPA_DATA_API",
@@ -2349,7 +2404,9 @@
           "extract_reddit",
           "extract_tiktok",
           "extract_article",
-          "extract_links"
+          "extract_github",
+          "extract_links",
+          "extract_batch"
         ]
       },
       "mcp": {
@@ -2362,7 +2419,7 @@
         "cwd": "."
       },
       "meta": {
-        "description": "Extract content from YouTube, Reddit, TikTok, web articles, and link pages",
+        "description": "Extract content from YouTube, Reddit, TikTok, web articles, GitHub, and link batches",
         "author": "CO-LLAB",
         "license": "MIT",
         "category": "data-extraction",
@@ -2371,8 +2428,12 @@
           "reddit",
           "tiktok",
           "article",
+          "github",
           "links",
-          "transcript"
+          "batch",
+          "transcript",
+          "extraction",
+          "scraping"
         ],
         "icon": "📥"
       }
@@ -2586,6 +2647,70 @@
           "validation"
         ],
         "icon": "🔍"
+      }
+    },
+    "stack:dwellow-mcp": {
+      "id": "stack:dwellow-mcp",
+      "kind": "stack",
+      "name": "Dwellow MCP",
+      "version": "0.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/dwellow-mcp"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": []
+      },
+      "provides": {
+        "tools": [
+          "lookup_location",
+          "search_locations",
+          "get_zoning_rules",
+          "find_candidate_sites",
+          "run_legal_fit",
+          "run_dimensional_fit",
+          "run_community_fit",
+          "run_financial_fit",
+          "get_site_boundary",
+          "build_frontage_workspace",
+          "get_site_conditions",
+          "refresh_site_conditions",
+          "run_site_envelope",
+          "run_building_fit",
+          "generate_site_plan",
+          "get_site_visual_context",
+          "start_feasibility_study",
+          "get_feasibility_status",
+          "build_feasibility_package"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "node",
+        "args": [
+          "src/index.js"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Bridge to the hosted Dwellow / Co-Llab real-estate development feasibility MCP server.",
+        "author": "CO-LLAB",
+        "license": "MIT",
+        "category": "real-estate",
+        "tags": [
+          "dwellow",
+          "co-llab",
+          "real-estate",
+          "zoning",
+          "site-engine",
+          "feasibility",
+          "mcp",
+          "remote"
+        ],
+        "icon": "building-2"
       }
     },
     "stack:editorial-markup": {
@@ -2884,6 +3009,7 @@
           "slides_batch_update",
           "drive_list",
           "drive_upload",
+          "drive_update",
           "drive_create_folder",
           "drive_move_file",
           "drive_download",
@@ -2987,7 +3113,7 @@
       "id": "stack:image-generator",
       "kind": "stack",
       "name": "Image Generator",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -2995,7 +3121,9 @@
       },
       "runtime": "python",
       "requires": {
-        "binaries": [],
+        "binaries": [
+          "binary:chromium"
+        ],
         "secrets": [
           {
             "key": "GEMINI_API_KEY",
@@ -3021,7 +3149,11 @@
         "tools": [
           "generate_image",
           "compare_providers",
-          "list_models"
+          "list_models",
+          "midjourney_session_status",
+          "midjourney_login",
+          "midjourney_generate",
+          "midjourney_export_job"
         ]
       },
       "mcp": {
@@ -3033,7 +3165,7 @@
         "cwd": "."
       },
       "meta": {
-        "description": "Agent-safe multi-provider image generation for content creation workflows.",
+        "description": "Agent-safe API and bounded Midjourney browser image generation for content creation workflows.",
         "author": "brandonz@heritagehill.co",
         "license": "MIT",
         "category": "ai-generation",
@@ -3044,10 +3176,15 @@
           "gemini",
           "openai",
           "replicate",
+          "midjourney",
+          "browser-automation",
+          "playwright",
           "content-creation",
           "social-media"
         ],
-        "icon": "🎨"
+        "icon": "🎨",
+        "boundary": "Canonical image-generation stack. Midjourney support is limited to dedicated-profile login, idempotent prompt submission, authenticated session checks, and requester-triggered export of job variations. No arbitrary navigation, selectors, likes, follows, deletes, edits, uploads, billing, or account management.",
+        "mcpSafety": "Midjourney browser state remains in a dedicated local RUDI profile and is never returned over MCP. Generation requires a caller-provided request_id; ambiguous prior submissions fail closed. Job IDs and variation indexes are validated, UI controls are exact and fail closed on drift, and downloaded image files are size-, signature-, digest-, source-, and output-boundary-validated."
       }
     },
     "stack:macos-automation": {
@@ -3905,6 +4042,63 @@
         "icon": "cloud-upload"
       }
     },
+    "stack:site-planner": {
+      "id": "stack:site-planner",
+      "kind": "stack",
+      "name": "Site Planner",
+      "version": "0.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/site-planner"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "SITE_PLANNER_WRITE_HMAC_V1",
+            "label": "Site Planner write-authorization HMAC key",
+            "required": true
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "site_planner_config_status",
+          "site_planner_inspect_concept",
+          "site_planner_generate_lot_plan",
+          "site_planner_optimize_lot_plan",
+          "site_planner_preview_concept_commands",
+          "site_planner_fork_concept",
+          "site_planner_apply_concept_commands"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "node",
+        "args": [
+          "src/index.js"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Fixed-root MCP adapter for inspecting, generating, optimizing, previewing, forking, and applying changes to a pinned local Site Planner workspace.",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "development",
+        "tags": [
+          "site-planner",
+          "lot-planning",
+          "concepts",
+          "revisions",
+          "local-first",
+          "property"
+        ],
+        "boundary": "The adapter executes only the configured Site Planner JSON CLI against a fixed workspace and exact clean Git revision. It does not perform zoning, entitlement, parking, finance, or underwriting analysis.",
+        "secretGuidance": "Keep SITE_PLANNER_WRITE_HMAC_V1 in RUDI secret state. Do not expose it to agents, logs, artifacts, configuration JSON, or tool output."
+      }
+    },
     "stack:slack": {
       "id": "stack:slack",
       "kind": "stack",
@@ -4399,6 +4593,62 @@
         "icon": "📊"
       }
     },
+    "stack:stripe": {
+      "id": "stack:stripe",
+      "kind": "stack",
+      "name": "Stripe",
+      "version": "1.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/stripe"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "STRIPE_API_KEY",
+            "label": "Stripe API Key",
+            "required": true,
+            "helpUrl": "https://docs.stripe.com/keys"
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "stripe_config_status",
+          "stripe_list_products",
+          "stripe_list_prices",
+          "stripe_create_product",
+          "stripe_create_price",
+          "stripe_create_payment_link",
+          "stripe_create_one_time_payment_link"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "node",
+        "args": [
+          "src/index.js"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Create and inspect Stripe products, one-time prices, and Payment Links through guarded RUDI MCP tools",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "payments",
+        "tags": [
+          "stripe",
+          "payments",
+          "products",
+          "prices",
+          "payment-links"
+        ],
+        "icon": "credit-card"
+      }
+    },
     "stack:supabase-mcp": {
       "id": "stack:supabase-mcp",
       "kind": "stack",
@@ -4814,7 +5064,8 @@
         "skills": [
           "skill:rudi-video-editor",
           "skill:shortform-your-words-script",
-          "skill:shortform-publish-copy"
+          "skill:shortform-publish-copy",
+          "skill:shortform-social-publish-package"
         ]
       },
       "mcp": {
@@ -5020,11 +5271,15 @@
       "id": "stack:zoho-mail",
       "kind": "stack",
       "name": "Zoho Mail",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
         "path": "catalog/stacks/zoho-mail"
+      },
+      "auth": {
+        "required": true,
+        "command": "npm run auth -- --email you@example.com --region us"
       },
       "runtime": "node",
       "requires": {
@@ -5033,46 +5288,57 @@
           {
             "key": "ZOHO_CLIENT_ID",
             "label": "Zoho Client ID",
-            "required": true,
+            "required": false,
             "helpUrl": "https://api-console.zoho.com/"
           },
           {
             "key": "ZOHO_CLIENT_SECRET",
             "label": "Zoho Client Secret",
-            "required": true
+            "required": false,
+            "helpUrl": "https://api-console.zoho.com/"
           }
         ]
       },
       "provides": {
         "tools": [
-          "zoho_send_email",
-          "zoho_list_emails",
-          "zoho_get_email",
-          "zoho_search_email",
-          "zoho_list_folders",
-          "zoho_create_draft"
+          "zoho_account_list",
+          "zoho_account_current",
+          "zoho_account_switch",
+          "zoho_folder_list",
+          "zoho_search",
+          "zoho_get",
+          "zoho_send",
+          "zoho_draft",
+          "zoho_draft_update",
+          "zoho_draft_delete",
+          "zoho_reply",
+          "zoho_message_delete",
+          "zoho_list_attachments",
+          "zoho_get_attachment",
+          "zoho_get_thread"
         ]
       },
       "mcp": {
         "transport": "stdio",
-        "command": "npx",
+        "command": "node",
         "args": [
-          "tsx",
-          "src/index.ts"
+          "dist/index.js"
         ],
         "cwd": "."
       },
       "meta": {
-        "description": "Send, search, and manage emails via Zoho Mail",
+        "description": "Zoho Mail tools for OAuth accounts, folder and message search, email send, draft, reply, deletion, threads, and attachments",
         "author": "CO-LLAB",
         "license": "MIT",
-        "category": "productivity",
+        "category": "communication",
         "tags": [
           "zoho",
+          "mail",
           "email",
-          "mail"
+          "oauth",
+          "attachments"
         ],
-        "icon": "📬"
+        "icon": "mail"
       }
     }
   },

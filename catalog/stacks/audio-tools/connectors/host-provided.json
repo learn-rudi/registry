@@ -1,0 +1,25 @@
+{
+  "required": [],
+  "optional": [
+    {
+      "id": "browser",
+      "purpose": "Find, verify, or capture public media page URLs before passing an HTTP(S) URL to audio_transcribe."
+    },
+    {
+      "id": "google-drive",
+      "purpose": "Fetch user-authorized media files from Drive before passing a local file path or base64 data to audio_transcribe."
+    }
+  ],
+  "runtimeInputContract": {
+    "acceptedInputs": [
+      "local file path",
+      "HTTP(S) direct media URL",
+      "HTTP(S) supported video-page URL",
+      "base64 media data plus filename"
+    ],
+    "notes": [
+      "Connectors are host-side staging capabilities; the stack runtime itself consumes file, url, or data arguments.",
+      "Private or authenticated sources should be resolved by the host connector before invoking the MCP tool."
+    ]
+  }
+}

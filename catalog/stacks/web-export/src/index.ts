@@ -204,6 +204,7 @@ const combinedResultSchema = {
 const sharedInputSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
   type: "object",
+  anyOf: [{ required: ["input"] }, { required: ["html_path"] }],
   properties: {
     input: { type: "string", description: "Path to the source HTML file." },
     html_path: { type: "string", description: "Legacy alias for input." },
@@ -213,8 +214,18 @@ const sharedInputSchema = {
       enum: ["auto", "flow", "artboard"],
       description: "Rendering strategy hint. Auto detects the layout model.",
     },
-    dpi: { type: "number", description: "PNG base DPI. Range: 72-600." },
-    scale: { type: "number", description: "Viewport scale factor. Range: 0.25-4." },
+    dpi: {
+      type: "number",
+      minimum: 72,
+      maximum: 600,
+      description: "PNG base DPI. Range: 72-600.",
+    },
+    scale: {
+      type: "number",
+      minimum: 0.25,
+      maximum: 4,
+      description: "Viewport scale factor. Range: 0.25-4.",
+    },
     page_selector: {
       type: "string",
       description: "CSS selector for explicit page elements. Default: .artboard, [data-page].",
@@ -238,13 +249,23 @@ const sharedInputSchema = {
           type: "array",
           minItems: 2,
           maxItems: 2,
-          items: { type: "number" },
+          items: { type: "number", exclusiveMinimum: 0 },
         },
       ],
       description: "Preset page size string or [width, height] in pixels.",
     },
-    viewport_width: { type: "number", description: "Viewport width. Range: 320-7680." },
-    viewport_height: { type: "number", description: "Viewport height. Range: 240-4320." },
+    viewport_width: {
+      type: "number",
+      minimum: 320,
+      maximum: 7680,
+      description: "Viewport width. Range: 320-7680.",
+    },
+    viewport_height: {
+      type: "number",
+      minimum: 240,
+      maximum: 4320,
+      description: "Viewport height. Range: 240-4320.",
+    },
     browser_ws_endpoint: {
       type: "string",
       description: "Optional remote Chromium CDP/WebSocket endpoint.",

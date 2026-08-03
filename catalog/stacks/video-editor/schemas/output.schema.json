@@ -1,0 +1,293 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "rudi-video-editor/output.schema.json",
+  "title": "Delivery Output manifest",
+  "description": "Provenance manifest sidecar written beside every exported Delivery Output, named <media-basename>.output.json (e.g. my-video-final.mp4 -> my-video-final.output.json). One sidecar per media file; multiple Delivery Outputs may share a flat directory. Contract-strict: schema validity is intended to prove the full VP-6 Delivery Output contract, including exact approved-parent render identity, canonical Final Render Plan identity, operative Approval binding, immutable upstream editorial Approval lineage, render-specific QA, export mode, and resolved destination. A hash-different creative render requires fresh Final Render Approval. A separately provenanced and QA'd bitrate/codec-only Mechanical Derivative may instead rely on its approved parent. Target contract (unenforced): until the stack generates this, agents/humans write it manually per docs/processes/VP-6-promote-retire.md.",
+  "$comment": "Draft-07 cannot compare sibling fields or inspect media. The exporter MUST assert the equality/difference and actual media-invariant obligations defined in VP-6, including Approval-to-source identity binding, byte-identical copy hash equality, mechanical-transcode hash difference and invariant comparison, mechanical parent binding, and destination.resolvedPath containing media.file.",
+  "type": "object",
+  "required": ["schemaVersion", "createdAt", "exportMode", "media", "source", "approval", "editorialApprovalLineage", "verification", "destination"],
+  "additionalProperties": false,
+  "definitions": {
+    "baselineApprovalLineageEntry": {
+      "type": "object",
+      "required": ["scope", "renderSha256", "planRevision", "decisionRef", "approvedBy", "approvedAt"],
+      "additionalProperties": false,
+      "properties": {
+        "scope": { "const": "baseline" },
+        "renderSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "planRevision": { "type": "string", "minLength": 1 },
+        "decisionRef": { "type": "string", "minLength": 1 },
+        "approvedBy": { "type": "string", "minLength": 1 },
+        "approvedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "sequenceOptimizationApprovalLineageEntry": {
+      "type": "object",
+      "required": ["scope", "renderSha256", "planRevision", "decisionRef", "approvedBy", "approvedAt"],
+      "additionalProperties": false,
+      "properties": {
+        "scope": { "const": "sequence-optimization" },
+        "renderSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "planRevision": { "type": "string", "minLength": 1 },
+        "decisionRef": { "type": "string", "minLength": 1 },
+        "approvedBy": { "type": "string", "minLength": 1 },
+        "approvedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable output name, usually the media basename"
+    },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "exportMode": {
+      "type": "string",
+      "enum": ["byte-identical-copy", "mechanical-transcode"],
+      "description": "Whether media is the approved render's exact bytes or the narrowly permitted bitrate/codec-only derivative"
+    },
+    "variant": {
+      "type": "string",
+      "description": "Which editorial variant this exports",
+      "enum": ["final", "source-order", "optimized", "motion", "social-upload", "client-master", "other"]
+    },
+    "media": {
+      "type": "object",
+      "required": ["file", "sha256", "bytes", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "file": { "type": "string", "minLength": 1, "description": "Filename relative to this manifest" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "bytes": { "type": "integer", "minimum": 1 },
+        "kind": { "type": "string", "enum": ["video", "audio", "image"] },
+        "durationSeconds": { "type": "number", "exclusiveMinimum": 0 },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 },
+        "frameRate": { "type": "number", "exclusiveMinimum": 0 },
+        "videoCodec": { "type": "string", "minLength": 1 },
+        "audioCodec": { "type": "string", "minLength": 1 },
+        "thumbnail": { "type": "string", "minLength": 1, "description": "Thumbnail filename relative to this manifest, when exported" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "video" } } },
+          "then": {
+            "required": ["durationSeconds", "width", "height", "frameRate"],
+            "properties": {
+              "durationSeconds": {},
+              "width": {},
+              "height": {},
+              "frameRate": {}
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "audio" } } },
+          "then": {
+            "required": ["durationSeconds"],
+            "properties": { "durationSeconds": {} }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "image" } } },
+          "then": {
+            "required": ["width", "height"],
+            "properties": {
+              "width": {},
+              "height": {}
+            }
+          }
+        }
+      ]
+    },
+    "source": {
+      "type": "object",
+      "required": ["runSlug", "renderPath", "renderSha256", "planRevision", "finalRenderPlan"],
+      "additionalProperties": false,
+      "properties": {
+        "runSlug": { "type": "string", "minLength": 1 },
+        "runPath": { "type": "string", "minLength": 1, "description": "Absolute path of the run at export time" },
+        "renderPath": { "type": "string", "minLength": 1, "description": "Run-relative path of the exactly approved render; for a mechanical transcode, this is the approved parent" },
+        "renderSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$", "description": "SHA-256 of the exactly approved render; equals media.sha256 only for byte-identical-copy — asserted by the exporter, see $comment" },
+        "sourceSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$", "description": "Hash of the original source media, for lineage" },
+        "planRevision": { "type": "string", "minLength": 1, "description": "Identifier or hash of the exact compiled editorial plan behind the approved render" },
+        "finalRenderPlan": {
+          "type": "object",
+          "required": ["id", "sha256", "ref"],
+          "additionalProperties": false,
+          "properties": {
+            "id": { "type": "string", "minLength": 1, "description": "Canonical Final Render Plan/recipe revision identifier" },
+            "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$", "description": "Canonical hash of that exact final render-plan/recipe" },
+            "ref": { "type": "string", "minLength": 1, "description": "Run-relative reference to the canonical final render-plan/recipe" }
+          }
+        }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "required": ["approvedBy", "approvedAt", "scope", "decisionRef", "renderSha256", "finalRenderPlanSha256"],
+      "additionalProperties": false,
+      "properties": {
+        "approvedBy": { "type": "string", "minLength": 1 },
+        "approvedAt": { "type": "string", "format": "date-time" },
+        "scope": {
+          "type": "string",
+          "enum": ["baseline", "sequence-optimization", "final-render"],
+          "description": "Precise machine scope of the operative Approval. final-render denotes Final Render Approval for one exact hash-identified creative final and its Final Render Plan after render-specific QA; earlier editorial Approvals remain in editorialApprovalLineage"
+        },
+        "decisionRef": { "type": "string", "minLength": 1, "description": "Where the operative Approval decision is recorded (review note, story README, message)" },
+        "renderSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$", "description": "Exact render SHA-256 accepted by the operative Approval; exporter asserts equality with source.renderSha256" },
+        "finalRenderPlanSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$", "description": "Canonical Final Render Plan hash accepted by the operative Approval; exporter asserts equality with source.finalRenderPlan.sha256" }
+      }
+    },
+    "editorialApprovalLineage": {
+      "type": "array",
+      "description": "Immutable upstream editorial Approval lineage: exactly one complete Baseline Approval first, followed only when applicable by one complete Sequence Optimization Approval. Later Final Render Approval never rewrites these decisions.",
+      "oneOf": [
+        {
+          "minItems": 1,
+          "maxItems": 1,
+          "additionalItems": false,
+          "items": [
+            { "$ref": "#/definitions/baselineApprovalLineageEntry" }
+          ]
+        },
+        {
+          "minItems": 2,
+          "maxItems": 2,
+          "additionalItems": false,
+          "items": [
+            { "$ref": "#/definitions/baselineApprovalLineageEntry" },
+            { "$ref": "#/definitions/sequenceOptimizationApprovalLineageEntry" }
+          ]
+        }
+      ]
+    },
+    "verification": {
+      "type": "object",
+      "required": ["qaRefs"],
+      "additionalProperties": false,
+      "properties": {
+        "expectedTranscriptRef": { "type": "string", "minLength": 1 },
+        "transcriptComparisonRef": { "type": "string", "minLength": 1, "description": "Optional: not every video contains speech" },
+        "qaRefs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Run-relative references to render-specific evidence that verified the exactly approved render"
+        },
+        "notes": { "type": "string" }
+      }
+    },
+    "mechanicalDerivative": {
+      "type": "object",
+      "required": ["parentRenderSha256", "parentApprovalDecisionRef", "parentFinalRenderPlanSha256", "recipeRef", "recipeSha256", "changedFields", "qaRefs", "invariants"],
+      "additionalProperties": false,
+      "properties": {
+        "parentRenderSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$", "description": "Approved parent hash; exporter asserts equality with source.renderSha256 and approval.renderSha256" },
+        "parentApprovalDecisionRef": { "type": "string", "minLength": 1, "description": "Operative parent Approval reference; exporter asserts equality with approval.decisionRef" },
+        "parentFinalRenderPlanSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$", "description": "Approved parent's Final Render Plan hash; exporter asserts equality with source and Approval plan hashes" },
+        "recipeRef": { "type": "string", "minLength": 1, "description": "Reference to the exact mechanical transcode recipe/command" },
+        "recipeSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$", "description": "Canonical hash of the exact mechanical transcode recipe" },
+        "changedFields": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "enum": ["video-bitrate", "audio-bitrate", "video-codec", "audio-codec"] },
+          "description": "The only permitted changes from the approved parent"
+        },
+        "qaRefs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "description": "References to separately recorded mechanical-derivative QA and parent/output comparison evidence"
+        },
+        "invariants": {
+          "type": "object",
+          "required": ["dimensions", "duration", "frameRate", "editContentTiming", "audioMix", "colorLook", "captions", "overlays", "motion"],
+          "additionalProperties": false,
+          "properties": {
+            "dimensions": { "const": true },
+            "duration": { "const": true },
+            "frameRate": { "const": true },
+            "editContentTiming": { "const": true },
+            "audioMix": { "const": true },
+            "colorLook": { "const": true },
+            "captions": { "const": true },
+            "overlays": { "const": true },
+            "motion": { "const": true }
+          }
+        }
+      }
+    },
+    "destination": {
+      "type": "object",
+      "required": ["ownership", "routing", "resolvedPath"],
+      "additionalProperties": false,
+      "properties": {
+        "ownership": {
+          "type": "string",
+          "enum": ["ad-hoc", "story-owned"],
+          "description": "Source Ownership at export time"
+        },
+        "routing": {
+          "type": "string",
+          "enum": ["default", "override"],
+          "description": "Whether this destination is the ownership default or a human override"
+        },
+        "resolvedPath": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Absolute path of the destination directory holding the media and this sidecar at export time"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Required when routing is override: why this deliverable lives somewhere other than the default"
+        },
+        "storyTopic": { "type": "string", "minLength": 1, "description": "Topic folder path; required for story-owned exports" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "routing": { "const": "override" } } },
+          "then": {
+            "required": ["reason"],
+            "properties": { "reason": {} }
+          }
+        },
+        {
+          "if": { "properties": { "ownership": { "const": "story-owned" } } },
+          "then": {
+            "required": ["storyTopic"],
+            "properties": { "storyTopic": {} }
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "exportMode": { "const": "mechanical-transcode" } } },
+      "then": {
+        "required": ["variant", "mechanicalDerivative"],
+        "properties": {
+          "variant": { "const": "social-upload" },
+          "media": {
+            "type": "object",
+            "required": ["kind"],
+            "properties": {
+              "kind": { "const": "video" }
+            }
+          },
+          "mechanicalDerivative": {}
+        }
+      }
+    },
+    {
+      "if": { "properties": { "exportMode": { "const": "byte-identical-copy" } } },
+      "then": { "properties": { "mechanicalDerivative": false } }
+    }
+  ]
+}

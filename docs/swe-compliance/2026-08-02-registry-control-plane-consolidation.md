@@ -529,3 +529,34 @@ version-suffixed paths or parallel catalog trees.
     to the `main` ruleset/branch protection to make bypass impossible at the
     GitHub merge boundary; that external setting is not safely writable from
     this dirty local workspace.
+- 2026-08-03 restored-package integration:
+  - The later `restore local registry updates` commit supplied a real Stripe
+    implementation, package metadata, and guarded dry-run behavior that were
+    absent when the placeholder was retired. Stripe was therefore republished
+    only after gaining the standard offline package verification contract.
+  - The same integration added Agent Hosts, Dwellow, and Site Planner. Their
+    existing package tests or static hosted-bridge evidence are now reachable
+    through `scripts.verify`; package-specific root test knowledge remains
+    outside the registry kernel.
+  - Restored Site Planner, Stripe, and Zoho implementations enter the
+    architecture ratchet at their exact integrated line counts. This records
+    pre-existing imported debt without permitting another line of growth; each
+    boundary still requires a behavior-preserving decomposition. Content
+    Extractor's restored GitHub, batch/browser, and link responsibilities were
+    split into focused modules so every package source remains below the
+    existing 800-line package boundary.
+  - The restored branch also predates the ratchet for bounded additions to
+    Google Workspace, Social Media Publisher, and Video Editor. Their exact
+    integrated sizes are frozen in the baseline with no growth allowance; this
+    records the imported state and does not classify the modules as decomposed.
+    Image Generator's Midjourney validation, service, and browser concerns were
+    instead separated into focused modules, leaving every source module below
+    the 800-line boundary.
+  - Agent Hosts moved from the restored `@modelcontextprotocol/sdk@1.0.0` pin
+    to the non-major `1.30.0` security fix after `npm audit` reported
+    GHSA-w48q-cv73-mx4w. Its npm integrity lock is the repository verification
+    authority; the redundant pnpm lock was removed to prevent lock drift.
+  - Historical package counts and the original retirement audit above describe
+    the state at the time those gates were first established. The regenerated
+    canonical index and final verification record are authoritative for the
+    integrated repository state.

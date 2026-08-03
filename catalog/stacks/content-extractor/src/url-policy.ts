@@ -17,7 +17,7 @@ export function parseHttpUrl(rawUrl: unknown, fieldName = "url"): URL {
   return parsed;
 }
 
-function hostnameMatches(parsed: URL, domains: string[]): boolean {
+export function hostnameMatches(parsed: URL, domains: string[]): boolean {
   const hostname = parsed.hostname.replace(/^www\./, "").toLowerCase();
   return domains.some(
     (domain) => hostname === domain || hostname.endsWith(`.${domain}`)

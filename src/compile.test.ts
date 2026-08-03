@@ -197,7 +197,7 @@ describe("index structure", () => {
     expect(relatedSkillIds.every((id) => index.packages[id]?.kind === "skill")).toBe(true);
   });
 
-  it("publishes declared lifecycle metadata and excludes retired packages", async () => {
+  it("publishes declared lifecycle metadata and implemented packages", async () => {
     const index = (await readJson("dist/index.json")) as {
       packages: Record<string, {
         lifecycle?: { maturity: string; support: string };
@@ -208,7 +208,11 @@ describe("index structure", () => {
       maturity: "stable",
       support: "supported",
     });
-    expect(index.packages).not.toHaveProperty("stack:stripe");
+    expect(index.packages["stack:stripe"]).toMatchObject({
+      kind: "stack",
+      runtime: "node",
+      mcp: { command: "node", args: ["src/index.js"] },
+    });
   });
 });
 

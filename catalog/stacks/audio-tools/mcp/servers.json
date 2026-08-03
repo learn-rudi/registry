@@ -1,0 +1,25 @@
+{
+  "servers": [
+    {
+      "id": "audio-tools",
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["tsx", "src/index.ts"],
+      "cwd": ".",
+      "tools": [
+        "audio_transcribe",
+        "audio_enrich",
+        "audio_sync",
+        "audio_stats",
+        "audio_query"
+      ]
+    }
+  ],
+  "production": {
+    "transport": "stdio",
+    "command": "node",
+    "args": ["dist/index.js"],
+    "cwd": ".",
+    "requiresBuild": true
+  }
+}

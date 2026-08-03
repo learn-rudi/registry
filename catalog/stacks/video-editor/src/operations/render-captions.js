@@ -62,14 +62,40 @@ async function probeMedia(mediaPath) {
   return JSON.parse(stdout);
 }
 
-function buildAssDocument(captions, dimensions) {
+function numberInRange(value, min, max) {
+  return Number.isFinite(value) && value >= min && value <= max;
+}
+
+function resolveMarginPx({ dimension, defaultRatio, ratio, px }) {
+  if (Number.isFinite(px) && px >= 0) {
+    return Math.round(px);
+  }
+
+  if (numberInRange(ratio, 0, 0.4)) {
+    return Math.round(dimension * ratio);
+  }
+
+  return Math.round(dimension * defaultRatio);
+}
+
+export function buildAssDocument(captions, dimensions, placement = {}) {
   const width = dimensions.width || 1080;
   const height = dimensions.height || 1920;
   const isVertical = height > width;
   const fontSize = Math.round(height * (isVertical ? 0.028 : 0.041));
-  const marginL = Math.round(width * 0.07);
+  const marginL = resolveMarginPx({
+    dimension: width,
+    defaultRatio: 0.07,
+    ratio: placement.marginHorizontalRatio,
+    px: placement.marginHorizontalPx
+  });
   const marginR = marginL;
-  const marginV = Math.round(height * (isVertical ? 0.099 : 0.12));
+  const marginV = resolveMarginPx({
+    dimension: height,
+    defaultRatio: isVertical ? 0.099 : 0.12,
+    ratio: placement.marginBottomRatio,
+    px: placement.marginBottomPx
+  });
 
   const events = (captions.cues || [])
     .map((cue) => {
@@ -122,6 +148,11 @@ export async function renderCaptionsRun(runDir, inputNameArg, outputNameArg) {
   }
 
   const captions = await readJson(captionsPath);
+  const compositionPath = artifactPath(runDir, project, 'composition');
+  const composition = await pathExists(compositionPath)
+    ? await readJson(compositionPath)
+    : null;
+  const placement = composition?.timeline?.captions?.placement || {};
   const probe = await probeMedia(inputPath);
   const summary = summarizeProbe(probe);
   if (!summary.video?.width || !summary.video?.height) {
@@ -131,7 +162,7 @@ export async function renderCaptionsRun(runDir, inputNameArg, outputNameArg) {
   const assPath = path.join(runDir, 'captions.ass');
   await fs.writeFile(
     assPath,
-    buildAssDocument(captions, summary.video),
+    buildAssDocument(captions, summary.video, placement),
     'utf8'
   );
 

@@ -2,14 +2,16 @@
   "id": "stack:zoho-mail",
   "kind": "stack",
   "name": "Zoho Mail",
-  "version": "1.0.0",
-
+  "version": "1.1.0",
   "delivery": "remote",
   "install": {
     "source": "catalog",
     "path": "catalog/stacks/zoho-mail"
   },
-
+  "auth": {
+    "required": true,
+    "command": "npm run auth -- --email you@example.com --region us"
+  },
   "runtime": "node",
   "requires": {
     "binaries": [],
@@ -17,32 +19,56 @@
       {
         "key": "ZOHO_CLIENT_ID",
         "label": "Zoho Client ID",
-        "required": true,
+        "required": false,
         "helpUrl": "https://api-console.zoho.com/"
       },
       {
         "key": "ZOHO_CLIENT_SECRET",
         "label": "Zoho Client Secret",
-        "required": true
+        "required": false,
+        "helpUrl": "https://api-console.zoho.com/"
       }
     ]
   },
   "provides": {
-    "tools": ["zoho_send_email", "zoho_list_emails", "zoho_get_email", "zoho_search_email", "zoho_list_folders", "zoho_create_draft"]
+    "tools": [
+      "zoho_account_list",
+      "zoho_account_current",
+      "zoho_account_switch",
+      "zoho_folder_list",
+      "zoho_search",
+      "zoho_get",
+      "zoho_send",
+      "zoho_draft",
+      "zoho_draft_update",
+      "zoho_draft_delete",
+      "zoho_reply",
+      "zoho_message_delete",
+      "zoho_list_attachments",
+      "zoho_get_attachment",
+      "zoho_get_thread"
+    ]
   },
   "mcp": {
     "transport": "stdio",
-    "command": "npx",
-    "args": ["tsx", "src/index.ts"],
+    "command": "node",
+    "args": [
+      "dist/index.js"
+    ],
     "cwd": "."
   },
-
   "meta": {
-    "description": "Send, search, and manage emails via Zoho Mail",
+    "description": "Zoho Mail tools for OAuth accounts, folder and message search, email send, draft, reply, deletion, threads, and attachments",
     "author": "CO-LLAB",
     "license": "MIT",
-    "category": "productivity",
-    "tags": ["zoho", "email", "mail"],
-    "icon": "📬"
+    "category": "communication",
+    "tags": [
+      "zoho",
+      "mail",
+      "email",
+      "oauth",
+      "attachments"
+    ],
+    "icon": "mail"
   }
 }

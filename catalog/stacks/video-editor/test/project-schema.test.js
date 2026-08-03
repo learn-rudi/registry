@@ -57,7 +57,8 @@ const minimalProject = {
     },
     render: {
       audioCrossfadeSeconds: 0.04,
-      concurrency: 1
+      concurrency: 1,
+      timeoutMs: 120000
     }
   }
 };
@@ -66,6 +67,7 @@ const normalized = await validateProject(minimalProject, 'minimalProject');
 assert.equal(normalized.artifacts.insights, 'insights.json');
 assert.equal(normalized.artifacts.narration, 'narration.json');
 assert.equal(normalized.settings.silence.speedupInsteadOfCut, false);
+assert.equal(normalized.settings.render.timeoutMs, 120000);
 assert.equal(normalized.settings.chapters.titleSource, 'ollama');
 assert.equal(normalized.settings.insights.provider, 'deepseek');
 

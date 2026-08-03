@@ -1,0 +1,73 @@
+{
+  "id": "cowork-ubuntu-22.04-arm64",
+  "name": "Cowork Ubuntu 22.04 arm64",
+  "status": "ephemeral-demo-compatible",
+  "durability": {
+    "shellPersistsAcrossConversations": false,
+    "installedPackagesPersistAcrossConversations": false,
+    "filesWrittenToUserWorkspacePersist": true,
+    "stackArchiveMakesToolsCallableByItself": false
+  },
+  "installSemantics": {
+    "nativeStackInstallable": false,
+    "manualShellBootstrap": true,
+    "durableToolRegistrationRequired": true,
+    "durableRegistrationOptions": [
+      "Register this stack as an MCP server through Cowork connector/MCP settings if supported.",
+      "Run the stack on a persistent machine as a local or remote MCP server and connect Cowork to that server.",
+      "Install through RUDI on a persistent host with rudi install stack:audio-tools, then expose it through MCP."
+    ]
+  },
+  "os": {
+    "name": "Ubuntu",
+    "version": "22.04",
+    "architecture": "arm64"
+  },
+  "preinstalled": {
+    "node": "22",
+    "npm": "available",
+    "npx": "available",
+    "python": "3.10",
+    "pip": "available",
+    "ruby": "3.0.2",
+    "java": "11",
+    "gcc": "11.4",
+    "g++": "11.4",
+    "git": "2.34"
+  },
+  "notPreinstalled": [
+    "go",
+    "rust",
+    "cargo",
+    "yarn",
+    "pnpm"
+  ],
+  "stackRuntime": {
+    "language": "node",
+    "packageManager": "npm",
+    "install": "npm install",
+    "build": "npm run build",
+    "test": "npm test",
+    "dev": "npm run dev",
+    "start": "npm run start"
+  },
+  "mustProvisionForTranscription": [
+    "ffmpeg",
+    "ffprobe",
+    "yt-dlp",
+    "whisper-cli",
+    "local Whisper model file"
+  ],
+  "optionalForEnrichment": [
+    "local agent command compatible with AUDIO_TOOLS_AGENT_*",
+    "AUDIO_TOOLS_PROMPT_TEMPLATE"
+  ],
+  "notes": [
+    "Use npm/npx commands on Cowork; do not assume yarn or pnpm.",
+    "Install Python packages with pip using --break-system-packages when required by the sandbox policy.",
+    ".stack is a RUDI archive convention, not a Cowork-native install/uninstall unit.",
+    "Manual Cowork shell setup is useful for one-off demos only because node_modules, compiled binaries, models, and installed packages are not durable across conversations.",
+    "Cowork MCP/plugin tools may run in a separate runtime from the interactive bash shell; dependencies must be visible to the actual MCP server process, not only to the shell used for diagnostics.",
+    "Do not package node_modules, dist, .env files, transcript outputs, databases, caches, or local model files in audio-tools.stack."
+  ]
+}

@@ -9,8 +9,8 @@ Accepted
 Schema-v2 packages previously exposed no machine-readable distinction between
 experimental, stable, maintained, deprecated, or unsupported catalog entries.
 Consumers therefore had to guess from package versions and descriptions. The
-catalog also contained a Stripe manifest that declared ten MCP tools and a
-runtime entrypoint although no implementation or verification contract existed.
+catalog also contained package declarations whose installable behavior and
+verification status needed to be evaluated independently from lifecycle labels.
 
 Lifecycle metadata must be additive because canonical schema-v2 paths and
 existing CLI compatibility remain invariants. It must communicate policy
@@ -52,10 +52,11 @@ parallel legacy catalog. A package may remain published as unsupported only
 while it provides truthful installable behavior and explicit deprecation
 guidance.
 
-The non-implementing Stripe placeholder is retired immediately. It advertised
-behavior that could not execute, so a grace period would preserve a false
-contract rather than compatibility. Its tracked source is removed and the
-canonical generated indexes are regenerated.
+A package declaration without an implementation is retired immediately because
+a grace period would preserve a false contract rather than compatibility. A
+subsequent restoration may republish that package only when it supplies a real
+implementation and passes the same repository verification contract as every
+other published stack.
 
 ## Consequences
 

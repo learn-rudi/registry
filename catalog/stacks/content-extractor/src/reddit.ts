@@ -42,6 +42,22 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function discardResponseBody(response: Response): Promise<void> {
+  try {
+    await response.body?.cancel();
+  } catch {
+    // Best-effort cleanup only; the original HTTP error is more useful.
+  }
+}
+
+async function throwHttpResponseError(
+  response: Response,
+  prefix = "HTTP"
+): Promise<never> {
+  await discardResponseBody(response);
+  throw new Error(`${prefix} ${response.status}: ${response.statusText}`);
+}
+
 function canonicalizeRedditUrl(url: string): string {
   const parsed = parseHttpUrl(url);
   const hostname = parsed.hostname.toLowerCase();
@@ -91,8 +107,9 @@ async function resolveRedditUrl(url: string): Promise<string> {
 
     if (![301, 302, 303, 307, 308].includes(response.status)) {
       if (response.ok) return currentUrl;
-      throw new Error(
-        `Failed to resolve Reddit link: HTTP ${response.status}: ${response.statusText}`
+      await throwHttpResponseError(
+        response,
+        "Failed to resolve Reddit link: HTTP"
       );
     }
 
@@ -192,8 +209,9 @@ async function getRedditOAuthToken(): Promise<{
   );
 
   if (!response.ok) {
-    throw new Error(
-      `Reddit OAuth token request failed: HTTP ${response.status}: ${response.statusText}`
+    await throwHttpResponseError(
+      response,
+      "Reddit OAuth token request failed: HTTP"
     );
   }
 
@@ -232,8 +250,9 @@ async function fetchPublicRedditData(url: string): Promise<RedditFetchResult> {
       !isRetryableRedditStatus(response.status) ||
       attempt === REDDIT_MAX_FETCH_ATTEMPTS
     ) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      await throwHttpResponseError(response);
     }
+    await discardResponseBody(response);
     await delay(redditRetryDelayMs(response, attempt));
   }
 
@@ -251,9 +270,7 @@ async function fetchOAuthRedditData(url: string): Promise<RedditFetchResult> {
   });
 
   if (!response.ok) {
-    throw new Error(
-      `Reddit OAuth JSON failed: HTTP ${response.status}: ${response.statusText}`
-    );
+    await throwHttpResponseError(response, "Reddit OAuth JSON failed: HTTP");
   }
   return { data: await response.json(), retrievalMethod };
 }
@@ -413,7 +430,7 @@ async function fetchOldRedditHtmlData(url: string): Promise<RedditFetchResult> {
     redirect: "follow",
   });
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    await throwHttpResponseError(response);
   }
   return {
     data: parseOldRedditHtml(await response.text(), response.url || htmlUrl, url),

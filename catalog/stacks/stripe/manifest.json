@@ -1,0 +1,56 @@
+{
+  "id": "stack:stripe",
+  "kind": "stack",
+  "name": "Stripe",
+  "version": "1.1.0",
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/stripe"
+  },
+  "runtime": "node",
+  "requires": {
+    "binaries": [],
+    "secrets": [
+      {
+        "key": "STRIPE_API_KEY",
+        "label": "Stripe API Key",
+        "required": true,
+        "helpUrl": "https://docs.stripe.com/keys"
+      }
+    ]
+  },
+  "provides": {
+    "tools": [
+      "stripe_config_status",
+      "stripe_list_products",
+      "stripe_list_prices",
+      "stripe_create_product",
+      "stripe_create_price",
+      "stripe_create_payment_link",
+      "stripe_create_one_time_payment_link"
+    ]
+  },
+  "mcp": {
+    "transport": "stdio",
+    "command": "node",
+    "args": [
+      "src/index.js"
+    ],
+    "cwd": "."
+  },
+  "meta": {
+    "description": "Create and inspect Stripe products, one-time prices, and Payment Links through guarded RUDI MCP tools",
+    "author": "RUDI",
+    "license": "MIT",
+    "category": "payments",
+    "tags": [
+      "stripe",
+      "payments",
+      "products",
+      "prices",
+      "payment-links"
+    ],
+    "icon": "credit-card"
+  }
+}

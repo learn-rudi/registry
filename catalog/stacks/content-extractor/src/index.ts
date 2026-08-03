@@ -14,8 +14,6 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { YoutubeTranscript } from "youtube-transcript";
 import { writeFileSync, existsSync, statSync, mkdirSync } from "fs";
-import { exec } from "child_process";
-import { promisify } from "util";
 import { config } from "dotenv";
 import { fileURLToPath, pathToFileURL } from "url";
 import { dirname, join } from "path";
@@ -23,7 +21,7 @@ import { homedir } from "os";
 import * as cheerio from "cheerio";
 import { decode } from "html-entities";
 import { Readability } from "@mozilla/readability";
-import { JSDOM } from "jsdom";
+import { JSDOM, VirtualConsole } from "jsdom";
 import TurndownService from "turndown";
 
 import {
@@ -31,15 +29,45 @@ import {
   formatRedditResult,
   type RedditResult,
 } from "./reddit.js";
-import { parseHttpUrl, requirePlatformUrl } from "./url-policy.js";
+import {
+  extractBatch,
+  formatBatchResult,
+  type BatchInput,
+  type BatchResult,
+} from "./batch.js";
+import {
+  extractGitHub,
+  formatGitHubResult,
+  type GitHubResult,
+} from "./github.js";
+import {
+  extractLinks,
+  formatLinksResult,
+  type LinksResult,
+} from "./links.js";
+import {
+  hostnameMatches,
+  parseHttpUrl,
+  requirePlatformUrl,
+} from "./url-policy.js";
 
-export { extractReddit, type RedditResult };
+export {
+  extractBatch,
+  extractGitHub,
+  extractLinks,
+  extractReddit,
+  type BatchInput,
+  type BatchResult,
+  type GitHubResult,
+  type LinksResult,
+  type RedditResult,
+};
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: join(__dirname, "..", ".env") });
 
-const execAsync = promisify(exec);
 const DEFAULT_OUTPUT_DIR = join(homedir(), ".rudi", "outputs");
+const READABILITY_VIRTUAL_CONSOLE = new VirtualConsole();
 
 // =============================================================================
 // UTILITIES
@@ -63,6 +91,30 @@ function ensureOutputDir(outputPath = DEFAULT_OUTPUT_DIR) {
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 }
 
+async function discardResponseBody(response: Response): Promise<void> {
+  try {
+    await response.body?.cancel();
+  } catch {
+    // Best-effort cleanup only; the original HTTP error is more useful.
+  }
+}
+
+async function throwHttpResponseError(
+  response: Response,
+  prefix = "HTTP"
+): Promise<never> {
+  await discardResponseBody(response);
+  throw new Error(`${prefix} ${response.status}: ${response.statusText}`);
+}
+
+function removeStyleBlocks(html: string): string {
+  return html.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "");
+}
+
+
+function wordCount(text: string): number {
+  return text.split(/\s+/).filter((word) => word.length > 0).length;
+}
 
 // =============================================================================
 // YOUTUBE EXTRACTOR
@@ -110,7 +162,7 @@ async function getYouTubeTranscriptViaSupaData(videoId: string, url: string) {
       headers: { "x-api-key": apiKey, "Content-Type": "application/json" },
     });
 
-    if (!response.ok) throw new Error(`Supadata API returned ${response.status}`);
+    if (!response.ok) await throwHttpResponseError(response, "Supadata API returned");
     const data = await response.json();
     if (!data.content) throw new Error("Supadata returned empty transcript");
 
@@ -225,7 +277,7 @@ export async function extractYouTube(url: string): Promise<YouTubeResult> {
   };
 }
 
-function formatYouTubeResult(result: YouTubeResult): string {
+export function formatYouTubeResult(result: YouTubeResult): string {
   let text = `**YouTube Video Extracted**\n\n`;
   text += `**Title:** ${result.title}\n`;
   text += `**Channel:** ${result.author}\n`;
@@ -306,7 +358,7 @@ export async function extractTikTok(url: string, preferLang = "eng"): Promise<Ti
   return { url: fullUrl, hasTranscript: true, transcript, wordCount, metadata: { user, videoId, description, language: track.LanguageCodeName } };
 }
 
-function formatTikTokResult(result: TikTokResult): string {
+export function formatTikTokResult(result: TikTokResult): string {
   let text = `**TikTok Video Extracted**\n\n`;
   text += `**Creator:** @${result.metadata.user}\n`;
   text += `**URL:** ${result.url}\n`;
@@ -350,7 +402,7 @@ export async function extractArticle(url: string): Promise<ArticleResult> {
     redirect: "follow",
   });
 
-  if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  if (!response.ok) await throwHttpResponseError(response);
 
   let html = await response.text();
   const finalUrl = response.url;
@@ -360,166 +412,38 @@ export async function extractArticle(url: string): Promise<ArticleResult> {
     html = html.replace(/<!--([\s\S]*?)-->/g, "$1");
   }
 
-  const dom = new JSDOM(html, { url: finalUrl });
-  const reader = new Readability(dom.window.document);
-  const article = reader.parse();
+  const dom = new JSDOM(removeStyleBlocks(html), { url: finalUrl, virtualConsole: READABILITY_VIRTUAL_CONSOLE });
+  try {
+    const reader = new Readability(dom.window.document);
+    const article = reader.parse();
 
-  if (!article) throw new Error("Could not parse article");
+    if (!article) throw new Error("Could not parse article");
 
-  const articleContent = article.content || article.textContent;
-  if (!articleContent) throw new Error("Parsed article contained no content");
+    const articleContent = article.content || article.textContent;
+    if (!articleContent) throw new Error("Parsed article contained no content");
 
-  const markdown = article.content ? htmlToMarkdown(article.content) : articleContent;
-  const cleanText = markdown.replace(/\n{3,}/g, "\n\n").trim();
-  const wordCount = cleanText.split(/\s+/).filter((w) => w.length > 0).length;
-  const domain = new URL(finalUrl).hostname.replace("www.", "");
+    const markdown = article.content ? htmlToMarkdown(article.content) : articleContent;
+    const cleanText = markdown.replace(/\n{3,}/g, "\n\n").trim();
+    const wordCount = cleanText.split(/\s+/).filter((w) => w.length > 0).length;
+    const domain = new URL(finalUrl).hostname.replace("www.", "");
 
-  return {
-    url: finalUrl,
-    title: article.title || "Untitled",
-    author: article.byline || "Unknown",
-    siteName: article.siteName || domain,
-    domain,
-    excerpt: article.excerpt || cleanText.substring(0, 200) + "...",
-    content: cleanText,
-    wordCount,
-  };
-}
-
-function formatArticleResult(result: ArticleResult): string {
-  return `**Article Extracted**\n\n**Title:** ${result.title}\n**Author:** ${result.author}\n**Source:** ${result.siteName}\n**URL:** ${result.url}\n**Words:** ${result.wordCount}\n\n---\n\n${result.content}`;
-}
-
-// =============================================================================
-// LINK EXTRACTOR
-// =============================================================================
-
-export interface LinkItem {
-  title: string;
-  url: string;
-  domain: string;
-  category: string;
-  originalHref: string;
-}
-
-export interface LinksResult {
-  url: string;
-  totalLinks: number;
-  categories: Record<string, number>;
-  links: LinkItem[];
-  csv: string;
-}
-
-function categorizeLink(linkUrl: URL, baseUrl: URL, text: string): string {
-  const domain = linkUrl.hostname.toLowerCase();
-  const pathname = linkUrl.pathname.toLowerCase();
-  const label = text.toLowerCase();
-
-  if (domain.includes("youtube.com") || domain.includes("youtu.be")) return "video";
-  if (pathname.endsWith(".pdf")) return "document";
-  if (domain.includes("facebook") || domain.includes("twitter") || domain.includes("x.com") || domain.includes("instagram") || domain.includes("linkedin")) return "social";
-  if (label.includes("contact") || pathname.includes("contact")) return "contact";
-  if (label.includes("about") || pathname.includes("about")) return "about";
-  if (domain === baseUrl.hostname.toLowerCase()) return "internal";
-  return "external";
-}
-
-function collectLinksFromHtml(html: string, baseUrl: string, maxLinks: number): LinkItem[] {
-  const $ = cheerio.load(html);
-  const parsedBase = new URL(baseUrl);
-  const seenUrls = new Set<string>();
-  const links: LinkItem[] = [];
-
-  $("a[href]").each((_, element) => {
-    if (links.length >= maxLinks) return false;
-
-    const $link = $(element);
-    const href = $link.attr("href");
-    const text = $link.text().replace(/\s+/g, " ").trim();
-    const title = ($link.attr("title") || "").trim();
-    if (!href || href.startsWith("mailto:") || href.startsWith("tel:") || href.startsWith("javascript:")) return;
-    if (!text && !title) return;
-
-    try {
-      const parsedUrl = new URL(href, baseUrl);
-      if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") return;
-      const normalized = parsedUrl.toString();
-      if (seenUrls.has(normalized)) return;
-      seenUrls.add(normalized);
-
-      links.push({
-        title: text || title || "No title",
-        url: normalized,
-        domain: parsedUrl.hostname.toLowerCase(),
-        category: categorizeLink(parsedUrl, parsedBase, text || title),
-        originalHref: href,
-      });
-    } catch {
-      return;
-    }
-  });
-
-  return links.sort((a, b) => {
-    if (a.category !== b.category) return a.category.localeCompare(b.category);
-    return a.title.localeCompare(b.title);
-  });
-}
-
-function linksToCsv(result: Omit<LinksResult, "csv">): string {
-  const rows = [
-    ["Title", "URL", "Domain", "Category", "Original Href"],
-    ...result.links.map((link) => [link.title, link.url, link.domain, link.category, link.originalHref]),
-  ];
-
-  return rows
-    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
-    .join("\n");
-}
-
-export async function extractLinks(url: string, maxLinks = 250): Promise<LinksResult> {
-  const pageUrl = parseHttpUrl(url).toString();
-  const boundedMaxLinks = Math.min(Math.max(Math.floor(maxLinks || 250), 1), 1000);
-
-  const response = await fetch(pageUrl, {
-    headers: { "User-Agent": ARTICLE_USER_AGENT, Accept: "text/html,application/xhtml+xml" },
-    redirect: "follow",
-  });
-
-  if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-
-  const contentType = response.headers.get("content-type") || "";
-  if (contentType && !contentType.includes("text/html")) {
-    throw new Error(`Expected HTML content, received ${contentType}`);
+    return {
+      url: finalUrl,
+      title: article.title || "Untitled",
+      author: article.byline || "Unknown",
+      siteName: article.siteName || domain,
+      domain,
+      excerpt: article.excerpt || cleanText.substring(0, 200) + "...",
+      content: cleanText,
+      wordCount,
+    };
+  } finally {
+    dom.window.close();
   }
-
-  const html = await response.text();
-  const finalUrl = response.url;
-  const links = collectLinksFromHtml(html, finalUrl, boundedMaxLinks);
-  const categories = links.reduce<Record<string, number>>((acc, link) => {
-    acc[link.category] = (acc[link.category] || 0) + 1;
-    return acc;
-  }, {});
-
-  const partial = { url: finalUrl, totalLinks: links.length, categories, links };
-  return { ...partial, csv: linksToCsv(partial) };
 }
 
-function escapeMarkdownTableCell(value: string): string {
-  return value.replace(/\|/g, "\\|").replace(/\n/g, " ");
-}
-
-function formatLinksResult(result: LinksResult, format = "markdown"): string {
-  if (format === "json") return JSON.stringify(result, null, 2);
-  if (format === "csv") return result.csv;
-
-  const categorySummary = Object.entries(result.categories)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([category, count]) => `${category}: ${count}`)
-    .join(", ");
-
-  const rows = result.links.map((link) => `| ${escapeMarkdownTableCell(link.title)} | ${escapeMarkdownTableCell(link.category)} | ${escapeMarkdownTableCell(link.url)} |`);
-
-  return `**Links Extracted**\n\n**URL:** ${result.url}\n**Total:** ${result.totalLinks}\n**Categories:** ${categorySummary || "none"}\n\n| Title | Category | URL |\n| --- | --- | --- |\n${rows.join("\n")}`;
+export function formatArticleResult(result: ArticleResult): string {
+  return `**Article Extracted**\n\n**Title:** ${result.title}\n**Author:** ${result.author}\n**Source:** ${result.siteName}\n**URL:** ${result.url}\n**Words:** ${result.wordCount}\n\n---\n\n${result.content}`;
 }
 
 // =============================================================================
@@ -582,6 +506,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     {
+      name: "extract_github",
+      description: "Extract GitHub repository, file, gist, or release content. Repository URLs include metadata and README content; binary release assets are classified without downloading them.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          url: { type: "string", description: "GitHub repository, file, gist, release, or raw.githubusercontent.com URL" },
+          output: { type: "string", description: "Optional file path to save markdown output" },
+        },
+        required: ["url"],
+      },
+    },
+    {
       name: "extract_links",
       description: "Extract and categorize links from an HTML page. Returns internal, external, document, video, social, contact, and about links.",
       inputSchema: {
@@ -593,6 +529,44 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           output: { type: "string", description: "Optional file path to save output" },
         },
         required: ["url"],
+      },
+    },
+    {
+      name: "extract_batch",
+      description: "Batch extract content from URL arrays, metadata items, or a CSV file. Deduplicates normalized URLs, routes each URL to the right extractor, classifies blocked/rate-limited failures, and writes per-link artifact folders plus a manifest, CSV report, and JSONL results file. Optional Playwright browser screenshot fallback captures page images for selected failed statuses and, when Tesseract is available, classifies captured screenshots as browser_captured, browser_blocked, browser_empty, browser_not_found, or browser_unclassified.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          urls: {
+            type: "array",
+            items: { type: "string" },
+            description: "Optional list of URLs to extract",
+          },
+          items: {
+            type: "array",
+            description: "Optional list of URL items with per-row metadata",
+            items: {
+              type: "object",
+              properties: {
+                id: { type: "string", description: "Optional stable row identifier" },
+                url: { type: "string", description: "URL to extract" },
+                metadata: { type: "object", description: "Optional caller metadata copied to the report" },
+              },
+              required: ["url"],
+            },
+          },
+          csv_path: { type: "string", description: "Optional local CSV path to read URLs from" },
+          url_column: { type: "string", description: "CSV column containing URLs (default: url)" },
+          output_dir: { type: "string", description: "Directory where content, manifest, report, and JSONL files are written" },
+          max_concurrency: { type: "number", minimum: 1, maximum: 10, description: "Maximum concurrent unique URL extractions (default: 4)" },
+          browser_fallback: { type: "boolean", description: "Enable Playwright browser screenshot fallback for blocked/rate-limited/fetch-failed URLs (default: false)" },
+          browser_timeout_ms: { type: "number", minimum: 1000, maximum: 60000, description: "Playwright browser screenshot fallback timeout in milliseconds (default: 15000)" },
+          browser_fallback_statuses: {
+            type: "array",
+            items: { type: "string", enum: ["blocked", "rate_limited", "fetch_failed", "error", "no_transcript"] },
+            description: "Statuses that should trigger Playwright browser screenshot fallback (default: blocked, rate_limited, fetch_failed)",
+          },
+        },
       },
     },
   ],
@@ -630,12 +604,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (args?.output) outputPath = resolveOutputPath(args.output as string, "article", data.title);
         break;
       }
+      case "extract_github": {
+        const data = await extractGitHub(args?.url as string);
+        result = formatGitHubResult(data);
+        if (args?.output) outputPath = resolveOutputPath(args.output as string, "github", data.title);
+        break;
+      }
       case "extract_links": {
         const data = await extractLinks(args?.url as string, args?.max_links as number);
         const format = (args?.format as string) || "markdown";
         result = formatLinksResult(data, format);
         const extension = format === "csv" || format === "json" ? format : "md";
         if (args?.output) outputPath = resolveOutputPath(args.output as string, "links", new URL(data.url).hostname, extension);
+        break;
+      }
+      case "extract_batch": {
+        const data = await extractBatch(args as any);
+        result = formatBatchResult(data);
         break;
       }
       default:
@@ -662,11 +647,16 @@ const cliArgs = process.argv.slice(2);
 const isMainModule = process.argv[1] ? import.meta.url === pathToFileURL(process.argv[1]).href : false;
 
 function detectPlatform(url: string): string | null {
-  if (url.includes("youtube.com") || url.includes("youtu.be")) return "youtube";
-  if (url.includes("reddit.com")) return "reddit";
-  if (url.includes("tiktok.com")) return "tiktok";
-  if (url.startsWith("http://") || url.startsWith("https://")) return "article";
-  return null;
+  try {
+    const parsed = parseHttpUrl(url);
+    if (hostnameMatches(parsed, ["youtube.com", "youtu.be"])) return "youtube";
+    if (hostnameMatches(parsed, ["reddit.com", "redd.it"])) return "reddit";
+    if (hostnameMatches(parsed, ["tiktok.com"])) return "tiktok";
+    if (hostnameMatches(parsed, ["github.com", "gist.github.com", "raw.githubusercontent.com"])) return "github";
+    return "article";
+  } catch {
+    return null;
+  }
 }
 
 if (isMainModule && cliArgs[0] === "links") {
@@ -732,6 +722,12 @@ else if (isMainModule && cliArgs.length > 0 && cliArgs[0] !== "--mcp") {
           const data = await extractArticle(url);
           result = formatArticleResult(data);
           if (output) outputPath = resolveOutputPath(output, "article", data.title);
+          break;
+        }
+        case "github": {
+          const data = await extractGitHub(url);
+          result = formatGitHubResult(data);
+          if (output) outputPath = resolveOutputPath(output, "github", data.title);
           break;
         }
         default:

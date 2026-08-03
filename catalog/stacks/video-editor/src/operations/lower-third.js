@@ -1,6 +1,6 @@
 import { artifactPath, loadProject, readJson, writeJson } from '../lib/files.js';
 
-const STYLES = new Set(['modern', 'classic', 'minimal']);
+const STYLES = new Set(['modern', 'classic', 'minimal', 'cinematic']);
 const POSITIONS = new Set(['bottom-left', 'bottom', 'bottom-right']);
 
 function normalizeNumber(rawValue, fallback, label, validator) {
@@ -27,11 +27,20 @@ function normalizeOptionalString(rawValue, fallback) {
   return String(rawValue ?? fallback).trim();
 }
 
+function normalizeOptionalNumber(rawValue, label, validator) {
+  if (rawValue === undefined || rawValue === null || rawValue === '') {
+    return undefined;
+  }
+
+  return normalizeNumber(rawValue, undefined, label, validator);
+}
+
 export function buildLowerThird(options = {}) {
   const title = normalizeString(options.title, null, 'Lower-third title');
   const subtitle = normalizeOptionalString(options.subtitle, '');
   const style = normalizeString(options.style, 'modern', 'Lower-third style');
   const position = normalizeString(options.position, 'bottom-left', 'Lower-third position');
+  const offsetY = normalizeOptionalNumber(options.offsetY, 'lower-third vertical offset', (value) => value >= 0);
 
   if (!STYLES.has(style)) {
     throw new Error(`Unknown lower-third style: ${style}`);
@@ -46,7 +55,8 @@ export function buildLowerThird(options = {}) {
     at: normalizeNumber(options.at, 0, 'lower-third start time', (value) => value >= 0),
     duration: normalizeNumber(options.duration, 5, 'lower-third duration', (value) => value > 0),
     style,
-    position
+    position,
+    ...(offsetY === undefined ? {} : { offsetY })
   };
 }
 

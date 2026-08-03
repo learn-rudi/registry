@@ -1,0 +1,52 @@
+{
+  "id": "stack:agent-hosts",
+  "kind": "stack",
+  "name": "Agent Hosts",
+  "version": "0.1.0",
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/agent-hosts"
+  },
+  "runtime": "node",
+  "requires": {
+    "binaries": [],
+    "secrets": [
+      {
+        "key": "DEEPSEEK_API_KEY",
+        "label": "DeepSeek API key",
+        "required": false,
+        "helpUrl": "https://platform.deepseek.com/api_keys"
+      }
+    ]
+  },
+  "provides": {
+    "tools": [
+      "agent_host_list",
+      "agent_host_probe",
+      "agent_host_invoke"
+    ]
+  },
+  "mcp": {
+    "transport": "stdio",
+    "command": "node",
+    "args": [
+      "src/index.js"
+    ],
+    "cwd": "."
+  },
+  "meta": {
+    "description": "Governed synchronous MCP gateway for a fixed local DeepSeek, Claude Code, and Codex Agent Host fleet.",
+    "author": "RUDI",
+    "license": "MIT",
+    "category": "ai-generation",
+    "tags": [
+      "agent-host",
+      "codex",
+      "claude-code",
+      "deepseek",
+      "headless",
+      "mcp"
+    ]
+  }
+}

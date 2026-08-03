@@ -180,6 +180,11 @@ Use `social_check_publish_ready` without options for a local credentials/config 
 
 `social_publish_direct` uses the same adapter contract as the queued publisher. It accepts `platform`, `body`, optional `title`, optional `target`, `media`, platform-keyed `metadata`, and requires `confirmPost=true` for live publishing. Use `dryRun=true` first to validate payload shape without credentials or network posting.
 
+For Facebook and Instagram, live direct publishing requires an explicit target.
+Pass a Facebook `pageId` or `target.platform_asset_id`, and pass an Instagram
+`account` or `target.platform_asset_id`. The stack refuses to fall back to the
+first active Page/account for live posts.
+
 For Instagram Reels, prefer the staged tools when media processing may outlive a single MCP tool call:
 
 1. `instagram_reel_create_container` with `confirmCreate=true`

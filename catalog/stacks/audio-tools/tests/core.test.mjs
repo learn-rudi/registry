@@ -12,6 +12,9 @@ import {
   isVideoPageUrl,
   resolveInput,
 } from "../dist/resolve-input.js";
+import {
+  preflightTranscriptionTools,
+} from "../dist/transcribe.js";
 
 test("audio default config is portable and env-overridable", () => {
   const home = "/tmp/rudi-home";
@@ -91,4 +94,28 @@ test("video page URLs are planned through yt-dlp audio extraction", () => {
   assert.ok(plan.args.includes("m4a"));
   assert.ok(plan.args.includes(youtube));
   assert.match(plan.outputTemplate, /clip-%\(id\)s\.\%\(ext\)s$/);
+});
+
+test("transcription preflight reports missing runtime binaries clearly", () => {
+  assert.throws(
+    () => preflightTranscriptionTools({
+      ffmpeg: "/definitely/missing/ffmpeg",
+      ffprobe: "/definitely/missing/ffprobe",
+      whisper: "/definitely/missing/whisper-cli",
+      whisper_model: "/definitely/missing/model.bin",
+    }),
+    /ffmpeg is not available in this runtime/
+  );
+});
+
+test("transcription preflight reports missing Whisper model clearly", () => {
+  assert.throws(
+    () => preflightTranscriptionTools({
+      ffmpeg: process.execPath,
+      ffprobe: process.execPath,
+      whisper: process.execPath,
+      whisper_model: "/definitely/missing/model.bin",
+    }),
+    /Whisper model not found/
+  );
 });
