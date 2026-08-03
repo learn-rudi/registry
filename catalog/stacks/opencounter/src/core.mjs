@@ -1,7 +1,22 @@
+import { createHash } from "node:crypto";
 import path from "node:path";
 
 const WORKFLOWS = new Set(["zoning", "business", "special_events", "residential"]);
 const OPENCOUNTER_ORIGIN = "https://opencounter.cincinnati-oh.gov";
+
+export function createOpenCounterToolResponse(result) {
+  if (!result || typeof result !== "object" || Array.isArray(result)) {
+    throw new Error("OpenCounter tool result is invalid.");
+  }
+  const text = JSON.stringify(result);
+  if (Buffer.byteLength(text, "utf8") > 500_000) {
+    throw new Error("OpenCounter tool result is too large.");
+  }
+  return {
+    content: [{ type: "text", text }],
+    structuredContent: structuredClone(result)
+  };
+}
 
 export function createOpenCounterService({
   driver,
@@ -25,6 +40,22 @@ export function createOpenCounterService({
         await driver.startZoningGuidance(normalized),
         now
       );
+    },
+    async reconcileZoningStart(input) {
+      if (zoningCatalogIndex === null) throw new Error("opencounter_catalog_unavailable");
+      const normalized = validateCatalogBoundZoningReconciliation(
+        input,
+        zoningCatalogIndex
+      );
+      const value = await driver.reconcileZoningStart(normalized);
+      try {
+        return validateDriverResult(value, now);
+      } catch {
+        return validateDriverResult({
+          providerReference: normalized.providerReference,
+          status: "indeterminate"
+        }, now);
+      }
     },
     async startGuidance(input) {
       const normalized = validateStart(input);
@@ -61,6 +92,35 @@ function validateCatalogBoundZoningStart(input, catalogIndex) {
     "jurisdiction",
     "schemaVersion"
   ]);
+  return resolveCatalogBoundZoningInput(input, catalogIndex);
+}
+
+function validateCatalogBoundZoningReconciliation(input, catalogIndex) {
+  exactKeys(input, [
+    "address",
+    "catalogEntryId",
+    "catalogId",
+    "jurisdiction",
+    "providerInputSha256",
+    "providerReference",
+    "schemaVersion"
+  ]);
+  const normalized = resolveCatalogBoundZoningInput(input, catalogIndex);
+  const providerInputSha256 = boundedSha256(
+    input.providerInputSha256,
+    "providerInputSha256"
+  );
+  if (providerInputSha256 !== createZoningProviderInputSha256(normalized)) {
+    throw new Error("opencounter_provider_input_digest_mismatch");
+  }
+  return {
+    ...normalized,
+    providerInputSha256,
+    providerReference: validateProviderReference(input.providerReference)
+  };
+}
+
+function resolveCatalogBoundZoningInput(input, catalogIndex) {
   if (input.schemaVersion !== 1) throw new Error("schemaVersion must be 1.");
   if (input.jurisdiction !== "cincinnati-oh") {
     throw new Error("jurisdiction must be cincinnati-oh.");
@@ -86,6 +146,25 @@ function validateCatalogBoundZoningStart(input, catalogIndex) {
     providerUseSlug: selected.entry.providerUseSlug,
     workflow: "zoning"
   };
+}
+
+export function createZoningProviderInputSha256(input) {
+  const keys = [
+    "address",
+    "catalogEntryId",
+    "catalogId",
+    "catalogSha256",
+    "categoryPath",
+    "description",
+    "jurisdiction",
+    "proposedUse",
+    "providerUseSlug",
+    "workflow"
+  ];
+  const canonical = Object.fromEntries(keys.map((key) => [key, input[key]]));
+  return createHash("sha256")
+    .update(JSON.stringify(canonical), "utf8")
+    .digest("hex");
 }
 
 function indexZoningCatalog(catalog) {
@@ -183,8 +262,13 @@ function validateDriverResult(value, now) {
       throw new Error("browser driver returned an invalid question set.");
     }
     const questions = value.questions.map(validateQuestion);
+    const checkpointSha256 = createGuidanceCheckpointSha256(
+      providerReference,
+      questions
+    );
     return {
       checkpoint: {
+        checkpointSha256,
         expiresAt: value.expiresAt ?? addHours(now(), 24),
         questions,
         schemaVersion: 1
@@ -196,8 +280,19 @@ function validateDriverResult(value, now) {
     };
   }
   if (value.status === "completed") {
+    const providerReference = validateProviderReference(value.providerReference);
+    const providerPdf = value.providerPdf === undefined
+      ? null
+      : validateExportResult(value.providerPdf, providerReference);
     return {
-      providerReference: validateProviderReference(value.providerReference),
+      ...(providerPdf === null ? {} : {
+        providerPdf: {
+          artifact: providerPdf.artifact,
+          sourceUrl: providerPdf.sourceUrl,
+          status: "exported"
+        }
+      }),
+      providerReference,
       result: validateResult(value.result),
       schemaVersion: 1,
       source: "opencounter",
@@ -222,6 +317,17 @@ function validateDriverResult(value, now) {
     };
   }
   throw new Error("browser driver status is unsupported.");
+}
+
+export function createGuidanceCheckpointSha256(providerReference, questions) {
+  const canonical = {
+    providerReference: validateProviderReference(providerReference),
+    questions: questions.map(validateQuestion),
+    schemaVersion: 1
+  };
+  return createHash("sha256")
+    .update(JSON.stringify(canonical), "utf8")
+    .digest("hex");
 }
 
 function validateExportResult(value, requestedProviderReference) {
@@ -289,7 +395,13 @@ function validateQuestion(question) {
   const prompt = boundedText(question.prompt, "question.prompt", 2_000);
   if (typeof question.required !== "boolean") throw new Error("question.required is invalid.");
   if (question.type === "text") return { id, prompt, required: question.required, type: "text" };
-  if (question.type !== "single_select" || !Array.isArray(question.options) || question.options.length < 2) {
+  const minimumOptions = id === "opencounter-address" ? 1 : 2;
+  if (
+    question.type !== "single_select"
+    || !Array.isArray(question.options)
+    || question.options.length < minimumOptions
+    || question.options.length > 50
+  ) {
     throw new Error("question type or options are invalid.");
   }
   return {
@@ -337,6 +449,13 @@ function exactKeys(value, expected) {
 function boundedText(value, field, max) {
   if (typeof value !== "string" || value.trim().length === 0 || value.length > max) throw new Error(`${field} is invalid.`);
   return value.trim();
+}
+
+function boundedSha256(value, field) {
+  if (typeof value !== "string" || !/^[0-9a-f]{64}$/.test(value)) {
+    throw new Error(`${field} is invalid.`);
+  }
+  return value;
 }
 
 function addHours(value, hours) {

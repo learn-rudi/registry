@@ -2,7 +2,7 @@
   "id": "stack:opencounter",
   "kind": "stack",
   "name": "OpenCounter Cincinnati Guidance",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "delivery": "remote",
   "install": { "source": "catalog", "path": "catalog/stacks/opencounter" },
   "runtime": "node",
@@ -17,6 +17,7 @@
     "tools": [
       "opencounter_get_zoning_use_catalog",
       "opencounter_start_zoning_guidance",
+      "opencounter_reconcile_zoning_start",
       "opencounter_start_guidance",
       "opencounter_continue_guidance",
       "opencounter_export_guidance",
@@ -31,8 +32,8 @@
     "license": "MIT",
     "category": "government-services",
     "tags": ["cincinnati", "opencounter", "zoning", "permits", "special-events", "residential", "playwright"],
-    "boundary": "Catalog-bound Zoning guidance, compatibility guidance, and requester-triggered provider PDF export only. No account creation, sign-in, terms acceptance, uploads, staff messages, application submission, or payment.",
-    "mcpSafety": "The Zoning start tool accepts only a packaged catalog identity and entry identity, resolves the exact provider label/slug internally, and performs a read-only provider fingerprint preflight before project creation. Compatibility tools remain available but are not admitted for the Service Desk Zoning Check. Browser contexts are isolated and closed after each bounded call; resumable anonymous state is encrypted at rest and expires after 24 hours. Export accepts only an opaque project reference, verifies bounded PDF bytes, and writes a content-addressed local RUDI artifact."
+    "boundary": "Catalog-bound Zoning guidance, compatibility guidance, and provider PDF export during requester-triggered completion or explicit recovery only. No account creation, sign-in, terms acceptance, uploads, staff messages, application submission, or payment.",
+    "mcpSafety": "The Zoning start tool accepts only a packaged catalog identity and entry identity, resolves the exact provider label/slug internally, and performs a read-only provider fingerprint preflight before project creation. The low-level Zoning reconciliation primitive additionally requires the exact normalized provider-input digest, cryptographically binds state to that digest and project, and can mutate only the same surviving project; it is not by itself a registered Service Desk reconciler. Compatibility tools remain available but are not admitted for the Service Desk Zoning Check. Browser contexts are isolated and closed after each bounded call; resumable anonymous state, normalized requested address, and canonical active checkpoint are encrypted at rest and expire after 24 hours. Continuation rejects stale checkpoint digests and unknown answers before browser dispatch, observes already-committed provider values instead of replaying them, and fails on conflicts. Completed continuation dismisses only the exact optional save modal, verifies bounded PDF bytes, writes a content-addressed local RUDI artifact, and returns its metadata."
   },
   "related": {
     "operatorSkill": "skill:opencounter",

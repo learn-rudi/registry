@@ -1,8 +1,52 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { test } from "node:test";
-import { createOpenCounterService } from "../src/core.mjs";
+import {
+  createGuidanceCheckpointSha256,
+  createOpenCounterService,
+  createOpenCounterToolResponse
+} from "../src/core.mjs";
+
+test("returns the same bounded checkpoint through MCP text and structured content", () => {
+  const result = {
+    checkpoint: {
+      checkpointSha256: "a".repeat(64),
+      expiresAt: "2026-08-04T15:00:00.000Z",
+      questions: [{
+        id: "opencounter-address",
+        options: [{
+          label: "4818 Stewart Avenue, Cincinnati, Ohio 45227",
+          value: "4818 Stewart Avenue, Cincinnati, Ohio 45227"
+        }],
+        prompt: "Which OpenCounter address match is the intended location?",
+        required: true,
+        type: "single_select"
+      }],
+      schemaVersion: 1
+    },
+    providerReference: "opencounter:project:2819848",
+    schemaVersion: 1,
+    source: "opencounter",
+    status: "needs_requester_input"
+  };
+
+  assert.deepEqual(createOpenCounterToolResponse(result), {
+    content: [{ type: "text", text: JSON.stringify(result) }],
+    structuredContent: result
+  });
+});
 
 test("returns a bounded requester checkpoint and resumes to a sourced result", async () => {
+  const providerReference = "opencounter:project:2818607";
+  const pdfSha256 = "f".repeat(64);
+  const providerPdfArtifact = {
+    artifactRef: `rudi-artifact:opencounter:${pdfSha256}`,
+    fileName: `opencounter-project-2818607-${pdfSha256}.pdf`,
+    localPath: `/tmp/opencounter-project-2818607-${pdfSha256}.pdf`,
+    mediaType: "application/pdf",
+    sha256: pdfSha256,
+    sizeBytes: 42_000
+  };
   const driver = {
     async startGuidance(input) {
       assert.equal(input.workflow, "zoning");
@@ -21,7 +65,13 @@ test("returns a bounded requester checkpoint and resumes to a sourced result", a
     async continueGuidance(input) {
       assert.equal(input.answers[0].value, "no");
       return {
-        providerReference: input.providerReference,
+        providerPdf: {
+          artifact: providerPdfArtifact,
+          providerReference,
+          sourceUrl: "https://opencounter.cincinnati-oh.gov/projects/2818607/apply/summary",
+          status: "exported"
+        },
+        providerReference,
         result: { classification: "Permitted with Limitations", parcelId: "014500010029" },
         status: "completed"
       };
@@ -36,13 +86,25 @@ test("returns a bounded requester checkpoint and resumes to a sourced result", a
   });
   assert.equal(started.status, "needs_requester_input");
   assert.equal(started.checkpoint.expiresAt, "2026-08-02T15:00:00.000Z");
+  assert.equal(
+    started.checkpoint.checkpointSha256,
+    createGuidanceCheckpointSha256(
+      "opencounter:project:2818607",
+      started.checkpoint.questions
+    )
+  );
   const completed = await service.continueGuidance({
     answers: [{ questionId: "outdoor-dining", value: "no" }],
-    checkpointSha256: "a".repeat(64),
+    checkpointSha256: started.checkpoint.checkpointSha256,
     providerReference: started.providerReference
   });
   assert.equal(completed.status, "completed");
   assert.equal(completed.source, "opencounter");
+  assert.deepEqual(completed.providerPdf, {
+    artifact: providerPdfArtifact,
+    sourceUrl: "https://opencounter.cincinnati-oh.gov/projects/2818607/apply/summary",
+    status: "exported"
+  });
 });
 
 test("preserves a known project reference when reconciliation is indeterminate", async () => {
@@ -63,6 +125,83 @@ test("preserves a known project reference when reconciliation is indeterminate",
     failureClass: "indeterminate",
     providerReference: "opencounter:project:2818678",
     providerRoute: "/projects/2818678/apply/questions",
+    schemaVersion: 1,
+    source: "opencounter",
+    status: "indeterminate"
+  });
+});
+
+test("contains invalid post-reconciliation output as indeterminate", async () => {
+  const zoningCatalog = {
+    catalogId: "cincinnati-opencounter-zoning-use-catalog-v1",
+    catalogSha256: "a".repeat(64),
+    categories: [{
+      categoryId: "residential_uses",
+      displayOrder: 0,
+      entries: [{
+        catalogEntryId: "residential_uses.multi_family_dwelling",
+        description: "Four or more dwelling units.",
+        displayOrder: 0,
+        providerLabel: "Multi-family dwelling",
+        providerUseSlug: "multi-family-dwelling"
+      }],
+      groups: [],
+      label: "Residential Uses",
+      providerCategoryId: 1,
+      providerCategorySlug: "residential-uses"
+    }],
+    jurisdiction: "cincinnati-oh",
+    provider: { tenantId: 71, tenantVersion: 307 },
+    schemaVersion: 1,
+    workflow: "zoning"
+  };
+  const normalized = {
+    address: "880 Ridgeway Avenue, Cincinnati, OH 45229",
+    catalogEntryId: "residential_uses.multi_family_dwelling",
+    catalogId: zoningCatalog.catalogId,
+    catalogSha256: zoningCatalog.catalogSha256,
+    categoryPath: ["Residential Uses"],
+    description: "Four or more dwelling units.",
+    jurisdiction: "cincinnati-oh",
+    proposedUse: "Multi-family dwelling",
+    providerUseSlug: "multi-family-dwelling",
+    workflow: "zoning"
+  };
+  const providerInputSha256 = createHash("sha256")
+    .update(JSON.stringify(Object.fromEntries(
+      Object.entries(normalized).sort(([left], [right]) => left.localeCompare(right))
+    )))
+    .digest("hex");
+  const service = createOpenCounterService({
+    driver: {
+      async reconcileZoningStart({ providerReference }) {
+        return {
+          providerReference,
+          questions: [{
+            id: "provider-question",
+            options: [{ label: "Only", value: "only" }],
+            prompt: "Malformed provider question",
+            required: true,
+            type: "single_select"
+          }],
+          status: "needs_requester_input"
+        };
+      }
+    },
+    zoningCatalog
+  });
+
+  assert.deepEqual(await service.reconcileZoningStart({
+    address: normalized.address,
+    catalogEntryId: normalized.catalogEntryId,
+    catalogId: normalized.catalogId,
+    jurisdiction: "cincinnati-oh",
+    providerInputSha256,
+    providerReference: "opencounter:project:2819756",
+    schemaVersion: 1
+  }), {
+    failureClass: "indeterminate",
+    providerReference: "opencounter:project:2819756",
     schemaVersion: 1,
     source: "opencounter",
     status: "indeterminate"
@@ -190,4 +329,88 @@ test("resolves one closed Zoning catalog entry before provider dispatch", async 
     /opencounter_use_not_found/
   );
   assert.equal(dispatches, 1);
+});
+
+test("reconciles only the same project with the exact digest-bound Zoning input", async () => {
+  const zoningCatalog = {
+    catalogId: "cincinnati-opencounter-zoning-use-catalog-v1",
+    catalogSha256: "a".repeat(64),
+    categories: [{
+      categoryId: "residential_uses",
+      displayOrder: 0,
+      entries: [],
+      groups: [{
+        entries: [{
+          catalogEntryId: "residential_uses.permanent_residential.multi_family_dwelling",
+          description: "A building or group of buildings that contain four or more dwelling units.",
+          displayOrder: 0,
+          providerLabel: "Multi-family dwelling",
+          providerUseSlug: "multi-family-dwelling"
+        }],
+        label: "Permanent Residential"
+      }],
+      label: "Residential Uses",
+      providerCategoryId: 1,
+      providerCategorySlug: "residential-uses"
+    }],
+    jurisdiction: "cincinnati-oh",
+    provider: { tenantId: 71, tenantVersion: 307 },
+    schemaVersion: 1,
+    workflow: "zoning"
+  };
+  const normalized = {
+    address: "880 Ridgeway Avenue, Cincinnati, OH 45229",
+    catalogEntryId: "residential_uses.permanent_residential.multi_family_dwelling",
+    catalogId: zoningCatalog.catalogId,
+    catalogSha256: zoningCatalog.catalogSha256,
+    categoryPath: ["Residential Uses", "Permanent Residential"],
+    description: "A building or group of buildings that contain four or more dwelling units.",
+    jurisdiction: "cincinnati-oh",
+    proposedUse: "Multi-family dwelling",
+    providerUseSlug: "multi-family-dwelling",
+    workflow: "zoning"
+  };
+  const providerInputSha256 = createHash("sha256")
+    .update(JSON.stringify(Object.fromEntries(
+      Object.entries(normalized).sort(([left], [right]) => left.localeCompare(right))
+    )))
+    .digest("hex");
+  const driver = {
+    async reconcileZoningStart(input) {
+      assert.deepEqual(input, {
+        ...normalized,
+        providerInputSha256,
+        providerReference: "opencounter:project:2819756"
+      });
+      return {
+        providerReference: input.providerReference,
+        questions: [{
+          id: "opencounter-address",
+          options: [
+            { label: "880 Ridgeway Avenue, Cincinnati, Ohio 45229", value: "880 Ridgeway Avenue, Cincinnati, Ohio 45229" }
+          ],
+          prompt: "Which OpenCounter address match is the intended location?",
+          required: true,
+          type: "single_select"
+        }],
+        status: "needs_requester_input"
+      };
+    }
+  };
+  const service = createOpenCounterService({ driver, zoningCatalog });
+  const input = {
+    address: normalized.address,
+    catalogEntryId: normalized.catalogEntryId,
+    catalogId: normalized.catalogId,
+    jurisdiction: "cincinnati-oh",
+    providerInputSha256,
+    providerReference: "opencounter:project:2819756",
+    schemaVersion: 1
+  };
+
+  assert.equal((await service.reconcileZoningStart(input)).status, "needs_requester_input");
+  await assert.rejects(
+    service.reconcileZoningStart({ ...input, providerInputSha256: "b".repeat(64) }),
+    /opencounter_provider_input_digest_mismatch/
+  );
 });

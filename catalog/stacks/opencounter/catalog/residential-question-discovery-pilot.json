@@ -1,0 +1,107 @@
+{
+  "authorizationRequired": true,
+  "catalogId": "cincinnati-opencounter-zoning-use-catalog-v1",
+  "catalogSha256": "0fa60c5b7588d51676961de779f2757ed0fb99f58d8cd257ced313a941c26bf0",
+  "entries": [
+    {
+      "catalogEntryId": "residential_uses.permanent_residential.attached_single_family_dwelling",
+      "scenario": {
+        "answerRules": [],
+        "assumptions": {
+          "attached": true,
+          "buildingCount": 1,
+          "existingUnits": 0,
+          "projectType": "new_construction",
+          "proposedUnits": 1
+        },
+        "scenarioId": "baseline-attached-single-family-new-construction",
+        "scenarioVersion": 1
+      }
+    },
+    {
+      "catalogEntryId": "residential_uses.permanent_residential.multi_family_dwelling",
+      "scenario": {
+        "answerRules": [],
+        "assumptions": {
+          "attached": false,
+          "buildingCount": 1,
+          "existingUnits": 0,
+          "projectType": "new_construction",
+          "proposedUnits": 4
+        },
+        "scenarioId": "baseline-multi-family-new-construction",
+        "scenarioVersion": 1
+      }
+    },
+    {
+      "catalogEntryId": "residential_uses.permanent_residential.single_family_dwelling",
+      "scenario": {
+        "answerRules": [],
+        "assumptions": {
+          "attached": false,
+          "buildingCount": 1,
+          "existingUnits": 0,
+          "projectType": "new_construction",
+          "proposedUnits": 1
+        },
+        "scenarioId": "baseline-single-family-new-construction",
+        "scenarioVersion": 1
+      }
+    },
+    {
+      "catalogEntryId": "residential_uses.permanent_residential.rowhouse_single_family_dwelling",
+      "scenario": {
+        "answerRules": [],
+        "assumptions": {
+          "attached": true,
+          "buildingCount": 1,
+          "existingUnits": 0,
+          "onIndividualLot": true,
+          "projectType": "new_construction",
+          "proposedUnits": 1
+        },
+        "scenarioId": "baseline-rowhouse-single-family-new-construction",
+        "scenarioVersion": 1
+      }
+    },
+    {
+      "catalogEntryId": "residential_uses.permanent_residential.two_family_dwelling",
+      "scenario": {
+        "answerRules": [],
+        "assumptions": {
+          "attached": false,
+          "buildingCount": 1,
+          "existingUnits": 0,
+          "projectType": "new_construction",
+          "proposedUnits": 2
+        },
+        "scenarioId": "baseline-two-family-new-construction",
+        "scenarioVersion": 1
+      }
+    },
+    {
+      "catalogEntryId": "residential_uses.permanent_residential.three_family_dwelling",
+      "scenario": {
+        "answerRules": [],
+        "assumptions": {
+          "attached": false,
+          "buildingCount": 1,
+          "existingUnits": 0,
+          "projectType": "new_construction",
+          "proposedUnits": 3
+        },
+        "scenarioId": "baseline-three-family-new-construction",
+        "scenarioVersion": 1
+      }
+    }
+  ],
+  "jurisdiction": "cincinnati-oh",
+  "leaseDurationSeconds": 900,
+  "maximumProviderConcurrency": 2,
+  "pilotId": "permanent-residential-question-discovery",
+  "pilotVersion": 1,
+  "propertyProfileCount": 3,
+  "schemaVersion": 1,
+  "tenantVersion": 307,
+  "workflow": "zoning"
+}

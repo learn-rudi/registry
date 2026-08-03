@@ -1,5 +1,35 @@
 import { chromium } from "playwright";
-import { validateProviderReference } from "./core.mjs";
+import {
+  createGuidanceCheckpointSha256,
+  createZoningProviderInputSha256,
+  validateProviderReference
+} from "./core.mjs";
+import {
+  assertGuidanceReadyToAdvance,
+  waitForProviderRouteToSettle
+} from "./guidance-navigation.mjs";
+import {
+  exportGuidancePdfFromSummary,
+  parseSummary,
+  parseSummaryHeadings
+} from "./summary-export.mjs";
+import {
+  providerUseLabelMatches,
+  providerUseRadioSelector,
+  verifyZoningUseBeforeProjectMutation,
+  waitForAddressOptions
+} from "./zoning-provider-contract.mjs";
+
+export {
+  assertGuidanceReadyToAdvance,
+  exportGuidancePdfFromSummary,
+  parseSummaryHeadings,
+  providerUseLabelMatches,
+  providerUseRadioSelector,
+  verifyZoningUseBeforeProjectMutation,
+  waitForAddressOptions,
+  waitForProviderRouteToSettle
+};
 
 const ORIGIN = "https://opencounter.cincinnati-oh.gov";
 const CHROMIUM_USER_AGENT =
@@ -13,41 +43,180 @@ const ROOT_BUTTONS = {
   zoning: { heading: "Zoning Portal", button: "Check my zoning" }
 };
 
-export function createPlaywrightOpenCounterDriver({ artifactStore, stateStore }) {
+export function createPlaywrightOpenCounterDriver({
+  artifactStore,
+  pageRunner = withPage,
+  reconcileZoningStartAction = reconcileExistingZoningStart,
+  stateStore
+}) {
   if (!stateStore) throw new Error("OpenCounter encrypted state store is required.");
   if (!artifactStore) throw new Error("OpenCounter artifact store is required.");
   return {
-    startZoningGuidance: (input) => withPage(null, async (page, context) => {
-      const result = await start(page, input);
-      await saveState(stateStore, context, result.providerReference);
-      return result;
-    }),
-    startGuidance: (input) => withPage(null, async (page, context) => {
-      const result = await start(page, input);
-      await saveState(stateStore, context, result.providerReference);
-      return result;
-    }),
-    continueGuidance: (input) => withPage(
-      stateStore.load(input.providerReference),
-      async (page, context) => {
-        const result = await continueRun(page, input);
-        await saveState(stateStore, context, input.providerReference);
-        return result;
+    startZoningGuidance: (input) => pageRunner(null, (page, context) =>
+      runResumableStart({ context, input, page, stateStore })),
+    startGuidance: (input) => pageRunner(null, (page, context) =>
+      runResumableStart({ context, input, page, stateStore })),
+    reconcileZoningStart: async (input) => {
+      const providerReference = validateProviderReference(input.providerReference);
+      let resumeState;
+      try {
+        resumeState = await stateStore.loadForReconciliation(
+          providerReference,
+          input.providerInputSha256
+        );
+      } catch (error) {
+        if (!isResumeStateFailure(error)) throw error;
+        return { providerReference, status: "indeterminate" };
       }
-    ),
-    getGuidanceResult: (input) => withPage(
-      stateStore.load(input.providerReference),
-      (page) => readExisting(page, input.providerReference)
-    ),
-    reconcileGuidance: (input) => withPage(
-      stateStore.load(input.providerReference),
-      (page) => readExisting(page, input.providerReference)
-    ),
-    exportGuidance: (input) => withPage(
+      return pageRunner(
+        Promise.resolve(resumeState.storageState),
+        (page, context) => runResumableReconciliation({
+          action: reconcileZoningStartAction,
+          bindingSha256: input.providerInputSha256,
+          context,
+          input,
+          needsBindingMigration: resumeState.needsBindingMigration,
+          page,
+          stateStore
+        })
+      );
+    },
+    continueGuidance: async (input) => {
+      const providerReference = validateProviderReference(input.providerReference);
+      let session;
+      try {
+        session = await stateStore.loadSession(providerReference);
+      } catch (error) {
+        if (!isResumeStateFailure(error)) throw error;
+        return { providerReference, status: "indeterminate" };
+      }
+      const activeCheckpoint = validateContinuationCheckpoint(
+        { ...input, providerReference },
+        session.guidanceState
+      );
+      return pageRunner(Promise.resolve(session.storageState), async (page, context) => {
+        const result = await continueRun(page, { ...input, activeCheckpoint });
+        const completed = result.status === "completed"
+          ? {
+            ...result,
+            providerPdf: await exportGuidancePdfFromSummary(
+              page,
+              artifactStore,
+              { providerReference }
+            )
+          }
+          : result;
+        await saveState(
+          stateStore,
+          context,
+          providerReference,
+          guidanceStateAfterResult(
+            providerReference,
+            session.guidanceState,
+            completed
+          )
+        );
+        return completed;
+      });
+    },
+    getGuidanceResult: (input) => runWithResumeState({
+      action: (page, _context, guidanceState) => readExisting(
+        page,
+        input.providerReference,
+        guidanceState
+      ),
+      pageRunner,
+      providerReference: input.providerReference,
+      stateStore
+    }),
+    reconcileGuidance: (input) => runWithResumeState({
+      action: (page, _context, guidanceState) => readExisting(
+        page,
+        input.providerReference,
+        guidanceState
+      ),
+      pageRunner,
+      providerReference: input.providerReference,
+      stateStore
+    }),
+    exportGuidance: (input) => pageRunner(
       stateStore.load(input.providerReference),
       (page) => exportGuidancePdfFromSummary(page, artifactStore, input)
     )
   };
+}
+
+async function runWithResumeState({
+  action,
+  pageRunner,
+  providerReference,
+  stateStore
+}) {
+  const validatedReference = validateProviderReference(providerReference);
+  let session;
+  try {
+    session = typeof stateStore.loadSession === "function"
+      ? await stateStore.loadSession(validatedReference)
+      : {
+        guidanceState: null,
+        storageState: await stateStore.load(validatedReference)
+      };
+  } catch (error) {
+    if (!isResumeStateFailure(error)) throw error;
+    return { providerReference: validatedReference, status: "indeterminate" };
+  }
+  return pageRunner(
+    Promise.resolve(session.storageState),
+    (page, context) => action(page, context, session.guidanceState)
+  );
+}
+
+function isResumeStateFailure(error) {
+  return error instanceof Error && new Set([
+    "opencounter_resume_state_expired",
+    "opencounter_resume_state_invalid",
+    "opencounter_resume_state_missing"
+  ]).has(error.message);
+}
+
+function validateContinuationCheckpoint(input, guidanceState) {
+  const activeCheckpoint = guidanceState?.activeCheckpoint;
+  if (!activeCheckpoint) throw new Error("opencounter_checkpoint_state_missing");
+  const expectedSha256 = createGuidanceCheckpointSha256(
+    input.providerReference,
+    activeCheckpoint.questions
+  );
+  if (activeCheckpoint.checkpointSha256 !== expectedSha256) {
+    throw new Error("opencounter_checkpoint_state_invalid");
+  }
+  if (input.checkpointSha256 !== expectedSha256) {
+    throw new Error("opencounter_checkpoint_mismatch");
+  }
+  if (!Array.isArray(input.answers)) {
+    throw new Error("opencounter_checkpoint_answers_invalid");
+  }
+  const questions = new Map(activeCheckpoint.questions.map((question) => [
+    question.id,
+    question
+  ]));
+  const answers = new Map();
+  for (const answer of input.answers) {
+    const question = questions.get(answer.questionId);
+    if (!question || answers.has(answer.questionId)) {
+      throw new Error("opencounter_checkpoint_answer_unknown");
+    }
+    if (question.type === "single_select"
+      && !question.options.some((option) => option.value === answer.value)) {
+      throw new Error("opencounter_checkpoint_answer_invalid");
+    }
+    answers.set(answer.questionId, answer.value);
+  }
+  if (activeCheckpoint.questions.some(
+    (question) => question.required && !answers.has(question.id)
+  )) {
+    throw new Error("opencounter_checkpoint_answers_incomplete");
+  }
+  return activeCheckpoint;
 }
 
 async function withPage(storageStatePromise, action) {
@@ -69,15 +238,246 @@ async function withPage(storageStatePromise, action) {
   }
 }
 
-async function saveState(stateStore, context, providerReference) {
+async function saveState(
+  stateStore,
+  context,
+  providerReference,
+  guidanceState
+) {
+  const storageState = await context.storageState();
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1_000).toISOString();
+  if (typeof stateStore.rewrite === "function") {
+    await stateStore.rewrite(
+      providerReference,
+      storageState,
+      expiresAt,
+      guidanceState
+    );
+    return;
+  }
   await stateStore.save(
     providerReference,
-    await context.storageState(),
-    new Date(Date.now() + 24 * 60 * 60 * 1_000).toISOString()
+    storageState,
+    expiresAt,
+    null,
+    guidanceState
   );
 }
 
-async function start(page, input) {
+function guidanceStateAfterResult(providerReference, current, result) {
+  if (!current) throw new Error("opencounter_checkpoint_state_missing");
+  if (result.status === "completed") {
+    return { ...current, activeCheckpoint: null };
+  }
+  if (result.status === "needs_requester_input") {
+    return {
+      ...current,
+      activeCheckpoint: {
+        checkpointSha256: createGuidanceCheckpointSha256(
+          providerReference,
+          result.questions
+        ),
+        questions: structuredClone(result.questions)
+      }
+    };
+  }
+  return current;
+}
+
+export async function runResumableStart({
+  context,
+  input,
+  now = () => new Date(),
+  page,
+  startAction = start,
+  stateStore
+}) {
+  let providerReference;
+  let guidanceState = {
+    activeCheckpoint: null,
+    requestedAddress: normalizeAddress(input.address)
+  };
+  const bindingSha256 = input.catalogEntryId === undefined
+    ? null
+    : createZoningProviderInputSha256(input);
+  const persistCreatedProject = async (value, result = null) => {
+    const validated = validateProviderReference(value);
+    if (providerReference !== undefined && providerReference !== validated) {
+      throw new Error("opencounter_project_reference_changed");
+    }
+    providerReference = validated;
+    if (result?.status === "needs_requester_input") {
+      guidanceState = {
+        ...guidanceState,
+        activeCheckpoint: {
+          checkpointSha256: createGuidanceCheckpointSha256(
+            validated,
+            result.questions
+          ),
+          questions: structuredClone(result.questions)
+        }
+      };
+    } else if (result?.status === "completed") {
+      guidanceState = { ...guidanceState, activeCheckpoint: null };
+    }
+    await saveStateAt(
+      stateStore,
+      context,
+      validated,
+      now,
+      bindingSha256,
+      guidanceState
+    );
+  };
+
+  try {
+    const result = await startAction(page, input, persistCreatedProject);
+    await persistCreatedProject(result.providerReference, result);
+    return result;
+  } catch (error) {
+    if (providerReference === undefined) throw error;
+    try {
+      await saveStateAt(
+        stateStore,
+        context,
+        providerReference,
+        now,
+        bindingSha256,
+        guidanceState
+      );
+    } catch {
+      // The project reference remains the only safe reconciliation identity.
+    }
+    const route = providerRouteForReference(page?.url?.(), providerReference);
+    return {
+      providerReference,
+      ...(route === null ? {} : { route }),
+      status: "indeterminate"
+    };
+  }
+}
+
+export async function runResumableReconciliation({
+  action,
+  bindingSha256,
+  context,
+  input,
+  needsBindingMigration,
+  now = () => new Date(),
+  page,
+  stateStore
+}) {
+  const providerReference = validateProviderReference(input.providerReference);
+  let guidanceState = {
+    activeCheckpoint: null,
+    requestedAddress: normalizeAddress(input.address)
+  };
+  let projectVerified = false;
+  let mutationStarted = false;
+  const controls = {
+    async onMutationStarted() {
+      if (!projectVerified) throw new Error("opencounter_reconciliation_project_unverified");
+      mutationStarted = true;
+    },
+    async onProjectVerified() {
+      if (projectVerified) return;
+      if (providerRouteForReference(page.url(), providerReference) === null) {
+        throw new Error("opencounter_reconciliation_project_mismatch");
+      }
+      if (needsBindingMigration) {
+        await saveStateAt(
+          stateStore,
+          context,
+          providerReference,
+          now,
+          bindingSha256,
+          guidanceState
+        );
+      }
+      projectVerified = true;
+    }
+  };
+  try {
+    const result = await action(page, input, controls);
+    if (!projectVerified) {
+      throw new Error("opencounter_reconciliation_project_unverified");
+    }
+    guidanceState = guidanceStateAfterResult(
+      providerReference,
+      guidanceState,
+      result
+    );
+    await saveStateAt(
+      stateStore,
+      context,
+      providerReference,
+      now,
+      bindingSha256,
+      guidanceState
+    );
+    return result;
+  } catch (error) {
+    if (!mutationStarted) throw error;
+    try {
+      await saveStateAt(
+        stateStore,
+        context,
+        providerReference,
+        now,
+        bindingSha256,
+        guidanceState
+      );
+    } catch {
+      // The command owner must treat this one-shot mutation as indeterminate.
+    }
+    const route = providerRouteForReference(page?.url?.(), providerReference);
+    return {
+      providerReference,
+      ...(route === null ? {} : { route }),
+      status: "indeterminate"
+    };
+  }
+}
+
+async function saveStateAt(
+  stateStore,
+  context,
+  providerReference,
+  now,
+  bindingSha256 = null,
+  guidanceState = null
+) {
+  const instant = now();
+  const timestamp = instant instanceof Date ? instant.getTime() : Date.parse(instant);
+  if (!Number.isFinite(timestamp)) throw new Error("opencounter_clock_invalid");
+  await stateStore.save(
+    providerReference,
+    await context.storageState(),
+    new Date(timestamp + 24 * 60 * 60 * 1_000).toISOString(),
+    bindingSha256,
+    guidanceState
+  );
+}
+
+function providerRouteForReference(value, providerReference) {
+  if (typeof value !== "string") return null;
+  try {
+    const parsed = new URL(value);
+    const projectId = providerReference.split(":").pop();
+    if (
+      parsed.origin !== ORIGIN
+      || !parsed.pathname.startsWith(`/projects/${projectId}/`)
+      || parsed.pathname.length > 2_000
+    ) {
+      return null;
+    }
+    return parsed.pathname;
+  } catch {
+    return null;
+  }
+}
+
+async function start(page, input, onProjectCreated) {
   if (input.catalogEntryId !== undefined) {
     await verifyZoningUseBeforeProjectMutation(page, input);
   }
@@ -89,6 +489,7 @@ async function start(page, input) {
   await startButton.click();
   await page.waitForURL(/\/projects\/[0-9]+\//, { timeout: 30_000 });
   const providerReference = referenceFromUrl(page.url());
+  await onProjectCreated(providerReference);
 
   if (input.workflow !== "zoning") {
     return await readPageState(page, providerReference);
@@ -103,16 +504,14 @@ async function start(page, input) {
   await search.click();
   const useRadio = input.providerUseSlug === undefined
     ? page.locator("label", { hasText: input.proposedUse }).locator("input[type=radio]")
-    : page.locator(
-      `input[type="radio"][value="use_code:${cssEscape(input.providerUseSlug)}"]`
-    );
+    : page.locator(providerUseRadioSelector(input.providerUseSlug));
   await useRadio.waitFor({ state: "visible", timeout: 15_000 });
   const radioCount = await useRadio.count();
   if (radioCount === 0) throw new Error("provider_ui_changed:use_radio");
   if (radioCount > 1) throw new Error("opencounter_use_ambiguous");
   const useLabel = useRadio.locator("xpath=ancestor::label");
   if (await useLabel.count() !== 1) throw new Error("provider_ui_changed:use_label");
-  if ((await useLabel.textContent())?.trim() !== input.proposedUse) {
+  if (!providerUseLabelMatches(await useLabel.textContent(), input.proposedUse)) {
     throw new Error("provider_ui_changed:use_label");
   }
   await useLabel.click({ force: true });
@@ -124,147 +523,77 @@ async function start(page, input) {
   await addressBox.waitFor({ state: "visible", timeout: 15_000 });
   if (await addressBox.count() !== 1) throw new Error("opencounter_ui_drift:address");
   await addressBox.fill(input.address);
-  await page.waitForFunction(() => (
-    new Set(Array.from(document.querySelectorAll("input[type=radio]"))
-      .map((input) => input.getAttribute("name"))).size >= 8
-  ), undefined, { timeout: 15_000 });
-  await page.waitForFunction((street) => (
-    Array.from(document.querySelectorAll("main *"))
-      .some((element) => element.children.length === 0
-        && element.textContent?.trim().startsWith(`${street},`)
-        && element.textContent.includes("Cincinnati, Ohio"))
-  ), input.address.split(",")[0].trim(), { timeout: 15_000 });
+  await waitForAddressOptions(page, input.address);
   return await readPageState(page, providerReference);
 }
 
-export async function verifyZoningUseBeforeProjectMutation(page, input) {
-  if (
-    !page?.request
-    || typeof page.request.get !== "function"
-    || typeof input?.proposedUse !== "string"
-    || typeof input.providerUseSlug !== "string"
-    || !Array.isArray(input.categoryPath)
-    || input.categoryPath.length < 1
-    || input.categoryPath.length > 2
-    || (input.description !== null && typeof input.description !== "string")
-  ) {
-    throw new Error("opencounter_catalog_contract_invalid");
-  }
-  const response = await page.request.get(`${ORIGIN}/api/zoning/uses`, {
-    headers: { accept: "application/json" },
-    params: { "filter[query_string]": input.proposedUse },
-    timeout: 15_000
-  });
-  if (!response.ok()) {
+async function reconcileExistingZoningStart(page, input, controls) {
+  await verifyZoningUseBeforeProjectMutation(page, input);
+  const providerReference = validateProviderReference(input.providerReference);
+  const projectId = providerReference.split(":").pop();
+  const response = await page.goto(
+    `${ORIGIN}/projects/${projectId}/guide/business_type`,
+    { waitUntil: "networkidle", timeout: 30_000 }
+  );
+  if (response?.status() === 404) return { status: "not_found" };
+  if (response && response.status() >= 400) {
     throw new Error(`opencounter_dependency_failure:${response.status()}`);
   }
-  const contentType = response.headers()["content-type"] ?? "";
-  if (!/^application\/json(?:;|$)/i.test(contentType)) {
-    throw new Error("provider_ui_changed:use_search_content_type");
+  if (page.url().includes("/apply/summary")) {
+    await controls.onProjectVerified();
+    return parseSummary(page, providerReference);
   }
-  const bytes = await response.body();
-  if (!Buffer.isBuffer(bytes) || bytes.byteLength > 100_000) {
-    throw new Error("provider_ui_changed:use_search_size");
+  if (providerRouteForReference(page.url(), providerReference) === null) {
+    throw new Error("opencounter_reconciliation_project_mismatch");
   }
-  let value;
-  try {
-    value = JSON.parse(bytes.toString("utf8"));
-  } catch {
-    throw new Error("provider_ui_changed:use_search_json");
-  }
-  exactProviderKeys(value, ["data"], "use search response");
-  if (!Array.isArray(value.data) || value.data.length > 20) {
-    throw new Error("provider_ui_changed:use_search_results");
-  }
-  const results = value.data.map((item, index) =>
-    validateProviderUseSearchResult(item, index)
-  );
-  const exactLabelMatches = results.filter((result) =>
-    result.name === input.proposedUse
-  );
-  if (exactLabelMatches.length > 1) throw new Error("opencounter_use_ambiguous");
-  if (exactLabelMatches.length === 0) {
-    if (results.some((result) => result.slug === input.providerUseSlug)) {
-      throw new Error("provider_ui_changed:use_label");
-    }
-    throw new Error("opencounter_use_not_found");
-  }
-  const match = exactLabelMatches[0];
-  const expectedFullName = `${input.categoryPath.join(" > ")} > ${input.proposedUse}`;
-  if (
-    match.slug !== input.providerUseSlug
-    || match.fullName !== expectedFullName
-    || normalizeProviderDescription(match.description)
-      !== normalizeProviderDescription(input.description)
-    || match.categoryName !== input.categoryPath[0]
-    || match.categoryIds.length !== input.categoryPath.length
-  ) {
-    throw new Error("provider_ui_changed:use_fingerprint");
-  }
-}
+  await controls.onProjectVerified();
 
-function validateProviderUseSearchResult(value, index) {
-  const path = `use search response.data[${index}]`;
-  exactProviderKeys(value, ["attributes", "id"], path);
-  if (!Number.isSafeInteger(value.id) || value.id < 1) {
-    throw new Error(`provider_ui_changed:${path}.id`);
+  const useBox = page.getByRole("textbox");
+  await useBox.waitFor({ state: "visible", timeout: 15_000 });
+  if (await useBox.count() !== 1) throw new Error("opencounter_ui_drift:use_textbox");
+  await useBox.fill(input.proposedUse);
+  const search = page.getByRole("button", { name: "Search", exact: true });
+  if (await search.count() !== 1) throw new Error("opencounter_ui_drift:search");
+  await search.click();
+  const useRadio = page.locator(providerUseRadioSelector(input.providerUseSlug));
+  await useRadio.waitFor({ state: "visible", timeout: 15_000 });
+  if (await useRadio.count() !== 1) throw new Error("opencounter_use_ambiguous");
+  const checkedUse = page.locator("input[type=radio]:checked");
+  if (await checkedUse.count() > 0 && !(await useRadio.isChecked())) {
+    throw new Error("opencounter_reconciliation_use_conflict");
   }
-  const attributes = value.attributes;
-  exactProviderKeys(attributes, [
-    "category_id",
-    "category_ids",
-    "category_name",
-    "description",
-    "featured",
-    "full_name",
-    "name",
-    "reference_url",
-    "slug"
-  ], `${path}.attributes`);
+  const useLabel = useRadio.locator("xpath=ancestor::label");
   if (
-    !Number.isSafeInteger(attributes.category_id)
-    || attributes.category_id < 1
-    || !Array.isArray(attributes.category_ids)
-    || attributes.category_ids.length < 1
-    || attributes.category_ids.length > 2
-    || attributes.category_ids.some((id) => !Number.isSafeInteger(id) || id < 1)
-    || attributes.category_id !== attributes.category_ids.at(-1)
-    || typeof attributes.category_name !== "string"
-    || typeof attributes.full_name !== "string"
-    || typeof attributes.name !== "string"
-    || typeof attributes.slug !== "string"
-    || (attributes.description !== null && typeof attributes.description !== "string")
+    await useLabel.count() !== 1
+    || !providerUseLabelMatches(await useLabel.textContent(), input.proposedUse)
   ) {
-    throw new Error(`provider_ui_changed:${path}.attributes`);
+    throw new Error("provider_ui_changed:use_label");
   }
-  return {
-    categoryIds: attributes.category_ids,
-    categoryName: attributes.category_name,
-    description: attributes.description,
-    fullName: attributes.full_name,
-    name: attributes.name,
-    slug: attributes.slug
-  };
-}
+  if (!(await useRadio.isChecked())) {
+    await controls.onMutationStarted();
+    await useLabel.click({ force: true });
+    if (!(await useRadio.isChecked())) throw new Error("opencounter_ui_drift:use_not_selected");
+  }
+  await controls.onMutationStarted();
+  await clickUnique(page, "Next");
+  await page.waitForURL(/\/guide\/location/, { timeout: 30_000 });
 
-function exactProviderKeys(value, expected, path) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`provider_ui_changed:${path}`);
-  }
-  const actual = Object.keys(value).sort();
-  const sorted = [...expected].sort();
+  const addressBox = page.getByRole("combobox", { name: "Address", exact: true });
+  await addressBox.waitFor({ state: "visible", timeout: 15_000 });
+  if (await addressBox.count() !== 1) throw new Error("opencounter_ui_drift:address");
+  const existingAddress = (await addressBox.inputValue()).trim();
   if (
-    actual.length !== sorted.length
-    || actual.some((key, index) => key !== sorted[index])
+    existingAddress !== ""
+    && normalizeAddress(existingAddress) !== normalizeAddress(input.address)
   ) {
-    throw new Error(`provider_ui_changed:${path}`);
+    throw new Error("opencounter_reconciliation_address_conflict");
   }
-}
-
-function normalizeProviderDescription(value) {
-  if (value === null) return null;
-  const normalized = value.trim();
-  return normalized === "" ? null : normalized;
+  if (existingAddress === "") {
+    await controls.onMutationStarted();
+    await addressBox.fill(input.address);
+  }
+  await waitForAddressOptions(page, input.address);
+  return readPageState(page, providerReference);
 }
 
 async function continueRun(page, input) {
@@ -276,35 +605,58 @@ async function continueRun(page, input) {
     if (answer.questionId === "opencounter-address") {
       const addressBox = page.getByRole("combobox", { name: "Address", exact: true });
       if (await addressBox.count() !== 1) throw new Error("opencounter_ui_drift:address");
-      await addressBox.fill(answer.value);
-      const addressChoice = page.getByText(answer.value, { exact: true });
-      await addressChoice.waitFor({ state: "visible", timeout: 15_000 });
-      if (await addressChoice.count() !== 1) throw new Error("opencounter_address_not_found");
-      await addressChoice.click();
+      const currentAddress = (await addressBox.inputValue()).trim();
+      if (currentAddress !== ""
+        && normalizeAddress(currentAddress) !== normalizeAddress(answer.value)) {
+        throw new Error("opencounter_address_conflict");
+      }
+      if (currentAddress === "") {
+        await addressBox.fill(answer.value);
+        const addressChoice = page.getByText(answer.value, { exact: true });
+        await addressChoice.waitFor({ state: "visible", timeout: 15_000 });
+        if (await addressChoice.count() !== 1) throw new Error("opencounter_address_not_found");
+        await addressChoice.click();
+      }
       const confirmAddress = page.getByRole("button", {
         name: "Select this address",
         exact: true
       });
       await page.waitForTimeout(500);
       const confirmCount = await confirmAddress.count();
-      if (confirmCount === 1) await confirmAddress.click();
+      if (confirmCount === 1 && await confirmAddress.isVisible()) {
+        await confirmAddress.click();
+        await confirmAddress.waitFor({ state: "hidden", timeout: 15_000 });
+      }
       else if (confirmCount > 1) throw new Error("opencounter_ui_drift:confirm_address");
       continue;
     }
     const radio = page.locator(`input[type="radio"][name="${cssEscape(answer.questionId)}"][value="${cssEscape(answer.value)}"]`);
     const text = page.locator(`input[type="text"][name="${cssEscape(answer.questionId)}"]`);
-    if (await radio.count() === 1) await radio.locator("xpath=ancestor::label").click({ force: true });
-    else if (await text.count() === 1) await text.fill(answer.value);
-    else throw new Error(`opencounter_ui_drift:answer:${answer.questionId}`);
-  }
-  const pendingAddressConfirmation = page.getByRole("button", {
-    name: "Select this address",
-    exact: true
-  });
-  if (await pendingAddressConfirmation.count() === 1) {
-    await pendingAddressConfirmation.click();
+    if (await radio.count() === 1) {
+      if (await radio.isChecked()) continue;
+      const conflictingRadio = page.locator(
+        `input[type="radio"][name="${cssEscape(answer.questionId)}"]:checked`
+      );
+      if (await conflictingRadio.count() > 0) {
+        throw new Error(`opencounter_answer_conflict:${answer.questionId}`);
+      }
+      await radio.locator("xpath=ancestor::label").click({ force: true });
+      if (!(await radio.isChecked())) {
+        throw new Error(`opencounter_answer_not_committed:${answer.questionId}`);
+      }
+    } else if (await text.count() === 1) {
+      const currentValue = (await text.inputValue()).trim();
+      if (currentValue === answer.value) continue;
+      if (currentValue !== "") {
+        throw new Error(`opencounter_answer_conflict:${answer.questionId}`);
+      }
+      await text.fill(answer.value);
+    } else {
+      throw new Error(`opencounter_ui_drift:answer:${answer.questionId}`);
+    }
   }
   await page.waitForTimeout(250);
+  await assertGuidanceReadyToAdvance(page);
   await clickUnique(page, "Next");
   await page.waitForLoadState("networkidle");
   if (page.url().includes("/apply/summary")) {
@@ -323,48 +675,24 @@ async function continueRun(page, input) {
   return await readPageState(page, providerReference);
 }
 
-async function readExisting(page, providerReference) {
+async function readExisting(page, providerReference, guidanceState = null) {
   const reference = validateProviderReference(providerReference);
   const id = reference.split(":").pop();
-  const response = await page.goto(`${ORIGIN}/projects/${id}/guide/location`, { waitUntil: "networkidle", timeout: 30_000 });
+  const response = await page.goto(`${ORIGIN}/projects/${id}/apply/summary`, { waitUntil: "networkidle", timeout: 30_000 });
   if (response?.status() === 404) return { status: "not_found" };
-  return await readPageState(page, reference);
+  return await readPageState(page, reference, guidanceState);
 }
 
-export async function exportGuidancePdfFromSummary(page, artifactStore, input) {
-  const providerReference = validateProviderReference(input?.providerReference);
-  if (!artifactStore || typeof artifactStore.persistPdf !== "function") {
-    throw new Error("OpenCounter artifact store is invalid.");
-  }
-  const projectId = providerReference.split(":").pop();
-  const sourceUrl = `${ORIGIN}/projects/${projectId}/apply/summary`;
-  const response = await page.goto(sourceUrl, { waitUntil: "networkidle", timeout: 30_000 });
-  if (response?.status() === 404) return { status: "not_found" };
-  if (response && response.status() >= 400) {
-    throw new Error(`opencounter_dependency_failure:${response.status()}`);
-  }
-
-  const downloadButton = page.getByRole("button", { name: "Download PDF", exact: true });
-  if (await downloadButton.count() !== 1
-    || !(await downloadButton.isVisible())
-    || !(await downloadButton.isEnabled())) {
-    throw new Error("opencounter_ui_drift:download_pdf");
-  }
-  const downloadPromise = page.waitForEvent("download", { timeout: 30_000 });
-  await downloadButton.click();
-  const download = await downloadPromise;
-  const downloadFailure = await download.failure();
-  if (downloadFailure) throw new Error("opencounter_download_failed");
-  const downloadPath = await download.path();
-  if (!downloadPath) throw new Error("opencounter_download_path_missing");
-  const artifact = await artifactStore.persistPdf({ downloadPath, providerReference });
-  return { artifact, providerReference, sourceUrl, status: "exported" };
-}
-
-async function readPageState(page, providerReference) {
+export async function readPageState(
+  page,
+  providerReference,
+  guidanceState = null
+) {
   await waitForProviderRouteToSettle(page);
   if (page.url().includes("/apply/summary")) return parseSummary(page, providerReference);
-  const questions = await page.evaluate(() => {
+  const fallbackAddressQuestion = guidanceState?.activeCheckpoint?.questions
+    ?.find((question) => question.id === "opencounter-address") ?? null;
+  const observed = await page.evaluate((checkpointFallback) => {
     const controls = Array.from(document.querySelectorAll("input[type=radio], input[type=text], textarea, select"));
     const groups = new Map();
     for (const control of controls) {
@@ -393,6 +721,8 @@ async function readPageState(page, providerReference) {
         .filter((text, index, values) => values.indexOf(text) === index)
         .slice(0, 20)
       : [];
+    const addressConfirmationPending = Array.from(document.querySelectorAll("button"))
+      .some((button) => button.textContent?.trim() === "Select this address");
     const result = Array.from(groups.values())
       .filter((question) => question.type === "text" || question.options.length >= 2);
     if (addressOptions.length > 0) {
@@ -403,9 +733,19 @@ async function readPageState(page, providerReference) {
         required: true,
         type: "single_select"
       });
+    } else if (addressConfirmationPending && checkpointFallback !== null) {
+      result.unshift(checkpointFallback);
     }
-    return result.slice(0, 50);
-  });
+    return {
+      addressConfirmationPending,
+      questions: result.slice(0, 50)
+    };
+  }, fallbackAddressQuestion);
+  const { addressConfirmationPending, questions } = observed;
+  if (addressConfirmationPending
+    && !questions.some((question) => question.id === "opencounter-address")) {
+    throw new Error("opencounter_address_checkpoint_missing");
+  }
   if (questions.length > 0) {
     return { providerReference, questions, status: "needs_requester_input" };
   }
@@ -414,45 +754,6 @@ async function readPageState(page, providerReference) {
     route: new URL(page.url()).pathname,
     status: "indeterminate"
   };
-}
-
-export async function waitForProviderRouteToSettle(page) {
-  let latestUrl = page.url();
-  let stableSamples = 0;
-  for (let sample = 0; sample < 20; sample += 1) {
-    await page.waitForTimeout(100);
-    const currentUrl = page.url();
-    if (currentUrl.includes("/apply/summary")) return currentUrl;
-    if (currentUrl === latestUrl) stableSamples += 1;
-    else stableSamples = 0;
-    latestUrl = currentUrl;
-    if (sample >= 9 && stableSamples >= 3) return latestUrl;
-  }
-  return latestUrl;
-}
-
-async function parseSummary(page, providerReference) {
-  await page.locator("main h1").waitFor({ state: "visible", timeout: 15_000 });
-  const sourceUrl = page.url();
-  const result = await page.evaluate(() => {
-    const headings = Array.from(document.querySelectorAll("main h1, main h2, main h3, main h4"))
-      .map((element) => element.textContent?.trim()).filter(Boolean).slice(0, 100);
-    const resultHeading = headings.find((text) => /Your project is /i.test(text)) || null;
-    const parcelHeading = headings.find((text) => /^Parcel ID:/i.test(text)) || null;
-    const districtHeading = headings.find((text) => /District/i.test(text) && !/^Zoning District$/i.test(text)) || null;
-    const locationHeading = Array.from(document.querySelectorAll("main *"))
-      .map((element) => element.textContent?.trim())
-      .find((text) => /^\d+.+Cincinnati, Ohio \d{5}$/.test(text || "")) || null;
-    return {
-      address: locationHeading,
-      classification: resultHeading?.replace(/^Your project is\s+/i, "").replace(/\s+at this location\.$/i, "") || null,
-      disclaimer: "Information is subject to final approval by City staff.",
-      parcelId: parcelHeading?.replace(/^Parcel ID:\s*/i, "") || null,
-      summaryHeadings: headings,
-      zoningDistrict: districtHeading
-    };
-  });
-  return { providerReference, result: { ...result, sourceUrl }, status: "completed" };
 }
 
 async function clickUnique(page, name) {
@@ -482,7 +783,13 @@ function referenceFromUrl(url) {
   if (!match) throw new Error("opencounter_project_reference_missing");
   return `opencounter:project:${match[1]}`;
 }
-
 function cssEscape(value) {
   return String(value).replace(/["\\]/g, "\\$&");
+}
+function normalizeAddress(value) {
+  return value
+    .toLowerCase()
+    .replace(/\bohio\b/g, "oh")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }

@@ -51,6 +51,7 @@ unavailable.
 
 - `opencounter_get_zoning_use_catalog`
 - `opencounter_start_zoning_guidance`
+- `opencounter_reconcile_zoning_start`
 - `opencounter_start_guidance`
 - `opencounter_continue_guidance`
 - `opencounter_export_guidance`
