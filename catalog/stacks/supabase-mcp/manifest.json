@@ -85,5 +85,11 @@
       ]
     },
     "mcpSafety": "Supabase recommends using MCP for development and testing, scoping to a project, and enabling read-only mode when connecting to sensitive data."
+  },
+  "related": {
+    "operatorSkill": "skill:supabase-mcp",
+    "skills": [
+      "skill:supabase-mcp"
+    ]
   }
 }

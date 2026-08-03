@@ -70,5 +70,11 @@
       "accounts",
       "balances"
     ]
+  },
+  "related": {
+    "operatorSkill": "skill:plaid",
+    "skills": [
+      "skill:plaid"
+    ]
   }
 }

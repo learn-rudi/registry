@@ -49,5 +49,11 @@
       "speech-to-text"
     ],
     "icon": "mic"
+  },
+  "related": {
+    "operatorSkill": "skill:audio-tools",
+    "skills": [
+      "skill:audio-tools"
+    ]
   }
 }

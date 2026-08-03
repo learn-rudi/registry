@@ -45,5 +45,11 @@
       "content"
     ],
     "icon": "📬"
+  },
+  "related": {
+    "operatorSkill": "skill:newsletter-extractor",
+    "skills": [
+      "skill:newsletter-extractor"
+    ]
   }
 }

@@ -60,5 +60,11 @@
       "remote"
     ],
     "icon": "building-2"
+  },
+  "related": {
+    "operatorSkill": "skill:dwellow-mcp",
+    "skills": [
+      "skill:dwellow-mcp"
+    ]
   }
 }

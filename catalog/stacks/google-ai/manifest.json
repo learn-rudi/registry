@@ -39,5 +39,11 @@
     "category": "ai-generation",
     "tags": ["ai", "google-ai", "gemini", "imagen", "veo"],
     "icon": "🎨"
+  },
+  "related": {
+    "operatorSkill": "skill:google-ai",
+    "skills": [
+      "skill:google-ai"
+    ]
   }
 }

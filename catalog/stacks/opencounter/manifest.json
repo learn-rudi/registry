@@ -33,5 +33,11 @@
     "tags": ["cincinnati", "opencounter", "zoning", "permits", "special-events", "residential", "playwright"],
     "boundary": "Catalog-bound Zoning guidance, compatibility guidance, and requester-triggered provider PDF export only. No account creation, sign-in, terms acceptance, uploads, staff messages, application submission, or payment.",
     "mcpSafety": "The Zoning start tool accepts only a packaged catalog identity and entry identity, resolves the exact provider label/slug internally, and performs a read-only provider fingerprint preflight before project creation. Compatibility tools remain available but are not admitted for the Service Desk Zoning Check. Browser contexts are isolated and closed after each bounded call; resumable anonymous state is encrypted at rest and expires after 24 hours. Export accepts only an opaque project reference, verifies bounded PDF bytes, and writes a content-addressed local RUDI artifact."
+  },
+  "related": {
+    "operatorSkill": "skill:opencounter",
+    "skills": [
+      "skill:opencounter"
+    ]
   }
 }

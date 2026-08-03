@@ -53,5 +53,11 @@
     "category": "communication",
     "tags": ["slack", "messaging", "chat", "team"],
     "icon": "💬"
+  },
+  "related": {
+    "operatorSkill": "skill:slack",
+    "skills": [
+      "skill:slack"
+    ]
   }
 }

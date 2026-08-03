@@ -67,5 +67,11 @@
     "icon": "rudi-crm",
     "boundary": "RUDI CRM exposes a controlled write/read contract over existing Postgres functions and views. It does not expose raw table writes or generic SQL execution.",
     "secretGuidance": "Use a scoped server-side Postgres credential in RUDI_CRM_DATABASE_URL. Never expose this value to clients or agents."
+  },
+  "related": {
+    "operatorSkill": "skill:rudi-crm",
+    "skills": [
+      "skill:rudi-crm"
+    ]
   }
 }

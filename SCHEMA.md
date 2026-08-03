@@ -378,11 +378,24 @@ Use `requires.stacks` for skill packages that need one or more stacks to perform
 ### `related`
 ```json
 "related": {
-  "skills": ["skill:shortform-your-words-script"]
+  "operatorSkill": "skill:rudi-video-editor",
+  "skills": [
+    "skill:rudi-video-editor",
+    "skill:shortform-your-words-script"
+  ]
 }
 ```
 
-Use `related.skills` for companion agent workflows commonly used with a package. A stack does not provide these skills as MCP tools; it advertises them so agents and installers can discover the instruction layer that belongs with the execution layer.
+Every published stack declares one `related.operatorSkill`. This is the primary
+host-invokable workflow that operates the stack's tools. The operator must also
+appear in `related.skills`, and its skill package must declare the stack in
+`requires.stacks`. Catalog validation enforces all three sides of this
+relationship.
+
+Use the remaining `related.skills` entries for optional companion workflows. A
+stack does not provide skills as MCP tools; it advertises them so agents and
+installers can discover the instruction layer that belongs with the execution
+layer.
 
 ### `mcp`
 ```json

@@ -122,5 +122,11 @@
       "tasks"
     ],
     "icon": "📧"
+  },
+  "related": {
+    "operatorSkill": "skill:google-workspace",
+    "skills": [
+      "skill:google-workspace"
+    ]
   }
 }

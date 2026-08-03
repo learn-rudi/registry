@@ -32,5 +32,11 @@
     "category": "ai-local",
     "tags": ["whisper", "transcription", "audio", "local", "speech-to-text"],
     "icon": "🎙️"
+  },
+  "related": {
+    "operatorSkill": "skill:whisper",
+    "skills": [
+      "skill:whisper"
+    ]
   }
 }

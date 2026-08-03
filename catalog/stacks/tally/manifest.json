@@ -51,5 +51,11 @@
     "license": "MIT",
     "category": "productivity",
     "tags": ["tally", "forms", "surveys", "data-collection", "feedback"]
+  },
+  "related": {
+    "operatorSkill": "skill:tally",
+    "skills": [
+      "skill:tally"
+    ]
   }
 }

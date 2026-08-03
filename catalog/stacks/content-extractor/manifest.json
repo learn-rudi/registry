@@ -85,5 +85,11 @@
       "scraping"
     ],
     "icon": "📥"
+  },
+  "related": {
+    "operatorSkill": "skill:content-extractor",
+    "skills": [
+      "skill:content-extractor"
+    ]
   }
 }

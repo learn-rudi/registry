@@ -39,5 +39,11 @@
     "category": "data",
     "tags": ["postgres", "postgresql", "database", "sql"],
     "icon": "🐘"
+  },
+  "related": {
+    "operatorSkill": "skill:postgres",
+    "skills": [
+      "skill:postgres"
+    ]
   }
 }

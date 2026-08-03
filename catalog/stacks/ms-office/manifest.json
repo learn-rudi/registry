@@ -32,5 +32,11 @@
     "category": "document-processing",
     "tags": ["microsoft", "office", "word", "excel", "docx", "xlsx"],
     "icon": "📄"
+  },
+  "related": {
+    "operatorSkill": "skill:ms-office",
+    "skills": [
+      "skill:ms-office"
+    ]
   }
 }

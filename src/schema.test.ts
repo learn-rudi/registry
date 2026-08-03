@@ -439,7 +439,8 @@ describe("schema validation - valid manifests", () => {
         tools: ["video_trim", "video_speed", "video_concat"],
       },
       related: {
-        skills: ["skill:shortform-your-words-script"],
+        operatorSkill: "skill:rudi-video-editor",
+        skills: ["skill:rudi-video-editor", "skill:shortform-your-words-script"],
       },
       mcp: {
         transport: "stdio",
@@ -471,6 +472,38 @@ describe("schema validation - valid manifests", () => {
       },
       related: {
         skills: ["stack:video-editor"],
+      },
+      mcp: {
+        transport: "stdio",
+        command: "npx",
+      },
+    };
+
+    const valid = validate(manifest);
+    expect(valid).toBe(false);
+    expect(getErrorMessages(validate)).toContainEqual(
+      expect.stringContaining("pattern")
+    );
+  });
+
+  it("should reject related.operatorSkill when it is not a skill package id", () => {
+    const manifest = {
+      id: "stack:video-editor",
+      kind: "stack",
+      name: "Video Editor",
+      version: "1.0.0",
+      delivery: "remote",
+      install: {
+        source: "catalog",
+        path: "catalog/stacks/video-editor",
+      },
+      runtime: "node",
+      provides: {
+        tools: ["video_trim"],
+      },
+      related: {
+        operatorSkill: "stack:video-editor",
+        skills: ["skill:rudi-video-editor"],
       },
       mcp: {
         transport: "stdio",

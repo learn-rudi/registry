@@ -74,5 +74,11 @@
     "category": "communication",
     "tags": ["twilio", "sms", "messaging", "mcp", "communication"],
     "icon": "💬"
+  },
+  "related": {
+    "operatorSkill": "skill:twilio-sms",
+    "skills": [
+      "skill:twilio-sms"
+    ]
   }
 }

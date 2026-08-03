@@ -38,5 +38,11 @@
     "category": "data",
     "tags": ["sqlite", "database", "sql", "local"],
     "icon": "📊"
+  },
+  "related": {
+    "operatorSkill": "skill:sqlite",
+    "skills": [
+      "skill:sqlite"
+    ]
   }
 }

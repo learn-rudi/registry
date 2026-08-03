@@ -10,6 +10,10 @@ command:
 provides:
   tools:
     - example_tool
+related:
+  operatorSkill: skill:example-stack
+  skills:
+    - skill:example-stack
 requires:
   binaries:
     - ffmpeg
@@ -58,3 +62,10 @@ rudi run stack:example-stack --input '{"param": "hello"}'
 ## Output
 
 Describe what the stack outputs.
+
+## Required Operator Skill
+
+Add `catalog/skills/example-stack.md` with `requires.stacks` containing
+`stack:example-stack`. The skill must translate user requests into calls to the
+manifest-declared tools, use the live tool schema for parameters, confirm risky
+mutations, validate results, and verify completed changes.

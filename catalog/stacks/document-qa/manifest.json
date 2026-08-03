@@ -41,5 +41,11 @@
     "category": "document-processing",
     "tags": ["qa", "vision", "html", "pdf", "validation"],
     "icon": "🔍"
+  },
+  "related": {
+    "operatorSkill": "skill:document-qa",
+    "skills": [
+      "skill:document-qa"
+    ]
   }
 }

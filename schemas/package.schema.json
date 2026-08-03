@@ -494,6 +494,11 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "operatorSkill": {
+          "type": "string",
+          "pattern": "^skill:[a-z0-9][a-z0-9-_]*$",
+          "description": "Primary agent skill that operates this stack's tools"
+        },
         "skills": {
           "type": "array",
           "items": {

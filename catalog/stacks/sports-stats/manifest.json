@@ -43,5 +43,11 @@
       "basketball-reference"
     ],
     "icon": "🏀"
+  },
+  "related": {
+    "operatorSkill": "skill:sports-stats",
+    "skills": [
+      "skill:sports-stats"
+    ]
   }
 }

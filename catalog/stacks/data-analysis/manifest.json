@@ -43,5 +43,11 @@
     "category": "data",
     "tags": ["data", "analysis", "python", "pandas", "charts"],
     "icon": "📈"
+  },
+  "related": {
+    "operatorSkill": "skill:data-analysis",
+    "skills": [
+      "skill:data-analysis"
+    ]
   }
 }

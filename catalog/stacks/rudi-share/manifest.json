@@ -33,6 +33,7 @@
     ]
   },
   "related": {
+    "operatorSkill": "skill:share-web-app",
     "skills": [
       "skill:share-web-app"
     ]

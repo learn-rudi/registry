@@ -49,5 +49,11 @@
       "auth": "oauth",
       "bridgePackage": "mcp-remote@0.1.38"
     }
+  },
+  "related": {
+    "operatorSkill": "skill:otter-mcp",
+    "skills": [
+      "skill:otter-mcp"
+    ]
   }
 }

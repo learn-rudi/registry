@@ -27,6 +27,7 @@
   },
 
   "related": {
+    "operatorSkill": "skill:swe-compliance-checklist",
     "skills": [
       "skill:swe-compliance-checklist"
     ]

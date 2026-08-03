@@ -57,5 +57,11 @@
     "category": "deployment",
     "tags": ["vercel", "deployment", "serverless", "hosting"],
     "icon": "⚡"
+  },
+  "related": {
+    "operatorSkill": "skill:vercel",
+    "skills": [
+      "skill:vercel"
+    ]
   }
 }

@@ -24,6 +24,7 @@
     ]
   },
   "related": {
+    "operatorSkill": "skill:inline-editorial-markup",
     "skills": [
       "skill:inline-editorial-markup"
     ]

@@ -188,13 +188,27 @@ describe("index structure", () => {
 
   it("should preserve related skill relationships in generated indexes", async () => {
     const index = (await readJson("dist/index.json")) as {
-      packages: Record<string, { kind: string; related?: { skills?: string[] } }>;
+      packages: Record<string, {
+        kind: string;
+        related?: { operatorSkill?: string; skills?: string[] };
+        requires?: { stacks?: string[] };
+      }>;
     };
 
     const relatedSkillIds = Object.values(index.packages)
       .flatMap((pkg) => pkg.related?.skills ?? []);
     expect(relatedSkillIds.length).toBeGreaterThan(0);
     expect(relatedSkillIds.every((id) => index.packages[id]?.kind === "skill")).toBe(true);
+
+    const stacks = Object.entries(index.packages)
+      .filter(([, pkg]) => pkg.kind === "stack");
+    expect(stacks.length).toBeGreaterThan(0);
+    for (const [stackId, stack] of stacks) {
+      const operatorSkill = stack.related?.operatorSkill;
+      expect(operatorSkill).toMatch(/^skill:/);
+      expect(stack.related?.skills).toContain(operatorSkill);
+      expect(index.packages[operatorSkill!]?.requires?.stacks).toContain(stackId);
+    }
   });
 
   it("publishes declared lifecycle metadata and implemented packages", async () => {

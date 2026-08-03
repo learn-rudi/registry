@@ -70,5 +70,11 @@
       "search"
     ],
     "icon": "processor"
+  },
+  "related": {
+    "operatorSkill": "skill:rudi-processor",
+    "skills": [
+      "skill:rudi-processor"
+    ]
   }
 }

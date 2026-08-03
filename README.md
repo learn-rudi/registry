@@ -80,6 +80,10 @@ Minimal manifest:
     ]
   },
   "provides": { "tools": ["my_tool"] },
+  "related": {
+    "operatorSkill": "skill:my-stack",
+    "skills": ["skill:my-stack"]
+  },
   "mcp": {
     "transport": "stdio",
     "command": "node",
@@ -95,8 +99,11 @@ Minimal manifest:
 }
 ```
 
-Use `related.skills` for companion workflows. `provides.tools` is only for MCP
-tools exposed by the stack.
+Every stack must have one primary operator skill. Add its standalone catalog
+skill, declare the stack in that skill's `requires.stacks`, set
+`related.operatorSkill`, and include the same ID in `related.skills`. Additional
+`related.skills` entries are optional companion workflows. `provides.tools` is
+only for MCP tools exposed by the stack.
 
 `lifecycle` is optional and omission means unclassified. Do not claim
 `stable` or `supported` without evidence. Deprecated packages carry an
@@ -111,6 +118,11 @@ Use either a flat file at `catalog/skills/{skill-id}.md` or a bundle rooted at
 `references/`, and `assets/`. Catalog packages must be portable: personal paths,
 client state, account data, and brand-specific defaults belong in local/private
 skills or `~/.rudi` state.
+
+An operator skill translates user intent into actual stack tool calls. It must
+name its required stack in frontmatter, use the live MCP tool schema as the
+parameter authority, define mutation confirmation and failure behavior, and
+verify externally visible changes when the stack supports a read-back.
 
 ## Adding a Binary, Runtime, or Agent
 

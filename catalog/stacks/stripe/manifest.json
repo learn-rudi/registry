@@ -52,5 +52,11 @@
       "payment-links"
     ],
     "icon": "credit-card"
+  },
+  "related": {
+    "operatorSkill": "skill:stripe",
+    "skills": [
+      "skill:stripe"
+    ]
   }
 }

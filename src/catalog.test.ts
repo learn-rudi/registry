@@ -130,6 +130,77 @@ description: Demonstrates bundled skill package discovery
     });
   });
 
+  it("rejects a published stack without a primary operator skill", async () => {
+    await writeDemoStack();
+
+    const packages = await discoverCatalogPackages(tmpDir);
+
+    expect(() => assertCatalogReferences(packages)).toThrow(
+      "[stack:demo] related.operatorSkill is required for published stacks"
+    );
+  });
+
+  it("rejects an operator skill that is absent from related.skills", async () => {
+    await writeDemoStack();
+    const manifestPath = path.join(tmpDir, "catalog/stacks/demo/manifest.json");
+    const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8"));
+    await writeJson(manifestPath, {
+      ...manifest,
+      related: {
+        operatorSkill: "skill:demo-operator",
+        skills: [],
+      },
+    });
+    await writeText(
+      path.join(tmpDir, "catalog/skills/demo-operator.md"),
+      `---
+name: Demo Operator
+description: Operates the demo stack
+requires:
+  stacks:
+    - stack:demo
+---
+
+# Demo Operator
+`
+    );
+
+    const packages = await discoverCatalogPackages(tmpDir);
+
+    expect(() => assertCatalogReferences(packages)).toThrow(
+      "[stack:demo] related.operatorSkill must also appear in related.skills: skill:demo-operator"
+    );
+  });
+
+  it("rejects an operator skill that does not require its stack", async () => {
+    await writeDemoStack();
+    const manifestPath = path.join(tmpDir, "catalog/stacks/demo/manifest.json");
+    const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8"));
+    await writeJson(manifestPath, {
+      ...manifest,
+      related: {
+        operatorSkill: "skill:demo-operator",
+        skills: ["skill:demo-operator"],
+      },
+    });
+    await writeText(
+      path.join(tmpDir, "catalog/skills/demo-operator.md"),
+      `---
+name: Demo Operator
+description: Claims to operate the demo stack without requiring it
+---
+
+# Demo Operator
+`
+    );
+
+    const packages = await discoverCatalogPackages(tmpDir);
+
+    expect(() => assertCatalogReferences(packages)).toThrow(
+      "[stack:demo] operator skill skill:demo-operator must declare stack:demo in requires.stacks"
+    );
+  });
+
   it("rejects stack related.skills references to unknown skills", async () => {
     await writeJson(path.join(tmpDir, "catalog/stacks/demo/manifest.json"), {
       id: "stack:demo",

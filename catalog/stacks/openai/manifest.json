@@ -39,5 +39,11 @@
     "category": "ai-generation",
     "tags": ["ai", "openai", "dalle", "whisper", "tts", "sora"],
     "icon": "🤖"
+  },
+  "related": {
+    "operatorSkill": "skill:openai",
+    "skills": [
+      "skill:openai"
+    ]
   }
 }

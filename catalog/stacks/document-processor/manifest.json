@@ -37,5 +37,11 @@
     "category": "document-processing",
     "tags": ["pdf", "slides", "watermark", "extraction", "images", "presentation"],
     "icon": "📄"
+  },
+  "related": {
+    "operatorSkill": "skill:document-processor",
+    "skills": [
+      "skill:document-processor"
+    ]
   }
 }

@@ -5,6 +5,9 @@ version: 1.0.0
 category: coding
 icon: ✅
 tags: [rudi, swe, compliance, checklist, testing, verification, engineering]
+requires:
+  stacks:
+    - stack:swe-engineering
 ---
 
 # RUDI SWE Compliance Checklist

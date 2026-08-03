@@ -22,5 +22,11 @@
     "category": "government-data",
     "tags": ["cincinnati", "hamilton-county", "cagis", "parcels", "zoning"],
     "boundary": "Read-only CAGIS facts only. Zoning context is marked complete only for a matched Cincinnati provider result with valid code, overlay array, source identity, and fetched time. No permit, case, inspection, or parcel mutation tools are exposed."
+  },
+  "related": {
+    "operatorSkill": "skill:cagis",
+    "skills": [
+      "skill:cagis"
+    ]
   }
 }

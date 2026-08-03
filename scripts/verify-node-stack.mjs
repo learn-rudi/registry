@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 
 const RESPONSE_TIMEOUT_MS = 15_000;
+const SHUTDOWN_GRACE_MS = 1_000;
 const MAX_OUTPUT_BYTES = 1024 * 1024;
 const FORWARDED_ENV_KEYS = [
   "PATH",
@@ -67,6 +68,35 @@ function assertContainedCwd(stackRoot, configuredCwd) {
   return cwd;
 }
 
+function delay(ms, value) {
+  return new Promise((resolve) => setTimeout(resolve, ms, value));
+}
+
+function signalChildTree(child, signal) {
+  if (process.platform !== "win32" && child.pid) {
+    try {
+      process.kill(-child.pid, signal);
+      return;
+    } catch (error) {
+      if (error?.code !== "ESRCH") throw error;
+      return;
+    }
+  }
+  child.kill(signal);
+}
+
+async function stopChildTree(child, closed) {
+  if (!child) return;
+  child.stdin?.end();
+  if (await Promise.race([closed, delay(SHUTDOWN_GRACE_MS, false)])) return;
+
+  signalChildTree(child, "SIGTERM");
+  if (await Promise.race([closed, delay(SHUTDOWN_GRACE_MS, false)])) return;
+
+  signalChildTree(child, "SIGKILL");
+  await Promise.race([closed, delay(SHUTDOWN_GRACE_MS, false)]);
+}
+
 async function verify() {
   const stackRoot = process.cwd();
   const manifest = JSON.parse(
@@ -98,14 +128,17 @@ async function verify() {
   const cwd = assertContainedCwd(stackRoot, manifest.mcp.cwd ?? ".");
   const state = await verificationState();
   let child;
+  let childClosed = Promise.resolve(true);
 
   try {
     child = spawn(command, args, {
       cwd,
       env: childEnvironment(state.home, state.rudiHome),
+      detached: process.platform !== "win32",
       shell: false,
       stdio: ["pipe", "pipe", "pipe"],
     });
+    childClosed = new Promise((resolve) => child.once("close", () => resolve(true)));
     let stderr = "";
     child.stderr.on("data", (chunk) => {
       stderr = (stderr + chunk.toString("utf8")).slice(-MAX_OUTPUT_BYTES);
@@ -210,7 +243,7 @@ async function verify() {
         `${expectedTools.length === 1 ? "tool" : "tools"}).`
     );
   } finally {
-    child?.kill("SIGTERM");
+    await stopChildTree(child, childClosed);
     if (state.owned) {
       await fs.rm(state.home, { recursive: true, force: true });
     }

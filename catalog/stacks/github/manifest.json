@@ -100,5 +100,11 @@
     "category": "development",
     "tags": ["github", "git", "repos", "prs", "issues", "releases", "actions"],
     "icon": "🐙"
+  },
+  "related": {
+    "operatorSkill": "skill:github",
+    "skills": [
+      "skill:github"
+    ]
   }
 }

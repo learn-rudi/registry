@@ -63,5 +63,11 @@
       "content-creation"
     ],
     "icon": "audio-lines"
+  },
+  "related": {
+    "operatorSkill": "skill:speech-generator",
+    "skills": [
+      "skill:speech-generator"
+    ]
   }
 }

@@ -30,11 +30,31 @@ overlays hold personal voice, brand defaults, client paths, and approval rules.
 
 The goal is that a non-technical user can work with an agent and say what they want done. The agent should use the stack to execute and the related skills to follow the right workflow.
 
+## Primary Operator Contract
+
+As of 2026-08-03, every published stack has one primary operator skill:
+
+- `related.operatorSkill` identifies the host-invokable operating layer.
+- The operator ID also appears in `related.skills`.
+- The operator skill declares the stack in `requires.stacks`.
+- Catalog validation rejects missing, unknown, non-related, or non-reciprocal
+  operators.
+- Installing a stack installs a missing operator skill automatically and syncs
+  a non-destructive native wrapper into detected Codex and Claude hosts.
+- Additional `related.skills` entries remain optional companion workflows.
+
+This gives users one predictable entry point without collapsing MCP tools and
+agent instructions into the same package concept. Claude users invoke the
+native skill as `/skill-name`; Codex users select it with `/skills` or mention
+it as `$skill-name`.
+
 ## Vocabulary
 
 - **Stack**: executable capability layer. Includes runtime, binaries, MCP server, CLI commands, schemas, connectors, and secret requirements.
 - **Skill**: editable agent instruction layer. Explains how to think through and perform a workflow.
 - **Stack-related skill**: a skill designed to use, feed, or guide a specific stack.
+- **Operator skill**: the required primary skill that translates user intent
+  into calls to one stack's tools.
 - **`provides.tools`**: MCP tools a stack exposes directly.
 - **`related.skills`**: companion agent workflows commonly used with a package. These are not MCP tools.
 - **`requires.stacks`**: dependency from a skill or workflow to the stack it needs.
@@ -99,9 +119,12 @@ Dense-image overlay rule:
 - [x] Added `skill:shortform-your-words-script` to `stack:video-editor` manifest.
 - [x] Added matching `related.skills` entry to `index.json`.
 - [x] Linked the skill from the video-editor README.
-- [ ] CLI installer does not yet auto-install or offer stack-related skills when installing a stack.
-- [ ] CLI list/info/status commands do not yet surface `related.skills` as a first-class relationship.
-- [ ] Agent integration does not yet auto-load installed related skills when a stack is active.
+- [x] CLI installer automatically installs the operator skill and offers or
+  flags optional companion skills.
+- [x] CLI list/info commands surface the operator and companion relationships.
+- [x] Freshly installed skills sync into detected Codex and Claude native skill
+  directories without overwriting existing wrappers.
+- [ ] Status does not yet report native wrapper drift for every supported host.
 
 ## Files Already Touched
 
@@ -195,7 +218,7 @@ Reason:
 ### 3. Stack Manifest
 
 - [x] Add `related.skills` to `catalog/stacks/video-editor/manifest.json`.
-- [ ] Audit other stacks for obvious related-skill candidates.
+- [x] Give every published stack a primary operator skill.
 - [ ] Do not add skills to `provides`.
 - [ ] Keep each related skill as a standalone registry skill so users can install and edit it.
 
@@ -234,13 +257,13 @@ Current state:
 
 Needed:
 
-- [ ] Teach dependency resolver about `related.skills`.
-- [ ] Decide whether `related.skills` are installed automatically or offered interactively.
-- [ ] Recommended behavior:
-  - default: install required dependencies automatically
-  - default: offer related skills with a yes/no prompt
-  - `--with-related-skills`: install all related skills without prompting
-  - `--no-related-skills`: skip related skills
+- [x] Teach dependency resolution to distinguish the operator from companion
+  skills.
+- [x] Install the operator automatically and offer companions interactively.
+- [x] Current behavior:
+  - default: install the operator automatically and offer missing companions
+  - `--with-related-skills`: install the operator and all missing companions
+  - `--no-related-skills`: install the operator and skip companions
   - `--json`: report related skills and planned action without interactive text
 - [ ] When installing a stack, show:
   - stack tools

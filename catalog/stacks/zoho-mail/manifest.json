@@ -70,5 +70,11 @@
       "attachments"
     ],
     "icon": "mail"
+  },
+  "related": {
+    "operatorSkill": "skill:zoho-mail",
+    "skills": [
+      "skill:zoho-mail"
+    ]
   }
 }

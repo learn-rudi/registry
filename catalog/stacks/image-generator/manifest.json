@@ -72,5 +72,11 @@
     "icon": "🎨",
     "boundary": "Canonical image-generation stack. Midjourney support is limited to dedicated-profile login, idempotent prompt submission, authenticated session checks, and requester-triggered export of job variations. No arbitrary navigation, selectors, likes, follows, deletes, edits, uploads, billing, or account management.",
     "mcpSafety": "Midjourney browser state remains in a dedicated local RUDI profile and is never returned over MCP. Generation requires a caller-provided request_id; ambiguous prior submissions fail closed. Job IDs and variation indexes are validated, UI controls are exact and fail closed on drift, and downloaded image files are size-, signature-, digest-, source-, and output-boundary-validated."
+  },
+  "related": {
+    "operatorSkill": "skill:image-generator",
+    "skills": [
+      "skill:image-generator"
+    ]
   }
 }

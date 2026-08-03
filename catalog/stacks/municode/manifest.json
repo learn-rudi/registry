@@ -41,5 +41,11 @@
       "zoning"
     ],
     "boundary": "Exposes one release-configured composite only. Callers cannot choose publication IDs, node IDs, origins, or primitive browse/read operations. Synthetic fixtures are never production-ready. Provider text is source evidence, not legal advice, completeness, applicability, approval, or permitting."
+  },
+  "related": {
+    "operatorSkill": "skill:municode",
+    "skills": [
+      "skill:municode"
+    ]
   }
 }

@@ -20,15 +20,24 @@ npm install
 2. Add the canonical `manifest.json`.
 3. Add MCP source under `src/`, `node/`, or `python/`, following nearby package
    conventions.
-4. Add focused tests for the exposed behavior and the stack-local verification
+4. Add a primary operator skill under `catalog/skills/`. Set the manifest's
+   `related.operatorSkill`, include it in `related.skills`, and declare the
+   stack in the skill's `requires.stacks` frontmatter.
+5. Add focused tests for the exposed behavior and the stack-local verification
    entrypoint described below.
-5. Run the validation and generation gates below.
-6. Test installation with an isolated RUDI home and local registry checkout.
+6. Run the validation and generation gates below.
+7. Test installation with an isolated RUDI home and local registry checkout.
 
 The manifest must identify the package as `stack:{stack-id}`, use
 `kind:"stack"`, declare `install.source:"catalog"`, expose real MCP tools, and
 list all required binaries and secret names. See [SCHEMA.md](SCHEMA.md) for the
 complete shape.
+
+The operator skill is part of the stack contract, not an optional example. It
+must tell an agent when to use the stack, use real manifest-declared tools,
+validate tool results, obtain confirmation before destructive or externally
+visible actions, and define verification and partial-failure behavior. Optional
+cross-stack recipes remain companion entries in `related.skills`.
 
 Lifecycle metadata is a public compatibility promise. Omit it when the package
 has not been classified. Use `experimental` or `stable` for maturity and
@@ -85,6 +94,10 @@ Use either `catalog/skills/{id}.md` or a bundle rooted at
 `catalog/skills/{id}/SKILL.md`. Include portable YAML frontmatter with at least
 `name` and `description`. Keep personal, client-specific, brand-specific, and
 machine-specific workflow state out of public packages.
+
+When the skill is a stack operator, add `requires.stacks` and keep the
+relationship reciprocal through the stack's `related.operatorSkill` and
+`related.skills` fields.
 
 Unsupported package ideas belong under `docs/proposals/`, not `catalog/`.
 

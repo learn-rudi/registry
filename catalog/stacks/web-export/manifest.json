@@ -32,5 +32,11 @@
     "category": "document-processing",
     "tags": ["export", "pdf", "png", "html", "artboard", "print", "screenshot", "playwright", "diagnostics"],
     "icon": "📄"
+  },
+  "related": {
+    "operatorSkill": "skill:web-export",
+    "skills": [
+      "skill:web-export"
+    ]
   }
 }

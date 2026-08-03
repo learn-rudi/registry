@@ -507,6 +507,37 @@ export function assertCatalogReferences(packages: CatalogPackageFile[]): void {
       }
     }
 
+    if (item.manifest.kind === "stack" && !item.manifest.related?.operatorSkill) {
+      throw new CatalogPackageError(
+        "related.operatorSkill is required for published stacks",
+        item.path,
+        item.manifest.id
+      );
+    }
+
+    const operatorSkill = item.manifest.related?.operatorSkill;
+    if (
+      item.manifest.kind === "stack" &&
+      operatorSkill &&
+      !item.manifest.related?.skills?.includes(operatorSkill)
+    ) {
+      throw new CatalogPackageError(
+        `related.operatorSkill must also appear in related.skills: ${operatorSkill}`,
+        item.path,
+        item.manifest.id
+      );
+    }
+    if (item.manifest.kind === "stack" && operatorSkill) {
+      const operatorPackage = byId.get(operatorSkill);
+      if (!operatorPackage?.manifest.requires?.stacks?.includes(item.manifest.id)) {
+        throw new CatalogPackageError(
+          `operator skill ${operatorSkill} must declare ${item.manifest.id} in requires.stacks`,
+          item.path,
+          item.manifest.id
+        );
+      }
+    }
+
     for (const stackId of item.manifest.requires?.stacks ?? []) {
       if (!stackIds.has(stackId)) {
         throw new CatalogPackageError(

@@ -96,6 +96,7 @@ export interface Provides {
 }
 
 export interface Related {
+  operatorSkill?: string;
   skills?: string[];
 }
 

@@ -68,5 +68,11 @@
       "social-media"
     ],
     "icon": "cloud-upload"
+  },
+  "related": {
+    "operatorSkill": "skill:cloudinary",
+    "skills": [
+      "skill:cloudinary"
+    ]
   }
 }

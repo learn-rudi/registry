@@ -71,5 +71,11 @@
       "Automation for Finder, Reminders, and target app control"
     ],
     "icon": "⌘"
+  },
+  "related": {
+    "operatorSkill": "skill:macos-automation",
+    "skills": [
+      "skill:macos-automation"
+    ]
   }
 }

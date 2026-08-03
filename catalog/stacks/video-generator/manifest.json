@@ -72,5 +72,11 @@
       "social-media"
     ],
     "icon": "video"
+  },
+  "related": {
+    "operatorSkill": "skill:video-generator",
+    "skills": [
+      "skill:video-generator"
+    ]
   }
 }

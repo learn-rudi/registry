@@ -22,5 +22,11 @@
     "category": "government-data",
     "tags": ["hamilton-county", "auditor", "parcels", "ownership", "valuation", "sales"],
     "boundary": "Read-only Hamilton County Auditor facts only. The stack exposes no refresh, payment, filing, or parcel mutation tools."
+  },
+  "related": {
+    "operatorSkill": "skill:hamilton-county-auditor",
+    "skills": [
+      "skill:hamilton-county-auditor"
+    ]
   }
 }
