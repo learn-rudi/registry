@@ -1,7 +1,7 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-08-03T18:09:52.000Z",
+  "generatedAt": "2026-08-03T22:44:03.000Z",
   "stats": {
     "total": 147,
     "byKind": {
@@ -4278,7 +4278,7 @@
       "id": "stack:image-generator",
       "kind": "stack",
       "name": "Image Generator",
-      "version": "0.2.0",
+      "version": "0.4.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -4348,8 +4348,8 @@
           "social-media"
         ],
         "icon": "🎨",
-        "boundary": "Canonical image-generation stack. Midjourney support is limited to dedicated-profile login, idempotent prompt submission, authenticated session checks, and requester-triggered export of job variations. No arbitrary navigation, selectors, likes, follows, deletes, edits, uploads, billing, or account management.",
-        "mcpSafety": "Midjourney browser state remains in a dedicated local RUDI profile and is never returned over MCP. Generation requires a caller-provided request_id; ambiguous prior submissions fail closed. Job IDs and variation indexes are validated, UI controls are exact and fail closed on drift, and downloaded image files are size-, signature-, digest-, source-, and output-boundary-validated."
+        "boundary": "Canonical image-generation stack. Midjourney support is limited to dedicated-profile login, idempotent prompt submission, bounded reference uploads from RUDI input/output roots, authenticated session checks, and requester-triggered export of job variations. No arbitrary navigation, selectors, likes, follows, deletes, edits, billing, or account management.",
+        "mcpSafety": "Midjourney browser state remains in a dedicated local RUDI profile and is never returned over MCP. Generation requires a caller-provided request_id; ambiguous prior submissions fail closed. Reference uploads reject URLs, traversal, symlinks, non-images, files over 10 MB, and paths outside RUDI input/output roots; content digests participate in idempotency. Job IDs, variation indexes, UI controls, and downloaded artifacts are validated and fail closed."
       },
       "related": {
         "operatorSkill": "skill:image-generator",
@@ -4815,7 +4815,7 @@
       "id": "stack:opencounter",
       "kind": "stack",
       "name": "OpenCounter Cincinnati Guidance",
-      "version": "0.3.0",
+      "version": "0.5.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -4841,6 +4841,7 @@
         "tools": [
           "opencounter_get_zoning_use_catalog",
           "opencounter_start_zoning_guidance",
+          "opencounter_reconcile_zoning_start",
           "opencounter_start_guidance",
           "opencounter_continue_guidance",
           "opencounter_export_guidance",
@@ -4870,8 +4871,8 @@
           "residential",
           "playwright"
         ],
-        "boundary": "Catalog-bound Zoning guidance, compatibility guidance, and requester-triggered provider PDF export only. No account creation, sign-in, terms acceptance, uploads, staff messages, application submission, or payment.",
-        "mcpSafety": "The Zoning start tool accepts only a packaged catalog identity and entry identity, resolves the exact provider label/slug internally, and performs a read-only provider fingerprint preflight before project creation. Compatibility tools remain available but are not admitted for the Service Desk Zoning Check. Browser contexts are isolated and closed after each bounded call; resumable anonymous state is encrypted at rest and expires after 24 hours. Export accepts only an opaque project reference, verifies bounded PDF bytes, and writes a content-addressed local RUDI artifact."
+        "boundary": "Catalog-bound Zoning guidance, compatibility guidance, and provider PDF export during requester-triggered completion or explicit recovery only. No account creation, sign-in, terms acceptance, uploads, staff messages, application submission, or payment.",
+        "mcpSafety": "The Zoning start tool accepts only a packaged catalog identity and entry identity, resolves the exact provider label/slug internally, and performs a read-only provider fingerprint preflight before project creation. The low-level Zoning reconciliation primitive additionally requires the exact normalized provider-input digest, cryptographically binds state to that digest and project, and can mutate only the same surviving project; it is not by itself a registered Service Desk reconciler. Compatibility tools remain available but are not admitted for the Service Desk Zoning Check. Browser contexts are isolated and closed after each bounded call; resumable anonymous state, normalized requested address, and canonical active checkpoint are encrypted at rest and expire after 24 hours. Continuation rejects stale checkpoint digests and unknown answers before browser dispatch, observes already-committed provider values instead of replaying them, and fails on conflicts. Completed continuation dismisses only the exact optional save modal, verifies bounded PDF bytes, writes a content-addressed local RUDI artifact, and returns its metadata."
       },
       "related": {
         "operatorSkill": "skill:opencounter",
