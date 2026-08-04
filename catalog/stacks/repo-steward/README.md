@@ -1,19 +1,42 @@
 # Repo Steward
 
-Repo Steward is a local MCP stack for safely observing a configured fleet of
-Git repositories and coordinating continuous-improvement work. It reports
-repository state, optionally fetches remote metadata when repository policy
-allows it, grants one bounded worker lease per repository, and records a
-durable action and verification ledger.
+Repo Steward is a local MCP stack for turning one directory path into a safely
+observed fleet of nested Git worktrees. It discovers repositories again on
+every stewardship run, reports their state, optionally fetches remote metadata
+when root policy allows it, grants one bounded worker lease per repository,
+and records a durable action and verification ledger.
 
 The stack never stages, commits, pushes, merges, resets, or cleans. GitHub
 issues and pull requests are also outside this stack; use `stack:github` under
 the related operator skill when those actions are authorized.
 
-## Configuration
+## One-path flow
 
-Set `REPO_STEWARD_CONFIG_PATH` to an absolute path containing the exact
-repository allowlist:
+A user can say:
+
+> Steward every Git repository under `/workspace/RUDI`.
+
+The operator calls `repo_steward_enroll_root` once with that absolute path.
+Enrollment is stored beneath `$RUDI_HOME/state/repo-steward`, and the response
+immediately identifies the root worktree and every nested worktree. Later
+preflight, discovery, fleet, status, lease, and ledger calls rediscover the
+subtree, so repositories created by other agents appear automatically.
+
+Discovery is deterministic and bounded. It does not follow symlinks or descend
+into `.git`, `node_modules`, `.venv`, `venv`, `.cache`, `.rudi`, Python cache,
+pytest, mypy, or tox directories. The default maximum depth is 12 and the hard
+maximum is 32. At most 100,000 directories and 1,000 repositories are accepted
+per root discovery.
+
+Repository IDs remain stable while the root ID and relative path remain the
+same. The root worktree is `<root-id>--root`; a child such as `apps/registry`
+is `<root-id>--apps--registry`.
+
+## Optional external configuration
+
+Local enrollment is the normal user path. Deployments can also set
+`REPO_STEWARD_CONFIG_PATH` to an absolute JSON file containing explicit
+repositories, discovery roots, or both:
 
 ```bash
 export REPO_STEWARD_CONFIG_PATH=/workspace/config/repo-steward.json
@@ -22,6 +45,14 @@ export REPO_STEWARD_CONFIG_PATH=/workspace/config/repo-steward.json
 ```json
 {
   "schemaVersion": 1,
+  "roots": [
+    {
+      "id": "rudi",
+      "path": "/workspace/RUDI",
+      "fetchAllowed": false,
+      "maxDepth": 12
+    }
+  ],
   "repositories": [
     {
       "id": "primary-app",
@@ -32,8 +63,9 @@ export REPO_STEWARD_CONFIG_PATH=/workspace/config/repo-steward.json
 }
 ```
 
-Each path must resolve to the exact Git top-level directory. Symlink aliases,
-nested directories, duplicate IDs, duplicate paths, unknown fields, and
+Explicit repository paths must resolve to exact Git top-level directories.
+Root paths must be real directories and cannot overlap another configured or
+enrolled root. Duplicate IDs, duplicate paths, unknown fields, and
 unconfigured repositories are rejected. `fetchAllowed` defaults to `false`.
 
 Local state is written beneath `$RUDI_HOME/state/repo-steward`. No credentials
@@ -44,6 +76,10 @@ without embedded credentials, and token-like text in summaries is redacted.
 
 - `repo_steward_preflight` validates configuration, Git availability, and the
   local state directory.
+- `repo_steward_enroll_root` persistently enrolls one absolute directory path
+  and immediately returns its discovered Git worktrees.
+- `repo_steward_discover_repositories` rediscovers configured roots without
+  reading repository file contents or changing Git state.
 - `repo_steward_scan_fleet` scans every configured repository and can perform
   an explicit policy-permitted `git fetch --prune` first.
 - `repo_steward_get_status` returns one repository's branch, upstream,
@@ -64,11 +100,12 @@ Actions begin as `proposed`, then move through explicit states such as
 the current action version, preventing one worker from silently overwriting
 another. Completion requires at least one passing verification record.
 
-Repo Steward supplies coordination and evidence, not autonomous authority. A
-host agent or scheduler decides when to run the workflow. The operator must
-inspect repository instructions and diffs, protect unknown user changes, run
-the repository's own verification, and obtain any approval required for Git or
-GitHub mutations.
+Repo Steward supplies discovery, coordination, and evidence, not autonomous
+authority. A host agent or scheduler decides when to run the workflow. The
+operator must inspect repository instructions and diffs, protect unknown user
+changes, separate coherent work, run repository verification, and obtain any
+approval required for Git or GitHub mutations. That agent may make targeted
+commits; the stack itself never guesses what should be committed.
 
 ## Verification
 

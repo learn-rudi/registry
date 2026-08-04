@@ -2,7 +2,7 @@
   "id": "stack:repo-steward",
   "kind": "stack",
   "name": "Repo Steward",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "delivery": "remote",
   "install": {
     "source": "catalog",
@@ -18,6 +18,8 @@
   "provides": {
     "tools": [
       "repo_steward_preflight",
+      "repo_steward_enroll_root",
+      "repo_steward_discover_repositories",
       "repo_steward_scan_fleet",
       "repo_steward_get_status",
       "repo_steward_acquire_lease",
@@ -45,7 +47,7 @@
     "cwd": "."
   },
   "meta": {
-    "description": "Safely inspect configured Git repository fleets, coordinate one repository worker at a time, and maintain a durable local improvement-action ledger.",
+    "description": "Enroll one workspace path, safely discover its nested Git worktrees, coordinate one repository worker at a time, and maintain a durable local improvement-action ledger.",
     "author": "RUDI",
     "license": "MIT",
     "category": "development",

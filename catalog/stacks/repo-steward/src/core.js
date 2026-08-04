@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
@@ -12,6 +12,23 @@ const DEFAULT_GIT_TIMEOUT_MS = 30_000;
 const FETCH_GIT_TIMEOUT_MS = 120_000;
 const MAX_GIT_OUTPUT_BYTES = 1024 * 1024;
 const MAX_REPOSITORIES = 1000;
+const MAX_DISCOVERY_DIRECTORIES = 100_000;
+const DEFAULT_DISCOVERY_DEPTH = 12;
+const MAX_DISCOVERY_DEPTH = 32;
+const ENROLLMENT_LOCK_TTL_MS = 30_000;
+const MAX_ENROLLMENT_HISTORY = 500;
+const DISCOVERY_EXCLUDED_DIRECTORIES = new Set([
+  ".cache",
+  ".git",
+  ".mypy_cache",
+  ".pytest_cache",
+  ".rudi",
+  ".tox",
+  ".venv",
+  "__pycache__",
+  "node_modules",
+  "venv",
+]);
 const REPOSITORY_ID_PATTERN = /^[a-z0-9][a-z0-9._-]{0,127}$/;
 const LEASE_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const ACTION_ID_PATTERN = /^[a-z0-9][a-z0-9._-]{0,127}$/;
@@ -84,7 +101,7 @@ function requireRepositoryId(value, label = "repo_id") {
 }
 
 function boundedInteger(value, label, { defaultValue, min, max }) {
-  if (value === undefined || value === null) return defaultValue;
+  if (value === undefined) return defaultValue;
   if (!Number.isSafeInteger(value) || value < min || value > max) {
     throw new Error(`${label} must be an integer from ${min} to ${max}.`);
   }
@@ -177,9 +194,7 @@ async function tryGit(repositoryPath, args) {
 
 function configuredPath(options = {}) {
   const value = options.configPath ?? process.env.REPO_STEWARD_CONFIG_PATH;
-  if (!value) {
-    throw new Error("REPO_STEWARD_CONFIG_PATH is required.");
-  }
+  if (!value) return null;
   const parsed = nonEmptyString(value, "config path", 4096);
   if (!path.isAbsolute(parsed)) {
     throw new Error("REPO_STEWARD_CONFIG_PATH must be absolute.");
@@ -195,74 +210,625 @@ export function defaultStateRoot(options = {}) {
   return path.join(rudiHome, "state", "repo-steward");
 }
 
-export async function loadStewardConfig(options = {}) {
-  const configPath = configuredPath(options);
-  let document;
+function enrollmentPaths(stateRoot) {
+  return {
+    active: path.join(stateRoot, "enrollment.json"),
+    lock: path.join(stateRoot, ".enrollment.lock"),
+    history: path.join(stateRoot, "enrollment-history"),
+  };
+}
+
+function emptyEnrollmentDocument() {
+  return {
+    schema_version: CONFIG_SCHEMA_VERSION,
+    version: 0,
+    roots: [],
+    history: [],
+  };
+}
+
+async function readJsonFile(file, label, { optional = false } = {}) {
   try {
-    document = JSON.parse(await fs.readFile(configPath, "utf8"));
+    return JSON.parse(await fs.readFile(file, "utf8"));
   } catch (error) {
+    if (optional && error?.code === "ENOENT") return null;
     const message = error instanceof SyntaxError
-      ? "configuration is not valid JSON"
+      ? `${label} is not valid JSON`
       : redactText(error?.message);
-    throw new Error(`Unable to load Repo Steward configuration: ${message}`);
+    throw new Error(`Unable to load ${label}: ${message}`);
   }
+}
 
-  assertAllowedKeys(document, "configuration", ["schemaVersion", "repositories"]);
-  if (document.schemaVersion !== CONFIG_SCHEMA_VERSION) {
-    throw new Error(`configuration.schemaVersion must equal ${CONFIG_SCHEMA_VERSION}.`);
+async function requireDirectoryRealpath(value, label) {
+  const configuredRootPath = nonEmptyString(value, label, 4096);
+  if (!path.isAbsolute(configuredRootPath)) {
+    throw new Error(`${label} must be absolute.`);
   }
-  if (
-    !Array.isArray(document.repositories) ||
-    document.repositories.length > MAX_REPOSITORIES
-  ) {
-    throw new Error(
-      `configuration.repositories must be an array with at most ${MAX_REPOSITORIES} entries.`
-    );
+  let rootPath;
+  let stats;
+  try {
+    rootPath = await fs.realpath(configuredRootPath);
+    stats = await fs.stat(rootPath);
+  } catch {
+    throw new Error(`${label} does not exist.`);
   }
+  if (!stats.isDirectory()) throw new Error(`${label} must be a directory.`);
+  return rootPath;
+}
 
-  const seen = new Set();
-  const seenPaths = new Set();
+async function parseExplicitRepositories(values, label = "configuration.repositories") {
+  if (!Array.isArray(values) || values.length > MAX_REPOSITORIES) {
+    throw new Error(`${label} must be an array with at most ${MAX_REPOSITORIES} entries.`);
+  }
   const repositories = [];
-  for (const [index, value] of document.repositories.entries()) {
-    assertAllowedKeys(
-      value,
-      `configuration.repositories[${index}]`,
-      ["id", "path", "fetchAllowed"]
-    );
-    const id = requireRepositoryId(value.id, `configuration.repositories[${index}].id`);
-    if (seen.has(id)) throw new Error(`Duplicate repository id: ${id}.`);
-    seen.add(id);
-    const configuredRepositoryPath = nonEmptyString(
-      value.path,
-      `configuration.repositories[${index}].path`,
-      4096
-    );
-    if (!path.isAbsolute(configuredRepositoryPath)) {
-      throw new Error(`Repository path must be absolute for ${id}.`);
-    }
-    let repositoryPath;
-    try {
-      repositoryPath = await fs.realpath(configuredRepositoryPath);
-    } catch {
-      throw new Error(`Configured repository does not exist: ${id}.`);
-    }
+  const seenIds = new Set();
+  const seenPaths = new Set();
+  for (const [index, value] of values.entries()) {
+    const itemLabel = `${label}[${index}]`;
+    assertAllowedKeys(value, itemLabel, ["id", "path", "fetchAllowed"]);
+    const id = requireRepositoryId(value.id, `${itemLabel}.id`);
+    const repositoryPath = await requireDirectoryRealpath(value.path, `${itemLabel}.path`);
+    if (seenIds.has(id)) throw new Error(`Duplicate repository id: ${id}.`);
     if (seenPaths.has(repositoryPath)) {
       throw new Error(`Duplicate repository path: ${repositoryPath}.`);
     }
+    seenIds.add(id);
     seenPaths.add(repositoryPath);
     repositories.push({
       id,
       path: repositoryPath,
-      fetchAllowed: optionalBoolean(value.fetchAllowed, `${id}.fetchAllowed`),
+      fetchAllowed: optionalBoolean(value.fetchAllowed, `${itemLabel}.fetchAllowed`),
+      source: "explicit",
+      rootId: null,
+      relativePath: null,
     });
   }
+  return repositories;
+}
+
+async function parseExternalRoots(values, label = "configuration.roots") {
+  if (!Array.isArray(values) || values.length > MAX_REPOSITORIES) {
+    throw new Error(`${label} must be an array with at most ${MAX_REPOSITORIES} entries.`);
+  }
+  const roots = [];
+  for (const [index, value] of values.entries()) {
+    const itemLabel = `${label}[${index}]`;
+    assertAllowedKeys(value, itemLabel, ["id", "path", "fetchAllowed", "maxDepth"]);
+    roots.push({
+      id: requireRepositoryId(value.id, `${itemLabel}.id`),
+      path: await requireDirectoryRealpath(value.path, `${itemLabel}.path`),
+      fetchAllowed: optionalBoolean(value.fetchAllowed, `${itemLabel}.fetchAllowed`),
+      maxDepth: boundedInteger(value.maxDepth, `${itemLabel}.maxDepth`, {
+        defaultValue: DEFAULT_DISCOVERY_DEPTH,
+        min: 0,
+        max: MAX_DISCOVERY_DEPTH,
+      }),
+      source: "external",
+    });
+  }
+  return roots;
+}
+
+async function readEnrollmentDocument(stateRoot) {
+  const document = await readJsonFile(
+    enrollmentPaths(stateRoot).active,
+    "Repo Steward enrollment",
+    { optional: true }
+  );
+  if (!document) return emptyEnrollmentDocument();
+  assertAllowedKeys(document, "enrollment", ["schema_version", "version", "roots", "history"]);
+  if (document.schema_version !== CONFIG_SCHEMA_VERSION) {
+    throw new Error(`enrollment.schema_version must equal ${CONFIG_SCHEMA_VERSION}.`);
+  }
+  if (!Number.isSafeInteger(document.version) || document.version < 1) {
+    throw new Error("enrollment.version must be a positive integer.");
+  }
+  if (!Array.isArray(document.roots) || document.roots.length > MAX_REPOSITORIES) {
+    throw new Error(`enrollment.roots must contain at most ${MAX_REPOSITORIES} entries.`);
+  }
+  if (!Array.isArray(document.history) || document.history.length > MAX_ENROLLMENT_HISTORY) {
+    throw new Error(`enrollment.history must contain at most ${MAX_ENROLLMENT_HISTORY} entries.`);
+  }
+  for (const [index, root] of document.roots.entries()) {
+    assertAllowedKeys(root, `enrollment.roots[${index}]`, [
+      "root_id",
+      "path",
+      "fetch_allowed",
+      "max_depth",
+    ]);
+    requireRepositoryId(root.root_id, `enrollment.roots[${index}].root_id`);
+    if (!path.isAbsolute(nonEmptyString(root.path, `enrollment.roots[${index}].path`, 4096))) {
+      throw new Error(`enrollment.roots[${index}].path must be absolute.`);
+    }
+    optionalBoolean(root.fetch_allowed, `enrollment.roots[${index}].fetch_allowed`);
+    boundedInteger(root.max_depth, `enrollment.roots[${index}].max_depth`, {
+      defaultValue: DEFAULT_DISCOVERY_DEPTH,
+      min: 0,
+      max: MAX_DISCOVERY_DEPTH,
+    });
+  }
+  return document;
+}
+
+async function parseEnrollmentRoots(document) {
+  const roots = [];
+  for (const [index, value] of document.roots.entries()) {
+    roots.push({
+      id: requireRepositoryId(value.root_id, `enrollment.roots[${index}].root_id`),
+      path: await requireDirectoryRealpath(value.path, `enrollment.roots[${index}].path`),
+      fetchAllowed: optionalBoolean(
+        value.fetch_allowed,
+        `enrollment.roots[${index}].fetch_allowed`
+      ),
+      maxDepth: boundedInteger(value.max_depth, `enrollment.roots[${index}].max_depth`, {
+        defaultValue: DEFAULT_DISCOVERY_DEPTH,
+        min: 0,
+        max: MAX_DISCOVERY_DEPTH,
+      }),
+      source: "enrollment",
+    });
+  }
+  return roots;
+}
+
+function pathsOverlap(left, right) {
+  const leftFromRight = path.relative(right, left);
+  const rightFromLeft = path.relative(left, right);
+  const inside = (relative) => relative === "" || (
+    relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative)
+  );
+  return inside(leftFromRight) || inside(rightFromLeft);
+}
+
+function assertUniqueRoots(roots) {
+  const ids = new Set();
+  for (const [index, root] of roots.entries()) {
+    if (ids.has(root.id)) throw new Error(`Duplicate root id: ${root.id}.`);
+    ids.add(root.id);
+    for (let otherIndex = 0; otherIndex < index; otherIndex += 1) {
+      if (pathsOverlap(root.path, roots[otherIndex].path)) {
+        throw new Error(
+          `Configured root ${root.id} overlaps configured root ${roots[otherIndex].id}.`
+        );
+      }
+    }
+  }
+}
+
+async function loadConfigurationSources(options = {}) {
+  const stateRoot = defaultStateRoot(options);
+  const configPath = configuredPath(options);
+  let externalRepositories = [];
+  let externalRoots = [];
+  if (configPath) {
+    const document = await readJsonFile(configPath, "Repo Steward configuration");
+    assertAllowedKeys(document, "configuration", ["schemaVersion", "repositories", "roots"]);
+    if (document.schemaVersion !== CONFIG_SCHEMA_VERSION) {
+      throw new Error(`configuration.schemaVersion must equal ${CONFIG_SCHEMA_VERSION}.`);
+    }
+    externalRepositories = await parseExplicitRepositories(document.repositories ?? []);
+    externalRoots = await parseExternalRoots(document.roots ?? []);
+  }
+  const enrollment = await readEnrollmentDocument(stateRoot);
+  const roots = [...externalRoots, ...await parseEnrollmentRoots(enrollment)];
+  assertUniqueRoots(roots);
+  return {
+    configPath,
+    stateRoot,
+    enrollment,
+    roots,
+    explicitRepositories: externalRepositories,
+  };
+}
+
+function repositoryIdForRelativePath(rootId, relativePath) {
+  const slug = relativePath === "."
+    ? "root"
+    : relativePath
+      .split(path.sep)
+      .map((segment) => segment
+        .toLowerCase()
+        .replace(/[^a-z0-9._-]+/g, "-")
+        .replace(/^-+|-+$/g, "") || "repo")
+      .join("--");
+  const candidate = `${rootId}--${slug}`;
+  if (candidate.length <= 128) return candidate;
+  const hash = createHash("sha256").update(relativePath).digest("hex").slice(0, 8);
+  return `${candidate.slice(0, 118)}--${hash}`;
+}
+
+async function discoverOneRoot(root) {
+  const queue = [{ directory: root.path, depth: 0 }];
+  let queueIndex = 0;
+  const repositories = [];
+  const failures = [];
+  let directoriesVisited = 0;
+  let candidates = 0;
+  let excludedDirectories = 0;
+  let symlinksSkipped = 0;
+
+  while (queueIndex < queue.length) {
+    const current = queue[queueIndex];
+    queueIndex += 1;
+    directoriesVisited += 1;
+    if (directoriesVisited > MAX_DISCOVERY_DIRECTORIES) {
+      throw new Error(
+        `Root ${root.id} exceeded ${MAX_DISCOVERY_DIRECTORIES} visited directories.`
+      );
+    }
+
+    let entries;
+    try {
+      entries = await fs.readdir(current.directory, { withFileTypes: true });
+    } catch (error) {
+      failures.push({
+        root_id: root.id,
+        path: current.directory,
+        error: redactText(error?.message || "Unable to read directory"),
+      });
+      continue;
+    }
+    entries.sort((left, right) => left.name.localeCompare(right.name));
+
+    const gitMarker = entries.find((entry) =>
+      entry.name === ".git" &&
+      !entry.isSymbolicLink() &&
+      (entry.isDirectory() || entry.isFile())
+    );
+    if (gitMarker) {
+      candidates += 1;
+      try {
+        const gitRootOutput = (
+          await runGit(current.directory, ["rev-parse", "--show-toplevel"], {
+            operation: `Resolve discovered Git root under ${root.id}`,
+          })
+        ).stdout.trim();
+        const gitRoot = await fs.realpath(gitRootOutput);
+        if (gitRoot !== current.directory) {
+          throw new Error("Git toplevel does not match the discovered directory.");
+        }
+        const relativePath = path.relative(root.path, current.directory) || ".";
+        repositories.push({
+          id: repositoryIdForRelativePath(root.id, relativePath),
+          path: current.directory,
+          fetchAllowed: root.fetchAllowed,
+          source: "root",
+          rootId: root.id,
+          relativePath,
+        });
+      } catch (error) {
+        failures.push({
+          root_id: root.id,
+          path: current.directory,
+          error: redactText(error instanceof Error ? error.message : String(error)),
+        });
+      }
+      if (repositories.length > MAX_REPOSITORIES) {
+        throw new Error(`Root ${root.id} exceeds ${MAX_REPOSITORIES} repositories.`);
+      }
+    }
+
+    if (current.depth >= root.maxDepth) continue;
+    for (const entry of entries) {
+      if (entry.isSymbolicLink()) {
+        symlinksSkipped += 1;
+        continue;
+      }
+      if (!entry.isDirectory()) continue;
+      if (DISCOVERY_EXCLUDED_DIRECTORIES.has(entry.name)) {
+        excludedDirectories += 1;
+        continue;
+      }
+      queue.push({
+        directory: path.join(current.directory, entry.name),
+        depth: current.depth + 1,
+      });
+    }
+  }
+
+  repositories.sort((left, right) => left.id.localeCompare(right.id));
+  return {
+    root,
+    repositories,
+    failures,
+    directoriesVisited,
+    candidates,
+    excludedDirectories,
+    symlinksSkipped,
+  };
+}
+
+async function discoverRootSet(roots) {
+  const results = [];
+  for (const root of roots) results.push(await discoverOneRoot(root));
+  const repositories = results.flatMap((result) => result.repositories);
+  if (repositories.length > MAX_REPOSITORIES) {
+    throw new Error(`Discovered repository fleet exceeds ${MAX_REPOSITORIES} repositories.`);
+  }
+  return {
+    roots,
+    results,
+    repositories,
+    failures: results.flatMap((result) => result.failures),
+    summary: {
+      roots: roots.length,
+      directories_visited: results.reduce((sum, result) => sum + result.directoriesVisited, 0),
+      candidates: results.reduce((sum, result) => sum + result.candidates, 0),
+      repositories: results.reduce((sum, result) => sum + result.repositories.length, 0),
+      failed: results.reduce((sum, result) => sum + result.failures.length, 0),
+      excluded_directories: results.reduce(
+        (sum, result) => sum + result.excludedDirectories,
+        0
+      ),
+      symlinks_skipped: results.reduce((sum, result) => sum + result.symlinksSkipped, 0),
+    },
+  };
+}
+
+function publicRoot(root) {
+  return {
+    root_id: root.id,
+    path: root.path,
+    fetch_allowed: root.fetchAllowed,
+    max_depth: root.maxDepth,
+  };
+}
+
+function publicRepository(repository) {
+  return {
+    repo_id: repository.id,
+    path: repository.path,
+    fetch_allowed: repository.fetchAllowed,
+    source: repository.source,
+    root_id: repository.rootId,
+    relative_path: repository.relativePath,
+  };
+}
+
+export async function loadStewardConfig(options = {}) {
+  const sources = await loadConfigurationSources(options);
+  const discovery = await discoverRootSet(sources.roots);
+  const repositories = [];
+  const seenIds = new Set();
+  const seenPaths = new Set();
+
+  for (const repository of [...sources.explicitRepositories, ...discovery.repositories]) {
+    if (seenPaths.has(repository.path)) continue;
+    if (seenIds.has(repository.id)) throw new Error(`Duplicate repository id: ${repository.id}.`);
+    seenIds.add(repository.id);
+    seenPaths.add(repository.path);
+    repositories.push(repository);
+  }
+  if (repositories.length > MAX_REPOSITORIES) {
+    throw new Error(`Discovered repository fleet exceeds ${MAX_REPOSITORIES} repositories.`);
+  }
+  repositories.sort((left, right) => left.id.localeCompare(right.id));
 
   return {
     schemaVersion: CONFIG_SCHEMA_VERSION,
-    configPath,
-    stateRoot: defaultStateRoot(options),
+    configPath: sources.configPath,
+    stateRoot: sources.stateRoot,
+    enrollmentVersion: sources.enrollment.version,
+    roots: sources.roots,
     repositories,
+    discovery,
   };
+}
+
+async function readEnrollmentLock(file) {
+  const lock = await readJsonFile(file, "Repo Steward enrollment lock", { optional: true });
+  if (!lock) return null;
+  assertAllowedKeys(lock, "enrollment lock", ["owner", "expires_at"]);
+  const owner = requireOwner(lock.owner);
+  if (typeof lock.expires_at !== "string" || !Number.isFinite(Date.parse(lock.expires_at))) {
+    throw new Error("enrollment lock expires_at must be an ISO timestamp.");
+  }
+  return { owner, expires_at: lock.expires_at };
+}
+
+async function archiveEnrollmentLock(paths, nowMs) {
+  const lockHistory = path.join(paths.history, "locks");
+  await ensureStateDirectory(lockHistory);
+  const target = path.join(lockHistory, `${nowMs}-stale-${randomUUID()}.json`);
+  try {
+    await fs.rename(paths.lock, target);
+    return true;
+  } catch (error) {
+    if (error?.code === "ENOENT") return false;
+    throw error;
+  }
+}
+
+async function withEnrollmentLock(stateRoot, owner, operation, options = {}) {
+  await ensureStateDirectory(stateRoot);
+  const paths = enrollmentPaths(stateRoot);
+  const nowMs = typeof options.now === "function" ? options.now() : Date.now();
+  let acquired = false;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    let handle;
+    try {
+      handle = await fs.open(paths.lock, "wx", 0o600);
+      await handle.writeFile(`${JSON.stringify({
+        owner,
+        expires_at: new Date(nowMs + ENROLLMENT_LOCK_TTL_MS).toISOString(),
+      }, null, 2)}\n`, "utf8");
+      await handle.close();
+      acquired = true;
+      break;
+    } catch (error) {
+      await handle?.close().catch(() => {});
+      if (handle && error?.code !== "EEXIST") {
+        await fs.unlink(paths.lock).catch(() => {});
+      }
+      if (error?.code !== "EEXIST") throw error;
+      const existing = await readEnrollmentLock(paths.lock);
+      if (!existing) continue;
+      if (Date.parse(existing.expires_at) > nowMs) {
+        throw new Error(`Root enrollment is already in progress by ${existing.owner}.`);
+      }
+      await archiveEnrollmentLock(paths, nowMs);
+    }
+  }
+  if (!acquired) throw new Error("Unable to acquire root enrollment lock.");
+
+  try {
+    return await operation();
+  } finally {
+    await fs.unlink(paths.lock).catch((error) => {
+      if (error?.code !== "ENOENT") throw error;
+    });
+  }
+}
+
+function defaultRootId(rootPath) {
+  const candidate = path.basename(rootPath)
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "workspace";
+  return requireRepositoryId(candidate, "root_id");
+}
+
+export async function enrollRepositoryRoot(args = {}, options = {}) {
+  assertAllowedKeys(args, "arguments", [
+    "root_id",
+    "root_path",
+    "owner",
+    "fetch_allowed",
+    "max_depth",
+  ]);
+  const owner = requireOwner(args.owner);
+  const rootPathInput = nonEmptyString(args.root_path, "root_path", 4096);
+  if (!path.isAbsolute(rootPathInput)) throw new Error("root_path must be absolute.");
+  const rootPath = await requireDirectoryRealpath(rootPathInput, "root_path");
+  const rootId = args.root_id === undefined
+    ? defaultRootId(rootPath)
+    : requireRepositoryId(args.root_id, "root_id");
+  const root = {
+    id: rootId,
+    path: rootPath,
+    fetchAllowed: optionalBoolean(args.fetch_allowed, "fetch_allowed"),
+    maxDepth: boundedInteger(args.max_depth, "max_depth", {
+      defaultValue: DEFAULT_DISCOVERY_DEPTH,
+      min: 0,
+      max: MAX_DISCOVERY_DEPTH,
+    }),
+    source: "enrollment",
+  };
+  const stateRoot = defaultStateRoot(options);
+
+  const enrollmentResult = await withEnrollmentLock(stateRoot, owner, async () => {
+    const sources = await loadConfigurationSources(options);
+    const existingByPath = sources.roots.find((candidate) => candidate.path === root.path);
+    if (existingByPath) {
+      const samePolicy =
+        existingByPath.id === root.id &&
+        existingByPath.fetchAllowed === root.fetchAllowed &&
+        existingByPath.maxDepth === root.maxDepth;
+      if (!samePolicy) {
+        throw new Error(`Root ${root.path} is already enrolled with different policy.`);
+      }
+      return {
+        enrollmentVersion: sources.enrollment.version,
+        idempotent: true,
+        root: existingByPath,
+      };
+    }
+    const existingById = sources.roots.find((candidate) => candidate.id === root.id);
+    if (existingById) {
+      throw new Error(`Root ID already belongs to another path: ${root.id}.`);
+    }
+    const overlapping = sources.roots.find((candidate) => pathsOverlap(candidate.path, root.path));
+    if (overlapping) {
+      const label = overlapping.source === "enrollment" ? "enrolled" : "configured";
+      throw new Error(`Root ${root.id} overlaps ${label} root ${overlapping.id}.`);
+    }
+
+    const current = sources.enrollment;
+    const now = new Date(
+      typeof options.now === "function" ? options.now() : Date.now()
+    ).toISOString();
+    const version = current.version + 1;
+    const next = {
+      schema_version: CONFIG_SCHEMA_VERSION,
+      version,
+      roots: [...current.roots, {
+        root_id: root.id,
+        path: root.path,
+        fetch_allowed: root.fetchAllowed,
+        max_depth: root.maxDepth,
+      }],
+      history: [...current.history, {
+        version,
+        event: "root_enrolled",
+        owner,
+        root_id: root.id,
+        path: root.path,
+        at: now,
+      }].slice(-MAX_ENROLLMENT_HISTORY),
+    };
+    const paths = enrollmentPaths(stateRoot);
+    if (current.version > 0) {
+      await ensureStateDirectory(paths.history);
+      await atomicWriteJson(
+        path.join(paths.history, `enrollment-v${current.version}-${Date.now()}-${randomUUID()}.json`),
+        current
+      );
+    }
+    await atomicWriteJson(paths.active, next);
+    return { enrollmentVersion: version, idempotent: false, root };
+  }, options);
+
+  const discovery = await discoverRepositories({ root_ids: [rootId] }, options);
+  return {
+    enrollment_version: enrollmentResult.enrollmentVersion,
+    idempotent: enrollmentResult.idempotent,
+    root: publicRoot(enrollmentResult.root),
+    discovery,
+  };
+}
+
+export async function discoverRepositories(args = {}, options = {}) {
+  assertAllowedKeys(args, "arguments", ["root_ids"]);
+  const sources = await loadConfigurationSources(options);
+  let roots = sources.roots;
+  if (args.root_ids !== undefined) {
+    if (
+      !Array.isArray(args.root_ids) ||
+      args.root_ids.length > MAX_REPOSITORIES ||
+      !args.root_ids.every((value) => typeof value === "string")
+    ) {
+      throw new Error(`root_ids must be an array of at most ${MAX_REPOSITORIES} root IDs.`);
+    }
+    const rootIds = [...new Set(args.root_ids.map((value) => requireRepositoryId(value, "root_id")))];
+    for (const rootId of rootIds) {
+      if (!sources.roots.some((root) => root.id === rootId)) {
+        throw new Error(`Root is not configured: ${rootId}.`);
+      }
+    }
+    const selected = new Set(rootIds);
+    roots = sources.roots.filter((root) => selected.has(root.id));
+  }
+  const discovery = await discoverRootSet(roots);
+  return {
+    generated_at: new Date().toISOString(),
+    summary: discovery.summary,
+    roots: roots.map(publicRoot),
+    repositories: discovery.repositories.map(publicRepository),
+    failures: discovery.failures,
+  };
+}
+
+async function assertRepositoryWorktree(repository) {
+  const gitRootOutput = (
+    await runGit(repository.path, ["rev-parse", "--show-toplevel"], {
+      operation: `Resolve Git root for ${repository.id}`,
+    })
+  ).stdout.trim();
+  const gitRoot = await fs.realpath(gitRootOutput);
+  if (gitRoot !== repository.path) {
+    throw new Error(`Configured path is not the exact Git worktree root for ${repository.id}.`);
+  }
 }
 
 export async function preflightRepoSteward(args = {}, options = {}) {
@@ -282,23 +848,21 @@ export async function preflightRepoSteward(args = {}, options = {}) {
   } catch (error) {
     throw new Error(gitFailureMessage(error, "Git preflight"));
   }
-  for (const repository of config.repositories) {
-    await resolveConfiguredRepository(repository.id, options);
-  }
+  for (const repository of config.repositories) await assertRepositoryWorktree(repository);
   return {
     configuration_valid: true,
     config_path: config.configPath,
+    enrollment_version: config.enrollmentVersion,
     state_root: config.stateRoot,
+    root_count: config.roots.length,
     repository_count: config.repositories.length,
     fetch_enabled_count: config.repositories.filter((repository) => repository.fetchAllowed).length,
     git_version: gitVersion,
     repository_mutation_tools_exposed: false,
     local_state_tools_exposed: true,
-    repositories: config.repositories.map((repository) => ({
-      repo_id: repository.id,
-      path: repository.path,
-      fetch_allowed: repository.fetchAllowed,
-    })),
+    discovery: config.discovery.summary,
+    roots: config.roots.map(publicRoot),
+    repositories: config.repositories.map(publicRepository),
   };
 }
 
@@ -308,15 +872,7 @@ async function resolveConfiguredRepository(repoId, options = {}) {
   const repository = config.repositories.find((candidate) => candidate.id === id);
   if (!repository) throw new Error(`Repository is not configured: ${id}.`);
 
-  const gitRootOutput = (
-    await runGit(repository.path, ["rev-parse", "--show-toplevel"], {
-      operation: `Resolve Git root for ${id}`,
-    })
-  ).stdout.trim();
-  const gitRoot = await fs.realpath(gitRootOutput);
-  if (gitRoot !== repository.path) {
-    throw new Error(`Configured path is not the exact Git worktree root for ${id}.`);
-  }
+  await assertRepositoryWorktree(repository);
 
   return { config, repository };
 }
@@ -588,10 +1144,8 @@ async function maybeFetch(args, repository) {
   return { requested: true, performed: true };
 }
 
-export async function getRepositoryStatus(args = {}, options = {}) {
-  assertAllowedKeys(args, "arguments", ["repo_id", "fetch"]);
+async function getResolvedRepositoryStatus(repository, args = {}) {
   const startedAt = Date.now();
-  const { repository } = await resolveConfiguredRepository(args.repo_id, options);
   const fetch = await maybeFetch(args, repository);
   const branch = await tryGit(repository.path, ["symbolic-ref", "--quiet", "--short", "HEAD"]);
   const head = (
@@ -630,6 +1184,9 @@ export async function getRepositoryStatus(args = {}, options = {}) {
   return {
     repo_id: repository.id,
     path: repository.path,
+    source: repository.source,
+    root_id: repository.rootId,
+    relative_path: repository.relativePath,
     branch: branch || null,
     head,
     upstream: upstream || null,
@@ -640,6 +1197,12 @@ export async function getRepositoryStatus(args = {}, options = {}) {
     fetch,
     duration_ms: Date.now() - startedAt,
   };
+}
+
+export async function getRepositoryStatus(args = {}, options = {}) {
+  assertAllowedKeys(args, "arguments", ["repo_id", "fetch"]);
+  const { repository } = await resolveConfiguredRepository(args.repo_id, options);
+  return getResolvedRepositoryStatus(repository, args);
 }
 
 export async function scanFleet(args = {}, options = {}) {
@@ -669,10 +1232,10 @@ export async function scanFleet(args = {}, options = {}) {
   const repositories = [];
   for (const repoId of repositoryIds) {
     try {
-      repositories.push(await getRepositoryStatus(
-        { repo_id: repoId, fetch: requestedFetch },
-        options
-      ));
+      const repository = config.repositories.find((candidate) => candidate.id === repoId);
+      repositories.push(await getResolvedRepositoryStatus(repository, {
+        fetch: requestedFetch,
+      }));
     } catch (error) {
       repositories.push({
         repo_id: repoId,
@@ -684,6 +1247,7 @@ export async function scanFleet(args = {}, options = {}) {
   const scanned = repositories.filter((repository) => !("error" in repository));
   return {
     generated_at: new Date().toISOString(),
+    discovery: config.discovery.summary,
     summary: {
       total: repositories.length,
       scanned: scanned.length,

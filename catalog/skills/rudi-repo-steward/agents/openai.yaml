@@ -1,4 +1,4 @@
 interface:
   display_name: "RUDI Repo Steward"
-  short_description: "Continuously inspect and improve Git repositories"
-  default_prompt: "Use $rudi-repo-steward to inspect this repository fleet and propose the next safe targeted actions."
+  short_description: "Steward every Git repo beneath one folder"
+  default_prompt: "Use $rudi-repo-steward to enroll this folder, discover its Git repositories, and propose the next safe targeted actions."

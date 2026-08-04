@@ -11,6 +11,8 @@ import {
 
 import {
   acquireRepositoryLease,
+  discoverRepositories,
+  enrollRepositoryRoot,
   getRepositoryStatus,
   listRepositoryActions,
   preflightRepoSteward,
@@ -28,6 +30,38 @@ const TOOL_DEFINITIONS = [
       type: "object",
       additionalProperties: false,
       properties: {},
+    },
+  },
+  {
+    name: "repo_steward_enroll_root",
+    description: "Persist one absolute workspace root under local RUDI state and immediately discover its nested Git worktrees. This changes stewardship configuration only, never a repository.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["root_path", "owner"],
+      properties: {
+        root_id: { type: "string", minLength: 1, maxLength: 128 },
+        root_path: { type: "string", minLength: 1, maxLength: 4096 },
+        owner: { type: "string", minLength: 1, maxLength: 128 },
+        fetch_allowed: { type: "boolean", default: false },
+        max_depth: { type: "integer", minimum: 0, maximum: 32, default: 12 },
+      },
+    },
+  },
+  {
+    name: "repo_steward_discover_repositories",
+    description: "Rediscover nested Git worktrees beneath configured roots without reading repository file contents or changing Git state.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        root_ids: {
+          type: "array",
+          maxItems: 1000,
+          uniqueItems: true,
+          items: { type: "string", minLength: 1, maxLength: 128 },
+        },
+      },
     },
   },
   {
@@ -196,7 +230,7 @@ function errorResponse(error) {
 
 export function createServer(coreOptions = {}) {
   const server = new Server(
-    { name: "repo-steward", version: "0.1.0" },
+    { name: "repo-steward", version: "0.2.0" },
     { capabilities: { tools: {} } }
   );
 
@@ -209,6 +243,10 @@ export function createServer(coreOptions = {}) {
       switch (request.params.name) {
         case "repo_steward_preflight":
           return jsonResponse(await preflightRepoSteward(args, coreOptions));
+        case "repo_steward_enroll_root":
+          return jsonResponse(await enrollRepositoryRoot(args, coreOptions));
+        case "repo_steward_discover_repositories":
+          return jsonResponse(await discoverRepositories(args, coreOptions));
         case "repo_steward_scan_fleet":
           return jsonResponse(await scanFleet(args, coreOptions));
         case "repo_steward_get_status":

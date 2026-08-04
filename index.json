@@ -1,7 +1,7 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-08-03T23:58:40.000Z",
+  "generatedAt": "2026-08-04T22:33:12.000Z",
   "stats": {
     "total": 149,
     "byKind": {
@@ -2535,7 +2535,7 @@
       "id": "skill:rudi-repo-steward",
       "kind": "skill",
       "name": "rudi-repo-steward",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -2548,7 +2548,7 @@
         ]
       },
       "meta": {
-        "description": "Inspect and coordinate continuous improvement across a configured Git repository fleet using safe status scans, bounded leases, and an evidence-backed action ledger. Use when a user asks to catch repositories up, review uncommitted work, plan targeted commits, monitor divergence, or maintain repositories continuously without blindly mutating them.",
+        "description": "Enroll a user-provided folder, discover all nested Git worktrees, and coordinate continuous improvement across that dynamic repository fleet using safe status scans, bounded leases, targeted commits, and an evidence-backed action ledger. Use when a user asks to steward every repo below a path, catch repositories up, review agent work, plan targeted commits, monitor divergence, or maintain repositories continuously without blindly mutating them.",
         "category": "development",
         "tags": [
           "git",
@@ -5109,7 +5109,7 @@
       "id": "stack:repo-steward",
       "kind": "stack",
       "name": "Repo Steward",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -5125,6 +5125,8 @@
       "provides": {
         "tools": [
           "repo_steward_preflight",
+          "repo_steward_enroll_root",
+          "repo_steward_discover_repositories",
           "repo_steward_scan_fleet",
           "repo_steward_get_status",
           "repo_steward_acquire_lease",
@@ -5152,7 +5154,7 @@
         "cwd": "."
       },
       "meta": {
-        "description": "Safely inspect configured Git repository fleets, coordinate one repository worker at a time, and maintain a durable local improvement-action ledger.",
+        "description": "Enroll one workspace path, safely discover its nested Git worktrees, coordinate one repository worker at a time, and maintain a durable local improvement-action ledger.",
         "author": "RUDI",
         "license": "MIT",
         "category": "development",

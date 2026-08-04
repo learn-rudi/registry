@@ -44,6 +44,8 @@ test("MCP exposes the complete Repo Steward surface and executes preflight", asy
   const tools = await client.listTools();
   assert.deepEqual(tools.tools.map((tool) => tool.name), [
     "repo_steward_preflight",
+    "repo_steward_enroll_root",
+    "repo_steward_discover_repositories",
     "repo_steward_scan_fleet",
     "repo_steward_get_status",
     "repo_steward_acquire_lease",
@@ -66,4 +68,27 @@ test("MCP exposes the complete Repo Steward surface and executes preflight", asy
   assert.equal(body.fetch_enabled_count, 0);
   assert.equal(body.repository_mutation_tools_exposed, false);
   assert.equal(body.local_state_tools_exposed, true);
+
+  const enrollmentResult = await client.callTool({
+    name: "repo_steward_enroll_root",
+    arguments: {
+      root_id: "fixture-root",
+      root_path: repo,
+      owner: "mcp-test",
+      fetch_allowed: false,
+      max_depth: 4,
+    },
+  });
+  assert.equal(enrollmentResult.isError, undefined);
+  const enrollment = JSON.parse(enrollmentResult.content[0].text);
+  assert.equal(enrollment.root.root_id, "fixture-root");
+  assert.equal(enrollment.discovery.summary.repositories, 1);
+
+  const discoveryResult = await client.callTool({
+    name: "repo_steward_discover_repositories",
+    arguments: { root_ids: ["fixture-root"] },
+  });
+  assert.equal(discoveryResult.isError, undefined);
+  const discovery = JSON.parse(discoveryResult.content[0].text);
+  assert.equal(discovery.summary.repositories, 1);
 });

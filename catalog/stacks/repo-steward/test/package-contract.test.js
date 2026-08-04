@@ -27,11 +27,14 @@ test("package contract keeps Repo Steward portable and non-mutating", async () =
   const skill = await fs.readFile(path.join(skillRoot, "SKILL.md"), "utf8");
 
   assert.equal(manifest.id, "stack:repo-steward");
+  assert.equal(manifest.version, "0.2.0");
   assert.deepEqual(manifest.requires, { binaries: ["git"], secrets: [] });
   assert.equal(manifest.related.operatorSkill, "skill:rudi-repo-steward");
   assert.ok(manifest.related.skills.includes("skill:github"));
   assert.deepEqual(manifest.provides.tools, [
     "repo_steward_preflight",
+    "repo_steward_enroll_root",
+    "repo_steward_discover_repositories",
     "repo_steward_scan_fleet",
     "repo_steward_get_status",
     "repo_steward_acquire_lease",
@@ -45,9 +48,12 @@ test("package contract keeps Repo Steward portable and non-mutating", async () =
     false
   );
   assert.equal(packageJson.scripts.verify, "npm test");
+  assert.equal(packageJson.version, "0.2.0");
   assert.match(skill, /- stack:repo-steward/);
   assert.match(skill, /- stack:github/);
   assert.match(readme, /REPO_STEWARD_CONFIG_PATH/);
+  assert.match(readme, /one directory path/);
+  assert.match(readme, /node_modules/);
   assert.match(readme, /never stages, commits, pushes, merges, resets, or cleans/);
 
   const files = await collectFiles(stackRoot);
