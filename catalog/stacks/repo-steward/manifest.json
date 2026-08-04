@@ -1,0 +1,64 @@
+{
+  "id": "stack:repo-steward",
+  "kind": "stack",
+  "name": "Repo Steward",
+  "version": "0.1.0",
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/repo-steward"
+  },
+  "runtime": "node",
+  "requires": {
+    "binaries": [
+      "git"
+    ],
+    "secrets": []
+  },
+  "provides": {
+    "tools": [
+      "repo_steward_preflight",
+      "repo_steward_scan_fleet",
+      "repo_steward_get_status",
+      "repo_steward_acquire_lease",
+      "repo_steward_release_lease",
+      "repo_steward_list_actions",
+      "repo_steward_record_action",
+      "repo_steward_record_verification"
+    ]
+  },
+  "related": {
+    "operatorSkill": "skill:rudi-repo-steward",
+    "skills": [
+      "skill:rudi-repo-steward",
+      "skill:github",
+      "skill:rudi-swe-issue-loop",
+      "skill:swe-compliance-checklist"
+    ]
+  },
+  "mcp": {
+    "transport": "stdio",
+    "command": "node",
+    "args": [
+      "src/index.js"
+    ],
+    "cwd": "."
+  },
+  "meta": {
+    "description": "Safely inspect configured Git repository fleets, coordinate one repository worker at a time, and maintain a durable local improvement-action ledger.",
+    "author": "RUDI",
+    "license": "MIT",
+    "category": "development",
+    "tags": [
+      "git",
+      "github",
+      "repositories",
+      "continuous-improvement",
+      "continuous-development",
+      "leases",
+      "action-ledger",
+      "agents"
+    ],
+    "icon": "git-branch"
+  }
+}
