@@ -48,6 +48,41 @@ stack for authorized issue and pull-request work.
 
 Default to Observe when the requested authority is ambiguous.
 
+## Schedule bounded observation
+
+Treat text after the skill mention as the operating request. Support either
+plain language or a compact flag-like form, for example:
+
+```text
+$rudi-repo-steward /Users/hoff/dev/RUDI --mode observe --every 1m --for 8h
+```
+
+When the user supplies a cadence and duration:
+
+1. Resolve the absolute root, operating mode, cadence, start time, and explicit
+   end time. Reject a cadence shorter than one minute, a non-positive duration,
+   or an unbounded recurring request.
+2. Default recurring work to Observe, `fetch_allowed = false`, no file edits,
+   no commits, and no external writes. Checkpoint, Improve, and Publish still
+   require their normal authority on every affected repository.
+3. Use the current host's recurring-task facility to trigger one finite skill
+   run per interval. Do not keep an MCP tool call or agent process open for the
+   entire monitoring window. In Codex, prefer a thread heartbeat automation;
+   in another host, use its native scheduler or an explicitly approved local
+   scheduler.
+4. Put the absolute root, mode, cadence, and end time in the scheduled prompt.
+   Require each trigger to stop without scanning when the end time has passed.
+5. On every trigger, rediscover repositories, run preflight, scan without
+   fetch, compare with the prior recorded fleet state, and report material
+   changes. Use leases so an overlapping trigger skips a busy repository rather
+   than competing with another agent.
+6. End the schedule at the stated time and produce a final summary of observed
+   changes, actions taken, deferred repositories, and remaining divergence.
+
+Scheduling grants permission to observe at the requested cadence; it does not
+grant permission to edit, commit, fetch, push, open issues, or create pull
+requests.
+
 ## Workflow
 
 1. When the user supplies a folder path, call `repo_steward_enroll_root` with a
