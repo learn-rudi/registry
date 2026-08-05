@@ -6,10 +6,12 @@ import {
   EngagementContextInput,
   LatestCorrespondenceInput,
   LimitInput,
+  ListContactCandidatesInput,
   ListEngagementsInput,
   ListOrganizationsInput,
   ListPeopleInput,
   LogIngestBatchInput,
+  PromoteContactInput,
   RecordDiscoveryObservationsInput,
   RecordFinanceEventInput,
   RunValidatorsInput,
@@ -52,6 +54,7 @@ const EXPECTED_FUNCTIONS = [
   "resolve_person_by_email",
   "apply_discovery_domain_heuristics",
   "get_unknown_discovery_domains",
+  "promote_contact",
 ] as const;
 
 const VALIDATOR_VIEWS = [
@@ -70,6 +73,7 @@ const EXPECTED_VIEWS = [
   "v_triage_queue",
   "v_people_missing_email",
   "v_engagement_financial_summary",
+  "v_contact_candidates",
 ] as const;
 
 type ValidatorView = (typeof VALIDATOR_VIEWS)[number];
@@ -91,12 +95,7 @@ function shouldUseExplicitSsl(value: string): boolean {
   try {
     const parsed = new URL(value);
     const sslMode = parsed.searchParams.get("sslmode");
-    return (
-      parsed.hostname.endsWith(".supabase.co") ||
-      parsed.hostname.endsWith(".pooler.supabase.com") ||
-      sslMode === "require" ||
-      sslMode === "no-verify"
-    );
+    return sslMode === "require" || sslMode === "no-verify";
   } catch {
     return value.includes("sslmode=require");
   }
@@ -153,6 +152,7 @@ export function getConfigStatus() {
       "record_audit_event",
       "set_audit_context",
       "upsert_interaction",
+      "promote_contact",
       "refresh_thread_rollups",
     ],
     validator_views: VALIDATOR_VIEWS,
@@ -330,6 +330,72 @@ export async function recordDiscoveryObservations(args: unknown) {
   const result = await getPool().query(
     "select record_discovery_observations($1::jsonb) as result",
     [JSON.stringify(input.observations)]
+  );
+  return result.rows[0]?.result ?? null;
+}
+
+export async function applyDiscoveryHeuristics() {
+  const result = await getPool().query(
+    "select apply_discovery_domain_heuristics()::integer as updated"
+  );
+  return { updated: Number(result.rows[0]?.updated ?? 0) };
+}
+
+export async function listContactCandidates(args: unknown) {
+  const input = parseToolArgs(ListContactCandidatesInput, args);
+  const result = await getPool().query(
+    `
+    select c.*, count(*) over()::integer as total_count
+    from v_contact_candidates c
+    where c.observation_count >= $1::integer
+      and ($2::timestamptz is null or c.last_seen >= $2::timestamptz)
+      and ($3::boolean or c.existing_person_id is null)
+    order by c.observation_count desc, c.last_seen desc, c.email
+    limit $4::integer
+    offset $5::integer
+    `,
+    [
+      input.min_observations,
+      input.since ?? null,
+      input.include_existing,
+      input.limit,
+      input.offset,
+    ]
+  );
+  return pagedResult(result.rows);
+}
+
+export async function promoteContact(args: unknown) {
+  const input = parseToolArgs(PromoteContactInput, args);
+  const result = await getPool().query(
+    `
+    select promote_contact(
+      p_email := $1::text,
+      p_full_name := $2::text,
+      p_existing_person_id := $3::uuid,
+      p_organization_id := $4::uuid,
+      p_title := $5::text,
+      p_phone := $6::text,
+      p_role := $7::text,
+      p_notes := $8::text,
+      p_email_label := $9::text,
+      p_source := $10::text,
+      p_created_by_actor_id := $11::uuid
+    ) as result
+    `,
+    [
+      input.email,
+      input.full_name,
+      input.existing_person_id ?? null,
+      input.organization_id ?? null,
+      input.title ?? null,
+      input.phone ?? null,
+      input.role ?? null,
+      input.notes ?? null,
+      input.email_label,
+      input.source,
+      input.created_by_actor_id ?? null,
+    ]
   );
   return result.rows[0]?.result ?? null;
 }

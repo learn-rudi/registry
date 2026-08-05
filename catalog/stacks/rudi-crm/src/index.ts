@@ -7,6 +7,7 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import {
+  applyDiscoveryHeuristics,
   crmErrorMessage,
   getActivityFeed,
   getAttentionBrief,
@@ -16,10 +17,12 @@ import {
   getSetupStatus,
   getUnknownDiscoveryDomains,
   listEngagements,
+  listContactCandidates,
   listOrganizations,
   listPeople,
   listTriageQueue,
   logIngestBatch,
+  promoteContact,
   recordDiscoveryObservations,
   recordFinanceEvent,
   runValidators,
@@ -45,7 +48,7 @@ function asError(error: unknown) {
 }
 
 const server = new Server(
-  { name: "rudi-crm", version: "0.1.0" },
+  { name: "rudi-crm", version: "0.3.0" },
   { capabilities: { tools: {} } }
 );
 
@@ -92,6 +95,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
                   enum: ["from", "to", "cc", "bcc", "attendee", "host", "sender", "recipient"],
                 },
                 address: { type: "string" },
+                display_name: { type: "string" },
                 idempotency_key: { type: "string" },
                 raw: { type: "object" },
               },
@@ -100,6 +104,70 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           },
         },
         required: ["observations"],
+      },
+    },
+    {
+      name: "rudi_crm_apply_discovery_heuristics",
+      description:
+        "Apply deterministic domain-noise and prospect heuristics to recorded discovery observations before reviewing contact candidates.",
+      inputSchema: {
+        type: "object",
+        properties: {},
+      },
+    },
+    {
+      name: "rudi_crm_list_contact_candidates",
+      description:
+        "Preview deduplicated contact candidates from discovery evidence. Exact existing-email matches are reported; similar names are review signals only and are never merged automatically.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          min_observations: {
+            type: "number",
+            minimum: 1,
+            maximum: 10000,
+            description: "Minimum address observations required. Defaults to 2.",
+          },
+          since: {
+            type: "string",
+            format: "date-time",
+            description: "Optional earliest observation timestamp with offset.",
+          },
+          include_existing: {
+            type: "boolean",
+            description: "Include exact-email matches already in the CRM. Defaults to false.",
+          },
+          limit: { type: "number", minimum: 1, maximum: 100 },
+          offset: { type: "number", minimum: 0 },
+        },
+      },
+    },
+    {
+      name: "rudi_crm_promote_contact",
+      description:
+        "After explicit approval, promote one normalized email candidate into a new CRM person or attach it to an explicitly selected existing person. Exact-email replays are idempotent; aliases are never reassigned implicitly.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          email: { type: "string", format: "email", maxLength: 320 },
+          full_name: { type: "string", maxLength: 200 },
+          existing_person_id: { type: "string", format: "uuid" },
+          organization_id: { type: "string", format: "uuid" },
+          title: { type: "string", maxLength: 200 },
+          phone: { type: "string", maxLength: 100 },
+          role: { type: "string", maxLength: 200 },
+          notes: { type: "string", maxLength: 4000 },
+          email_label: {
+            type: "string",
+            enum: ["work", "personal", "alias", "former", "unknown"],
+          },
+          source: {
+            type: "string",
+            enum: ["gmail", "calendar", "manual", "import", "slack", "otter"],
+          },
+          created_by_actor_id: { type: "string", format: "uuid" },
+        },
+        required: ["email", "full_name"],
       },
     },
     {
@@ -464,6 +532,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return asText(await getSetupStatus());
       case "rudi_crm_record_discovery_observations":
         return asText(await recordDiscoveryObservations(args));
+      case "rudi_crm_apply_discovery_heuristics":
+        return asText(await applyDiscoveryHeuristics());
+      case "rudi_crm_list_contact_candidates":
+        return asText(await listContactCandidates(args));
+      case "rudi_crm_promote_contact":
+        return asText(await promoteContact(args));
       case "rudi_crm_log_ingest_batch":
         return asText(await logIngestBatch(args));
       case "rudi_crm_upsert_interaction":

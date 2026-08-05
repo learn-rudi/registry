@@ -1,6 +1,6 @@
 {
   "name": "@rudi/rudi-crm-stack",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "RUDI CRM MCP stack for controlled engagement memory reads and writes.",
   "type": "module",
   "private": true,
@@ -8,6 +8,7 @@
   "scripts": {
     "start": "npx tsx src/index.ts",
     "build": "tsc",
+    "db:migrate": "npm run build && node dist/migrate.js",
     "test": "npm run build && node --test tests/*.test.mjs",
     "test:live": "RUDI_CRM_LIVE_TESTS=1 npm test",
     "verify": "npm test"

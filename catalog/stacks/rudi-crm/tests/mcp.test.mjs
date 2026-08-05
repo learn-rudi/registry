@@ -4,17 +4,20 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
 const EXPECTED_TOOLS = [
+  "rudi_crm_apply_discovery_heuristics",
   "rudi_crm_config_status",
   "rudi_crm_get_activity_feed",
   "rudi_crm_get_attention_brief",
   "rudi_crm_get_engagement_context",
   "rudi_crm_get_latest_correspondence",
   "rudi_crm_get_unknown_discovery_domains",
+  "rudi_crm_list_contact_candidates",
   "rudi_crm_list_engagements",
   "rudi_crm_list_organizations",
   "rudi_crm_list_people",
   "rudi_crm_list_triage_queue",
   "rudi_crm_log_ingest_batch",
+  "rudi_crm_promote_contact",
   "rudi_crm_record_discovery_observations",
   "rudi_crm_record_finance_event",
   "rudi_crm_run_validators",
@@ -33,7 +36,7 @@ test("MCP server exposes the controlled RUDI CRM contract", async () => {
     },
   });
   const client = new Client(
-    { name: "rudi-crm-stack-test", version: "0.1.0" },
+    { name: "rudi-crm-stack-test", version: "0.3.0" },
     { capabilities: {} }
   );
 
@@ -99,6 +102,28 @@ test("MCP server exposes the controlled RUDI CRM contract", async () => {
       "adjustment",
     ]);
     assert.equal(financeEvent.inputSchema.properties.engagement_id.format, "uuid");
+
+    const candidates = tools.tools.find(
+      (tool) => tool.name === "rudi_crm_list_contact_candidates"
+    );
+    assert.equal(candidates.inputSchema.properties.limit.maximum, 100);
+    assert.equal(candidates.inputSchema.properties.offset.minimum, 0);
+    assert.equal(candidates.inputSchema.properties.min_observations.minimum, 1);
+    assert.equal(candidates.inputSchema.properties.since.format, "date-time");
+    assert.equal(candidates.inputSchema.properties.include_existing.type, "boolean");
+
+    const promoteContact = tools.tools.find(
+      (tool) => tool.name === "rudi_crm_promote_contact"
+    );
+    assert.deepEqual(promoteContact.inputSchema.required, ["email", "full_name"]);
+    assert.equal(promoteContact.inputSchema.properties.email.format, "email");
+    assert.equal(promoteContact.inputSchema.properties.existing_person_id.format, "uuid");
+    assert.match(promoteContact.description, /explicit approval/i);
+
+    const applyHeuristics = tools.tools.find(
+      (tool) => tool.name === "rudi_crm_apply_discovery_heuristics"
+    );
+    assert.deepEqual(applyHeuristics.inputSchema.properties, {});
 
     const status = await client.callTool({
       name: "rudi_crm_config_status",

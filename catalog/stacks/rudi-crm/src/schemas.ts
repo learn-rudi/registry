@@ -1,11 +1,11 @@
 import { z } from "zod";
 
-const isoLikeDateTime = z.string().min(1);
 const isoDateTime = z.string().datetime({ offset: true });
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const nonEmptyString = z.string().trim().min(1);
 const optionalText = z.string().trim().optional();
 const optionalUuid = z.string().uuid().optional();
+const normalizedEmail = z.string().trim().toLowerCase().email().max(320);
 
 export const MAX_RESULT_LIMIT = 100;
 export const DEFAULT_RESULT_LIMIT = 25;
@@ -14,12 +14,13 @@ const resultLimit = z.number().int().min(1).max(MAX_RESULT_LIMIT).default(DEFAUL
 const resultOffset = z.number().int().min(0).default(0);
 
 export const RudiCrmObservation = z.object({
-  source: nonEmptyString,
+  source: z.enum(["gmail", "calendar", "otter", "slack", "manual"]),
   source_id: nonEmptyString,
   source_thread_id: optionalText,
-  observed_at: isoLikeDateTime,
+  observed_at: isoDateTime,
   address_role: z.enum(["from", "to", "cc", "bcc", "attendee", "host", "sender", "recipient"]),
-  address: nonEmptyString,
+  address: normalizedEmail,
+  display_name: z.string().trim().max(200).optional(),
   idempotency_key: optionalText,
   raw: z.record(z.unknown()).optional(),
 });
@@ -78,6 +79,26 @@ export const ListPeopleInput = PagedInput.extend({
   role: optionalText,
   search: optionalText,
   has_email: z.boolean().optional(),
+});
+
+export const ListContactCandidatesInput = PagedInput.extend({
+  min_observations: z.number().int().min(1).max(10_000).default(2),
+  since: isoDateTime.optional(),
+  include_existing: z.boolean().default(false),
+});
+
+export const PromoteContactInput = z.object({
+  email: normalizedEmail,
+  full_name: nonEmptyString.max(200),
+  existing_person_id: optionalUuid,
+  organization_id: optionalUuid,
+  title: z.string().trim().max(200).optional(),
+  phone: z.string().trim().max(100).optional(),
+  role: z.string().trim().max(200).optional(),
+  notes: z.string().trim().max(4_000).optional(),
+  email_label: z.enum(["work", "personal", "alias", "former", "unknown"]).default("work"),
+  source: z.enum(["gmail", "calendar", "manual", "import", "slack", "otter"]).default("gmail"),
+  created_by_actor_id: optionalUuid,
 });
 
 export const ListOrganizationsInput = PagedInput.extend({
@@ -205,6 +226,8 @@ export type RunValidatorsArgs = z.infer<typeof RunValidatorsInput>;
 export type LimitArgs = z.infer<typeof LimitInput>;
 export type PagedArgs = z.infer<typeof PagedInput>;
 export type ListPeopleArgs = z.infer<typeof ListPeopleInput>;
+export type ListContactCandidatesArgs = z.infer<typeof ListContactCandidatesInput>;
+export type PromoteContactArgs = z.infer<typeof PromoteContactInput>;
 export type ListOrganizationsArgs = z.infer<typeof ListOrganizationsInput>;
 export type ListEngagementsArgs = z.infer<typeof ListEngagementsInput>;
 export type ActivityFeedArgs = z.infer<typeof ActivityFeedInput>;

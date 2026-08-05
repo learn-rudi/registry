@@ -5,18 +5,30 @@ import {
   ActivityFeedInput,
   AttentionBriefInput,
   ListPeopleInput,
+  ListContactCandidatesInput,
+  PromoteContactInput,
   RecordFinanceEventInput,
+  RudiCrmObservation,
   UpsertInteractionInput,
 } from "../dist/schemas.js";
 
-test("pool config forces Supabase connections through explicit TLS options", () => {
+test("pool config maps explicit PostgreSQL sslmode to TLS options", () => {
   const config = createPoolConfig(
-    "postgresql://postgres:secret@db.example-project.supabase.co:5432/postgres?sslmode=require"
+    "postgresql://postgres:secret@db.example.invalid:5432/postgres?sslmode=require"
   );
 
   assert.equal(config.ssl.rejectUnauthorized, false);
   assert.equal(config.connectionString.includes("sslmode=require"), false);
   assert.equal(config.connectionString.startsWith("postgresql://postgres:"), true);
+});
+
+test("pool config does not infer transport policy from a database provider hostname", () => {
+  const providerUrl =
+    "postgresql://postgres:secret@db.example-project.supabase.co:5432/postgres";
+  const localUrl = "postgresql://hoff@127.0.0.1:5432/rudi_crm";
+
+  assert.deepEqual(createPoolConfig(providerUrl), { connectionString: providerUrl });
+  assert.deepEqual(createPoolConfig(localUrl), { connectionString: localUrl });
 });
 
 test("upsert interaction schema validates normalized connector payloads", () => {
@@ -93,4 +105,63 @@ test("record finance event schema enforces money + source contract", () => {
   assert.throws(() => RecordFinanceEventInput.parse({ ...base, currency: "usd" }));
   assert.throws(() => RecordFinanceEventInput.parse({ ...base, direction: "sideways" }));
   assert.throws(() => RecordFinanceEventInput.parse({ ...base, occurred_at: "2026-06-27" }));
+});
+
+test("contact discovery schemas enforce bounded preview and explicit promotion", () => {
+  const preview = ListContactCandidatesInput.parse({
+    min_observations: 3,
+    since: "2025-08-04T00:00:00-04:00",
+  });
+
+  assert.equal(preview.limit, 25);
+  assert.equal(preview.offset, 0);
+  assert.equal(preview.include_existing, false);
+  assert.throws(() => ListContactCandidatesInput.parse({ min_observations: 0 }));
+  assert.throws(() => ListContactCandidatesInput.parse({ limit: 101 }));
+  assert.throws(() => ListContactCandidatesInput.parse({ since: "2025-08-04" }));
+
+  const promotion = PromoteContactInput.parse({
+    email: "  Contact@Example.COM ",
+    full_name: "Example Contact",
+    source: "gmail",
+  });
+
+  assert.equal(promotion.email, "contact@example.com");
+  assert.equal(promotion.source, "gmail");
+  assert.throws(() =>
+    PromoteContactInput.parse({ email: "not-an-email", full_name: "Example Contact" })
+  );
+  assert.throws(() =>
+    PromoteContactInput.parse({ email: "contact@example.com", full_name: "   " })
+  );
+  assert.throws(() =>
+    PromoteContactInput.parse({
+      email: "contact@example.com",
+      full_name: "Example Contact",
+      existing_person_id: "not-a-uuid",
+    })
+  );
+});
+
+test("discovery observations align source, role, timestamp, and metadata boundaries", () => {
+  const observation = RudiCrmObservation.parse({
+    source: "gmail",
+    source_id: "message-123",
+    observed_at: "2026-08-04T09:00:00-04:00",
+    address_role: "recipient",
+    address: " Person@Example.COM ",
+    display_name: "Example Person",
+    raw: { mailbox: "header-only" },
+  });
+
+  assert.equal(observation.address_role, "recipient");
+  assert.equal(observation.address, "person@example.com");
+  assert.throws(() => RudiCrmObservation.parse({ ...observation, source: "webhook" }));
+  assert.throws(() =>
+    RudiCrmObservation.parse({ ...observation, observed_at: "2026-08-04 09:00:00" })
+  );
+  assert.throws(() =>
+    RudiCrmObservation.parse({ ...observation, display_name: "x".repeat(201) })
+  );
+  assert.throws(() => RudiCrmObservation.parse({ ...observation, address: "not-an-email" }));
 });

@@ -12,38 +12,103 @@ functions and reads only through stable CRM views/queries.
 - No raw SQL tool.
 - No direct table mutation from agents.
 - Mutating tools are idempotency-keyed or batch-audited by the database layer.
+- Discovery and candidate preview never create CRM people. Contact promotion is
+  a separate operation that requires explicit human approval.
+- Exact normalized email is the automatic deduplication key. Name or
+  organization similarities are review signals only and never trigger a merge.
 - Database credentials stay in RUDI secrets as `RUDI_CRM_DATABASE_URL`.
 
-## Setup
+## Local PostgreSQL (recommended)
 
-This stack is designed to run against the RUDI engagement CRM Postgres project.
-Get the Postgres connection string from your database provider or Supabase
-dashboard via **Connect**.
-For a long-lived local MCP server, prefer the direct connection string when your
-network supports it:
+The CRM requires PostgreSQL 17 or newer, but it does not require Supabase. For a
+local-first RUDI installation, run PostgreSQL as a separate durable service and
+keep the RUDI daemon focused on tool routing.
 
-```text
-postgresql://postgres:<password>@db.<project-ref>.supabase.co:5432/postgres?sslmode=require
-```
-
-If the machine is on an IPv4-only network, use Supabase's Shared Pooler session
-mode connection string from the same Connect panel.
-
-Store the value in RUDI secrets, never in source files:
+Create an empty database, apply the ordered schema migrations, and store the
+same URL in RUDI secrets:
 
 ```bash
-rudi secrets set RUDI_CRM_DATABASE_URL "<connection-string>"
+createdb rudi_crm
+export RUDI_CRM_DATABASE_URL="postgresql://localhost:5432/rudi_crm"
+npm run db:migrate
+rudi secrets set RUDI_CRM_DATABASE_URL "$RUDI_CRM_DATABASE_URL"
 rudi index --json
 rudi integrate codex
 ```
 
+The target database must already exist. `db:migrate` validates the URL, takes a
+PostgreSQL advisory lock, applies each migration transactionally, and records
+its SHA-256 checksum in `public.rudi_crm_schema_migrations`. Re-running it skips
+unchanged migrations and fails closed if an applied migration was edited.
+
 Restart the agent host after integration so the MCP router reloads the stack.
+Run `rudi_crm_setup_status` before using the CRM; every required table,
+function, view, and validator must be healthy.
+
+The migrations contain schema only. CRM records and credentials are never
+shipped in the registry package.
+
+## Optional: hosted PostgreSQL/Supabase
+
+Any PostgreSQL 17 provider can be used by changing `RUDI_CRM_DATABASE_URL`.
+Transport security is controlled by the URL, not inferred from the provider
+hostname. Hosted connections should explicitly include the provider's required
+TLS mode, for example `sslmode=require`.
+
+For Supabase, use the direct or Shared Pooler session-mode PostgreSQL URL from
+the dashboard's **Connect** panel. After the provider-neutral migrations, apply
+`sql/providers/supabase/0001_harden_data_api.sql` if the CRM will remain
+service-connection-only. That optional provider policy revokes Data API access
+from `anon` and `authenticated`; the core schema stays provider-neutral.
+
+Do not expose a server-side database URL in browser code or commit it to source.
+
+## Schema and backups
+
+`sql/migrations/0001_engagement_crm.sql` is the canonical baseline for all 19
+CRM tables, controlled write functions, read/validation views, constraints,
+indexes, triggers, auditing, and row-level-security posture.
+`sql/migrations/0002_contact_discovery_promotion.sql` adds header-level contact
+evidence, deduplicated candidate preview, and atomic approval-gated promotion.
+Add future changes as new ordered migration files; never rewrite an applied
+migration.
+
+## Approval-gated contact discovery
+
+The generic source workflow is:
+
+1. Search a bounded mailbox/date window and extract only required header
+   metadata: stable message/thread IDs, timestamp, address role, normalized
+   address, and display name. Do not ingest message bodies for contact discovery.
+2. Record observations in batches of at most 500 with
+   `rudi_crm_record_discovery_observations`. Replays enrich missing metadata but
+   cannot duplicate the same source/message/role/address tuple.
+3. Run `rudi_crm_apply_discovery_heuristics` to classify deterministic noise and
+   refresh domain signals.
+4. Review `rudi_crm_list_contact_candidates`. Exact existing-email matches can
+   be included for verification; same-name results are review signals only.
+5. Stop for human approval. Only then call `rudi_crm_promote_contact` for one
+   candidate. Omit `existing_person_id` to create a new person, or provide the
+   reviewed person ID to attach the address as an alias. Email collisions never
+   reassign an address between people.
+6. Log the bounded sweep with `rudi_crm_log_ingest_batch` and run validators.
+
+Promotion is atomic: a new person and primary email either both commit or both
+roll back. Exact-email retries return the existing person instead of creating a
+duplicate.
+
+Before a provider move, create a private `pg_dump` backup and reconcile table
+counts before and after restore. Backups and CRM row data belong in private
+RUDI state, not this public catalog.
 
 ## Tools
 
 - `rudi_crm_config_status`
 - `rudi_crm_setup_status`
 - `rudi_crm_record_discovery_observations`
+- `rudi_crm_apply_discovery_heuristics`
+- `rudi_crm_list_contact_candidates`
+- `rudi_crm_promote_contact`
 - `rudi_crm_log_ingest_batch`
 - `rudi_crm_upsert_interaction`
 - `rudi_crm_record_finance_event`
@@ -58,16 +123,10 @@ Restart the agent host after integration so the MCP router reloads the stack.
 - `rudi_crm_get_engagement_context`
 - `rudi_crm_get_latest_correspondence`
 
-## Database Function SQL
-
-The finance write contract is versioned in `sql/record_finance_event.sql`.
-Apply it to the CRM Postgres project before exposing
-`rudi_crm_record_finance_event`.
-
 ## Live Regression Test
 
-The default test suite does not mutate the CRM database. To run the finance
-write contract regression against a real database, provide
+The default test suite does not mutate the CRM database. To run the finance and
+contact-promotion write-contract regressions against a real database, provide
 `RUDI_CRM_DATABASE_URL` and opt in explicitly:
 
 ```bash
