@@ -1,7 +1,7 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-08-04T22:33:12.000Z",
+  "generatedAt": "2026-08-05T00:09:42.000Z",
   "stats": {
     "total": 149,
     "byKind": {
@@ -5175,7 +5175,7 @@
       "id": "stack:rudi-crm",
       "kind": "stack",
       "name": "RUDI CRM",
-      "version": "0.1.0",
+      "version": "0.3.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -5197,6 +5197,9 @@
           "rudi_crm_config_status",
           "rudi_crm_setup_status",
           "rudi_crm_record_discovery_observations",
+          "rudi_crm_apply_discovery_heuristics",
+          "rudi_crm_list_contact_candidates",
+          "rudi_crm_promote_contact",
           "rudi_crm_log_ingest_batch",
           "rudi_crm_upsert_interaction",
           "rudi_crm_record_finance_event",
@@ -5230,13 +5233,12 @@
           "crm",
           "engagements",
           "postgres",
-          "supabase",
           "mcp",
           "audit"
         ],
         "icon": "rudi-crm",
         "boundary": "RUDI CRM exposes a controlled write/read contract over existing Postgres functions and views. It does not expose raw table writes or generic SQL execution.",
-        "secretGuidance": "Use a scoped server-side Postgres credential in RUDI_CRM_DATABASE_URL. Never expose this value to clients or agents."
+        "secretGuidance": "Use a scoped server-side PostgreSQL connection URL in RUDI_CRM_DATABASE_URL. Local and hosted PostgreSQL are supported; keep provider-specific settings outside the core stack. Never expose this value to clients or agents."
       },
       "related": {
         "operatorSkill": "skill:rudi-crm",
