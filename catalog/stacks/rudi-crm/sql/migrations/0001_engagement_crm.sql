@@ -2667,4 +2667,3 @@ REVOKE ALL ON ALL FUNCTIONS IN SCHEMA private FROM PUBLIC;
 --
 -- PostgreSQL database dump complete
 --
-

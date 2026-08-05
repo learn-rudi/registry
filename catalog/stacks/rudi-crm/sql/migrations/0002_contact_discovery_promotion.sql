@@ -526,4 +526,3 @@ revoke all on function public.promote_contact(
   text,
   uuid
 ) from public;
-
