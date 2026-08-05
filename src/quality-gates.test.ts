@@ -47,4 +47,14 @@ describe("registry quality workflow", () => {
     expect(packageJson.scripts?.["debt:scan"]).toBeTypeOf("string");
     expect(packageJson.scripts["debt:scan"].trim()).not.toBe("");
   });
+
+  it("packages ESM stack runtime modules", async () => {
+    const packageJson = JSON.parse(
+      await fs.readFile(path.join(repoRoot, "package.json"), "utf8")
+    );
+
+    expect(packageJson.files).toContain(
+      "catalog/stacks/**/*.{ts,tsx,js,jsx,mjs,cjs,json,md,py,txt}"
+    );
+  });
 });
