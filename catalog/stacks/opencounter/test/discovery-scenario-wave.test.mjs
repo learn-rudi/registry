@@ -396,6 +396,115 @@ test("queues signature-bound mixed-provenance scenario answers from the approved
   assert.deepEqual(validateDiscoveryLedger(ledger), ledger);
 });
 
+test("queues one checkpoint containing location and approved scenario answers", () => {
+  const { freeze, siteFactEvidence, siteFactEvidenceArtifacts, sourceLedgers } =
+    createScenarioFixtures(definition);
+  const preview = buildScenarioBranchWavePreview({
+    catalog,
+    definition,
+    freeze,
+    siteFactEvidence,
+    siteFactEvidenceArtifacts,
+    sourceLedgers
+  });
+  let ledger = createScenarioBranchLedger({
+    authorization: {
+      approvedAt: "2026-08-04T20:05:00.000Z",
+      approvedBy: "requester",
+      authorizationId: "requester-approved-scenario-wave-1",
+      maximumProviderProjects: 20,
+      previewSha256: preview.previewSha256
+    },
+    catalog,
+    createdAt: "2026-08-04T20:10:00.000Z",
+    definition,
+    freeze,
+    siteFactEvidence,
+    siteFactEvidenceArtifacts,
+    sourceLedgers
+  });
+  const leased = leaseNextDiscoveryJob(ledger, {
+    leasedAt: "2026-08-04T20:11:00.000Z",
+    workerId: "scenario-runner-1"
+  });
+  ledger = beginDiscoveryDispatch(leased.ledger, {
+    dispatchedAt: "2026-08-04T20:12:00.000Z",
+    jobId: leased.job.jobId,
+    leaseToken: leased.job.lease.leaseToken,
+    workerId: "scenario-runner-1"
+  });
+  const providerReference = "opencounter:project:2999999";
+  const questions = [{
+    id: "opencounter-address",
+    options: [{
+      label: leased.job.locationFixture.address,
+      value: leased.job.locationFixture.address
+    }],
+    prompt: "Which OpenCounter address match is the intended location?",
+    required: true,
+    type: "single_select"
+  }, ...leased.job.scenario.answerRules.map(({ questionId }) =>
+    createSyntheticQuestion(questionId))];
+  const checkpointSha256 = createGuidanceCheckpointSha256(
+    providerReference,
+    questions
+  );
+  ledger = recordDiscoveryResult(ledger, {
+    jobId: leased.job.jobId,
+    leaseToken: leased.job.lease.leaseToken,
+    observedAt: "2026-08-04T20:13:00.000Z",
+    result: {
+      checkpoint: {
+        checkpointSha256,
+        expiresAt: "2026-08-05T20:13:00.000Z",
+        questions,
+        schemaVersion: 1
+      },
+      providerReference,
+      schemaVersion: 1,
+      source: "opencounter",
+      status: "needs_requester_input"
+    },
+    workerId: "scenario-runner-1"
+  });
+  const checkpointed = ledger.jobs.find(({ jobId }) => jobId === leased.job.jobId);
+  const answers = [{
+    questionId: "opencounter-address",
+    value: checkpointed.locationFixture.address
+  }, ...checkpointed.scenario.answerRules.map(({ questionId, value }) => ({
+    questionId,
+    value
+  }))];
+  ledger = queueDiscoveryAnswers(ledger, {
+    actorId: "coordinator",
+    answerBasis: {
+      kind: "scenario_and_location_fixtures",
+      locationId: checkpointed.locationFixture.locationId,
+      locationVersion: checkpointed.locationFixture.locationVersion,
+      previewSha256: preview.previewSha256,
+      scenarioId: checkpointed.scenario.scenarioId,
+      scenarioVersion: checkpointed.scenario.scenarioVersion
+    },
+    answers,
+    checkpointSha256,
+    jobId: checkpointed.jobId,
+    queuedAt: "2026-08-04T20:14:00.000Z"
+  });
+
+  const queued = ledger.jobs.find(({ jobId }) => jobId === checkpointed.jobId);
+  assert.equal(queued.status, "queued");
+  assert.deepEqual(queued.nextAction.answerBasis, {
+    kind: "scenario_and_location_fixtures",
+    locationId: checkpointed.locationFixture.locationId,
+    locationVersion: checkpointed.locationFixture.locationVersion,
+    previewSha256: preview.previewSha256,
+    scenarioId: checkpointed.scenario.scenarioId,
+    scenarioVersion: checkpointed.scenario.scenarioVersion
+  });
+  assert.deepEqual(queued.nextAction.input.answers, answers);
+  assert.deepEqual(validateDiscoveryLedger(ledger), ledger);
+});
+
 function createScenarioFixtures(value) {
   const sourceLedgers = createSourceLedgers(value);
   const siteFacts = createSiteFactEvidence(value, sourceLedgers);

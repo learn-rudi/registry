@@ -218,6 +218,66 @@ export function validateAnswerBasis(value, job, answers, queuedAt) {
       scenarioVersion: basis.scenarioVersion
     };
   }
+  if (basis.kind === "scenario_and_location_fixtures") {
+    const previewBound = job.scenario.scenarioVersion >= 2;
+    exactKeys(basis, [
+      "kind",
+      "locationId",
+      "locationVersion",
+      ...(previewBound ? ["previewSha256"] : []),
+      "scenarioId",
+      "scenarioVersion"
+    ], "answerBasis");
+    if (!job.locationFixture
+      || basis.locationId !== job.locationFixture.locationId
+      || basis.locationVersion !== job.locationFixture.locationVersion
+      || basis.scenarioId !== job.scenario.scenarioId
+      || basis.scenarioVersion !== job.scenario.scenarioVersion
+      || (previewBound && (
+        !SHA256_PATTERN.test(basis.previewSha256)
+        || basis.previewSha256 !== job.scenario.previewSha256
+      ))) {
+      throw new Error("opencounter_discovery_answer_basis_invalid");
+    }
+    let hasLocationAnswer = false;
+    let hasScenarioAnswer = false;
+    for (const answer of answers) {
+      if (answer.questionId === "opencounter-address") {
+        if (!addressesReferToSameCincinnatiStreet(
+          answer.value,
+          job.locationFixture.address
+        )) {
+          throw new Error("opencounter_discovery_answer_basis_invalid");
+        }
+        hasLocationAnswer = true;
+        continue;
+      }
+      const question = job.checkpoint.questions.find(
+        ({ id: questionId }) => questionId === answer.questionId
+      );
+      const signature = createNormalizedQuestionSignatureSha256(question);
+      const rule = job.scenario.answerRules.find((candidate) =>
+        candidate.questionId === answer.questionId
+        && candidate.questionSignatureSha256 === signature
+        && candidate.value === answer.value);
+      if (rule === undefined
+        || (previewBound && !scenarioRuleMatchesProvenance(rule, job))) {
+        throw new Error("opencounter_discovery_scenario_answer_not_authorized");
+      }
+      hasScenarioAnswer = true;
+    }
+    if (!hasLocationAnswer || !hasScenarioAnswer) {
+      throw new Error("opencounter_discovery_answer_basis_invalid");
+    }
+    return {
+      kind: "scenario_and_location_fixtures",
+      locationId: basis.locationId,
+      locationVersion: basis.locationVersion,
+      ...(previewBound ? { previewSha256: basis.previewSha256 } : {}),
+      scenarioId: basis.scenarioId,
+      scenarioVersion: basis.scenarioVersion
+    };
+  }
   if (basis.kind === "location_fixture") {
     exactKeys(basis, ["kind", "locationId", "locationVersion"], "answerBasis");
     if (!job.locationFixture
