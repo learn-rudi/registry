@@ -3,7 +3,8 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
-  statSync
+  statSync,
+  writeFileSync
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -14,12 +15,16 @@ import {
   createResidentialPilotLedger,
   leaseNextDiscoveryJob,
   queueDiscoveryAnswers,
+  queueDiscoveryReconciliation,
   recordDiscoveryFailure,
-  recordDiscoveryResult
+  recordDiscoveryResult,
+  summarizeDiscoveryLedger,
+  validateDiscoveryLedger
 } from "../src/discovery-ledger.mjs";
 import { createGuidanceCheckpointSha256 } from "../src/core.mjs";
 import { buildObservedQuestionGraph } from "../src/discovery-question-graph.mjs";
 import { createDiscoveryLedgerStore } from "../src/discovery-ledger-store.mjs";
+import { createCatalogDiscoveryLedger } from "../src/discovery-plan.mjs";
 import { loadZoningCatalog } from "../src/zoning-catalog.mjs";
 
 const catalog = loadZoningCatalog(new URL(
@@ -49,6 +54,162 @@ const testAuthorization = {
   authorizationId: "synthetic-fixture-only",
   maximumProviderProjects: 18
 };
+const discoveryDefinition = JSON.parse(readFileSync(new URL(
+  "../catalog/zoning-question-discovery-first-pass.json",
+  import.meta.url
+), "utf8"));
+const locationFixture = {
+  address: "CONFIRMED TEST LOCATION — NOT A PROVIDER ADDRESS",
+  evidence: [{
+    observedAt: "2026-08-03T12:00:00.000Z",
+    source: "test-fixture:requester-confirmed-location"
+  }],
+  locationId: "confirmed-test-location",
+  locationVersion: 1
+};
+const catalogAuthorization = {
+  approvedAt: "2026-08-03T12:15:00.000Z",
+  approvedBy: "requester",
+  authorizationId: "requester-approved-126-first-pass",
+  maximumProviderProjects: 126
+};
+
+function createCatalogTestLedger() {
+  return createCatalogDiscoveryLedger({
+    authorization: catalogAuthorization,
+    catalog,
+    createdAt: "2026-08-03T12:30:00.000Z",
+    discoveryDefinition,
+    locationFixture
+  });
+}
+
+test("plans one stable first-pass job for every catalog use code", async () => {
+  const first = createCatalogTestLedger();
+  const second = createCatalogTestLedger();
+  const catalogEntryIds = catalog.categories.flatMap((category) => [
+    ...category.entries,
+    ...category.groups.flatMap((group) => group.entries)
+  ]).sort((left, right) => left.displayOrder - right.displayOrder)
+    .map(({ catalogEntryId }) => catalogEntryId);
+
+  assert.equal(first.schemaVersion, 2);
+  assert.equal(first.jobs.length, 126);
+  assert.equal(new Set(first.jobs.map(({ jobId }) => jobId)).size, 126);
+  assert.deepEqual(first.jobs.map(({ catalogEntryId }) => catalogEntryId), catalogEntryIds);
+  assert.deepEqual(first.jobs.map(({ jobId }) => jobId), second.jobs.map(({ jobId }) => jobId));
+  assert.deepEqual(new Set(first.jobs.map(({ status }) => status)), new Set(["queued"]));
+  assert.equal(new Set(first.jobs.map(({ categoryPath }) => categoryPath[0])).size, 7);
+  assert.deepEqual(new Set(first.jobs.map(({ locationFixture }) => locationFixture.address)),
+    new Set([locationFixture.address]));
+  assert.equal(first.campaign.plannedRunCount, 126);
+  assert.equal(first.campaign.authorization.maximumProviderProjects, 126);
+  assert.deepEqual(validateDiscoveryLedger(first), first);
+  const leased = leaseNextDiscoveryJob(first, {
+    leasedAt: "2026-08-03T12:31:00.000Z",
+    workerId: "runner-1"
+  });
+  assert.equal(leased.job.catalogEntryId, catalogEntryIds[0]);
+  assert.equal(leased.ledger.jobs.filter(({ status }) => status === "active").length, 1);
+
+  const stateDirectory = mkdtempSync(path.join(tmpdir(), "opencounter-126-ledger-test-"));
+  try {
+    const store = createDiscoveryLedgerStore({ stateDirectory });
+    await store.initialize(first);
+    const persisted = await store.read(first.ledgerId);
+    assert.equal(persisted.jobs.length, 126);
+    assert.equal(persisted.ledgerId, first.ledgerId);
+  } finally {
+    rmSync(stateDirectory, { force: true, recursive: true });
+  }
+});
+
+test("queues only the exact confirmed location answer", async () => {
+  const { queueDiscoveryLocationAnswer } = await import("../src/discovery-ledger.mjs");
+  let ledger = createCatalogTestLedger();
+  const leased = leaseNextDiscoveryJob(ledger, {
+    leasedAt: "2026-08-03T12:31:00.000Z",
+    workerId: "runner-1"
+  });
+  ledger = beginDiscoveryDispatch(leased.ledger, {
+    dispatchedAt: "2026-08-03T12:32:00.000Z",
+    jobId: leased.job.jobId,
+    leaseToken: leased.job.lease.leaseToken,
+    workerId: "runner-1"
+  });
+  const providerReference = "opencounter:project:3000100";
+  const questions = [{
+    id: "opencounter-address",
+    options: [{ label: locationFixture.address, value: locationFixture.address }],
+    prompt: "Which OpenCounter address match is the intended location?",
+    required: true,
+    type: "single_select"
+  }];
+  const checkpointSha256 = createGuidanceCheckpointSha256(providerReference, questions);
+  ledger = recordDiscoveryResult(ledger, {
+    jobId: leased.job.jobId,
+    leaseToken: leased.job.lease.leaseToken,
+    observedAt: "2026-08-03T12:33:00.000Z",
+    result: {
+      checkpoint: {
+        checkpointSha256,
+        expiresAt: "2026-08-04T12:33:00.000Z",
+        questions,
+        schemaVersion: 1
+      },
+      providerReference,
+      schemaVersion: 1,
+      source: "opencounter",
+      status: "needs_requester_input"
+    },
+    workerId: "runner-1"
+  });
+
+  ledger = queueDiscoveryLocationAnswer(ledger, {
+    actorId: "coordinator",
+    checkpointSha256,
+    jobId: leased.job.jobId,
+    queuedAt: "2026-08-03T12:34:00.000Z"
+  });
+  const queued = ledger.jobs.find(({ jobId }) => jobId === leased.job.jobId);
+  assert.equal(queued.status, "queued");
+  assert.deepEqual(queued.nextAction, {
+    answerBasis: {
+      kind: "location_fixture",
+      locationId: locationFixture.locationId,
+      locationVersion: locationFixture.locationVersion
+    },
+    input: {
+      answers: [{ questionId: "opencounter-address", value: locationFixture.address }],
+      checkpointSha256,
+      providerReference
+    },
+    kind: "continue"
+  });
+});
+
+test("enforces the two-project lease cap for the catalog-wide campaign", () => {
+  let ledger = createCatalogTestLedger();
+
+  const first = leaseNextDiscoveryJob(ledger, {
+    leasedAt: "2026-08-03T12:31:00.000Z",
+    workerId: "campaign-runner-1"
+  });
+  ledger = first.ledger;
+  const second = leaseNextDiscoveryJob(ledger, {
+    leasedAt: "2026-08-03T12:31:01.000Z",
+    workerId: "campaign-runner-2"
+  });
+  ledger = second.ledger;
+  const third = leaseNextDiscoveryJob(ledger, {
+    leasedAt: "2026-08-03T12:31:02.000Z",
+    workerId: "campaign-runner-3"
+  });
+
+  assert.notEqual(first.job.jobId, second.job.jobId);
+  assert.equal(third.job, null);
+  assert.equal(third.ledger.jobs.filter(({ status }) => status === "active").length, 2);
+});
 
 test("requires exact provider-volume authorization before jobs are queued", () => {
   assert.throws(() => createResidentialPilotLedger({
@@ -216,6 +377,18 @@ test("records an exact checkpoint and queues only complete allowed answers", () 
     jobId: leased.job.jobId,
     queuedAt: "2026-08-03T12:34:00.000Z"
   }), /answer_basis_required/);
+  assert.throws(() => queueDiscoveryAnswers(ledger, {
+    actorId: "coordinator",
+    answerBasis: {
+      kind: "scenario_fixture",
+      scenarioId: checkpointed.scenario.scenarioId,
+      scenarioVersion: checkpointed.scenario.scenarioVersion
+    },
+    answers: [{ questionId: "new-construction", value: "yes" }],
+    checkpointSha256,
+    jobId: leased.job.jobId,
+    queuedAt: "2026-08-03T12:34:00.000Z"
+  }), /scenario_answer_not_authorized/);
 
   ledger = queueDiscoveryAnswers(ledger, {
     actorId: "coordinator",
@@ -490,4 +663,117 @@ test("distinguishes known pre-effect failure from uncertain post-intent failure"
   assert.equal(indeterminate.status, "indeterminate");
   assert.equal(indeterminate.errors.at(-1).code, "provider_timeout");
   assert.equal(indeterminate.nextAction.kind, "start");
+});
+
+test("rejects a durable ledger whose job fixture no longer matches its stable identity", async () => {
+  const stateDirectory = mkdtempSync(path.join(tmpdir(), "opencounter-ledger-tamper-"));
+  try {
+    const store = createDiscoveryLedgerStore({ stateDirectory });
+    const ledger = createResidentialPilotLedger({
+      authorization: testAuthorization,
+      catalog,
+      createdAt: "2026-08-03T12:30:00.000Z",
+      pilotDefinition,
+      propertyProfiles
+    });
+    await store.initialize(ledger);
+    const ledgerPath = path.join(stateDirectory, `${ledger.ledgerId}.json`);
+    const tampered = JSON.parse(readFileSync(ledgerPath, "utf8"));
+    tampered.jobs[0].propertyProfile.address = "CHANGED WITHOUT A PROFILE VERSION";
+    tampered.jobs[0].nextAction.input.address = "CHANGED WITHOUT A PROFILE VERSION";
+    writeFileSync(ledgerPath, JSON.stringify(tampered), { mode: 0o600 });
+
+    await assert.rejects(store.read(ledger.ledgerId), /job_identity_invalid/);
+
+    tampered.jobs[0].propertyProfile.address = ledger.jobs[0].propertyProfile.address;
+    tampered.jobs[0].nextAction.input.address = ledger.jobs[0].propertyProfile.address;
+    tampered.jobs[0].evidence[0].inventedField = "untrusted";
+    writeFileSync(ledgerPath, JSON.stringify(tampered), { mode: 0o600 });
+    await assert.rejects(store.read(ledger.ledgerId), /evidence_invalid/);
+  } finally {
+    rmSync(stateDirectory, { force: true, recursive: true });
+  }
+});
+
+test("records the stack's indeterminate result without making a replacement start", () => {
+  let ledger = createResidentialPilotLedger({
+    authorization: testAuthorization,
+    catalog,
+    createdAt: "2026-08-03T12:30:00.000Z",
+    pilotDefinition,
+    propertyProfiles
+  });
+  const leased = leaseNextDiscoveryJob(ledger, {
+    leasedAt: "2026-08-03T12:31:00.000Z",
+    workerId: "runner-1"
+  });
+  ledger = beginDiscoveryDispatch(leased.ledger, {
+    dispatchedAt: "2026-08-03T12:32:00.000Z",
+    jobId: leased.job.jobId,
+    leaseToken: leased.job.lease.leaseToken,
+    workerId: "runner-1"
+  });
+  ledger = recordDiscoveryResult(ledger, {
+    jobId: leased.job.jobId,
+    leaseToken: leased.job.lease.leaseToken,
+    observedAt: "2026-08-03T12:33:00.000Z",
+    result: {
+      failureClass: "indeterminate",
+      providerReference: "opencounter:project:3000002",
+      providerRoute: "/projects/3000002/apply/questions",
+      schemaVersion: 1,
+      source: "opencounter",
+      status: "indeterminate"
+    },
+    workerId: "runner-1"
+  });
+
+  const job = ledger.jobs.find(({ jobId }) => jobId === leased.job.jobId);
+  assert.equal(job.status, "indeterminate");
+  assert.equal(job.providerReference, "opencounter:project:3000002");
+  assert.equal(job.nextAction.kind, "start");
+  assert.equal(job.lease, null);
+
+  ledger = queueDiscoveryReconciliation(ledger, {
+    actorId: "coordinator",
+    jobId: leased.job.jobId,
+    queuedAt: "2026-08-03T12:34:00.000Z"
+  });
+  const reconciliation = ledger.jobs.find(({ jobId }) => jobId === leased.job.jobId);
+  assert.equal(reconciliation.status, "queued");
+  assert.deepEqual(reconciliation.nextAction, {
+    input: { providerReference: "opencounter:project:3000002" },
+    kind: "reconcile",
+    uncertainDispatchId: job.pendingMutation.dispatchId
+  });
+});
+
+test("summarizes queue depth, age, active leases, errors and graph coverage", () => {
+  const ledger = createResidentialPilotLedger({
+    authorization: testAuthorization,
+    catalog,
+    createdAt: "2026-08-03T12:30:00.000Z",
+    pilotDefinition,
+    propertyProfiles
+  });
+
+  assert.deepEqual(summarizeDiscoveryLedger(ledger, {
+    observedAt: "2026-08-03T12:31:00.000Z"
+  }), {
+    activeLeaseCount: 0,
+    errorCount: 0,
+    oldestQueuedAgeSeconds: 60,
+    observedQuestionCount: 0,
+    observedTransitionCount: 0,
+    statusCounts: {
+      active: 0,
+      completed: 0,
+      failed: 0,
+      indeterminate: 0,
+      needs_input: 0,
+      queued: 18
+    },
+    zoningContextDriftCount: 0,
+    zoningContextDriftJobIds: []
+  });
 });

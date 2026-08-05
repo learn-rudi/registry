@@ -1,10 +1,14 @@
 import { createHash } from "node:crypto";
 
+import { observedZoningCodeForGraph } from "./discovery-zoning-context.mjs";
+
 export function buildObservedQuestionGraph(ledger) {
   if (!ledger || typeof ledger !== "object" || !Array.isArray(ledger.jobs)) {
     throw new Error("opencounter_discovery_ledger_invalid");
   }
   const nodes = new Map();
+  const usesLocationFixtures = ledger.schemaVersion >= 2;
+  const usesZoningPortfolio = ledger.schemaVersion >= 3;
   const edgesByKey = new Map();
 
   for (const job of ledger.jobs) {
@@ -27,20 +31,23 @@ export function buildObservedQuestionGraph(ledger) {
           node = {
             catalogEntryIds: new Set(),
             categoryPaths: new Set(),
+            expectedBaseZoningCodes: new Set(),
             firstObservedAt: observation.observedAt,
             independentJobIds: new Set(),
             lastObservedAt: observation.observedAt,
             normalizedSignatureSha256,
             observationCount: 0,
+            observedZoningCodes: new Set(),
             options: question.type === "single_select"
               ? structuredClone(question.options)
               : [],
             prompt: question.prompt.trim(),
-            propertyProfileIds: new Set(),
+            fixtureIds: new Set(),
             providerQuestionId: question.id,
             questionKey,
             requiredStatuses: new Set(),
             scenarioIds: new Set(),
+            overlayFlags: new Set(),
             type: question.type
           };
           nodes.set(questionKey, node);
@@ -48,9 +55,17 @@ export function buildObservedQuestionGraph(ledger) {
         node.catalogEntryIds.add(job.catalogEntryId);
         node.categoryPaths.add(job.categoryPath.join(" / "));
         node.independentJobIds.add(job.jobId);
-        node.propertyProfileIds.add(
-          `${job.propertyProfile.profileId}:${job.propertyProfile.profileVersion}`
-        );
+        node.fixtureIds.add(usesLocationFixtures
+          ? `${job.locationFixture.locationId}:${job.locationFixture.locationVersion}`
+          : `${job.propertyProfile.profileId}:${job.propertyProfile.profileVersion}`);
+        if (usesZoningPortfolio) {
+          node.expectedBaseZoningCodes.add(job.locationFixture.expectedBaseZoningCode);
+          const observedZoningCode = observedZoningCodeForGraph(job);
+          if (observedZoningCode !== null) {
+            node.observedZoningCodes.add(observedZoningCode);
+          }
+          for (const flag of job.locationFixture.overlayFlags) node.overlayFlags.add(flag);
+        }
         node.requiredStatuses.add(question.required);
         node.scenarioIds.add(`${job.scenario.scenarioId}:${job.scenario.scenarioVersion}`);
         node.observationCount += 1;
@@ -62,7 +77,7 @@ export function buildObservedQuestionGraph(ledger) {
         }
       }
     }
-    addJobEdges(edgesByKey, job);
+    addJobEdges(edgesByKey, job, usesZoningPortfolio);
   }
 
   const questions = [...nodes.values()].map((node) => ({
@@ -75,7 +90,14 @@ export function buildObservedQuestionGraph(ledger) {
     observationCount: node.observationCount,
     options: node.options,
     prompt: node.prompt,
-    propertyProfileIds: sorted(node.propertyProfileIds),
+    ...(usesLocationFixtures
+      ? { locationFixtureIds: sorted(node.fixtureIds) }
+      : { propertyProfileIds: sorted(node.fixtureIds) }),
+    ...(usesZoningPortfolio ? {
+      expectedBaseZoningCodes: sorted(node.expectedBaseZoningCodes),
+      observedZoningCodes: sorted(node.observedZoningCodes),
+      overlayFlags: sorted(node.overlayFlags)
+    } : {}),
     providerQuestionId: node.providerQuestionId,
     questionKey: node.questionKey,
     requiredStatuses: [...node.requiredStatuses].sort(),
@@ -93,7 +115,12 @@ export function buildObservedQuestionGraph(ledger) {
     observationCount: edge.observationCount,
     sourceQuestionKey: edge.sourceQuestionKey,
     targetQuestionKey: edge.targetQuestionKey,
-    terminalStatus: edge.terminalStatus
+    terminalStatus: edge.terminalStatus,
+    ...(usesZoningPortfolio ? {
+      expectedBaseZoningCodes: sorted(edge.expectedBaseZoningCodes),
+      locationFixtureIds: sorted(edge.locationFixtureIds),
+      observedZoningCodes: sorted(edge.observedZoningCodes)
+    } : {})
   })).sort((left, right) =>
     left.firstObservedAt.localeCompare(right.firstObservedAt)
     || left.sourceQuestionKey.localeCompare(right.sourceQuestionKey));
@@ -106,7 +133,7 @@ export function buildObservedQuestionGraph(ledger) {
   };
 }
 
-function addJobEdges(edgesByKey, job) {
+function addJobEdges(edgesByKey, job, usesZoningPortfolio) {
   for (let index = 1; index < job.observations.length; index += 1) {
     const previous = job.observations[index - 1];
     const current = job.observations[index];
@@ -144,13 +171,26 @@ function addJobEdges(edgesByKey, job) {
             firstObservedAt: current.observedAt,
             independentJobIds: new Set(),
             lastObservedAt: current.observedAt,
+            expectedBaseZoningCodes: new Set(),
+            locationFixtureIds: new Set(),
             observationCount: 0,
+            observedZoningCodes: new Set(),
             sourceQuestionKey,
             ...destination
           };
           edgesByKey.set(edgeKey, edge);
         }
         edge.independentJobIds.add(job.jobId);
+        if (usesZoningPortfolio) {
+          edge.expectedBaseZoningCodes.add(job.locationFixture.expectedBaseZoningCode);
+          edge.locationFixtureIds.add(
+            `${job.locationFixture.locationId}:${job.locationFixture.locationVersion}`
+          );
+          const observedZoningCode = observedZoningCodeForGraph(job);
+          if (observedZoningCode !== null) {
+            edge.observedZoningCodes.add(observedZoningCode);
+          }
+        }
         edge.observationCount += 1;
         if (Date.parse(current.observedAt) < Date.parse(edge.firstObservedAt)) {
           edge.firstObservedAt = current.observedAt;

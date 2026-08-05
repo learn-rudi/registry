@@ -1,0 +1,171 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+
+import {
+  buildPhysicalFeasibilityAssessment,
+  combineLegalAndPhysicalAssessments,
+  validateCombinedProjectAssessment,
+  validatePhysicalFeasibilityAssessment
+} from "../src/combined-project-assessment.mjs";
+import { evaluatePreliminaryGuidance } from
+  "../src/preliminary-guidance.mjs";
+import {
+  candidateUse,
+  catalog,
+  createPreliminaryGuidanceFixture,
+  request,
+  siteContext
+} from "./fixtures/preliminary-guidance-fixture.mjs";
+
+test("derives physical feasibility only from all required evidence domains", () => {
+  const physical = physicalAssessment({
+    parking_access_loading_circulation: "pass_with_constraints"
+  });
+  assert.equal(physical.feasibilityClassification,
+    "feasible_with_constraints");
+  assert.match(physical.assessmentId, /^ocpf_[0-9a-f]{64}$/);
+  assert.deepEqual(validatePhysicalFeasibilityAssessment(physical), physical);
+
+  assert.throws(() => buildPhysicalFeasibilityAssessment({
+    domains: domains().slice(0, 4),
+    evidence: evidence(),
+    generatedAt: "2026-08-04T22:00:00.000Z",
+    siteContext: physicalSiteContext(),
+    sourceSystem: sourceSystem()
+  }), /domains/i);
+});
+
+test("keeps legal and physical conclusions separate in one combined result", () => {
+  const legal = legalAssessment("Permitted");
+  const physical = physicalAssessment({
+    parking_access_loading_circulation: "pass_with_constraints"
+  });
+  const combined = combineLegalAndPhysicalAssessments({
+    legalAssessment: legal,
+    physicalAssessment: physical
+  });
+  assert.equal(legal.preliminaryClassification, "likely_permitted");
+  assert.equal(combined.legalClassification, "likely_permitted");
+  assert.equal(combined.physicalClassification,
+    "feasible_with_constraints");
+  assert.equal(combined.combinedClassification,
+    "potentially_viable_with_conditions");
+  assert.ok(combined.remainingApprovalsAndRisks.includes(
+    "municipal_confirmation_recommended"
+  ));
+  assert.ok(combined.remainingApprovalsAndRisks.includes(
+    "physical:parking_access_loading_circulation:shared_access_review"
+  ));
+  assert.match(combined.combinedAssessmentId, /^occa_[0-9a-f]{64}$/);
+  assert.deepEqual(validateCombinedProjectAssessment(combined), combined);
+  const tampered = structuredClone(combined);
+  tampered.combinedClassification = "potentially_viable";
+  assert.throws(() => validateCombinedProjectAssessment(tampered),
+    /artifact|digest/i);
+});
+
+test("fails closed for unknown physical domains or a different parcel", () => {
+  const legal = legalAssessment("Permitted");
+  const unknown = physicalAssessment({ utilities_infrastructure: "unknown" });
+  const combined = combineLegalAndPhysicalAssessments({
+    legalAssessment: legal,
+    physicalAssessment: unknown
+  });
+  assert.equal(combined.combinedClassification, "insufficient_information");
+
+  const mismatched = structuredClone(unknown);
+  mismatched.siteContext.parcelKey = "DIFFERENT-PARCEL";
+  assert.throws(() => combineLegalAndPhysicalAssessments({
+    legalAssessment: legal,
+    physicalAssessment: mismatched
+  }), /digest|site/i);
+});
+
+function legalAssessment(terminalClassification) {
+  const fixture = createPreliminaryGuidanceFixture(terminalClassification);
+  const candidateUses = [candidateUse(fixture.selectedCatalogEntryId)];
+  const site = siteContext();
+  const intake = evaluatePreliminaryGuidance({
+    answers: [],
+    candidateUses,
+    catalog,
+    questionnaire: fixture.questionnaire,
+    request,
+    siteContext: site
+  });
+  return evaluatePreliminaryGuidance({
+    answers: [{
+      evidenceRefs: ["requester:existing-use-answer"],
+      internalQuestionId: intake.nextQuestions[0].internalQuestionId,
+      source: "requester",
+      value: "No"
+    }],
+    candidateUses,
+    catalog,
+    questionnaire: fixture.questionnaire,
+    request,
+    siteContext: site
+  });
+}
+
+function physicalAssessment(statusOverrides = {}) {
+  return buildPhysicalFeasibilityAssessment({
+    domains: domains(statusOverrides),
+    evidence: evidence(),
+    generatedAt: "2026-08-04T22:00:00.000Z",
+    siteContext: physicalSiteContext(),
+    sourceSystem: sourceSystem()
+  });
+}
+
+function domains(statusOverrides = {}) {
+  return [
+    "development_envelope",
+    "existing_building",
+    "parking_access_loading_circulation",
+    "topography_flood_environment",
+    "utilities_infrastructure"
+  ].map((domain) => {
+    const status = statusOverrides[domain] ?? "pass";
+    return {
+      domain,
+      findings: status === "pass" ? [] : [{
+        code: domain === "parking_access_loading_circulation"
+          ? "shared_access_review"
+          : `${domain}_evidence_incomplete`,
+        evidenceRefs: ["site-engine:example-assessment"],
+        measurements: [],
+        severity: status === "fail" ? "blocker" : "warning",
+        summary: status === "unknown"
+          ? "Additional evidence is required."
+          : "A documented site constraint requires follow-up."
+      }],
+      status
+    };
+  });
+}
+
+function evidence() {
+  return [{
+    artifactSha256: "a".repeat(64),
+    evidenceRef: "site-engine:example-assessment",
+    observedAt: "2026-08-04T21:30:00.000Z",
+    source: "Pre Dev Intel site-engine test fixture"
+  }];
+}
+
+function physicalSiteContext() {
+  const site = siteContext();
+  return {
+    parcelKey: site.parcelKey,
+    rollupId: site.rollupId
+  };
+}
+
+function sourceSystem() {
+  return {
+    artifactRef: "site-engine:projects/example/site-envelope.json",
+    name: "Pre Dev Intel site-engine",
+    version: "test-fixture-v1"
+  };
+}

@@ -15,7 +15,7 @@ test("recognizes provider address suggestions without waiting for radio controls
   const page = {
     async waitForFunction(predicate, street, options) {
       waits += 1;
-      assert.equal(street, "880 Ridgeway Avenue");
+      assert.equal(street, "2446 kipling avenue");
       assert.deepEqual(options, { timeout: 15_000 });
       const priorDocument = globalThis.document;
       globalThis.document = {
@@ -23,7 +23,7 @@ test("recognizes provider address suggestions without waiting for radio controls
           assert.equal(selector, "main *");
           return [{
             children: { length: 0 },
-            textContent: "880 Ridgeway Avenue, Cincinnati, Ohio 45229"
+            textContent: "2446 Kipling Avenue, Cincinnati, Ohio 45239"
           }];
         }
       };
@@ -38,10 +38,116 @@ test("recognizes provider address suggestions without waiting for radio controls
 
   await waitForAddressOptions(
     page,
-    "880 Ridgeway Avenue, Cincinnati, OH 45229"
+    "2446 KIPLING AVE"
   );
 
   assert.equal(waits, 1);
+});
+
+test("falls back from an incomplete summary to the existing location route", async () => {
+  const providerReference = "opencounter:project:2819849";
+  let currentUrl = "about:blank";
+  const addressQuestion = {
+    id: "opencounter-address",
+    options: [{
+      label: "2446 Kipling Avenue, Cincinnati, Ohio 45239",
+      value: "2446 Kipling Avenue, Cincinnati, Ohio 45239"
+    }],
+    prompt: "Which OpenCounter address match is the intended location?",
+    required: true,
+    type: "single_select"
+  };
+  const driver = createPlaywrightOpenCounterDriver({
+    artifactStore: {},
+    pageRunner: async (storageStatePromise, action) => {
+      await storageStatePromise;
+      return action({
+        async evaluate() {
+          return {
+            addressConfirmationPending: true,
+            addressValue: "2446 Kipling Avenue, Cincinnati, Ohio 45239",
+            questions: []
+          };
+        },
+        async goto(url) {
+          currentUrl = url;
+          return { status: () => 200 };
+        },
+        locator(selector) {
+          assert.equal(selector, "main h1, main h2, main h3, main h4");
+          return {
+            async count() { return 1; },
+            async allTextContents() { return ["Project Details"]; },
+            first() {
+              return { async isVisible() { return true; } };
+            }
+          };
+        },
+        async waitForTimeout() {},
+        url() { return currentUrl; }
+      }, {});
+    },
+    stateStore: {
+      async loadSession() {
+        return {
+          guidanceState: {
+            activeCheckpoint: null,
+            requestedAddress: "2446 kipling avenue"
+          },
+          storageState: { cookies: [] }
+        };
+      }
+    }
+  });
+
+  assert.deepEqual(await driver.getGuidanceResult({ providerReference }), {
+    providerReference,
+    questions: [addressQuestion],
+    status: "needs_requester_input"
+  });
+  assert.equal(currentUrl,
+    "https://opencounter.cincinnati-oh.gov/projects/2819849/guide/location");
+});
+
+test("rejects a provider HTTP failure before interpreting guidance page state", async () => {
+  const providerReference = "opencounter:project:2819850";
+  const driver = createPlaywrightOpenCounterDriver({
+    artifactStore: {},
+    pageRunner: async (storageStatePromise, action) => {
+      await storageStatePromise;
+      return action({
+        async evaluate() {
+          throw new Error("provider failure pages must not be interpreted as guidance");
+        },
+        async goto() {
+          return { status: () => 403 };
+        },
+        locator() {
+          throw new Error("provider failure pages must not be inspected");
+        },
+        async waitForTimeout() {},
+        url() {
+          return "https://opencounter.cincinnati-oh.gov/projects/2819850/apply/summary";
+        }
+      }, {});
+    },
+    stateStore: {
+      async loadSession() {
+        return {
+          guidanceState: {
+            activeCheckpoint: null,
+            requestedAddress: "2446 kipling avenue"
+          },
+          storageState: { cookies: [] }
+        };
+      }
+    }
+  });
+
+  await assert.rejects(
+    driver.getGuidanceResult({ providerReference }),
+    /opencounter_dependency_failure:403/
+  );
 });
 
 test("restores the exact address checkpoint when the resumed address box is blank", async () => {
@@ -264,7 +370,7 @@ test("result reads use encrypted guidance state to preserve a pending address", 
   });
 });
 
-test("result reads check the authoritative summary route before location state", async () => {
+test("result reads accept an authoritative summary without a main h1", async () => {
   const providerReference = "opencounter:project:2819953";
   let currentUrl = "about:blank";
   const driver = createPlaywrightOpenCounterDriver({
@@ -284,6 +390,11 @@ test("result reads check the authoritative summary route before location state",
             locationHeading: "4818 Stewart Avenue, Cincinnati, Ohio 45227"
           };
         },
+        getByRole(role, options) {
+          assert.equal(role, "button");
+          assert.deepEqual(options, { name: "Skip for now", exact: true });
+          return { async count() { return 0; } };
+        },
         async goto(url) {
           assert.equal(
             url,
@@ -293,8 +404,30 @@ test("result reads check the authoritative summary route before location state",
           return { status: () => 200 };
         },
         locator(selector) {
-          assert.equal(selector, "main h1");
-          return { async waitFor() {} };
+          assert.equal(selector, "main h1, main h2, main h3, main h4");
+          return {
+            async allTextContents() {
+              return [
+                "Location",
+                "Zoning District",
+                "T3 Neighborhood (T3N)",
+                "Land Use Code",
+                "Multi-family dwelling"
+              ];
+            },
+            async count() { return 4; },
+            first() {
+              return {
+                async isVisible() { return true; },
+                async waitFor(options) {
+                  assert.deepEqual(options, {
+                    state: "attached",
+                    timeout: 15_000
+                  });
+                }
+              };
+            }
+          };
         },
         async waitForTimeout() {},
         url() { return currentUrl; }
@@ -410,17 +543,37 @@ test("does not replay an already-checked provider answer during continuation", a
   let summaryReloads = 0;
   let addressFills = 0;
   let addressConfirmationClicks = 0;
+  let addressBoxReady = false;
+  let skipSaveModalClicks = 0;
+  let skipSaveModalVisible = false;
   let currentUrl = "https://opencounter.cincinnati-oh.gov/projects/2819848/guide/location";
   const zeroCount = { async count() { return 0; } };
   const addressBox = {
-    async count() { return 1; },
+    async count() { return addressBoxReady ? 1 : 0; },
     async fill() { addressFills += 1; },
-    async inputValue() { return selectedAddress; }
+    async inputValue() { return selectedAddress; },
+    async waitFor(options) {
+      assert.deepEqual(options, { state: "visible", timeout: 15_000 });
+      addressBoxReady = true;
+    }
   };
   const confirmAddress = {
     async click() { addressConfirmationClicks += 1; },
     async count() { return 1; },
     async isVisible() { return false; }
+  };
+  const skipSaveModal = {
+    async click() {
+      assert.equal(skipSaveModalVisible, true);
+      skipSaveModalClicks += 1;
+      skipSaveModalVisible = false;
+    },
+    async count() { return 1; },
+    async isVisible() { return skipSaveModalVisible; },
+    async waitFor(options) {
+      assert.deepEqual(options, { state: "hidden", timeout: 15_000 });
+      assert.equal(skipSaveModalVisible, false);
+    }
   };
   const downloadButton = {
     async click() {},
@@ -436,6 +589,7 @@ test("does not replay an already-checked provider answer during continuation", a
     async click() {
       nextClicks += 1;
       currentUrl = "https://opencounter.cincinnati-oh.gov/projects/2819848/apply/summary";
+      skipSaveModalVisible = true;
     },
     async count() { return 1; },
     async isEnabled() { return true; },
@@ -470,7 +624,7 @@ test("does not replay an already-checked provider answer during continuation", a
       }
       assert.equal(role, "button");
       if (options.name === "Select this address") return confirmAddress;
-      if (options.name === "Skip for now") return zeroCount;
+      if (options.name === "Skip for now") return skipSaveModal;
       if (options.name === "Download PDF") return downloadButton;
       throw new Error(`unexpected role query: ${options.name}`);
     },
@@ -496,7 +650,26 @@ test("does not replay an already-checked provider answer during continuation", a
         || selector === "button[data-save-button=true]:not([disabled])") {
         return nextButton;
       }
-      if (selector === "main h1") return { async waitFor() {} };
+      if (selector === "main h1, main h2, main h3, main h4") return {
+        async allTextContents() {
+          return [
+            "Location",
+            "Zoning District",
+            "T3 Neighborhood (T3N)",
+            "Land Use Code",
+            "Multi-family dwelling"
+          ];
+        },
+        first() {
+          return {
+            async waitFor(options) {
+              assert.deepEqual(options, { state: "attached", timeout: 15_000 });
+              assert.equal(skipSaveModalVisible, false,
+                "the exact optional save modal must be dismissed before summary parsing");
+            }
+          };
+        }
+      };
       throw new Error(`unexpected locator: ${selector}`);
     },
     async waitForLoadState() {},
@@ -564,6 +737,7 @@ test("does not replay an already-checked provider answer during continuation", a
   });
   assert.equal(labelClicks, 0);
   assert.equal(nextClicks, 1);
+  assert.equal(skipSaveModalClicks, 1);
   assert.equal(summaryReloads, 0);
 });
 
@@ -611,6 +785,127 @@ test("preserves encrypted state and the provider reference when start fails afte
     cookies: [{ name: "anonymous-project", value: "bounded" }]
   });
   assert.equal(saves[0].expiresAt, "2026-08-04T18:00:00.000Z");
+});
+
+test("uses the verified full catalog path in the zoning project search", async () => {
+  const queries = [];
+  let currentUrl = "about:blank";
+  let projectStarts = 0;
+  let providerSearchQuery = null;
+  let startControlReady = false;
+  const page = {
+    getByRole(role, options = {}) {
+      if (role === "heading") {
+        assert.deepEqual(options, {
+          exact: true,
+          name: "Zoning Portal"
+        });
+        return {
+          locator(selector) {
+            assert.equal(selector, "..");
+            return {
+              getByRole(portalRole, portalOptions) {
+                assert.equal(portalRole, "button");
+                assert.deepEqual(portalOptions, {
+                  exact: true,
+                  name: "Check my zoning"
+                });
+                return {
+                  async click() {
+                    projectStarts += 1;
+                    currentUrl = "https://opencounter.cincinnati-oh.gov/projects/3000400/guide/business_type";
+                  },
+                  async count() { return startControlReady ? 1 : 0; },
+                  async waitFor(options) {
+                    assert.deepEqual(options, {
+                      state: "visible",
+                      timeout: 15_000
+                    });
+                    startControlReady = true;
+                  }
+                };
+              }
+            };
+          }
+        };
+      }
+      if (role === "textbox") {
+        return {
+          async count() { return 1; },
+          async fill(value) { providerSearchQuery = value; },
+          async waitFor() {}
+        };
+      }
+      if (role === "button" && options.name === "Search") {
+        return {
+          async click() { throw new Error("stop_after_verified_query_capture"); },
+          async count() { return 1; }
+        };
+      }
+      throw new Error(`unexpected role: ${role}:${options.name ?? ""}`);
+    },
+    async goto(url) {
+      assert.equal(url, "https://opencounter.cincinnati-oh.gov/");
+      currentUrl = url;
+    },
+    request: {
+      async get(_url, options) {
+        const query = options.params["filter[query_string]"];
+        queries.push(query);
+        if (query === "Accessory Uses") {
+          return providerSearchResponseForDriver([]);
+        }
+        return providerSearchResponseForDriver([providerUseForDriver({
+          categoryId: 3261,
+          categoryIds: [3261],
+          categoryName: "Agriculture and Extractive Uses",
+          description: "A use subordinate to the principal use.",
+          fullName: "Agriculture and Extractive Uses > Accessory Uses",
+          id: 42330,
+          name: "Accessory Uses",
+          slug: "accessory-uses"
+        })]);
+      }
+    },
+    url() { return currentUrl; },
+    async waitForURL(pattern) { assert.match(currentUrl, pattern); }
+  };
+
+  const result = await runResumableStart({
+    context: {
+      async storageState() { return { cookies: [] }; }
+    },
+    input: {
+      address: "417 KINGS RUN DR",
+      catalogEntryId: "agriculture_and_extractive_uses.accessory_uses",
+      catalogId: "cincinnati-opencounter-zoning-use-catalog-v1",
+      catalogSha256: "a".repeat(64),
+      categoryPath: ["Agriculture and Extractive Uses"],
+      description: "A use subordinate to the principal use.",
+      jurisdiction: "cincinnati-oh",
+      proposedUse: "Accessory Uses",
+      providerUseSlug: "accessory-uses",
+      workflow: "zoning"
+    },
+    now: () => new Date("2026-08-04T12:00:00.000Z"),
+    page,
+    stateStore: { async save() {} }
+  });
+
+  assert.equal(projectStarts, 1);
+  assert.deepEqual(queries, [
+    "Accessory Uses",
+    "Agriculture and Extractive Uses Accessory Uses"
+  ]);
+  assert.equal(
+    providerSearchQuery,
+    "Agriculture and Extractive Uses Accessory Uses"
+  );
+  assert.deepEqual(result, {
+    providerReference: "opencounter:project:3000400",
+    route: "/projects/3000400/guide/business_type",
+    status: "indeterminate"
+  });
 });
 
 test("persists the requested address and exact active checkpoint after start", async () => {
@@ -741,3 +1036,38 @@ test("binds a legacy session before one same-project reconciliation mutation", a
   }
   assert.equal(Number.isFinite(Date.parse(saves[0].expiresAt)), true);
 });
+
+function providerUseForDriver({
+  categoryId,
+  categoryIds,
+  categoryName,
+  description,
+  fullName,
+  id,
+  name,
+  slug
+}) {
+  return {
+    attributes: {
+      category_id: categoryId,
+      category_ids: categoryIds,
+      category_name: categoryName,
+      description,
+      featured: false,
+      full_name: fullName,
+      name,
+      reference_url: null,
+      slug
+    },
+    id
+  };
+}
+
+function providerSearchResponseForDriver(data) {
+  return {
+    async body() { return Buffer.from(JSON.stringify({ data }), "utf8"); },
+    headers() { return { "content-type": "application/json; charset=utf-8" }; },
+    ok() { return true; },
+    status() { return 200; }
+  };
+}

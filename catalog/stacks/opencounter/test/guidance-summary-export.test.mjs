@@ -275,7 +275,59 @@ test("proves one exact provider use fingerprint through a read-only request", as
   assert.equal(requested, true);
 });
 
-test("fails closed on ambiguous or drifted provider search before project mutation", async () => {
+test("retries a truncated label search with the full catalog path", async () => {
+  const queries = [];
+  const page = {
+    request: {
+      async get(url, options) {
+        assert.equal(url, "https://opencounter.cincinnati-oh.gov/api/zoning/uses");
+        queries.push(options.params["filter[query_string]"]);
+        if (queries.length === 1) {
+          return providerSearchResponse([
+            providerUse({
+              categoryId: 3260,
+              categoryIds: [3260],
+              categoryName: "Accessory Uses",
+              description: null,
+              fullName: "Accessory Uses > Retail and repair",
+              id: 42325,
+              name: "Retail and repair",
+              slug: "retail-and-repair"
+            })
+          ]);
+        }
+        return providerSearchResponse([
+          providerUse({
+            categoryId: 3261,
+            categoryIds: [3261],
+            categoryName: "Agriculture and Extractive Uses",
+            description: "A use subordinate to the principal use.",
+            fullName: "Agriculture and Extractive Uses > Accessory Uses",
+            id: 42330,
+            name: "Accessory Uses",
+            slug: "accessory-uses"
+          })
+        ]);
+      }
+    }
+  };
+
+  const verifiedUse = await verifyZoningUseBeforeProjectMutation(page, {
+    categoryPath: ["Agriculture and Extractive Uses"],
+    description: "A use subordinate to the principal use.",
+    proposedUse: "Accessory Uses",
+    providerUseSlug: "accessory-uses"
+  });
+  assert.deepEqual(queries, [
+    "Accessory Uses",
+    "Agriculture and Extractive Uses Accessory Uses"
+  ]);
+  assert.deepEqual(verifiedUse, {
+    providerSearchQuery: "Agriculture and Extractive Uses Accessory Uses"
+  });
+});
+
+test("uses the catalog slug to disambiguate duplicate provider labels before mutation", async () => {
   const exact = providerUse({
     categoryId: 3262,
     categoryIds: [3262],
@@ -301,7 +353,7 @@ test("fails closed on ambiguous or drifted provider search before project mutati
     /provider_ui_changed/
   );
 
-  const ambiguousPage = {
+  const duplicateLabelPage = {
     request: {
       async get() {
         return providerSearchResponse([
@@ -315,6 +367,32 @@ test("fails closed on ambiguous or drifted provider search before project mutati
             id: 49999,
             name: "Personal services",
             slug: "personal-services-copy"
+          })
+        ]);
+      }
+    }
+  };
+  await verifyZoningUseBeforeProjectMutation(duplicateLabelPage, {
+    categoryPath: ["Commercial Uses"],
+    description: "Changed provider description.",
+    proposedUse: "Personal services",
+    providerUseSlug: "personal-services"
+  });
+
+  const ambiguousPage = {
+    request: {
+      async get() {
+        return providerSearchResponse([
+          exact,
+          providerUse({
+            categoryId: 3262,
+            categoryIds: [3262],
+            categoryName: "Commercial Uses",
+            description: "Changed provider description.",
+            fullName: "Commercial Uses > Personal services",
+            id: 49999,
+            name: "Personal services",
+            slug: "personal-services"
           })
         ]);
       }

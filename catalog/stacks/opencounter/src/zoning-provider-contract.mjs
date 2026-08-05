@@ -1,13 +1,31 @@
+import { normalizeCincinnatiStreet } from "./address-normalization.mjs";
+
 const ORIGIN = "https://opencounter.cincinnati-oh.gov";
 
 export async function waitForAddressOptions(page, address) {
-  const street = address.split(",")[0].trim();
+  const street = normalizeCincinnatiStreet(address);
   if (street.length === 0) throw new Error("opencounter_address_invalid");
   await page.waitForFunction((street) => (
     Array.from(document.querySelectorAll("main *"))
       .some((element) => element.children.length === 0
-        && element.textContent?.trim().startsWith(`${street},`)
-        && element.textContent.includes("Cincinnati, Ohio"))
+        && (() => {
+          const text = element.textContent?.trim() ?? "";
+          const normalized = text.split(",")[0]
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, " ")
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean)
+            .map((token) => ({
+              ave: "avenue", blvd: "boulevard", cir: "circle", ct: "court",
+              dr: "drive", e: "east", hwy: "highway", ln: "lane", n: "north",
+              pk: "pike", pl: "place", plz: "plaza", rd: "road", s: "south",
+              st: "street", ter: "terrace", w: "west"
+            })[token] ?? token)
+            .join(" ");
+          return normalized === street
+            && /,\s*Cincinnati,\s*Ohio\b/i.test(text);
+        })())
   ), street, { timeout: 15_000 });
 }
 
@@ -24,9 +42,60 @@ export async function verifyZoningUseBeforeProjectMutation(page, input) {
   ) {
     throw new Error("opencounter_catalog_contract_invalid");
   }
+  let providerSearchQuery = input.proposedUse;
+  let results = await searchProviderUses(page, providerSearchQuery);
+  let exactLabelMatches = results.filter((result) =>
+    result.name === input.proposedUse
+  );
+  let exactCatalogMatches = exactLabelMatches.filter((result) =>
+    result.slug === input.providerUseSlug
+  );
+  if (exactCatalogMatches.length > 1) throw new Error("opencounter_use_ambiguous");
+  if (exactCatalogMatches.length === 0) {
+    if (results.some((result) => result.slug === input.providerUseSlug)) {
+      throw new Error("provider_ui_changed:use_label");
+    }
+    const fullCatalogQuery = [...input.categoryPath, input.proposedUse].join(" ");
+    if (fullCatalogQuery !== input.proposedUse) {
+      providerSearchQuery = fullCatalogQuery;
+      results = await searchProviderUses(page, providerSearchQuery);
+      exactLabelMatches = results.filter((result) =>
+        result.name === input.proposedUse
+      );
+      exactCatalogMatches = exactLabelMatches.filter((result) =>
+        result.slug === input.providerUseSlug
+      );
+      if (exactCatalogMatches.length > 1) {
+        throw new Error("opencounter_use_ambiguous");
+      }
+      if (exactCatalogMatches.length === 0
+        && results.some((result) => result.slug === input.providerUseSlug)) {
+        throw new Error("provider_ui_changed:use_label");
+      }
+    }
+    if (exactCatalogMatches.length === 0) {
+      throw new Error("opencounter_use_not_found");
+    }
+  }
+  const match = exactCatalogMatches[0];
+  const expectedFullName = `${input.categoryPath.join(" > ")} > ${input.proposedUse}`;
+  if (
+    match.slug !== input.providerUseSlug
+    || match.fullName !== expectedFullName
+    || normalizeProviderDescription(match.description)
+      !== normalizeProviderDescription(input.description)
+    || match.categoryName !== input.categoryPath[0]
+    || match.categoryIds.length !== input.categoryPath.length
+  ) {
+    throw new Error("provider_ui_changed:use_fingerprint");
+  }
+  return { providerSearchQuery };
+}
+
+async function searchProviderUses(page, query) {
   const response = await page.request.get(`${ORIGIN}/api/zoning/uses`, {
     headers: { accept: "application/json" },
-    params: { "filter[query_string]": input.proposedUse },
+    params: { "filter[query_string]": query },
     timeout: 15_000
   });
   if (!response.ok()) {
@@ -53,28 +122,7 @@ export async function verifyZoningUseBeforeProjectMutation(page, input) {
   const results = value.data.map((item, index) =>
     validateProviderUseSearchResult(item, index)
   );
-  const exactLabelMatches = results.filter((result) =>
-    result.name === input.proposedUse
-  );
-  if (exactLabelMatches.length > 1) throw new Error("opencounter_use_ambiguous");
-  if (exactLabelMatches.length === 0) {
-    if (results.some((result) => result.slug === input.providerUseSlug)) {
-      throw new Error("provider_ui_changed:use_label");
-    }
-    throw new Error("opencounter_use_not_found");
-  }
-  const match = exactLabelMatches[0];
-  const expectedFullName = `${input.categoryPath.join(" > ")} > ${input.proposedUse}`;
-  if (
-    match.slug !== input.providerUseSlug
-    || match.fullName !== expectedFullName
-    || normalizeProviderDescription(match.description)
-      !== normalizeProviderDescription(input.description)
-    || match.categoryName !== input.categoryPath[0]
-    || match.categoryIds.length !== input.categoryPath.length
-  ) {
-    throw new Error("provider_ui_changed:use_fingerprint");
-  }
+  return results;
 }
 
 function validateProviderUseSearchResult(value, index) {

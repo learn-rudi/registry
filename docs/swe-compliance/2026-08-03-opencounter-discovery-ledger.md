@@ -1,6 +1,6 @@
 # OpenCounter Question Discovery Ledger — SWE Compliance Checklist
 
-Status: **In progress**
+Status: **Complete**
 
 ## Phase 0: Baseline And Manual Lookup
 
@@ -70,7 +70,9 @@ Status: **In progress**
 - Expected files touched:
   - `catalog/stacks/opencounter/catalog/residential-question-discovery-pilot.json`
   - `catalog/stacks/opencounter/src/discovery-ledger.mjs`
+  - `catalog/stacks/opencounter/src/discovery-ledger-schema.mjs`
   - `catalog/stacks/opencounter/src/discovery-ledger-store.mjs`
+  - `catalog/stacks/opencounter/src/discovery-pilot.mjs`
   - `catalog/stacks/opencounter/src/discovery-question-graph.mjs`
   - `catalog/stacks/opencounter/test/discovery-ledger.test.mjs`
   - `catalog/stacks/opencounter/README.md`
@@ -86,7 +88,7 @@ Status: **In progress**
 
 ## Phase 2: Red Tests
 
-- Status: **Pending**
+- Status: **Complete**
 - Observable behavior to prove:
   - the pilot expands to exactly 18 unique jobs only with three complete
     caller-supplied property profiles;
@@ -101,12 +103,24 @@ Status: **In progress**
   package.
 - Expected failure: the discovery-ledger modules and pilot definition do not
   exist.
+- Red evidence:
+  - the first targeted run failed with `ERR_MODULE_NOT_FOUND` for
+    `src/discovery-ledger.mjs`;
+  - lease, dispatch, durable-store and graph increments each failed first on a
+    missing export/module or the exact unmet assertion;
+  - the question-edge test failed with `0 !== 2` before edge projection;
+  - provider-volume planning accepted missing authorization before the
+    authorization-gate test;
+  - the durable tamper test accepted a changed property fixture before full
+    ledger identity validation; and
+  - the indeterminate-result test rejected the stack's bounded result before
+    the explicit no-restart transition was implemented.
 - Exit criteria: each next observable behavior fails for the expected missing
-  implementation.
+  implementation. **Met.**
 
 ## Phase 3: Implementation
 
-- Status: **Pending**
+- Status: **Complete**
 - Implementation rules: smallest implementation per red test, no dependency
   additions, exact schemas, bounded data, immutable content-derived IDs and
   atomic local writes with restrictive permissions.
@@ -118,20 +132,43 @@ Status: **In progress**
 - Observability: every transition records actor, timestamp, event type and
   bounded error evidence; ledger summaries expose status counts and question
   observation counts.
-- Exit criteria: unchanged red tests pass without weakened assertions.
+- Implemented behavior:
+  - exact 18-job expansion from six catalog entries and three evidence-backed
+    property profiles only after an exact 18-project authorization record;
+  - content-derived job and ledger identities bound to catalog, tenant,
+    property-profile content, scenario content and authorization;
+  - exclusive 15-minute leases with a two-provider-job concurrency ceiling;
+  - persisted dispatch intent, safe pre-intent requeue and post-intent
+    indeterminate fencing;
+  - exact checkpoint/answer validation with requester-approval or exact
+    scenario-rule provenance;
+  - same-project reconciliation queueing that cannot become a replacement
+    start;
+  - atomic mode-`0600` JSON writes, mode-`0700` state directory, bounded lock
+    acquisition, abandoned-process lock recovery and symlink rejection; and
+  - a derived question graph with normalized composite identities,
+    answer-to-next/terminal edges and independent observation counts.
+- Exit criteria: unchanged red tests pass without weakened assertions. **Met.**
 
 ## Phase 4: Green Tests And Refactor
 
-- Status: **Pending**
+- Status: **Complete**
 - Green command: the unchanged targeted red command.
 - Refactor constraints: only after green and only inside the new ledger
   modules/tests plus the scoped README section.
 - Regression checks: full OpenCounter package suite.
-- Exit criteria: targeted and package tests remain green after cleanup.
+- Refactor evidence: the first domain module crossed the 800-line debt policy;
+  immutable planning and durable-schema validation were separated into
+  `discovery-pilot.mjs` and `discovery-ledger-schema.mjs`, then the unchanged
+  targeted suite remained green.
+- Green evidence:
+  - `node --test test/discovery-ledger.test.mjs`: 12 tests, 0 failures;
+  - `npm test` in the OpenCounter package: 45 tests, 0 failures.
+- Exit criteria: targeted and package tests remain green after cleanup. **Met.**
 
 ## Phase 5: Full Verification
 
-- Status: **Pending**
+- Status: **Complete**
 - Targeted tests: discovery-ledger test file.
 - Full suite: OpenCounter package tests and Registry `npm test`.
 - Build/catalog gates: `npm run validate`, `npm run indexes:sync`,
@@ -141,16 +178,45 @@ Status: **In progress**
 - Live smoke: intentionally omitted because creating 18 provider projects
   requires exact test profiles and explicit provider-volume authorization.
 - Exit criteria: all deterministic gates pass and the live gap remains
-  explicitly blocked rather than simulated.
+  explicitly blocked rather than simulated. **Met.**
+- Verification evidence:
+  - targeted ledger suite: 12 passed;
+  - full OpenCounter suite: 45 passed after installing its locked dependencies;
+  - Registry suite: 18 files and 156 tests passed;
+  - `npm run validate`: 147 catalog packages passed;
+  - `npm run indexes:sync` and `npm run indexes:check`: passed;
+  - `npm run catalog:clean:check`: passed after moving the verification-only
+    OpenCounter `node_modules` out of the repository;
+  - `npm run build`: passed;
+  - `npm pack --dry-run --json`: passed; and
+  - scoped architecture/debt scan: five edited source modules reported, zero
+    findings.
 
 ## Phase 6: Docs, Contracts, And Closure
 
-- Status: **Pending**
+- Status: **Complete**
 - Docs: document ledger location, state transitions, leasing protocol, fixture
   requirements, no-retry rule and the authorization-gated pilot command path.
-- Final files touched: record after implementation.
-- Commands run and results: record after verification.
-- Accepted debt: provider pilot observations remain empty until authorized.
+- Final files touched:
+  - `catalog/stacks/opencounter/catalog/residential-question-discovery-pilot.json`
+  - `catalog/stacks/opencounter/src/discovery-pilot.mjs`
+  - `catalog/stacks/opencounter/src/discovery-ledger.mjs`
+  - `catalog/stacks/opencounter/src/discovery-ledger-schema.mjs`
+  - `catalog/stacks/opencounter/src/discovery-ledger-store.mjs`
+  - `catalog/stacks/opencounter/src/discovery-question-graph.mjs`
+  - `catalog/stacks/opencounter/test/discovery-ledger.test.mjs`
+  - `catalog/stacks/opencounter/README.md`
+  - `catalog/stacks/opencounter/CATALOG-QUESTION-REFERENCE.md`
+  - generated `index.json`
+  - this compliance checklist
+- Commands and results are recorded in Phase 5.
+- Accepted debt:
+  - the 18 provider projects have not been created;
+  - the public pilot has no real property profiles or addresses;
+  - scenario answer-rule arrays remain empty until exact live question
+    signatures and requester-approved answers exist; and
+  - the observed question graph therefore contains no provider observations
+    yet.
 - Definition of Done: deterministic ledger and 18-job plan are proven locally;
   no provider project was created; docs distinguish a planned pilot from an
-  executed observed-question library.
+  executed observed-question library. **Met.**

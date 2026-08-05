@@ -10,6 +10,7 @@ import {
 } from "./guidance-navigation.mjs";
 import {
   exportGuidancePdfFromSummary,
+  hasZoningSummaryHeadings,
   parseSummary,
   parseSummaryHeadings
 } from "./summary-export.mjs";
@@ -19,6 +20,11 @@ import {
   verifyZoningUseBeforeProjectMutation,
   waitForAddressOptions
 } from "./zoning-provider-contract.mjs";
+import {
+  addressesReferToSameCincinnatiStreet,
+  normalizeCincinnatiAddress
+} from "./address-normalization.mjs";
+import { observeGuidanceQuestions } from "./guidance-question-observer.mjs";
 
 export {
   assertGuidanceReadyToAdvance,
@@ -295,7 +301,7 @@ export async function runResumableStart({
   let providerReference;
   let guidanceState = {
     activeCheckpoint: null,
-    requestedAddress: normalizeAddress(input.address)
+    requestedAddress: normalizeCincinnatiAddress(input.address)
   };
   const bindingSha256 = input.catalogEntryId === undefined
     ? null
@@ -370,7 +376,7 @@ export async function runResumableReconciliation({
   const providerReference = validateProviderReference(input.providerReference);
   let guidanceState = {
     activeCheckpoint: null,
-    requestedAddress: normalizeAddress(input.address)
+    requestedAddress: normalizeCincinnatiAddress(input.address)
   };
   let projectVerified = false;
   let mutationStarted = false;
@@ -478,13 +484,22 @@ function providerRouteForReference(value, providerReference) {
 }
 
 async function start(page, input, onProjectCreated) {
+  let providerSearchQuery = input.proposedUse;
   if (input.catalogEntryId !== undefined) {
-    await verifyZoningUseBeforeProjectMutation(page, input);
+    ({ providerSearchQuery } = await verifyZoningUseBeforeProjectMutation(
+      page,
+      input
+    ));
   }
   await page.goto(`${ORIGIN}/`, { waitUntil: "networkidle", timeout: 30_000 });
   const profile = ROOT_BUTTONS[input.workflow];
   const portal = page.getByRole("heading", { name: profile.heading, exact: true }).locator("..");
   const startButton = portal.getByRole("button", { name: profile.button, exact: true });
+  try {
+    await startButton.waitFor({ state: "visible", timeout: 15_000 });
+  } catch {
+    throw new Error("opencounter_ui_drift:start_control");
+  }
   if (await startButton.count() !== 1) throw new Error("opencounter_ui_drift:start_control");
   await startButton.click();
   await page.waitForURL(/\/projects\/[0-9]+\//, { timeout: 30_000 });
@@ -498,7 +513,7 @@ async function start(page, input, onProjectCreated) {
   const useBox = page.getByRole("textbox");
   await useBox.waitFor({ state: "visible", timeout: 15_000 });
   if (await useBox.count() !== 1) throw new Error("opencounter_ui_drift:use_textbox");
-  await useBox.fill(input.proposedUse);
+  await useBox.fill(providerSearchQuery);
   const search = page.getByRole("button", { name: "Search", exact: true });
   if (await search.count() !== 1) throw new Error("opencounter_ui_drift:search");
   await search.click();
@@ -528,7 +543,10 @@ async function start(page, input, onProjectCreated) {
 }
 
 async function reconcileExistingZoningStart(page, input, controls) {
-  await verifyZoningUseBeforeProjectMutation(page, input);
+  const { providerSearchQuery } = await verifyZoningUseBeforeProjectMutation(
+    page,
+    input
+  );
   const providerReference = validateProviderReference(input.providerReference);
   const projectId = providerReference.split(":").pop();
   const response = await page.goto(
@@ -551,7 +569,7 @@ async function reconcileExistingZoningStart(page, input, controls) {
   const useBox = page.getByRole("textbox");
   await useBox.waitFor({ state: "visible", timeout: 15_000 });
   if (await useBox.count() !== 1) throw new Error("opencounter_ui_drift:use_textbox");
-  await useBox.fill(input.proposedUse);
+  await useBox.fill(providerSearchQuery);
   const search = page.getByRole("button", { name: "Search", exact: true });
   if (await search.count() !== 1) throw new Error("opencounter_ui_drift:search");
   await search.click();
@@ -584,7 +602,7 @@ async function reconcileExistingZoningStart(page, input, controls) {
   const existingAddress = (await addressBox.inputValue()).trim();
   if (
     existingAddress !== ""
-    && normalizeAddress(existingAddress) !== normalizeAddress(input.address)
+    && !addressesReferToSameCincinnatiStreet(existingAddress, input.address)
   ) {
     throw new Error("opencounter_reconciliation_address_conflict");
   }
@@ -604,10 +622,15 @@ async function continueRun(page, input) {
   for (const answer of input.answers) {
     if (answer.questionId === "opencounter-address") {
       const addressBox = page.getByRole("combobox", { name: "Address", exact: true });
+      try {
+        await addressBox.waitFor({ state: "visible", timeout: 15_000 });
+      } catch {
+        throw new Error("opencounter_ui_drift:address");
+      }
       if (await addressBox.count() !== 1) throw new Error("opencounter_ui_drift:address");
       const currentAddress = (await addressBox.inputValue()).trim();
       if (currentAddress !== ""
-        && normalizeAddress(currentAddress) !== normalizeAddress(answer.value)) {
+        && !addressesReferToSameCincinnatiStreet(currentAddress, answer.value)) {
         throw new Error("opencounter_address_conflict");
       }
       if (currentAddress === "") {
@@ -680,6 +703,25 @@ async function readExisting(page, providerReference, guidanceState = null) {
   const id = reference.split(":").pop();
   const response = await page.goto(`${ORIGIN}/projects/${id}/apply/summary`, { waitUntil: "networkidle", timeout: 30_000 });
   if (response?.status() === 404) return { status: "not_found" };
+  if (response && response.status() >= 400) {
+    throw new Error(`opencounter_dependency_failure:${response.status()}`);
+  }
+  await waitForProviderRouteToSettle(page);
+  if (page.url().includes("/apply/summary")) {
+    const summaryHeadings = page.locator("main h1, main h2, main h3, main h4");
+    if (await summaryHeadings.count() === 0
+      || !(await summaryHeadings.first().isVisible())
+      || !hasZoningSummaryHeadings(await summaryHeadings.allTextContents())) {
+      const locationResponse = await page.goto(
+        `${ORIGIN}/projects/${id}/guide/location`,
+        { waitUntil: "networkidle", timeout: 30_000 }
+      );
+      if (locationResponse?.status() === 404) return { status: "not_found" };
+      if (locationResponse && locationResponse.status() >= 400) {
+        throw new Error(`opencounter_dependency_failure:${locationResponse.status()}`);
+      }
+    }
+  }
   return await readPageState(page, reference, guidanceState);
 }
 
@@ -692,59 +734,34 @@ export async function readPageState(
   if (page.url().includes("/apply/summary")) return parseSummary(page, providerReference);
   const fallbackAddressQuestion = guidanceState?.activeCheckpoint?.questions
     ?.find((question) => question.id === "opencounter-address") ?? null;
-  const observed = await page.evaluate((checkpointFallback) => {
-    const controls = Array.from(document.querySelectorAll("input[type=radio], input[type=text], textarea, select"));
-    const groups = new Map();
-    for (const control of controls) {
-      const name = control.getAttribute("name") || control.getAttribute("id");
-      if (!name || /address|search/i.test(name)) continue;
-      const fieldset = control.closest("[data-field-name]") || control.closest("fieldset") || control.parentElement?.parentElement;
-      const prompt = fieldset?.getAttribute?.("data-field-name")
-        || fieldset?.querySelector("legend")?.textContent?.trim()
-        || fieldset?.querySelector("label")?.textContent?.trim()
-        || control.getAttribute("aria-label") || name;
-      const current = groups.get(name) || { id: name, prompt, required: control.type === "radio" || control.required, type: control.type === "radio" ? "single_select" : "text", options: [] };
-      current.required = current.required || control.type === "radio" || control.required;
-      if (control.type === "radio") {
-        const label = document.querySelector(`label[for="${control.id}"]`)?.textContent?.trim() || control.value;
-        current.options.push({ label, value: control.value });
-      }
-      groups.set(name, current);
-    }
-    const address = document.querySelector('input[role="combobox"][aria-label="Address"]');
-    const street = address?.value?.split(",")[0]?.trim();
-    const addressOptions = street
-      ? Array.from(document.querySelectorAll("main *"))
-        .filter((element) => element.children.length === 0)
-        .map((element) => element.textContent?.trim())
-        .filter((text) => text && text.startsWith(`${street},`) && text.includes("Cincinnati, Ohio"))
-        .filter((text, index, values) => values.indexOf(text) === index)
-        .slice(0, 20)
-      : [];
-    const addressConfirmationPending = Array.from(document.querySelectorAll("button"))
-      .some((button) => button.textContent?.trim() === "Select this address");
-    const result = Array.from(groups.values())
-      .filter((question) => question.type === "text" || question.options.length >= 2);
-    if (addressOptions.length > 0) {
-      result.unshift({
-        id: "opencounter-address",
-        options: addressOptions.map((value) => ({ label: value, value })),
-        prompt: "Which OpenCounter address match is the intended location?",
-        required: true,
-        type: "single_select"
-      });
-    } else if (addressConfirmationPending && checkpointFallback !== null) {
-      result.unshift(checkpointFallback);
-    }
-    return {
-      addressConfirmationPending,
-      questions: result.slice(0, 50)
-    };
-  }, fallbackAddressQuestion);
-  const { addressConfirmationPending, questions } = observed;
+  const observed = await page.evaluate(
+    observeGuidanceQuestions,
+    fallbackAddressQuestion
+  );
+  const {
+    addressConfirmationPending,
+    addressValue,
+    questions: observedQuestions
+  } = observed;
+  const questions = [...observedQuestions];
   if (addressConfirmationPending
     && !questions.some((question) => question.id === "opencounter-address")) {
-    throw new Error("opencounter_address_checkpoint_missing");
+    if (typeof addressValue !== "string"
+      || addressValue.trim().length === 0
+      || typeof guidanceState?.requestedAddress !== "string"
+      || !addressesReferToSameCincinnatiStreet(
+        addressValue,
+        guidanceState.requestedAddress
+      )) {
+      throw new Error("opencounter_address_checkpoint_missing");
+    }
+    questions.unshift({
+      id: "opencounter-address",
+      options: [{ label: addressValue, value: addressValue }],
+      prompt: "Which OpenCounter address match is the intended location?",
+      required: true,
+      type: "single_select"
+    });
   }
   if (questions.length > 0) {
     return { providerReference, questions, status: "needs_requester_input" };
@@ -785,11 +802,4 @@ function referenceFromUrl(url) {
 }
 function cssEscape(value) {
   return String(value).replace(/["\\]/g, "\\$&");
-}
-function normalizeAddress(value) {
-  return value
-    .toLowerCase()
-    .replace(/\bohio\b/g, "oh")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
 }

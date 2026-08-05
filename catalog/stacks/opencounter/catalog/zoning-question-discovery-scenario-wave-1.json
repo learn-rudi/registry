@@ -1,0 +1,313 @@
+{
+  "answerRuleOwnership": {
+    "10_000_sq_ft": "proposal_fact",
+    "15_000_sq_ft": "proposal_fact",
+    "2500_sq_ft_and_ground_floor": "proposal_fact",
+    "5_000_sq_ft": "proposal_fact",
+    "above_ground_floor": "proposal_fact",
+    "accessory_use": "proposal_fact",
+    "adding_units": "proposal_fact",
+    "alcohol": "proposal_fact",
+    "antenna": "proposal_fact",
+    "arterial_street": "site_fact",
+    "attached_4_units": "proposal_fact",
+    "attached_singlefam": "proposal_fact",
+    "b_b_home": "proposal_fact",
+    "barge_facilities": "mixed_fact",
+    "boarding": "proposal_fact",
+    "child_care_type_a": "proposal_fact",
+    "drive_through": "proposal_fact",
+    "enclosed_facilities": "proposal_fact",
+    "entertainment": "proposal_fact",
+    "entrance": "proposal_fact",
+    "existing_use": "proposal_fact",
+    "existing_use_before_code": "proposal_fact",
+    "fence": "proposal_fact",
+    "floodplain_100_year": "site_fact",
+    "ground_floor_only": "proposal_fact",
+    "home_occ": "proposal_fact",
+    "incinerated_material": "mixed_fact",
+    "live_work": "site_fact",
+    "modification_existing_use": "proposal_fact",
+    "more_than_2_rooming_units": "proposal_fact",
+    "new_use_above_ground_floor": "proposal_fact",
+    "not_in_marina_or_boatyard": "mixed_fact",
+    "outdoor_eating": "proposal_fact",
+    "outdoor_exercise_areas": "proposal_fact",
+    "outdoor_storage_6_ft_fence": "proposal_fact",
+    "outdoor_storage_8_ft_fence": "proposal_fact",
+    "outdoor_storage_of_chemicals": "proposal_fact",
+    "residential_hours": "proposal_fact",
+    "retail_35_floor_area": "proposal_fact",
+    "rooming_house": "proposal_fact",
+    "secondary_use_parking": "proposal_fact",
+    "storage_space": "proposal_fact",
+    "transitional_housing_program_1": "proposal_fact",
+    "transitional_housing_program_3": "proposal_fact",
+    "transitional_housing_program_4": "proposal_fact",
+    "transitional_housing_program_5": "proposal_fact",
+    "transitional_housing_program_6": "proposal_fact",
+    "within_100_ft_of_residential": "site_fact",
+    "within_250_ft_residential": "site_fact",
+    "within_500_ft_residential": "site_fact"
+  },
+  "authorizationRequired": true,
+  "campaignId": "cincinnati-zoning-scenario-branch-wave-1",
+  "campaignVersion": 3,
+  "catalogId": "cincinnati-opencounter-zoning-use-catalog-v1",
+  "catalogSha256": "0fa60c5b7588d51676961de779f2757ed0fb99f58d8cd257ced313a941c26bf0",
+  "expectedScenarioCount": 20,
+  "expectedSubstantiveQuestionCount": 48,
+  "leaseDurationSeconds": 900,
+  "maximumProviderConcurrency": 2,
+  "proposalFactPolicy": {
+    "appliesToOwnership": ["mixed_fact", "proposal_fact"],
+    "kind": "explicitly_synthetic_coverage_scenario",
+    "notRealProjectFacts": true,
+    "schemaVersion": 1
+  },
+  "schemaVersion": 2,
+  "selectionStrategy": "greedy_first_layer_id_set_cover_with_provenance_bound_rules",
+  "tenantVersion": 307,
+  "scenarios": [
+    {
+      "answerRules": [
+        { "questionId": "existing_use", "value": "No" },
+        { "questionId": "drive_through", "value": "No" },
+        { "questionId": "entertainment", "value": "No" },
+        { "questionId": "not_in_marina_or_boatyard", "value": "No" },
+        { "questionId": "outdoor_eating", "value": "No" },
+        { "questionId": "residential_hours", "value": "No" },
+        { "questionId": "alcohol", "value": "Yes" },
+        { "questionId": "15_000_sq_ft", "value": "No" }
+      ],
+      "catalogEntryId": "commercial_uses.eating_and_drinking_establishments.restaurants_full_service",
+      "expectedBaseZoningCode": "MA",
+      "scenarioId": "full-service-restaurant-indoor-alcohol-small",
+      "scenarioVersion": 2
+    },
+    {
+      "answerRules": [
+        { "questionId": "existing_use", "value": "No" },
+        { "questionId": "transitional_housing_program_3", "value": "No" },
+        { "questionId": "transitional_housing_program_5", "value": "No" },
+        { "questionId": "above_ground_floor", "value": "No" },
+        { "questionId": "transitional_housing_program_6", "value": "No" },
+        { "questionId": "transitional_housing_program_1", "value": "Yes" },
+        { "questionId": "transitional_housing_program_4", "value": "No" },
+        { "questionId": "accessory_use", "value": "No" }
+      ],
+      "catalogEntryId": "residential_uses.residential_care_facilities.transitional_housing_1a4e203b_792a_445a_af9a_8a302ce8f545",
+      "expectedBaseZoningCode": "MA",
+      "scenarioId": "transitional-housing-protective-program",
+      "scenarioVersion": 2
+    },
+    {
+      "answerRules": [
+        { "questionId": "home_occ", "value": "No" },
+        { "questionId": "existing_use", "value": "No" },
+        { "questionId": "10_000_sq_ft", "value": "No" },
+        { "questionId": "ground_floor_only", "value": "Yes" },
+        { "questionId": "2500_sq_ft_and_ground_floor", "value": "Yes" },
+        { "questionId": "5_000_sq_ft", "value": "No" },
+        { "questionId": "arterial_street", "value": "Yes" },
+        { "questionId": "15_000_sq_ft", "value": "No" }
+      ],
+      "catalogEntryId": "commercial_uses.personal_services",
+      "expectedBaseZoningCode": "CC-P",
+      "scenarioId": "personal-services-small-ground-floor-arterial",
+      "scenarioVersion": 2
+    },
+    {
+      "answerRules": [
+        { "questionId": "more_than_2_rooming_units", "value": "No" },
+        { "questionId": "attached_singlefam", "value": "No" },
+        { "questionId": "adding_units", "value": "Yes" },
+        { "questionId": "above_ground_floor", "value": "No" },
+        { "questionId": "attached_4_units", "value": "No" }
+      ],
+      "catalogEntryId": "residential_uses.permanent_residential.single_family_dwelling",
+      "expectedBaseZoningCode": "SF-4",
+      "scenarioId": "single-family-detached-added-unit",
+      "scenarioVersion": 2
+    },
+    {
+      "answerRules": [
+        { "questionId": "modification_existing_use", "value": "No" },
+        { "questionId": "above_ground_floor", "value": "No" },
+        { "questionId": "new_use_above_ground_floor", "value": "No" },
+        { "questionId": "existing_use_before_code", "value": "No" }
+      ],
+      "catalogEntryId": "residential_uses.permanent_residential.multi_family_dwelling",
+      "expectedBaseZoningCode": "MG",
+      "scenarioId": "multi-family-new-ground-inclusive",
+      "scenarioVersion": 2
+    },
+    {
+      "answerRules": [
+        { "questionId": "existing_use", "value": "No" },
+        { "questionId": "storage_space", "value": "Yes" },
+        { "questionId": "within_100_ft_of_residential", "value": "Yes" },
+        { "questionId": "floodplain_100_year", "value": "Yes" }
+      ],
+      "catalogEntryId": "accessory_uses.drive_box",
+      "expectedBaseZoningCode": "SF-2",
+      "scenarioId": "drive-box-screened-outside-floodplain",
+      "scenarioVersion": 2
+    },
+    {
+      "answerRules": [
+        { "questionId": "existing_use", "value": "No" },
+        { "questionId": "enclosed_facilities", "value": "Yes" },
+        { "questionId": "barge_facilities", "value": "No" },
+        { "questionId": "outdoor_storage_of_chemicals", "value": "No" }
+      ],
+      "catalogEntryId": "industrial_uses.production_industry.general_production",
+      "expectedBaseZoningCode": "CC-A",
+      "scenarioId": "general-production-enclosed-no-barge",
+      "scenarioVersion": 2
+    },
+    {
+      "answerRules": [
+        { "questionId": "existing_use", "value": "No" },
+        { "questionId": "outdoor_exercise_areas", "value": "No" },
+        { "questionId": "boarding", "value": "No" }
+      ],
+      "catalogEntryId": "commercial_uses.animal_services",
+      "expectedBaseZoningCode": "RM-0.7",
+      "scenarioId": "animal-services-indoor-no-boarding",
+      "scenarioVersion": 2
+    },
+    {
+      "answerRules": [
+        { "questionId": "home_occ", "value": "Yes" },
+        { "questionId": "child_care_type_a", "value": "Yes" },
+        { "questionId": "fence", "value": "Yes" },
+        { "questionId": "existing_use", "value": "No" }
+      ],
+      "catalogEntryId": "residential_uses.day_care_home_child",
+      "expectedBaseZoningCode": "CC-A",
+      "scenarioId": "child-day-care-home-type-a-fenced",
+      "scenarioVersion": 2
+    },
+    {
+      "answerRules": [
+        { "questionId": "existing_use", "value": "No" },
+        { "questionId": "entrance", "value": "Yes" },
+        { "questionId": "rooming_house", "value": "Yes" }
+      ],
+      "catalogEntryId": "residential_uses.group_residential.rooming_house",
+      "expectedBaseZoningCode": "ME",
+      "scenarioId": "rooming-house-qualifying-separate-entrance",
+      "scenarioVersion": 2
+    },
+    {
+      "answerRules": [
+        { "questionId": "existing_use", "value": "No" },
+        { "questionId": "10_000_sq_ft", "value": "Yes" },
+        { "questionId": "ground_floor_only", "value": "Yes" },
+        { "questionId": "retail_35_floor_area", "value": "Yes" },
+        { "questionId": "alcohol", "value": "No" },
+        { "questionId": "accessory_use", "value": "No" },
+        { "questionId": "5_000_sq_ft", "value": "Yes" }
+      ],
+      "catalogEntryId": "commercial_uses.retail_sales_3940b3b6_7aa8_4b95_a240_71862f1876e9",
+      "expectedBaseZoningCode": "CN-M",
+      "scenarioId": "retail-large-ground-floor-primary",
+      "scenarioVersion": 2
+    },
+    {
+      "answerRules": [
+        { "questionId": "existing_use", "value": "No" },
+        { "questionId": "outdoor_storage_8_ft_fence", "value": "Yes" },
+        { "questionId": "5_000_sq_ft", "value": "No" }
+      ],
+      "catalogEntryId": "commercial_uses.garden_supply_stores_and_nurseries",
+      "expectedBaseZoningCode": "T4N.MF",
+      "scenarioId": "garden-supply-small-screened-storage",
+      "scenarioVersion": 2
+    },
+    {
+      "answerRules": [
+        { "questionId": "existing_use", "value": "No" },
+        { "questionId": "secondary_use_parking", "value": "No" },
+        { "questionId": "accessory_use", "value": "No" }
+      ],
+      "catalogEntryId": "commercial_uses.vehicle_and_equipment_services.car_wash",
+      "expectedBaseZoningCode": "IR",
+      "scenarioId": "car-wash-standalone-not-garage-secondary",
+      "scenarioVersion": 2
+    },
+    {
+      "answerRules": [
+        { "questionId": "existing_use", "value": "No" },
+        { "questionId": "incinerated_material", "value": "Yes" }
+      ],
+      "catalogEntryId": "accessory_uses.small_scale_specialized_incinerator",
+      "expectedBaseZoningCode": "OG",
+      "scenarioId": "small-incinerator-roof-separation-compliant",
+      "scenarioVersion": 2
+    },
+    {
+      "answerRules": [
+        { "questionId": "home_occ", "value": "Yes" },
+        { "questionId": "existing_use", "value": "No" },
+        { "questionId": "b_b_home", "value": "Yes" }
+      ],
+      "catalogEntryId": "commercial_uses.bed_and_breakfast",
+      "expectedBaseZoningCode": "RF-C",
+      "scenarioId": "bed-breakfast-owner-occupied-three-rooms",
+      "scenarioVersion": 2
+    },
+    {
+      "answerRules": [
+        { "questionId": "existing_use", "value": "No" },
+        { "questionId": "live_work", "value": "No" }
+      ],
+      "catalogEntryId": "commercial_uses.loft_dwelling_units",
+      "expectedBaseZoningCode": "RMX",
+      "scenarioId": "loft-dwelling-outside-designated-live-work",
+      "scenarioVersion": 3
+    },
+    {
+      "answerRules": [
+        { "questionId": "existing_use", "value": "No" },
+        { "questionId": "outdoor_storage_6_ft_fence", "value": "Yes" }
+      ],
+      "catalogEntryId": "commercial_uses.vehicle_and_equipment_services.automobile_holding_facility",
+      "expectedBaseZoningCode": "MA",
+      "scenarioId": "auto-holding-six-foot-screened",
+      "scenarioVersion": 2
+    },
+    {
+      "answerRules": [
+        { "questionId": "existing_use", "value": "No" },
+        { "questionId": "within_250_ft_residential", "value": "No" }
+      ],
+      "catalogEntryId": "industrial_uses.truck_terminal_and_warehouse",
+      "expectedBaseZoningCode": "RF-M",
+      "scenarioId": "truck-terminal-outside-250-foot-residential-buffer",
+      "scenarioVersion": 2
+    },
+    {
+      "answerRules": [
+        { "questionId": "existing_use", "value": "No" },
+        { "questionId": "within_500_ft_residential", "value": "Yes" }
+      ],
+      "catalogEntryId": "transportation_communications_and_utilities_uses.transportation_facilities.airports",
+      "expectedBaseZoningCode": "CN-P",
+      "scenarioId": "airport-within-500-foot-residential-buffer",
+      "scenarioVersion": 2
+    },
+    {
+      "answerRules": [
+        { "questionId": "existing_use", "value": "No" },
+        { "questionId": "antenna", "value": "No" }
+      ],
+      "catalogEntryId": "transportation_communications_and_utilities_uses.wireless_communication_antenna",
+      "expectedBaseZoningCode": "SF-10",
+      "scenarioId": "wireless-antenna-at-or-below-20-feet",
+      "scenarioVersion": 2
+    }
+  ]
+}

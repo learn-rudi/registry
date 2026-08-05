@@ -1,0 +1,17 @@
+{
+  "authorizationRequired": true,
+  "campaignId": "all-use-question-discovery-first-pass",
+  "campaignVersion": 1,
+  "catalogId": "cincinnati-opencounter-zoning-use-catalog-v1",
+  "catalogSha256": "0fa60c5b7588d51676961de779f2757ed0fb99f58d8cd257ced313a941c26bf0",
+  "expectedCategoryCount": 7,
+  "expectedEntryCount": 126,
+  "jurisdiction": "cincinnati-oh",
+  "leaseDurationSeconds": 900,
+  "locationFixtureCount": 1,
+  "maximumProviderConcurrency": 2,
+  "schemaVersion": 1,
+  "selection": "all_catalog_entries",
+  "tenantVersion": 307,
+  "workflow": "zoning"
+}
