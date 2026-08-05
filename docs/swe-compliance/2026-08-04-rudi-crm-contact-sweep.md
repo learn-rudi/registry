@@ -11,7 +11,7 @@
 
 ## Phase 1: Scope Lock And Interface Contract
 
-- In scope: one additive ordered migration; candidate preview and domain-heuristic MCP reads/actions; an approval-only contact promotion mutation; schemas, contract, MCP surface, tests, manifest, README, generated index, local workflow guidance, installation/reindex, and a preview-only 12-month Gmail sweep for `hoff@learnrudi.com`.
+- In scope: additive ordered migrations; candidate preview and domain-heuristic MCP reads/actions; an approval-only contact promotion mutation; schemas, contract, MCP surface, tests, manifest, README, generated index, local workflow guidance, installation/reindex, and a preview-only 12-month Gmail sweep for `hoff@learnrudi.com`.
 - Non-goals: automatically promoting candidates, fuzzy auto-merges, mutating Gmail, committing personal CRM data, changing the applied `0001` migration, creating a general email-marketing system, or refactoring unrelated registry work.
 - Candidate-preview input: bounded pagination, minimum observation count, optional offset-aware `since`, and an `include_existing` flag. Output must expose exact-email status and review signals but must not imply fuzzy matches are safe to merge.
 - Promotion input: required normalized email and full name; optional existing person ID for explicit alias attachment and bounded person metadata. Exact email matches are idempotent. A new person plus primary email is atomic. A colliding email must never move between people implicitly.

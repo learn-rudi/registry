@@ -70,6 +70,9 @@ CRM tables, controlled write functions, read/validation views, constraints,
 indexes, triggers, auditing, and row-level-security posture.
 `sql/migrations/0002_contact_discovery_promotion.sql` adds header-level contact
 evidence, deduplicated candidate preview, and atomic approval-gated promotion.
+`sql/migrations/0003_contact_candidate_noise.sql` filters automated addresses at
+the candidate level and prevents one no-reply sender from hiding human contacts
+at the same domain.
 Add future changes as new ordered migration files; never rewrite an applied
 migration.
 

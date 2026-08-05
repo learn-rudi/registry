@@ -63,7 +63,9 @@ test(
     const pool = new Pool(createPoolConfig(DATABASE_URL));
     const client = await pool.connect();
     const runId = randomUUID();
-    const candidateEmail = `candidate-${runId}@example.invalid`;
+    const candidateDomain = `contact-${runId}.example.invalid`;
+    const candidateEmail = `candidate@${candidateDomain}`;
+    const noReplyEmail = `no-reply@${candidateDomain}`;
     const aliasEmail = `alias-${runId}@example.invalid`;
     const sourcePrefix = `live-contact-test-${runId}`;
     let createdPersonId;
@@ -95,11 +97,21 @@ test(
             address: candidateEmail,
             raw: { mailbox: "synthetic-live-test" },
           },
+          {
+            source: "gmail",
+            source_id: `${sourcePrefix}-3`,
+            source_thread_id: `${sourcePrefix}-automated-thread`,
+            observed_at: "2026-08-03T09:00:00-04:00",
+            address_role: "from",
+            address: noReplyEmail,
+            display_name: "Automated Sender",
+            raw: { mailbox: "synthetic-live-test" },
+          },
         ];
 
         const inserted = await recordObservations(client, baseObservations);
-        assert.equal(inserted.received, 2);
-        assert.equal(inserted.inserted, 2);
+        assert.equal(inserted.received, 3);
+        assert.equal(inserted.inserted, 3);
         assert.equal(inserted.updated, 0);
 
         const enriched = await recordObservations(client, [
@@ -129,6 +141,12 @@ test(
         assert.equal(candidate.rows[0].message_count, 2);
         assert.equal(candidate.rows[0].thread_count, 1);
         assert.equal(candidate.rows[0].existing_person_id, null);
+
+        const noReplyCandidate = await client.query(
+          "select count(*)::integer as count from v_contact_candidates where email = $1::text",
+          [noReplyEmail]
+        );
+        assert.equal(noReplyCandidate.rows[0]?.count, 0);
 
         const created = await promoteContact(client, {
           email: candidateEmail.toUpperCase(),

@@ -149,3 +149,15 @@ test("package ships additive approval-gated contact discovery and promotion", as
   assert.match(migrationSource, /on conflict \(source, source_id, address_role, address\)/i);
   assert.match(migrationSource, /collision/i);
 });
+
+test("package filters no-reply addresses without hiding mixed human domains", async () => {
+  const migrationSource = await fs.readFile(
+    path.join(stackRoot, "sql/migrations/0003_contact_candidate_noise.sql"),
+    "utf8"
+  );
+
+  assert.match(migrationSource, /only_no_reply/i);
+  assert.match(migrationSource, /v_contact_candidates/i);
+  assert.match(migrationSource, /no-reply/i);
+  assert.match(migrationSource, /automated\/no-reply/i);
+});

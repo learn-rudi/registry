@@ -54,6 +54,7 @@ test(
       assert.deepEqual(first.applied, [
         "0001_engagement_crm.sql",
         "0002_contact_discovery_promotion.sql",
+        "0003_contact_candidate_noise.sql",
       ]);
       assert.deepEqual(first.skipped, []);
 
@@ -114,6 +115,7 @@ test(
       assert.deepEqual(second.skipped, [
         "0001_engagement_crm.sql",
         "0002_contact_discovery_promotion.sql",
+        "0003_contact_candidate_noise.sql",
       ]);
     } finally {
       await adminPool.query(`drop database if exists "${databaseName}" with (force)`);
