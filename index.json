@@ -1,14 +1,14 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-08-05T00:09:42.000Z",
+  "generatedAt": "2026-08-05T00:30:49.000Z",
   "stats": {
-    "total": 149,
+    "total": 150,
     "byKind": {
       "agent": 5,
       "binary": 27,
       "runtime": 5,
-      "skill": 64,
+      "skill": 65,
       "stack": 48
     }
   },
@@ -2479,6 +2479,20 @@
           "training",
           "connectors"
         ]
+      }
+    },
+    "skill:rudi-chief-of-staff": {
+      "id": "skill:rudi-chief-of-staff",
+      "kind": "skill",
+      "name": "rudi-chief-of-staff",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/rudi-chief-of-staff"
+      },
+      "meta": {
+        "description": "Coordinate a complex objective from the initiating agent by decomposing it into bounded assignments, dispatching and monitoring a crew, isolating code-writing workers in Git worktrees, routing dependencies and rework, commissioning review, and integrating verified results. Use when the user asks to delegate work in parallel, run a crew, act as a chief of staff or first mate, manage multiple agents, coordinate worktree-isolated implementation, or keep several agent tasks moving while preserving human oversight."
       }
     },
     "skill:rudi-crm": {
