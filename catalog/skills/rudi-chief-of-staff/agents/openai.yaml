@@ -1,0 +1,4 @@
+interface:
+  display_name: "RUDI Chief of Staff"
+  short_description: "Coordinate agent crews in isolated worktrees"
+  default_prompt: "Use $rudi-chief-of-staff to coordinate this objective with a monitored crew of isolated workers."
