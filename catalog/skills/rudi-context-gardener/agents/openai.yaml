@@ -1,0 +1,4 @@
+interface:
+  display_name: "RUDI Context Gardener"
+  short_description: "Audit and right-size durable agent context"
+  default_prompt: "Use $rudi-context-gardener to audit this repository’s agent instructions and recommend the right context placement."

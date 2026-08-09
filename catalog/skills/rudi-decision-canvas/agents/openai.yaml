@@ -1,0 +1,4 @@
+interface:
+  display_name: "RUDI Decision Canvas"
+  short_description: "Turn ambiguous work into visual decisions"
+  default_prompt: "Use $rudi-decision-canvas to create a visual options artifact and turn my choices into a task contract."
