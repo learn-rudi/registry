@@ -77,7 +77,7 @@
 
 ## Phase 5: Full Verification
 
-- Status: post-repair local gates complete; rerun GitHub CI and Admin deployment smoke pending.
+- Status: complete.
 
 - Targeted tests: `npx vitest run src/rudi-chief-of-staff.test.ts src/portable-agentic-workflow-skills.test.ts`.
 - Full suite: `npm test`.
@@ -91,13 +91,19 @@
 ## Phase 6: Docs, Contracts, And Closure
 
 - Docs or API contracts to update: this promotion record only; package-specific records remain authoritative for their implementations.
-- Final files touched: record from the final staged diff.
-- Commands run and results: append exact proof after completion.
+- Final files touched: the scoped release files recorded by pull request 19, the two CI-hardening changes exposed by clean GitHub runners, generated `index.json`, and this closure record.
+- Commands run and results: pre-publication and post-deployment proof are recorded below.
 - Evidence artifacts: release commit/PR, CI result, Admin parity output, router/daemon state, Compute health/schedule output, and rollback commit.
-- Independent-review result: pending.
-- Final verdict: pending.
-- Accepted debt: pending.
-- Proof gaps: pending.
+- Independent-review result: exact staged-diff audit found no out-of-scope catalog or stack changes; GitHub validated the release on Ubuntu, macOS, and Windows.
+- Final verdict: approved and deployed. Admin is operationally current with the accepted registry release.
+- Accepted debt:
+  - Nine installed stacks remain configuration-gated rather than falsely configured: CAGIS, Document QA, Google AI, Hamilton County Auditor, Neon, RUDI Share, Slack, SQLite, and Vercel.
+  - `stack:supabase-mcp` remains installed but its hosted OAuth discovery timed out after 20 seconds during indexing.
+  - The non-canonical legacy `stack:zoho-calendar@1.0.0` remains installed; it was not removed during a skills release.
+  - `rudi status` and `rudi agent hosts` disagree about Claude binary discovery; the dedicated host preflight reports Claude installed, authenticated, router-configured, and skill-synchronized.
+  - `rudi check` does not accept `skill:*`; skill proof therefore uses registry/installed-version parity plus native-wrapper existence.
+  - Admin's existing `RUDI/system` checkout has unrelated user changes, so the updater is installed machine-locally with a recorded hash instead of modifying that dirty repository.
+- Proof gaps: no secret-dependent smoke was attempted for configuration-gated stacks, and no machine-local secrets were copied. The three development-only operator revisions for Image Generator, OpenCounter, and RUDI CRM remain held with their complete stack release units and are not Admin drift from accepted `main`.
 - Definition of Done: Admin's clean registry and derived RUDI/Codex/Claude skill state match the approved release; optional integration gates are truthful; the RUDI Mac dirty worktree remains intact; rollback is possible from the previous commit.
 
 ## Pre-Publication Evidence
@@ -112,3 +118,17 @@
 - Build and provenance: `npm run build` and `npm run release:verify` passed; seven generated release artifact hashes verified.
 - Package smoke: `npm pack --dry-run --json` passed with 956 entries and an unpacked size of 10,052,006 bytes.
 - Dependency audit signal: `npm ci` reported eight pre-existing toolchain findings (one moderate, six high, one critical). No dependency manifest or lockfile changed in this release, and automatic dependency mutation is outside the scoped promotion.
+
+## Publication And Admin Deployment Evidence
+
+- Pull request: `learnrudi/registry#19`, merged as `94047185b3be0c75d5f3702046bfe0735df1cd1a`.
+- Pull-request CI: run `31286653312` passed Test/Build/Verify and manifest validation on Ubuntu, macOS, and Windows.
+- Main release CI: run `31286698248` passed Test/Build/Verify, all cross-platform validation, and the release artifact job.
+- Admin registry: clean `main`, fast-forwarded from rollback commit `f73276b6a74fc985390ba4749978f4c8b33344bc` to the merge commit.
+- Package parity: 67/67 canonical skills and 48/48 canonical stacks installed with zero version mismatches; 87 total skills and 49 total stacks include intentional local/legacy packages.
+- Promoted versions: Chief of Staff, Context Gardener, and Decision Canvas at `1.0.0`; RUDI SWE Issue Loop and SWE Compliance Checklist at `1.1.0`.
+- Native projection: Codex and Claude each contain all 87 installed skill wrappers with zero missing wrapper files.
+- Durable update path: `/Users/admin/.local/bin/rudi-registry-update`, exposed through `/Users/admin/.rudi/bins/rudi-registry-update`, SHA-256 `b0af91a814e1a6217e389b2c164e9736c7619e4f24515add5d7fb02dbd3488af`. Check and apply smokes both passed at zero commits behind and zero pending package actions.
+- Router and daemon: daemon healthy/ready; 49 stacks indexed, 39 active, 10 truthfully gated, and 443 tools available. One verified-empty orphan directory was removed.
+- RUDI Compute: LaunchAgent running with last exit code zero; database integrity `ok`, schema version 2, six registered services, one enabled four-job `editorial-daily` schedule, and current five-minute heartbeat deliveries returning HTTP 200.
+- Historical signal: 13 of 14 recorded Compute jobs succeeded; the one dead Editorial Health job predates this deployment and is not an active controller failure.
