@@ -1,14 +1,14 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-08-05T00:09:42.000Z",
+  "generatedAt": "2026-08-09T00:38:46.000Z",
   "stats": {
-    "total": 149,
+    "total": 152,
     "byKind": {
       "agent": 5,
       "binary": 27,
       "runtime": 5,
-      "skill": 64,
+      "skill": 67,
       "stack": 48
     }
   },
@@ -2481,6 +2481,34 @@
         ]
       }
     },
+    "skill:rudi-chief-of-staff": {
+      "id": "skill:rudi-chief-of-staff",
+      "kind": "skill",
+      "name": "rudi-chief-of-staff",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/rudi-chief-of-staff"
+      },
+      "meta": {
+        "description": "Coordinate a complex objective from the initiating agent by decomposing it into bounded assignments, dispatching and monitoring a crew, isolating code-writing workers in Git worktrees, routing dependencies and rework, commissioning review, and integrating verified results. Use when the user asks to delegate work in parallel, run a crew, act as a chief of staff or first mate, manage multiple agents, coordinate worktree-isolated implementation, or keep several agent tasks moving while preserving human oversight."
+      }
+    },
+    "skill:rudi-context-gardener": {
+      "id": "skill:rudi-context-gardener",
+      "kind": "skill",
+      "name": "rudi-context-gardener",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/rudi-context-gardener"
+      },
+      "meta": {
+        "description": "Audit and right-size durable agent instructions across AGENTS.md, CLAUDE.md, and other repository guidance. Use when instructions feel bloated, duplicated, contradictory, stale, host-specific, or poorly divided between global guidance, repository guidance, nested guidance, skills, configuration, and executable stacks."
+      }
+    },
     "skill:rudi-crm": {
       "id": "skill:rudi-crm",
       "kind": "skill",
@@ -2504,6 +2532,20 @@
           "operator",
           "rudi-crm"
         ]
+      }
+    },
+    "skill:rudi-decision-canvas": {
+      "id": "skill:rudi-decision-canvas",
+      "kind": "skill",
+      "name": "rudi-decision-canvas",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/rudi-decision-canvas"
+      },
+      "meta": {
+        "description": "Turn an ambiguous product, architecture, workflow, or design question into a self-contained visual options artifact, collect structured feedback, and convert approved choices into a written task contract. Use when prose alone makes alternatives hard to compare or when stakeholders need to annotate and decide before implementation."
       }
     },
     "skill:rudi-processor": {
@@ -2587,14 +2629,14 @@
       "id": "skill:rudi-swe-issue-loop",
       "kind": "skill",
       "name": "RUDI SWE Issue Loop",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
         "path": "catalog/skills/rudi-swe-issue-loop.md"
       },
       "meta": {
-        "description": "Create and execute a GitHub issue and PR ledger for RUDI or Codex engineering work using the SWE checklist skill, including issue creation, phase-gated checklists, branches, commits, pull requests, CI verification, merges, and branch cleanup.",
+        "description": "Create and execute an evidence-backed GitHub issue and PR ledger for engineering work across supported agent hosts using the SWE checklist skill, including task contracts, risk tiers, phase-gated tests, independent review, branches, commits, pull requests, CI verification, merges, and branch cleanup.",
         "category": "coding",
         "tags": [
           "rudi",
@@ -2981,7 +3023,7 @@
       "id": "skill:swe-compliance-checklist",
       "kind": "skill",
       "name": "RUDI SWE Compliance Checklist",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",

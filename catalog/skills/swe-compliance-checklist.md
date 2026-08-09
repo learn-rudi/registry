@@ -1,7 +1,7 @@
 ---
 name: RUDI SWE Compliance Checklist
 description: Create and execute a RUDI phase-gated engineering checklist for software changes that must comply with the SWE Operating Manual, including scope, tests, proof commands, smoke checks, documentation gates, accepted debt, and Definition of Done
-version: 1.0.0
+version: 1.1.0
 category: coding
 icon: ✅
 tags: [rudi, swe, compliance, checklist, testing, verification, engineering]
@@ -25,6 +25,8 @@ The output is not a loose TODO list. It is a phase-gated checklist that records:
 - what build, debt, and documentation checks are required
 - what live smoke checks prove the system works
 - what accepted debt remains
+- what risk tier governs review and approval
+- what independent evidence supports completion
 
 ## When To Use
 
@@ -48,6 +50,11 @@ Common triggers:
 5. For behavior-bearing code changes where automated tests are practical, use red-green-refactor: write one behavior-level red test, verify the expected failure, implement the smallest fix, rerun green, then refactor only while green.
 6. If red tests, smoke checks, full tests, build, debt scan, or docs checks are not practical, state why and record the residual risk.
 7. Keep scope tight. Do not add unrelated refactors, dependency changes, or speculative features.
+8. Classify risk before implementation and raise the tier if the observed blast
+   radius grows. Do not lower risk silently to bypass review.
+9. For nontrivial changes, require a read-only review in a fresh context after
+   implementation. Supply the task contract, applicable instructions, diff,
+   and verification evidence; do not supply private reasoning.
 
 ## Plan Persistence
 
@@ -74,6 +81,7 @@ Use this structure unless the user requests a different format:
 - Relevant SWE manual sections:
 - Current-state commands:
 - Risks and invariants:
+- Initial risk tier and rationale:
 - Exit criteria:
 
 ## Phase 1: Scope Lock
@@ -83,6 +91,8 @@ Use this structure unless the user requests a different format:
 - Expected files touched:
 - External inputs and trust boundaries:
 - Failure behavior to define:
+- Authorized external actions:
+- Review and approval gates:
 - Exit criteria:
 
 ## Phase 2: Red Tests
@@ -115,6 +125,8 @@ Use this structure unless the user requests a different format:
 - Build/typecheck/lint:
 - JS/TS debt scan, if applicable:
 - Live smoke checks:
+- Independent review:
+- Risk-tier approval:
 - Exit criteria:
 
 ## Phase 6: Docs, Contracts, And Closure
@@ -122,7 +134,11 @@ Use this structure unless the user requests a different format:
 - Docs or API contracts to update:
 - Final files touched:
 - Commands run and results:
+- Evidence artifacts:
+- Independent-review result:
+- Final verdict: ready / needs human decision / failed
 - Accepted debt:
+- Proof gaps:
 - Definition of Done:
 ```
 
@@ -142,6 +158,16 @@ Prefer targeted commands such as:
 ### Phase 1: Scope Lock
 
 Name the work boundary before editing. Include files expected to change, non-goals, user-visible behavior, invariants, external inputs, and failure behavior. For multi-file work, define interfaces before implementation.
+
+Classify the change:
+
+- **Low:** narrow, reversible, no trust-boundary or persistent-contract change.
+- **Medium:** user-visible behavior, API/data contract, persistent state, or
+  meaningful regression potential.
+- **High:** auth, secrets, payments, destructive behavior, migrations,
+  production deployment, or difficult rollback.
+
+Record required human approval and rollback expectations before implementation.
 
 ### Phase 2: Red Tests
 
@@ -167,9 +193,28 @@ Run the verification appropriate to the blast radius:
 - JS/TS debt scan after editing JS/TS files
 - live smoke checks for user-facing workflows or services
 
+Then run an independent read-only review in a fresh context. Review against the
+original intent, applicable instructions, diff, and recorded evidence. Fix
+deterministic in-scope findings and rerun affected checks. Escalate ambiguous
+product or risk decisions.
+
 ### Phase 6: Docs, Contracts, And Closure
 
-Update docs, examples, contracts, manifests, or API references only when behavior changed. Close with a concise proof report that includes files touched, commands run, results, smoke evidence, and accepted debt.
+Update docs, examples, contracts, manifests, or API references only when
+behavior changed. Close with a concise evidence bundle containing the task
+contract, risk tier, files touched, commands and results, smoke artifacts,
+independent-review result, accepted debt, proof gaps, and one verdict:
+`ready`, `needs human decision`, or `failed`.
+
+## Host Adaptation
+
+- Use the current host's native planning, review, worktree, and subagent
+  capabilities when available.
+- Otherwise persist the checklist in the repository, use ordinary Git
+  isolation, and run independent review in a separate fresh session.
+- Keep host-specific invocation syntax outside this portable workflow.
+- A host's long-running mode never broadens the user's authority or the active
+  sandbox, network, publishing, merge, or deployment boundaries.
 
 ## Definition Of Done
 
@@ -180,5 +225,7 @@ The work is not done until:
 - build/typecheck/lint passes where applicable
 - debt scan has no unexplained blocking findings
 - live smoke checks prove the behavior when applicable
+- the required independent review has no unresolved blocking finding
+- the risk-tier approval gate is satisfied
 - docs and contracts match the verified behavior
-- final report lists files touched, commands run, results, and accepted debt
+- final report includes the evidence bundle, verdict, and accepted debt
