@@ -44,6 +44,14 @@ describe("registry quality workflow", () => {
       );
     }
 
+    expect(
+      workflow.match(/name: Configure deterministic source date/g),
+      "validate and release jobs must preserve the committed index timestamp"
+    ).toHaveLength(2);
+    expect(workflow).toContain("SOURCE_DATE_EPOCH");
+    expect(workflow).toContain("JSON.parse");
+    expect(workflow).toContain("$GITHUB_ENV");
+
     expect(packageJson.scripts?.["debt:scan"]).toBeTypeOf("string");
     expect(packageJson.scripts["debt:scan"].trim()).not.toBe("");
   });

@@ -67,6 +67,10 @@
 - Red evidence: GitHub Actions run `31286320122`, job `93175717129`, failed four compiler tests with `ENOENT` for `dist/index.json` and `dist/index.darwin-arm64.json`.
 - Smallest fix: a file-level `beforeAll` invokes the existing compiler helper so the compiler test owns its generated prerequisites.
 - Clean-state green: with the previous `dist/` moved aside, `npx vitest run src/compile.test.ts` passed 22/22.
+- The next CI run (`31286505896`, job `93176214542`) passed tests, build, provenance, and public-readiness checks, then exposed a second pre-existing determinism defect: `indexes:check` rebuilt with GitHub's synthetic pull-request merge timestamp instead of the committed canonical index timestamp.
+- Red evidence for the workflow contract: `npx vitest run src/quality-gates.test.ts` failed because neither build job configured `SOURCE_DATE_EPOCH`.
+- Smallest provenance fix: both the validation and release jobs validate `index.json.generatedAt` and export it as `SOURCE_DATE_EPOCH` before compilation. This preserves the release-authored timestamp while all catalog content still undergoes exact regeneration and comparison.
+- Provenance green: the quality-gate test passed 2/2 and `indexes:check` passed when driven by the committed index timestamp.
 - Refactor constraints: no production refactor was made; the repair is isolated to test setup.
 - Regression checks: catalog discovery, index consistency, package dry-run, and native skill projection.
 - Exit criteria: focused and regression checks remain green after index generation.
