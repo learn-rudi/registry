@@ -4,7 +4,7 @@
  * Tests compiler determinism and index generation.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from "vitest";
 import fs from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
@@ -44,6 +44,10 @@ async function runCompiler(): Promise<void> {
     maxBuffer: 20 * 1024 * 1024,
   });
 }
+
+beforeAll(async () => {
+  await runCompiler();
+});
 
 // =============================================================================
 // Compiler Determinism Tests

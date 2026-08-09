@@ -63,13 +63,17 @@
 - Status: complete for the portable-skills release unit.
 
 - Green commands: focused Chief and portable-workflow tests, followed by the unchanged full registry suite.
-- Refactor constraints: no refactor during promotion unless a deterministic gate exposes an in-scope defect.
+- CI exposed a pre-existing clean-checkout defect in `src/compile.test.ts`: the suite read ignored `dist/index*.json` before generating them. The local pre-publication run had hidden the defect because a prior build populated `dist/`.
+- Red evidence: GitHub Actions run `31286320122`, job `93175717129`, failed four compiler tests with `ENOENT` for `dist/index.json` and `dist/index.darwin-arm64.json`.
+- Smallest fix: a file-level `beforeAll` invokes the existing compiler helper so the compiler test owns its generated prerequisites.
+- Clean-state green: with the previous `dist/` moved aside, `npx vitest run src/compile.test.ts` passed 22/22.
+- Refactor constraints: no production refactor was made; the repair is isolated to test setup.
 - Regression checks: catalog discovery, index consistency, package dry-run, and native skill projection.
 - Exit criteria: focused and regression checks remain green after index generation.
 
 ## Phase 5: Full Verification
 
-- Status: pre-publication gates complete; GitHub CI and Admin deployment smoke pending.
+- Status: post-repair local gates complete; rerun GitHub CI and Admin deployment smoke pending.
 
 - Targeted tests: `npx vitest run src/rudi-chief-of-staff.test.ts src/portable-agentic-workflow-skills.test.ts`.
 - Full suite: `npm test`.
