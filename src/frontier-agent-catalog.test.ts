@@ -36,6 +36,21 @@ describe("frontier agent catalog", () => {
     expect(claude.installHints.manual).toContain("https://claude.ai/install.sh");
   });
 
+  it("catalogs Codex as an OpenAI-managed standalone installation", async () => {
+    const codex = await loadAgent("codex");
+
+    expect(codex).toMatchObject({
+      id: "agent:codex",
+      kind: "agent",
+      version: "system",
+      delivery: "system",
+      install: { source: "system" },
+      bins: ["codex"],
+      detect: { command: "codex --version" },
+    });
+    expect(codex.installHints.manual).toContain("https://chatgpt.com/codex/install.sh");
+  });
+
   it("catalogs Google's subscription-backed native agent host as system-installed", async () => {
     const antigravity = await loadAgent("antigravity");
 

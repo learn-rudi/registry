@@ -1,7 +1,7 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-08-09T00:38:46.000Z",
+  "generatedAt": "2026-08-09T00:56:47.000Z",
   "stats": {
     "total": 152,
     "byKind": {
@@ -84,11 +84,13 @@
       "id": "agent:codex",
       "kind": "agent",
       "name": "OpenAI Codex",
-      "version": "latest",
-      "delivery": "remote",
+      "version": "system",
+      "delivery": "system",
       "install": {
-        "source": "npm",
-        "package": "@openai/codex"
+        "source": "system"
+      },
+      "installHints": {
+        "manual": "Install or update Codex with OpenAI's standalone installer: curl -fsSL https://chatgpt.com/codex/install.sh | sh"
       },
       "bins": [
         "codex"
