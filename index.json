@@ -1,7 +1,7 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-08-09T00:38:46.000Z",
+  "generatedAt": "2026-08-09T00:56:47.000Z",
   "stats": {
     "total": 152,
     "byKind": {
@@ -2492,7 +2492,7 @@
         "path": "catalog/skills/rudi-chief-of-staff"
       },
       "meta": {
-        "description": "Coordinate a complex objective from the initiating agent by decomposing it into bounded assignments, dispatching and monitoring a crew, isolating code-writing workers in Git worktrees, routing dependencies and rework, commissioning review, and integrating verified results. Use when the user asks to delegate work in parallel, run a crew, act as a chief of staff or first mate, manage multiple agents, coordinate worktree-isolated implementation, or keep several agent tasks moving while preserving human oversight."
+        "description": "Coordinate complex single- or multi-project objectives from the initiating agent through an acceptance-led task graph, exact provider/model routing, durable run lifecycle, resource and review limits, explicit handoffs, bounded workers, and evidence-backed integration with human oversight. Use when the user asks to delegate dependent work, run a crew, act as a chief of staff or first mate, coordinate multiple agents or desktop tasks, or keep a long-running project moving predictably across worktrees, projects, or hosts."
       }
     },
     "skill:rudi-context-gardener": {
