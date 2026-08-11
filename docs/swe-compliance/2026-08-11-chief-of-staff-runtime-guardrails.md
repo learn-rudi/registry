@@ -174,7 +174,7 @@
 
 ## Phase 6: Docs, Contracts, And Closure
 
-**Status: in progress**
+**Status: complete**
 
 - Docs/contracts: update the skill, project-plan contract, host adapters, and
   ADR 0009 to match the verified command/state machine exactly.
@@ -183,6 +183,21 @@
   publish the canonical Registry state; run
   `rudi update skill:rudi-chief-of-staff` and
   `rudi skills sync codex --force`.
+- Publication evidence: commit `aaedc7c` was pushed from the isolated
+  `codex/chief-of-staff-runtime-guardrails` worktree, PR #21 passed all four
+  pull-request checks, and merge commit `b52a505` integrated it into canonical
+  `main`. The post-merge Registry CI run `31547299689` passed test/build,
+  release-provenance, public-readiness, index, catalog, debt, package, all three
+  platform validation jobs, and the release job.
+- Installed-state evidence: the default unauthenticated raw-GitHub refresh
+  returned 404 because `learnrudi/registry` is private. Retrying the same
+  `rudi update skill:rudi-chief-of-staff` through RUDI v1.11.0's supported
+  `USE_LOCAL_REGISTRY=true` and `RUDI_REGISTRY_ROOT` path against the
+  merged-and-CI-proven checkout succeeded. `rudi skills sync codex --force`
+  then updated 34 wrappers, including `skill:rudi-chief-of-staff`; the installed
+  RUDI bundle and both installed CLI scripts are byte-identical to canonical
+  source. Codex's expected wrapper metadata normalization is the only bundle
+  diff.
 - Accepted debt: `catalog/skills/rudi-chief-of-staff/scripts/project-plan.mjs`
   is a 3,743-line, 102-function self-contained CLI and exceeds the Registry
   scanner's generic 800-line/80-function advisory. It has no scanner errors,
@@ -202,5 +217,6 @@
   corresponding implementation and all passed afterward.
 - Focused verification passed 81 tests; full Registry verification passed 245
   tests and every required validation, index, hygiene, build, and package gate.
-- The eleven-behavior runtime smoke passed. Publication and installed-skill
-  sync evidence remain before closure.
+- The eleven-behavior runtime smoke passed. PR #21 and post-merge Registry CI
+  passed, the canonical bundle was installed, and 34 Codex wrappers were
+  force-synced successfully.
