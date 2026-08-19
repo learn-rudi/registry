@@ -55,6 +55,7 @@ test(
         "0001_engagement_crm.sql",
         "0002_contact_discovery_promotion.sql",
         "0003_contact_candidate_noise.sql",
+        "0004_contact_address_classification.sql",
       ]);
       assert.deepEqual(first.skipped, []);
 
@@ -81,9 +82,9 @@ test(
         `);
 
         assert.deepEqual(objects.rows[0], {
-          tables: 19,
+          tables: 20,
           views: 14,
-          functions: 16,
+          functions: 17,
           migration_ledgers: 1,
         });
 
@@ -116,6 +117,7 @@ test(
         "0001_engagement_crm.sql",
         "0002_contact_discovery_promotion.sql",
         "0003_contact_candidate_noise.sql",
+        "0004_contact_address_classification.sql",
       ]);
     } finally {
       await adminPool.query(`drop database if exists "${databaseName}" with (force)`);

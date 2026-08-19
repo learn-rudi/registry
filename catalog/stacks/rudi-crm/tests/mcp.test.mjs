@@ -5,6 +5,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 
 const EXPECTED_TOOLS = [
   "rudi_crm_apply_discovery_heuristics",
+  "rudi_crm_classify_contact_address",
   "rudi_crm_config_status",
   "rudi_crm_get_activity_feed",
   "rudi_crm_get_attention_brief",
@@ -36,7 +37,7 @@ test("MCP server exposes the controlled RUDI CRM contract", async () => {
     },
   });
   const client = new Client(
-    { name: "rudi-crm-stack-test", version: "0.3.0" },
+    { name: "rudi-crm-stack-test", version: "0.4.0" },
     { capabilities: {} }
   );
 
@@ -66,6 +67,8 @@ test("MCP server exposes the controlled RUDI CRM contract", async () => {
     assert.equal(listPeople.inputSchema.properties.limit.maximum, 100);
     assert.equal(listPeople.inputSchema.properties.offset.minimum, 0);
     assert.equal(listPeople.inputSchema.properties.has_email.type, "boolean");
+    assert.match(listPeople.description, /every stored email address/i);
+    assert.match(listPeople.description, /work, personal, alias, former, or unknown/i);
 
     const activityFeed = tools.tools.find(
       (tool) => tool.name === "rudi_crm_get_activity_feed"
@@ -111,6 +114,29 @@ test("MCP server exposes the controlled RUDI CRM contract", async () => {
     assert.equal(candidates.inputSchema.properties.min_observations.minimum, 1);
     assert.equal(candidates.inputSchema.properties.since.format, "date-time");
     assert.equal(candidates.inputSchema.properties.include_existing.type, "boolean");
+    assert.deepEqual(candidates.inputSchema.properties.address_category.enum, [
+      "person",
+      "shared_inbox",
+      "marketing",
+      "notification",
+      "automated",
+      "unknown",
+    ]);
+
+    const classifyAddress = tools.tools.find(
+      (tool) => tool.name === "rudi_crm_classify_contact_address"
+    );
+    assert.deepEqual(classifyAddress.inputSchema.required, ["email", "category"]);
+    assert.equal(classifyAddress.inputSchema.properties.email.format, "email");
+    assert.deepEqual(classifyAddress.inputSchema.properties.category.enum, [
+      "person",
+      "shared_inbox",
+      "marketing",
+      "notification",
+      "automated",
+      "unknown",
+    ]);
+    assert.match(classifyAddress.description, /does not promote/i);
 
     const promoteContact = tools.tools.find(
       (tool) => tool.name === "rudi_crm_promote_contact"

@@ -8,6 +8,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import {
   applyDiscoveryHeuristics,
+  classifyContactAddress,
   crmErrorMessage,
   getActivityFeed,
   getAttentionBrief,
@@ -48,7 +49,7 @@ function asError(error: unknown) {
 }
 
 const server = new Server(
-  { name: "rudi-crm", version: "0.3.0" },
+  { name: "rudi-crm", version: "0.4.0" },
   { capabilities: { tools: {} } }
 );
 
@@ -137,9 +138,51 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             type: "boolean",
             description: "Include exact-email matches already in the CRM. Defaults to false.",
           },
+          address_category: {
+            type: "string",
+            enum: [
+              "person",
+              "shared_inbox",
+              "marketing",
+              "notification",
+              "automated",
+              "unknown",
+            ],
+            description: "Optional effective address-level category filter.",
+          },
           limit: { type: "number", minimum: 1, maximum: 100 },
           offset: { type: "number", minimum: 0 },
         },
+      },
+    },
+    {
+      name: "rudi_crm_classify_contact_address",
+      description:
+        "Classify one normalized candidate address as a person, shared inbox, marketing, notification, automated, or unknown address. Classification is idempotent and does not promote or merge a CRM person.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          email: { type: "string", format: "email", maxLength: 320 },
+          category: {
+            type: "string",
+            enum: [
+              "person",
+              "shared_inbox",
+              "marketing",
+              "notification",
+              "automated",
+              "unknown",
+            ],
+          },
+          source: {
+            type: "string",
+            enum: ["manual", "agent", "rule", "import"],
+            description: "Who or what supplied the classification. Defaults to manual.",
+          },
+          reason: { type: "string", maxLength: 1000 },
+          created_by_actor_id: { type: "string", format: "uuid" },
+        },
+        required: ["email", "category"],
       },
     },
     {
@@ -322,7 +365,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "rudi_crm_list_people",
       description:
-        "List CRM people with organization and engagement context. Supports bounded filters for organization, engagement, role, search text, and email presence.",
+        "List CRM people with organization, engagement, and every stored email address. Each email includes its work, personal, alias, former, or unknown label plus primary, source, and verification metadata. Supports bounded filters for organization, engagement, role, search text, and email presence.",
       inputSchema: {
         type: "object",
         properties: {
@@ -536,6 +579,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return asText(await applyDiscoveryHeuristics());
       case "rudi_crm_list_contact_candidates":
         return asText(await listContactCandidates(args));
+      case "rudi_crm_classify_contact_address":
+        return asText(await classifyContactAddress(args));
       case "rudi_crm_promote_contact":
         return asText(await promoteContact(args));
       case "rudi_crm_log_ingest_batch":

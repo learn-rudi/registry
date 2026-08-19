@@ -1,4 +1,5 @@
 import { Pool } from "pg";
+import { createContactContract } from "./contact-contract.js";
 import {
   ActivityFeedInput,
   AttentionBriefInput,
@@ -6,13 +7,9 @@ import {
   EngagementContextInput,
   LatestCorrespondenceInput,
   LimitInput,
-  ListContactCandidatesInput,
   ListEngagementsInput,
   ListOrganizationsInput,
   ListPeopleInput,
-  LogIngestBatchInput,
-  PromoteContactInput,
-  RecordDiscoveryObservationsInput,
   RecordFinanceEventInput,
   RunValidatorsInput,
   UpsertInteractionInput,
@@ -36,6 +33,7 @@ const EXPECTED_TABLES = [
   "engagement_finance_events",
   "discovery_domains",
   "discovery_observations",
+  "contact_address_classifications",
   "ingest_batches",
   "audit_events",
   "engagement_people",
@@ -55,6 +53,7 @@ const EXPECTED_FUNCTIONS = [
   "apply_discovery_domain_heuristics",
   "get_unknown_discovery_domains",
   "promote_contact",
+  "classify_contact_address",
 ] as const;
 
 const VALIDATOR_VIEWS = [
@@ -133,6 +132,15 @@ function getPool(): Pool {
   return pool;
 }
 
+export const {
+  recordDiscoveryObservations,
+  applyDiscoveryHeuristics,
+  listContactCandidates,
+  classifyContactAddress,
+  promoteContact,
+  logIngestBatch,
+} = createContactContract(getPool);
+
 export async function closePool(): Promise<void> {
   if (pool) {
     await pool.end();
@@ -153,6 +161,7 @@ export function getConfigStatus() {
       "set_audit_context",
       "upsert_interaction",
       "promote_contact",
+      "classify_contact_address",
       "refresh_thread_rollups",
     ],
     validator_views: VALIDATOR_VIEWS,
@@ -323,116 +332,6 @@ export async function getSetupStatus() {
       ],
     };
   }
-}
-
-export async function recordDiscoveryObservations(args: unknown) {
-  const input = parseToolArgs(RecordDiscoveryObservationsInput, args);
-  const result = await getPool().query(
-    "select record_discovery_observations($1::jsonb) as result",
-    [JSON.stringify(input.observations)]
-  );
-  return result.rows[0]?.result ?? null;
-}
-
-export async function applyDiscoveryHeuristics() {
-  const result = await getPool().query(
-    "select apply_discovery_domain_heuristics()::integer as updated"
-  );
-  return { updated: Number(result.rows[0]?.updated ?? 0) };
-}
-
-export async function listContactCandidates(args: unknown) {
-  const input = parseToolArgs(ListContactCandidatesInput, args);
-  const result = await getPool().query(
-    `
-    select c.*, count(*) over()::integer as total_count
-    from v_contact_candidates c
-    where c.observation_count >= $1::integer
-      and ($2::timestamptz is null or c.last_seen >= $2::timestamptz)
-      and ($3::boolean or c.existing_person_id is null)
-    order by c.observation_count desc, c.last_seen desc, c.email
-    limit $4::integer
-    offset $5::integer
-    `,
-    [
-      input.min_observations,
-      input.since ?? null,
-      input.include_existing,
-      input.limit,
-      input.offset,
-    ]
-  );
-  return pagedResult(result.rows);
-}
-
-export async function promoteContact(args: unknown) {
-  const input = parseToolArgs(PromoteContactInput, args);
-  const result = await getPool().query(
-    `
-    select promote_contact(
-      p_email := $1::text,
-      p_full_name := $2::text,
-      p_existing_person_id := $3::uuid,
-      p_organization_id := $4::uuid,
-      p_title := $5::text,
-      p_phone := $6::text,
-      p_role := $7::text,
-      p_notes := $8::text,
-      p_email_label := $9::text,
-      p_source := $10::text,
-      p_created_by_actor_id := $11::uuid
-    ) as result
-    `,
-    [
-      input.email,
-      input.full_name,
-      input.existing_person_id ?? null,
-      input.organization_id ?? null,
-      input.title ?? null,
-      input.phone ?? null,
-      input.role ?? null,
-      input.notes ?? null,
-      input.email_label,
-      input.source,
-      input.created_by_actor_id ?? null,
-    ]
-  );
-  return result.rows[0]?.result ?? null;
-}
-
-export async function logIngestBatch(args: unknown) {
-  const input = parseToolArgs(LogIngestBatchInput, args);
-  const result = await getPool().query(
-    `
-    select log_ingest_batch(
-      $1::text,
-      $2::date,
-      $3::date,
-      $4::text,
-      $5::integer,
-      $6::integer,
-      $7::integer,
-      $8::integer,
-      $9::integer,
-      $10::text,
-      $11::text
-    ) as id
-    `,
-    [
-      input.source,
-      input.window_start ?? null,
-      input.window_end ?? null,
-      input.domain_filter ?? null,
-      input.messages_seen ?? 0,
-      input.messages_inserted ?? 0,
-      input.messages_updated ?? 0,
-      input.skipped_noise ?? 0,
-      input.triage_count ?? 0,
-      input.validator_result ?? null,
-      input.notes ?? null,
-    ]
-  );
-  return { id: result.rows[0]?.id ?? null };
 }
 
 export async function upsertInteraction(args: unknown) {
@@ -608,7 +507,7 @@ export async function listPeople(args: unknown) {
   addSearch(filters, [
     "p.full_name",
     "p.email",
-    "primary_email.email",
+    "email_links.primary_email",
     "p.title",
     "p.role",
     "o.name",
@@ -616,10 +515,10 @@ export async function listPeople(args: unknown) {
   ], input.search);
 
   if (input.has_email === true) {
-    filters.clauses.push("nullif(coalesce(primary_email.email, p.email), '') is not null");
+    filters.clauses.push("nullif(coalesce(email_links.primary_email, p.email), '') is not null");
   }
   if (input.has_email === false) {
-    filters.clauses.push("nullif(coalesce(primary_email.email, p.email), '') is null");
+    filters.clauses.push("nullif(coalesce(email_links.primary_email, p.email), '') is null");
   }
 
   const where = whereSql(filters);
@@ -630,7 +529,8 @@ export async function listPeople(args: unknown) {
     select
       p.id,
       p.full_name,
-      coalesce(primary_email.email, p.email) as email,
+      coalesce(email_links.primary_email, p.email) as email,
+      coalesce(email_links.emails, '[]'::jsonb) as emails,
       p.title,
       p.phone,
       p.role,
@@ -652,12 +552,29 @@ export async function listPeople(args: unknown) {
     from people p
     left join organizations o on o.id = p.organization_id
     left join lateral (
-      select pe.email
+      select
+        (
+          array_agg(
+            pe.email
+            order by pe.is_primary desc, pe.verified_at desc nulls last,
+              pe.created_at desc nulls last, pe.id
+          )
+        )[1] as primary_email,
+        jsonb_agg(
+          jsonb_build_object(
+            'id', pe.id,
+            'email', pe.email,
+            'email_normalized', pe.email_normalized,
+            'label', pe.label,
+            'is_primary', pe.is_primary,
+            'verified_at', pe.verified_at,
+            'source', pe.source
+          )
+          order by pe.is_primary desc, pe.email_normalized, pe.id
+        ) as emails
       from person_emails pe
       where pe.person_id = p.id
-      order by pe.is_primary desc, pe.verified_at desc nulls last, pe.created_at desc nulls last
-      limit 1
-    ) primary_email on true
+    ) email_links on true
     left join lateral (
       select jsonb_agg(
         jsonb_build_object(

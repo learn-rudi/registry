@@ -18,7 +18,7 @@
 - Approval invariant: discovery and preview do not create or attach a person. Only `rudi_crm_promote_contact`, called after explicit user approval, can do that.
 - Trust boundaries: Gmail headers, names, addresses, message timestamps, LLM-selected candidates, MCP arguments, and database reads are untrusted until validated. Secrets and database URLs remain outside source and logs.
 - Failure behavior: malformed addresses/roles/timestamps fail closed; duplicate observations replay safely; promotion collision returns or raises an actionable deterministic result; transaction failure creates neither a partial person nor a partial alias.
-- Expected files touched: this checklist; `catalog/stacks/rudi-crm/sql/migrations/0002_contact_discovery_promotion.sql`; `src/{schemas.ts,contract.ts,index.ts}`; focused tests; `README.md`; `manifest.json`; package version files if required; generated `index.json`; and `/Users/hoff/.codex/skills/rudi-crm/SKILL.md`.
+- Expected files touched: this checklist; additive CRM SQL migrations; `src/{schemas.ts,contract.ts,index.ts}`; focused tests; `README.md`; `manifest.json`; package version files if required; generated `index.json`; and `/Users/hoff/.codex/skills/rudi-crm/SKILL.md`.
 - Exit criteria: the behavior and data contracts are represented by focused failing tests before implementation.
 
 ## Phase 2: Red-Green-Refactor Slices
@@ -65,8 +65,33 @@
 
 ## Execution Record
 
-- Status: in progress.
-- Red/green evidence: pending.
-- Verification results: pending.
-- Preview results: pending.
-- Files changed: pending.
+- Status: complete on 2026-08-04 ET. The requested sweep stopped at preview; no person or email alias was promoted.
+- Red/green evidence:
+  - Candidate/promotion schema test failed on missing exports, then passed after the bounded schemas were added.
+  - MCP contract test failed on the missing controlled operations, then passed with 19 tools and no raw-SQL surface.
+  - Package migration test failed until `0002_contact_discovery_promotion.sql` was packaged.
+  - Live discovery failed on the old address-role constraint, then passed after `0002` was applied.
+  - Boundary tests failed while invalid sources/timestamps were accepted, then passed after validation was tightened.
+  - The version contract failed at 0.2.x, then passed at 0.3.0.
+  - A live mixed-domain test exposed that a single no-reply address could suppress human contacts at the same domain. `0003_contact_candidate_noise.sql` fixed the candidate-level filter and repaired prior automatic classifications; the unchanged test then passed.
+- Verification results:
+  - CRM live suite: 16 tests passed, 0 skipped, against the local CRM database.
+  - Isolated bootstrap: a clean database applied `0001`, `0002`, and `0003`; replay skipped all three with matching checksums.
+  - Registry: 18 test files / 157 tests passed; build and 149-package validation passed; indexes synced and checked; clean-catalog check passed; package dry-run contained both new migrations.
+  - Installed stack: version 0.3.0, 19 controlled tools, all three migrations current, setup healthy, 53 people, 366 preview candidates, and all eight validators green.
+  - Router: forced reindex succeeded for `stack:rudi-crm` with 19 tools and no indexing error. The local registration uses `/opt/homebrew/bin/node dist/index.js` because the machine's bundled RUDI Node/npm launchers are currently self-referencing shell wrappers; unrelated running stacks were not changed or stopped.
+  - Workspace integrity: generated indexes are current and `git diff --check` is clean outside the two already-applied migration files. Those files intentionally retain one final blank line because their bytes must remain identical to the migration-ledger and installed-stack SHA-256 checksums; removing it would create migration drift.
+  - Debt scan: no structural findings in the edited CRM TypeScript files. One accepted warning remains: pre-existing `src/contract.ts` is above the configured 800-line threshold (1,246 lines); splitting that contract is separate scope.
+- Preview results:
+  - Gmail account: `hoff@learnrudi.com`; bounded query `after:2025/08/04 before:2026/08/05 -in:spam -in:trash`.
+  - 1,363 messages scanned; 2,828 valid external header observations retained across 1,306 messages and 572 unique addresses. One malformed HubSpot routing/tracking address was rejected at validation.
+  - 2,823 observations were newly inserted; five prior observations were safely replayed/enriched; 69 addresses were filtered as internal/noise/no-reply.
+  - Candidate preview at two or more observations: 396 including exact matches, 366 new/non-exact candidates, and 30 exact existing-email matches excluded from the approval queue.
+  - Ingest batch: `e5fbecf8-b6e9-482f-9157-1d9e91fdf688`. The batch is explicitly marked preview-only/no promotion.
+  - Only header-derived contact evidence and `{mailbox: "hoff@learnrudi.com"}` were retained; no message bodies, snippets, attachments, or credentials were stored.
+- Files changed for this workflow:
+  - `catalog/stacks/rudi-crm/sql/migrations/{0002_contact_discovery_promotion.sql,0003_contact_candidate_noise.sql}`
+  - `catalog/stacks/rudi-crm/src/{schemas.ts,contract.ts,index.ts}`
+  - `catalog/stacks/rudi-crm/tests/{contract.test.mjs,mcp.test.mjs,package-contract.test.mjs,migrate.test.mjs,live-contacts.test.mjs}`
+  - `catalog/stacks/rudi-crm/{README.md,manifest.json,package.json,package-lock.json}`, generated registry `index.json`, this checklist, and `/Users/hoff/.codex/skills/rudi-crm/SKILL.md`
+- Recovery/idempotency: rerunning the same Gmail window replays stable observation keys instead of duplicating evidence. Because no promotion occurred, the people/email tables require no rollback.

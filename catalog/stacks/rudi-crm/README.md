@@ -16,6 +16,8 @@ functions and reads only through stable CRM views/queries.
   a separate operation that requires explicit human approval.
 - Exact normalized email is the automatic deduplication key. Name or
   organization similarities are review signals only and never trigger a merge.
+- Organization/domain identity and mailbox category are separate: a named
+  person and `info@` address may share a domain without sharing a category.
 - Database credentials stay in RUDI secrets as `RUDI_CRM_DATABASE_URL`.
 
 ## Local PostgreSQL (recommended)
@@ -73,6 +75,9 @@ evidence, deduplicated candidate preview, and atomic approval-gated promotion.
 `sql/migrations/0003_contact_candidate_noise.sql` filters automated addresses at
 the candidate level and prevents one no-reply sender from hiding human contacts
 at the same domain.
+`sql/migrations/0004_contact_address_classification.sql` adds durable,
+address-level classification, conservative local-part suggestions, audited
+manual overrides, and category-filtered candidate review.
 Add future changes as new ordered migration files; never rewrite an applied
 migration.
 
@@ -88,13 +93,20 @@ The generic source workflow is:
    cannot duplicate the same source/message/role/address tuple.
 3. Run `rudi_crm_apply_discovery_heuristics` to classify deterministic noise and
    refresh domain signals.
-4. Review `rudi_crm_list_contact_candidates`. Exact existing-email matches can
-   be included for verification; same-name results are review signals only.
-5. Stop for human approval. Only then call `rudi_crm_promote_contact` for one
+4. Review `rudi_crm_list_contact_candidates`. Each row reports a suggested and
+   effective address category. Deterministic suggestions use only the mailbox,
+   not the whole domain; exact existing-email matches can be included for
+   verification, and same-name results are review signals only.
+5. When a reviewer confirms the mailbox type, call
+   `rudi_crm_classify_contact_address` with `person`, `shared_inbox`,
+   `marketing`, `notification`, `automated`, or `unknown`. Replays are
+   idempotent, corrections are audited, and classification never creates or
+   merges a person. Candidate lists may be filtered by `address_category`.
+6. Stop for human approval. Only then call `rudi_crm_promote_contact` for one
    candidate. Omit `existing_person_id` to create a new person, or provide the
    reviewed person ID to attach the address as an alias. Email collisions never
    reassign an address between people.
-6. Log the bounded sweep with `rudi_crm_log_ingest_batch` and run validators.
+7. Log the bounded sweep with `rudi_crm_log_ingest_batch` and run validators.
 
 Promotion is atomic: a new person and primary email either both commit or both
 roll back. Exact-email retries return the existing person instead of creating a
@@ -111,6 +123,7 @@ RUDI state, not this public catalog.
 - `rudi_crm_record_discovery_observations`
 - `rudi_crm_apply_discovery_heuristics`
 - `rudi_crm_list_contact_candidates`
+- `rudi_crm_classify_contact_address`
 - `rudi_crm_promote_contact`
 - `rudi_crm_log_ingest_batch`
 - `rudi_crm_upsert_interaction`
@@ -126,6 +139,11 @@ RUDI state, not this public catalog.
 - `rudi_crm_get_engagement_context`
 - `rudi_crm_get_latest_correspondence`
 
+`rudi_crm_list_people` preserves the top-level primary `email` field and also
+returns every `person_emails` row in an `emails` array. Each entry includes its
+normalized address, `work` / `personal` / `alias` / `former` / `unknown` label,
+primary flag, source, and verification timestamp.
+
 ## Live Regression Test
 
 The default test suite does not mutate the CRM database. To run the finance and
@@ -136,4 +154,5 @@ contact-promotion write-contract regressions against a real database, provide
 npm run test:live
 ```
 
-The live test wraps its probes in a transaction and rolls back before exit.
+The live tests wrap classification, promotion, and finance probes in
+transactions and roll back before exit.
