@@ -217,6 +217,96 @@ signature, answer-value, or transition coverage, does not establish
 answer-branch completeness, and must never be reported as
 `answer_branch_complete`.
 
+Durable schema-v6 ledgers accept only the explicitly closed Wave 1 and
+common-fictional Wave 2 campaign IDs. Shape compatibility alone does not admit
+another campaign identity.
+
+#### Scenario-wave residual reference
+
+The existing schema-v4 residual is specific to the 126-job zoning portfolio,
+not Scenario Wave 1. `discovery-residual-campaign.mjs` uses persisted
+`start_dispatch_started` evidence for that selection;
+`discovery-ledger-schema.mjs` requires exactly 20 schema-v6 jobs but hard-codes
+126-job arithmetic for schema v4. A Scenario-Wave residual consequently needs
+its own closed, versioned preview and ledger contract.
+
+That contract preserves and fences the original 20-job schema-v6 ledger and an
+exact immutable post-start snapshot, then partitions all 20 parent jobs exactly
+once by persisted `start_dispatch_started`. Consumed jobs are excluded and
+never replanned. Eligibility is limited to never-started jobs with no provider
+reference, pending mutation, or ambiguous provider effect. Residual jobs and
+the residual ledger receive new IDs, and every job starts with a reset execution
+envelope. For the current six-consumed/14-remaining partition, the unaffected
+14 may inherit byte-for-byte their validated `locationFixture`,
+`providerInputSha256`, scenario source observation, answer rules and
+declarations, and site- or mixed-fact evidence. They are not regenerated due to
+drift in another consumed job. Selection must prove they do not share the
+affected stable location identity. Never transplant a corrected fixture into
+old provider-question provenance; a later corrective drive-box project needs a
+newly compatible source observation/freeze and evidence.
+
+The residual preview and identity must transitively bind catalog and tenant
+identity; parent `ledgerId`, planned `ledgerSha256`, and full immutable
+`ledgerSnapshotSha256`; original preview and authorization identity; exact,
+disjoint and complete consumed/remaining job and scenario manifests; a durable
+parent fence; inherited scenario and provenance digests; and exact count and
+maximum concurrency. A content-addressed drift packet binds the affected job,
+scenario, catalog entry and fixture digest, expected code, official full-parcel
+City/CAGIS evidence digest, and provider terminal/read-back digest. A separate
+content-addressed adjudication record may be pending, but then full completion
+is blocked. Snapshot mismatch, unavailable ancestry, unfenced source,
+provenance mismatch, catalog or tenant drift, partition mismatch, and ambiguous
+provider effect all fail closed.
+
+The residual also requires a new authorization ID,
+`maximumProviderProjects` equal to the residual count (14 here), and the exact
+new `previewSha256`; the original approval is not authorization for changed
+work. Residual completion requires all residual jobs completed with
+authoritative same-project read-back, no incomplete, failure, indeterminate, or
+`needs_input` state, and no residual zoning drift. Do not emit
+`scenario_wave_1_complete` while the consumed SF-2/SF-20 mismatch remains
+pending. Full Wave 1 requires a valid verified disposition for every one of the
+20 logical scenarios and explicit adjudication or a separately authorized
+corrective replacement for the drifted scenario. The resulting status still
+means first-pass provider-question-ID coverage only, never
+`answer_branch_complete`.
+
+After residual completion, generate a content-addressed adjudication preview
+with `maximumProviderProjects: 0`. It binds the source and residual snapshots,
+their authorizations, the pending adjudication and drift packet, official City
+evidence, and provider terminal/read-back digests. The proposed disposition
+counts the drive-box result only at the verified SF-20 context and expressly
+does not claim an SF-2 disposition. Preview generation is not resolution;
+requester approval must bind the exact adjudication `previewSha256` before the
+full-wave completion record is permitted.
+
+The evidence boundary comes from `discovery-scenario-wave.mjs`, which binds
+each scenario's source snapshot and fixture, exact site-fact evidence, and
+preview-bound authorization; `discovery-observation-portfolio.mjs`, which binds
+ledger identity and snapshot; and `discovery-zoning-context.mjs`, which fences
+starts on verified mismatch. A Scenario-Wave residual must preserve all of
+those bindings.
+
+#### Deterministic provider/site incident reference
+
+`discovery-site-issue-journal.mjs` is the private event-sourced incident
+contract for portal and provider failures. A detection identity binds its
+closed category and code, ledger/job, persisted source-event key, and stage;
+replay is idempotent while a distinct persisted attempt produces a distinct
+incident. Recovery and adjudication are separate immutable events linked to
+exactly one detection. Deterministically sorted snapshots fold those events
+into open, recovered, or adjudicated incident state and publish bounded counts
+by category and code.
+
+Controller-side unknown dispatch failures use the same ledger-error source
+identity as later ledger derivation, so terminal verification closes the
+original incident instead of creating a second apparent incident. The journal
+stores no raw provider body or error message, secrets, or decrypted session
+state. It is observation only: it cannot authorize a retry, replacement, or new
+provider project. Historical `provider_dispatch_unusable` records retain the
+broader `provider_dispatch_timeout_or_unusable` category because their exact
+transport failure cannot be reconstructed from the ledger.
+
 The strongest later empirical status is
 `branch_frontier_stable_for_manifest(M)` as of one fixed observation epoch.
 `M` must be a private, content-addressed, requester-approved manifest that

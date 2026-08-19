@@ -1,6 +1,35 @@
 import { createDiscoveryDispatchRequest } from "./discovery-dispatch.mjs";
+import {
+  createLedgerErrorSourceEventKey,
+  createSiteIssueDetectionEvent,
+  deriveSiteIssueEventsFromLedgers
+} from
+  "./discovery-site-issue-journal.mjs";
 
-export function createDiscoveryCampaignController({ now, store }) {
+const UNKNOWN_FAILURES = Object.freeze({
+  provider_dispatch_unusable: {
+    category: "provider_dispatch_timeout_or_unusable",
+    message: "The provider dispatch did not return a usable bounded result; reconcile the same project if a provider reference becomes available.",
+    severity: "warning"
+  },
+  provider_http_failure: {
+    category: "provider_http_failure",
+    message: "The provider returned an HTTP failure after mutation intent was recorded; reconcile the same project before any retry.",
+    severity: "error"
+  },
+  provider_request_timeout: {
+    category: "provider_dispatch_timeout_or_unusable",
+    message: "The provider request timed out after mutation intent was recorded; reconcile the same project before any retry.",
+    severity: "warning"
+  },
+  provider_ui_drift: {
+    category: "provider_ui_drift",
+    message: "The provider page no longer matched the bounded UI contract after mutation intent was recorded; reconcile the same project and review the contract.",
+    severity: "error"
+  }
+});
+
+export function createDiscoveryCampaignController({ issueStore = null, now, store }) {
   if (typeof now !== "function" || !store || typeof store !== "object") {
     throw new Error("opencounter_discovery_controller_config_invalid");
   }
@@ -13,8 +42,41 @@ export function createDiscoveryCampaignController({ now, store }) {
       throw new Error("opencounter_discovery_controller_store_invalid");
     }
   }
+  if (issueStore !== null
+    && (!issueStore || typeof issueStore !== "object"
+      || typeof issueStore.writeEvent !== "function")) {
+    throw new Error("opencounter_discovery_controller_issue_store_invalid");
+  }
 
   return {
+    async prepareStartJobDispatch({ jobId, ledgerId, workerId }) {
+      if (typeof store.leaseStartJob !== "function") {
+        throw new Error("opencounter_discovery_controller_store_invalid");
+      }
+      const leased = await store.leaseStartJob({
+        jobId,
+        leasedAt: now(),
+        ledgerId,
+        workerId
+      });
+      if (leased.job === null) return null;
+
+      await store.beginDispatch({
+        dispatchedAt: now(),
+        jobId: leased.job.jobId,
+        leaseToken: leased.job.lease.leaseToken,
+        ledgerId,
+        workerId
+      });
+      const persisted = await store.read(ledgerId);
+      const job = persisted.jobs.find(({ jobId: candidateId }) =>
+        candidateId === leased.job.jobId);
+      if (job === undefined) {
+        throw new Error("opencounter_discovery_controller_job_missing");
+      }
+      return createDiscoveryDispatchRequest(job);
+    },
+
     async prepareJobDispatch({ jobId, ledgerId, workerId }) {
       const leased = await store.leaseJob({
         jobId,
@@ -128,11 +190,12 @@ export function createDiscoveryCampaignController({ now, store }) {
       if (JSON.stringify(request) !== JSON.stringify(expectedRequest)) {
         throw new Error("opencounter_discovery_controller_verification_mismatch");
       }
+      const verificationObservedAt = now();
       let updated = await store.recordVerification({
         actorId,
         jobId: job.jobId,
         ledgerId,
-        observedAt: now(),
+        observedAt: verificationObservedAt,
         result
       });
       let updatedJob = findJob(updated, job.jobId);
@@ -148,6 +211,11 @@ export function createDiscoveryCampaignController({ now, store }) {
         updatedJob = findJob(updated, job.jobId);
         automaticallyQueuedLocation = true;
       }
+      if (issueStore !== null && updatedJob.status === "completed") {
+        const issueEvents = deriveSiteIssueEventsFromLedgers({ ledgers: [updated] })
+          .filter(({ jobId: candidateId }) => candidateId === updatedJob.jobId);
+        for (const event of issueEvents) issueStore.writeEvent(event);
+      }
       return {
         automaticallyQueuedLocation,
         jobId: updatedJob.jobId,
@@ -155,32 +223,76 @@ export function createDiscoveryCampaignController({ now, store }) {
       };
     },
 
-    async recordUnknownDispatchFailure({ ledgerId, request }) {
+    async recordUnknownDispatchFailure({
+      failureCode = "provider_dispatch_unusable",
+      ledgerId,
+      request
+    }) {
       const persisted = await store.read(ledgerId);
       const job = findJob(persisted, request?.jobId);
       const expectedRequest = createDiscoveryDispatchRequest(job);
       if (JSON.stringify(request) !== JSON.stringify(expectedRequest)) {
         throw new Error("opencounter_discovery_controller_dispatch_mismatch");
       }
+      const failureDefinition = UNKNOWN_FAILURES[failureCode];
+      if (failureDefinition === undefined) {
+        throw new Error("opencounter_discovery_controller_failure_code_invalid");
+      }
+      const observedAt = now();
       const updated = await store.recordFailure({
         failure: {
-          code: "provider_dispatch_unusable",
+          code: failureCode,
           effect: "unknown",
-          message: "The provider dispatch did not return a usable bounded result; reconcile the same project if a provider reference becomes available."
+          message: failureDefinition.message
         },
         jobId: request.jobId,
         leaseToken: request.leaseToken,
         ledgerId,
-        observedAt: now(),
+        observedAt,
         workerId: request.workerId
       });
       const updatedJob = findJob(updated, request.jobId);
-      return {
+      const outcome = {
         jobId: updatedJob.jobId,
         status: updatedJob.status
       };
+      if (issueStore === null) return outcome;
+      const errorIndex = updatedJob.errors.length - 1;
+      const persistedError = updatedJob.errors[errorIndex];
+      const event = createSiteIssueDetectionEvent({
+        category: failureDefinition.category,
+        checkpointSha256: updatedJob.checkpoint?.checkpointSha256 ?? null,
+        code: failureCode,
+        detectedAt: observedAt,
+        effect: "unknown",
+        jobId: updatedJob.jobId,
+        ledgerId,
+        providerReference: updatedJob.providerReference,
+        recoveryAction: updatedJob.providerReference === null
+          ? "readback_retry"
+          : "same_project_reconciliation",
+        severity: failureDefinition.severity,
+        sourceArtifactSha256: null,
+        sourceEventKey: createLedgerErrorSourceEventKey({
+          error: persistedError,
+          errorIndex
+        }),
+        stage: issueStage(request.tool)
+      });
+      issueStore.writeEvent(event);
+      return {
+        ...outcome,
+        issueEventId: event.eventId,
+        issueEventSha256: event.eventSha256
+      };
     }
   };
+}
+
+function issueStage(tool) {
+  if (tool === "opencounter_continue_guidance") return "continue";
+  if (tool === "opencounter_reconcile_guidance") return "reconcile";
+  return "start";
 }
 
 function findJob(ledger, jobId) {

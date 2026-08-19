@@ -1,7 +1,7 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-08-19T06:11:30.000Z",
+  "generatedAt": "2026-08-19T06:17:15.000Z",
   "stats": {
     "total": 152,
     "byKind": {
@@ -2315,11 +2315,12 @@
       },
       "requires": {
         "stacks": [
+          "stack:dwellow-mcp",
           "stack:opencounter"
         ]
       },
       "meta": {
-        "description": "Operate OpenCounter Cincinnati Guidance through RUDI's stack tools when a user asks for work supported by stack:opencounter. Guarded, headless browser guidance for Cincinnati zoning, business permits and fees, special events, and residential permitting.",
+        "description": "Assess Cincinnati project ideas from authoritative site evidence and an observed OpenCounter questionnaire, then use guarded live OpenCounter guidance only for explicitly authorized confirmation or recovery.",
         "category": "government-services",
         "tags": [
           "rudi",
@@ -4887,7 +4888,7 @@
       "id": "stack:opencounter",
       "kind": "stack",
       "name": "OpenCounter Cincinnati Guidance",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -4906,11 +4907,22 @@
             "key": "OPENCOUNTER_STATE_DIRECTORY",
             "label": "OpenCounter State Directory",
             "required": false
+          },
+          {
+            "key": "OPENCOUNTER_QUESTIONNAIRE_STATE_DIRECTORY",
+            "label": "OpenCounter Questionnaire State Directory",
+            "required": false
+          },
+          {
+            "key": "OPENCOUNTER_ASSESSMENT_STATE_DIRECTORY",
+            "label": "OpenCounter Assessment State Directory",
+            "required": false
           }
         ]
       },
       "provides": {
         "tools": [
+          "opencounter_assess_project",
           "opencounter_get_zoning_use_catalog",
           "opencounter_start_zoning_guidance",
           "opencounter_reconcile_zoning_start",
@@ -4943,8 +4955,8 @@
           "residential",
           "playwright"
         ],
-        "boundary": "Catalog-bound Zoning guidance, compatibility guidance, and provider PDF export during requester-triggered completion or explicit recovery only. No account creation, sign-in, terms acceptance, uploads, staff messages, application submission, or payment.",
-        "mcpSafety": "The Zoning start tool accepts only a packaged catalog identity and entry identity, resolves the exact provider label/slug internally, and performs a read-only provider fingerprint preflight before project creation. The low-level Zoning reconciliation primitive additionally requires the exact normalized provider-input digest, cryptographically binds state to that digest and project, and can mutate only the same surviving project; it is not by itself a registered Service Desk reconciler. Compatibility tools remain available but are not admitted for the Service Desk Zoning Check. Browser contexts are isolated and closed after each bounded call; resumable anonymous state, normalized requested address, and canonical active checkpoint are encrypted at rest and expire after 24 hours. Continuation rejects stale checkpoint digests and unknown answers before browser dispatch, observes already-committed provider values instead of replaying them, and fails on conflicts. Completed continuation dismisses only the exact optional save modal, verifies bounded PDF bytes, writes a content-addressed local RUDI artifact, and returns its metadata."
+        "boundary": "Provider-free project assessment from exact private questionnaire and upstream site evidence; catalog-bound Zoning guidance; compatibility guidance; and provider PDF export during requester-triggered completion or explicit recovery only. Assessment may recommend and preview confirmation but never authorizes or dispatches it. No account creation, sign-in, terms acceptance, uploads, staff messages, application submission, or payment.",
+        "mcpSafety": "The project-assessment tool validates exact questionnaire, catalog, site, answer, and optional physical-evidence identities; persists an idempotency-bound content-addressed local artifact; preserves site issues; and returns authorizationGranted false for every provider preview. The Zoning start tool accepts only a packaged catalog identity and entry identity, resolves the exact provider label/slug internally, and performs a read-only provider fingerprint preflight before project creation. The low-level Zoning reconciliation primitive additionally requires the exact normalized provider-input digest, cryptographically binds state to that digest and project, and can mutate only the same surviving project; it is not by itself a registered Service Desk reconciler. Compatibility tools remain available but are not admitted for the Service Desk Zoning Check. Browser contexts are isolated and closed after each bounded call; resumable anonymous state, normalized requested address, and canonical active checkpoint are encrypted at rest and expire after 24 hours. Continuation rejects stale checkpoint digests and unknown answers before browser dispatch, observes already-committed provider values instead of replaying them, and fails on conflicts. Completed continuation dismisses only the exact optional save modal, verifies bounded PDF bytes, writes a content-addressed local RUDI artifact, and returns its metadata."
       },
       "related": {
         "operatorSkill": "skill:opencounter",

@@ -16,7 +16,10 @@ import path from "node:path";
 
 import { validateVerifiedObservationPortfolioSources } from
   "./discovery-observation-portfolio.mjs";
-import { createNormalizedQuestionSignatureSha256 } from
+import {
+  buildObservedQuestionGraph,
+  createNormalizedQuestionSignatureSha256
+} from
   "./discovery-question-graph.mjs";
 import { observedZoningCodeForGraph } from
   "./discovery-zoning-context.mjs";
@@ -26,8 +29,13 @@ const FREEZE_ID_PATTERN = /^ocof_[0-9a-f]{64}$/;
 const QUESTION_ID_PATTERN = /^ocq_[0-9a-f]{64}$/;
 const FAMILY_ID_PATTERN = /^ocqf_[0-9a-f]{64}$/;
 const QUESTIONNAIRE_ID_PATTERN = /^ocmq_[0-9a-f]{64}$/;
+const LEDGER_ID_PATTERN = /^ocdl_[0-9a-f]{64}$/;
+const JOB_ID_PATTERN = /^ocdj_[0-9a-f]{64}$/;
+const PROVIDER_REFERENCE_PATTERN = /^opencounter:project:[0-9]{1,20}$/;
 const MAXIMUM_QUESTIONNAIRE_BYTES = 10 * 1024 * 1024;
 const COVERAGE_STATUS = "first_pass_observed_non_exhaustive";
+const EXTENDED_COVERAGE_STATUS =
+  "observed_branch_and_zoning_stability_verified_non_exhaustive";
 const TERMINAL_CLASSIFICATIONS = new Set([
   "Conditional",
   "Permitted",
@@ -40,15 +48,32 @@ const OBSERVED_ONLY_LIMITATION =
 export function buildMasterQuestionnaire({
   catalog,
   freeze,
-  sourceLedgers
+  sourceLedgers,
+  supplementalEvidence = null,
+  supplementalSourceLedgers = []
 }) {
   const verifiedFreeze = validateVerifiedObservationPortfolioSources({
     catalog,
     freeze,
     ledgers: sourceLedgers
   });
-  const graph = verifiedFreeze.questionGraph;
-  const transitionEvidenceByEdge = buildTransitionEvidenceByEdge(sourceLedgers);
+  const extensionRequested = supplementalEvidence !== null
+    || Array.isArray(supplementalSourceLedgers)
+      && supplementalSourceLedgers.length > 0;
+  const extension = extensionRequested
+    ? buildSupplementalObservationExtension({
+      catalog,
+      sourceLedgers,
+      supplementalEvidence,
+      supplementalSourceLedgers,
+      verifiedFreeze
+    })
+    : null;
+  const graph = extension?.questionGraph ?? verifiedFreeze.questionGraph;
+  const questionnaireSchemaVersion = extension === null ? 3 : 5;
+  const transitionEvidenceByEdge = buildTransitionEvidenceByEdge(
+    extension?.transitionSourceLedgers ?? sourceLedgers
+  );
   const familyBuilders = new Map();
   for (const question of graph.questions) {
     let family = familyBuilders.get(question.providerQuestionId);
@@ -104,11 +129,19 @@ export function buildMasterQuestionnaire({
     const family = familiesByProviderId.get(question.providerQuestionId);
     const incoming = graph.edges
       .filter(({ targetQuestionKey }) => targetQuestionKey === question.questionKey)
-      .map((edge) => toObservedTransition(edge, transitionEvidenceByEdge))
+      .map((edge) => toObservedTransition(
+        edge,
+        transitionEvidenceByEdge,
+        questionnaireSchemaVersion
+      ))
       .sort(compareTransitions);
     const outgoing = graph.edges
       .filter(({ sourceQuestionKey }) => sourceQuestionKey === question.questionKey)
-      .map((edge) => toObservedTransition(edge, transitionEvidenceByEdge))
+      .map((edge) => toObservedTransition(
+        edge,
+        transitionEvidenceByEdge,
+        questionnaireSchemaVersion
+      ))
       .sort(compareTransitions);
     return {
       applicability: {
@@ -139,7 +172,11 @@ export function buildMasterQuestionnaire({
       evidence: {
         firstObservedAt: question.firstObservedAt,
         lastObservedAt: question.lastObservedAt,
-        sourceFreezeId: verifiedFreeze.freezeId
+        ...(extension === null ? {
+          sourceFreezeId: verifiedFreeze.freezeId
+        } : {
+          sourceEvidenceSetSha256: extension.evidenceSetSha256
+        })
       },
       familyId: family.familyId,
       internalQuestionId: question.questionKey,
@@ -173,27 +210,49 @@ export function buildMasterQuestionnaire({
       tenantVersion: verifiedFreeze.catalog.tenantVersion
     },
     coverage: {
+      ...(extension === null ? {} : {
+        baselineVerifiedObservationCount:
+          verifiedFreeze.coverage.verifiedObservationCount
+      }),
       canonicalQuestionCount: questions.length,
       conditionalQuestionFamilyCount:
         questionFamilies.length - universalQuestionFamilyCount,
       questionFamilyCount: questionFamilies.length,
-      status: COVERAGE_STATUS,
+      status: extension === null ? COVERAGE_STATUS : EXTENDED_COVERAGE_STATUS,
+      ...(extension === null ? {} : {
+        supplementalVerifiedObservationCount:
+          extension.verifiedObservationCount
+      }),
       universalQuestionFamilyCount,
       verifiedObservationCount:
         verifiedFreeze.coverage.verifiedObservationCount
+          + (extension?.verifiedObservationCount ?? 0)
     },
-    evidence: {
+    evidence: extension === null ? {
       evidenceSetSha256: verifiedFreeze.evidenceSetSha256,
       frozenAt: verifiedFreeze.frozenAt,
       sourceFreezeId: verifiedFreeze.freezeId,
       sourceLedgerSnapshotSha256s: verifiedFreeze.sourceLedgers.map(
         ({ ledgerSnapshotSha256 }) => ledgerSnapshotSha256
       )
+    } : {
+      adaptiveVerificationAssessmentSha256:
+        extension.adaptiveVerificationAssessmentSha256,
+      evidenceSetSha256: extension.evidenceSetSha256,
+      extendedAt: extension.extendedAt,
+      frozenAt: verifiedFreeze.frozenAt,
+      siteIssueSnapshotSha256: extension.siteIssueSnapshotSha256,
+      sourceFreezeId: verifiedFreeze.freezeId,
+      sourceLedgerSnapshotSha256s: sorted(verifiedFreeze.sourceLedgers.map(
+        ({ ledgerSnapshotSha256 }) => ledgerSnapshotSha256
+      )),
+      supplementalLedgerSnapshotSha256s:
+        extension.ledgerSnapshotSha256s
     },
-    libraryVersion: 3,
+    libraryVersion: questionnaireSchemaVersion,
     questionFamilies,
     questions,
-    schemaVersion: 3
+    schemaVersion: questionnaireSchemaVersion
   };
   const questionnaireSha256 = sha256(payload);
   return validateMasterQuestionnaire({
@@ -203,6 +262,245 @@ export function buildMasterQuestionnaire({
   });
 }
 
+function buildSupplementalObservationExtension({
+  catalog,
+  sourceLedgers,
+  supplementalEvidence,
+  supplementalSourceLedgers,
+  verifiedFreeze
+}) {
+  exactRecord(supplementalEvidence, [
+    "adaptiveVerificationAssessmentSha256", "extendedAt",
+    "siteIssueSnapshotSha256"
+  ], "supplemental_evidence");
+  timestamp(supplementalEvidence.extendedAt, "supplemental_extendedAt");
+  if (!SHA256_PATTERN.test(
+    supplementalEvidence.adaptiveVerificationAssessmentSha256
+  ) || !SHA256_PATTERN.test(supplementalEvidence.siteIssueSnapshotSha256)
+    || Date.parse(supplementalEvidence.extendedAt)
+      < Date.parse(verifiedFreeze.frozenAt)) {
+    throw new Error("opencounter_master_questionnaire_supplemental_evidence_invalid");
+  }
+  if (!Array.isArray(supplementalSourceLedgers)
+    || supplementalSourceLedgers.length < 1
+    || supplementalSourceLedgers.length > 20) {
+    throw new Error("opencounter_master_questionnaire_supplemental_sources_invalid");
+  }
+
+  const catalogEntryIds = new Set(catalog.categories.flatMap((category) => [
+    ...category.entries,
+    ...category.groups.flatMap((group) => group.entries)
+  ]).map(({ catalogEntryId }) => catalogEntryId));
+  const baselineObservedJobs = sourceLedgers.flatMap(({ jobs }) => jobs.filter(
+    ({ status }) => status === "completed" || status === "needs_input"
+  ));
+  const evidenceJobIds = new Set(baselineObservedJobs.map(({ jobId }) => jobId));
+  const providerReferences = new Set(baselineObservedJobs.map(
+    ({ providerReference }) => providerReference
+  ));
+  const ledgerIds = new Set(sourceLedgers.map(({ ledgerId }) => ledgerId));
+  const snapshotSha256s = new Set(verifiedFreeze.sourceLedgers.map(
+    ({ ledgerSnapshotSha256 }) => ledgerSnapshotSha256
+  ));
+  const observedJobs = [];
+  const sourceRecords = [];
+  const transitionSourceLedgers = [...sourceLedgers];
+  let latestEvidenceAt = verifiedFreeze.frozenAt;
+
+  for (const ledger of supplementalSourceLedgers) {
+    if (!ledger || typeof ledger !== "object" || Array.isArray(ledger)
+      || !LEDGER_ID_PATTERN.test(ledger.ledgerId)
+      || !SHA256_PATTERN.test(ledger.ledgerSha256)
+      || ledger.ledgerId !== `ocdl_${ledger.ledgerSha256}`
+      || !Number.isSafeInteger(ledger.schemaVersion)
+      || ledger.schemaVersion < 4
+      || ledger.schemaVersion > 8
+      || !Array.isArray(ledger.jobs)
+      || ledger.jobs.length < 1
+      || ledger.jobs.length > 1_000
+      || ledgerIds.has(ledger.ledgerId)
+      || ledger.catalog?.catalogId !== verifiedFreeze.catalog.catalogId
+      || ledger.catalog?.catalogSha256 !== verifiedFreeze.catalog.catalogSha256
+      || ledger.catalog?.tenantId !== verifiedFreeze.catalog.tenantId
+      || ledger.catalog?.tenantVersion !== verifiedFreeze.catalog.tenantVersion) {
+      throw new Error("opencounter_master_questionnaire_supplemental_source_invalid");
+    }
+    if (ledger.jobs.some(({ status }) =>
+      status !== "completed" && status !== "queued")) {
+      throw new Error("opencounter_master_questionnaire_supplemental_unresolved_job");
+    }
+    const ledgerSnapshotSha256 = sha256(ledger);
+    if (snapshotSha256s.has(ledgerSnapshotSha256)) {
+      throw new Error(
+        "opencounter_master_questionnaire_supplemental_snapshot_duplicate"
+      );
+    }
+    for (const queued of ledger.jobs.filter(({ status }) => status === "queued")) {
+      if (!Array.isArray(queued.observations)
+        || queued.observations.length !== 0
+        || queued.providerReference !== null
+        || queued.terminalResult !== null
+        || queued.verification !== null) {
+        throw new Error(
+          "opencounter_master_questionnaire_supplemental_queued_job_invalid"
+        );
+      }
+    }
+    const completedJobs = ledger.jobs.filter(
+      ({ status }) => status === "completed"
+    );
+    if (completedJobs.length < 1) {
+      throw new Error("opencounter_master_questionnaire_supplemental_source_empty");
+    }
+    const sourceJobIds = new Set();
+    const completedEvidenceJobs = [];
+    for (const job of completedJobs) {
+      const jobLatestEvidenceAt = validateSupplementalCompletedJob(
+        job,
+        catalogEntryIds
+      );
+      if (sourceJobIds.has(job.jobId)) {
+        throw new Error("opencounter_master_questionnaire_supplemental_job_duplicate");
+      }
+      if (providerReferences.has(job.providerReference)) {
+        throw new Error(
+          "opencounter_master_questionnaire_supplemental_provider_reference_duplicate"
+        );
+      }
+      const evidenceJobId = `ocdj_${sha256({
+        ledgerSnapshotSha256,
+        sourceJobId: job.jobId
+      })}`;
+      if (evidenceJobIds.has(evidenceJobId)) {
+        throw new Error(
+          "opencounter_master_questionnaire_supplemental_evidence_identity_duplicate"
+        );
+      }
+      sourceJobIds.add(job.jobId);
+      evidenceJobIds.add(evidenceJobId);
+      providerReferences.add(job.providerReference);
+      const evidenceJob = {
+        ...structuredClone(job),
+        jobId: evidenceJobId
+      };
+      completedEvidenceJobs.push(evidenceJob);
+      observedJobs.push(evidenceJob);
+      if (Date.parse(jobLatestEvidenceAt) > Date.parse(latestEvidenceAt)) {
+        latestEvidenceAt = jobLatestEvidenceAt;
+      }
+    }
+    ledgerIds.add(ledger.ledgerId);
+    snapshotSha256s.add(ledgerSnapshotSha256);
+    sourceRecords.push({
+      ledgerId: ledger.ledgerId,
+      ledgerIdentitySha256: ledger.ledgerSha256,
+      ledgerSnapshotSha256,
+      schemaVersion: ledger.schemaVersion,
+      verifiedObservationCount: completedJobs.length
+    });
+    transitionSourceLedgers.push({
+      ...structuredClone(ledger),
+      jobs: completedEvidenceJobs
+    });
+  }
+  if (Date.parse(supplementalEvidence.extendedAt)
+    < Date.parse(latestEvidenceAt)) {
+    throw new Error("opencounter_master_questionnaire_supplemental_time_invalid");
+  }
+  sourceRecords.sort((left, right) => left.ledgerId.localeCompare(right.ledgerId));
+  observedJobs.sort((left, right) => left.jobId.localeCompare(right.jobId));
+  const evidenceSetSha256 = sha256({
+    adaptiveVerificationAssessmentSha256:
+      supplementalEvidence.adaptiveVerificationAssessmentSha256,
+    baselineEvidenceSetSha256: verifiedFreeze.evidenceSetSha256,
+    siteIssueSnapshotSha256: supplementalEvidence.siteIssueSnapshotSha256,
+    supplementalSourceLedgers: sourceRecords
+  });
+  const combinedJobs = [...baselineObservedJobs, ...observedJobs].sort(
+    (left, right) => left.jobId.localeCompare(right.jobId)
+  );
+  return {
+    adaptiveVerificationAssessmentSha256:
+      supplementalEvidence.adaptiveVerificationAssessmentSha256,
+    evidenceSetSha256,
+    extendedAt: supplementalEvidence.extendedAt,
+    ledgerSnapshotSha256s: sorted(sourceRecords.map(
+      ({ ledgerSnapshotSha256 }) => ledgerSnapshotSha256
+    )),
+    questionGraph: buildObservedQuestionGraph({
+      jobs: combinedJobs,
+      ledgerSha256: evidenceSetSha256,
+      schemaVersion: 8
+    }),
+    siteIssueSnapshotSha256: supplementalEvidence.siteIssueSnapshotSha256,
+    transitionSourceLedgers,
+    verifiedObservationCount: observedJobs.length
+  };
+}
+
+function validateSupplementalCompletedJob(job, catalogEntryIds) {
+  if (!job || typeof job !== "object" || Array.isArray(job)
+    || job.status !== "completed"
+    || !catalogEntryIds.has(job.catalogEntryId)
+    || !JOB_ID_PATTERN.test(job.jobId)
+    || !PROVIDER_REFERENCE_PATTERN.test(job.providerReference)
+    || !Array.isArray(job.categoryPath)
+    || job.categoryPath.length < 1
+    || job.categoryPath.some((part) => !text(part, 200))
+    || !Array.isArray(job.observations)
+    || job.observations.length < 1
+    || job.terminalResult === null
+    || !job.verification
+    || job.verification.status !== "completed"
+    || job.verification.providerReference !== job.providerReference
+    || !SHA256_PATTERN.test(job.verification.resultSha256)
+    || !job.locationFixture
+    || !text(job.locationFixture.locationId, 200)
+    || !Number.isSafeInteger(job.locationFixture.locationVersion)
+    || job.locationFixture.locationVersion < 1
+    || !text(job.locationFixture.expectedBaseZoningCode, 100)
+    || !Array.isArray(job.locationFixture.overlayFlags)
+    || !job.scenario
+    || !text(job.scenario.scenarioId, 200)
+    || !Number.isSafeInteger(job.scenario.scenarioVersion)
+    || job.scenario.scenarioVersion < 1) {
+    throw new Error(
+      "opencounter_master_questionnaire_supplemental_verification_missing"
+    );
+  }
+  let latestObservationAt = null;
+  for (const observation of job.observations) {
+    if (!observation || typeof observation !== "object"
+      || !Array.isArray(observation.answers)
+      || !Array.isArray(observation.questions)) {
+      throw new Error(
+        "opencounter_master_questionnaire_supplemental_observation_invalid"
+      );
+    }
+    timestamp(observation.observedAt, "supplemental_observedAt");
+    if (latestObservationAt !== null
+      && Date.parse(observation.observedAt) < Date.parse(latestObservationAt)) {
+      throw new Error(
+        "opencounter_master_questionnaire_supplemental_observation_order_invalid"
+      );
+    }
+    latestObservationAt = observation.observedAt;
+  }
+  timestamp(job.verification.observedAt, "supplemental_verification_observedAt");
+  if (Date.parse(job.verification.observedAt) < Date.parse(latestObservationAt)) {
+    throw new Error(
+      "opencounter_master_questionnaire_supplemental_verification_time_invalid"
+    );
+  }
+  if (Object.hasOwn(job.terminalResult, "classification")
+    && !TERMINAL_CLASSIFICATIONS.has(job.terminalResult.classification)) {
+    throw new Error(
+      "opencounter_master_questionnaire_terminal_classification_unknown"
+    );
+  }
+  return job.verification.observedAt;
+}
+
 export function validateMasterQuestionnaire(value) {
   exactRecord(value, [
     "artifactKind", "catalog", "coverage", "evidence", "libraryVersion",
@@ -210,7 +508,8 @@ export function validateMasterQuestionnaire(value) {
     "schemaVersion"
   ], "artifact");
   if (value.artifactKind !== "opencounter_master_questionnaire"
-    || ![[1, 1], [2, 2], [3, 3]].some(([schemaVersion, libraryVersion]) =>
+    || ![[1, 1], [2, 2], [3, 3], [4, 4], [5, 5]].some(
+      ([schemaVersion, libraryVersion]) =>
       value.schemaVersion === schemaVersion
       && value.libraryVersion === libraryVersion)
     || !QUESTIONNAIRE_ID_PATTERN.test(value.questionnaireId)
@@ -219,7 +518,7 @@ export function validateMasterQuestionnaire(value) {
     throw new Error("opencounter_master_questionnaire_artifact_invalid");
   }
   const catalog = validateCatalogIdentity(value.catalog);
-  const evidence = validateEvidence(value.evidence);
+  const evidence = validateEvidence(value.evidence, value.schemaVersion);
   const families = validateFamilies(value.questionFamilies, catalog);
   const questions = validateQuestions(
     value.questions,
@@ -227,7 +526,13 @@ export function validateMasterQuestionnaire(value) {
     evidence,
     value.schemaVersion
   );
-  const coverage = validateCoverage(value.coverage, families, questions, catalog);
+  const coverage = validateCoverage(
+    value.coverage,
+    families,
+    questions,
+    catalog,
+    value.schemaVersion
+  );
   const payload = {
     artifactKind: value.artifactKind,
     catalog,
@@ -332,8 +637,13 @@ function validateCatalogIdentity(value) {
   return structuredClone(value);
 }
 
-function validateEvidence(value) {
-  exactRecord(value, [
+function validateEvidence(value, schemaVersion) {
+  const extended = schemaVersion >= 4;
+  exactRecord(value, extended ? [
+    "adaptiveVerificationAssessmentSha256", "evidenceSetSha256", "extendedAt",
+    "frozenAt", "siteIssueSnapshotSha256", "sourceFreezeId",
+    "sourceLedgerSnapshotSha256s", "supplementalLedgerSnapshotSha256s"
+  ] : [
     "evidenceSetSha256", "frozenAt", "sourceFreezeId",
     "sourceLedgerSnapshotSha256s"
   ], "evidence");
@@ -347,11 +657,39 @@ function validateEvidence(value) {
     throw new Error("opencounter_master_questionnaire_evidence_invalid");
   }
   timestamp(value.frozenAt, "evidence_frozenAt");
+  if (!extended) {
+    return {
+      evidenceSetSha256: value.evidenceSetSha256,
+      frozenAt: value.frozenAt,
+      sourceFreezeId: value.sourceFreezeId,
+      sourceLedgerSnapshotSha256s: snapshots
+    };
+  }
+  const supplementalSnapshots = stringArray(
+    value.supplementalLedgerSnapshotSha256s,
+    {
+      maximum: 20,
+      pattern: SHA256_PATTERN,
+      requireNonEmpty: true
+    }
+  );
+  timestamp(value.extendedAt, "evidence_extendedAt");
+  if (!SHA256_PATTERN.test(value.adaptiveVerificationAssessmentSha256)
+    || !SHA256_PATTERN.test(value.siteIssueSnapshotSha256)
+    || Date.parse(value.extendedAt) < Date.parse(value.frozenAt)
+    || snapshots.some((snapshot) => supplementalSnapshots.includes(snapshot))) {
+    throw new Error("opencounter_master_questionnaire_evidence_invalid");
+  }
   return {
+    adaptiveVerificationAssessmentSha256:
+      value.adaptiveVerificationAssessmentSha256,
     evidenceSetSha256: value.evidenceSetSha256,
+    extendedAt: value.extendedAt,
     frozenAt: value.frozenAt,
+    siteIssueSnapshotSha256: value.siteIssueSnapshotSha256,
     sourceFreezeId: value.sourceFreezeId,
-    sourceLedgerSnapshotSha256s: snapshots
+    sourceLedgerSnapshotSha256s: snapshots,
+    supplementalLedgerSnapshotSha256s: supplementalSnapshots
   };
 }
 
@@ -449,14 +787,19 @@ function validateQuestions(values, families, evidence, schemaVersion) {
       schemaVersion
     );
     const confidence = validateConfidence(value.confidence);
-    exactRecord(value.evidence, [
+    exactRecord(value.evidence, schemaVersion >= 4 ? [
+      "firstObservedAt", "lastObservedAt", "sourceEvidenceSetSha256"
+    ] : [
       "firstObservedAt", "lastObservedAt", "sourceFreezeId"
     ], "question_evidence");
     timestamp(value.evidence.firstObservedAt, "question_firstObservedAt");
     timestamp(value.evidence.lastObservedAt, "question_lastObservedAt");
     if (Date.parse(value.evidence.firstObservedAt)
         > Date.parse(value.evidence.lastObservedAt)
-      || value.evidence.sourceFreezeId !== evidence.sourceFreezeId) {
+      || schemaVersion >= 4
+        && value.evidence.sourceEvidenceSetSha256 !== evidence.evidenceSetSha256
+      || schemaVersion < 4
+        && value.evidence.sourceFreezeId !== evidence.sourceFreezeId) {
       throw new Error("opencounter_master_questionnaire_question_evidence_invalid");
     }
     if (!Array.isArray(value.options) || value.options.length > 1_000) {
@@ -531,8 +874,13 @@ function validateQuestions(values, families, evidence, schemaVersion) {
   return questions;
 }
 
-function validateCoverage(value, families, questions, catalog) {
-  exactRecord(value, [
+function validateCoverage(value, families, questions, catalog, schemaVersion) {
+  exactRecord(value, schemaVersion >= 4 ? [
+    "baselineVerifiedObservationCount", "canonicalQuestionCount",
+    "conditionalQuestionFamilyCount", "questionFamilyCount", "status",
+    "supplementalVerifiedObservationCount", "universalQuestionFamilyCount",
+    "verifiedObservationCount"
+  ] : [
     "canonicalQuestionCount", "conditionalQuestionFamilyCount",
     "questionFamilyCount", "status", "universalQuestionFamilyCount",
     "verifiedObservationCount"
@@ -544,8 +892,19 @@ function validateCoverage(value, families, questions, catalog) {
     || value.questionFamilyCount !== families.length
     || value.universalQuestionFamilyCount !== universal
     || value.conditionalQuestionFamilyCount !== families.length - universal
-    || value.status !== COVERAGE_STATUS
-    || value.verifiedObservationCount !== catalog.catalogEntryCount) {
+    || schemaVersion >= 4 && (
+      value.status !== EXTENDED_COVERAGE_STATUS
+      || value.baselineVerifiedObservationCount !== catalog.catalogEntryCount
+      || !Number.isSafeInteger(value.supplementalVerifiedObservationCount)
+      || value.supplementalVerifiedObservationCount < 1
+      || value.verifiedObservationCount
+        !== value.baselineVerifiedObservationCount
+          + value.supplementalVerifiedObservationCount
+    )
+    || schemaVersion < 4 && (
+      value.status !== COVERAGE_STATUS
+      || value.verifiedObservationCount !== catalog.catalogEntryCount
+    )) {
     throw new Error("opencounter_master_questionnaire_coverage_invalid");
   }
   return structuredClone(value);
@@ -648,6 +1007,7 @@ function validateTransition(value, schemaVersion) {
   ];
   if (schemaVersion >= 2) keys.push("terminalClassifications");
   if (schemaVersion >= 3) keys.push("applicability");
+  if (schemaVersion >= 5) keys.push("contextEvidence");
   exactRecord(value, keys, "transition");
   if (!text(value.answerValue, 2_000)
     || !QUESTION_ID_PATTERN.test(value.sourceQuestionId)
@@ -672,6 +1032,15 @@ function validateTransition(value, schemaVersion) {
   const applicability = schemaVersion >= 3
     ? validateTransitionApplicability(value.applicability)
     : null;
+  const contextEvidence = schemaVersion >= 5
+    ? validateTransitionContextEvidence(value.contextEvidence, {
+      applicability,
+      independentObservationCount: value.independentObservationCount,
+      observationCount: value.observationCount,
+      terminalClassifications,
+      terminalStatus: value.terminalStatus
+    })
+    : null;
   if (schemaVersion >= 2
     && (value.terminalStatus === null
       ? terminalClassifications.length !== 0
@@ -683,6 +1052,7 @@ function validateTransition(value, schemaVersion) {
   return {
     answerValue: value.answerValue,
     ...(schemaVersion >= 3 ? { applicability } : {}),
+    ...(schemaVersion >= 5 ? { contextEvidence } : {}),
     expectedBaseZoningCodes: stringArray(value.expectedBaseZoningCodes, {
       maximum: 100
     }),
@@ -702,6 +1072,131 @@ function validateTransition(value, schemaVersion) {
     ...(schemaVersion >= 2 ? { terminalClassifications } : {}),
     terminalStatus: value.terminalStatus
   };
+}
+
+function validateTransitionContextEvidence(values, transition) {
+  if (!Array.isArray(values) || values.length < 1 || values.length > 10_000) {
+    throw new Error(
+      "opencounter_master_questionnaire_transition_context_evidence_invalid"
+    );
+  }
+  const identities = new Set();
+  const contexts = values.map((value) => {
+    exactRecord(value, [
+      "applicability", "firstObservedAt", "independentObservationCount",
+      "lastObservedAt", "observationCount", "terminalClassification"
+    ], "transition_context_evidence");
+    const applicability = validateTransitionApplicability(value.applicability);
+    if (applicability.catalogEntryIds.length !== 1
+      || applicability.categoryPaths.length !== 1
+      || applicability.expectedBaseZoningCodes.length !== 1
+      || applicability.locationFixtureIds.length !== 1
+      || applicability.observedZoningCodes.length > 1
+      || applicability.scenarioIds.length !== 1
+      || value.terminalClassification !== null
+        && !TERMINAL_CLASSIFICATIONS.has(value.terminalClassification)
+      || transition.terminalStatus === null
+        && value.terminalClassification !== null
+      || !Number.isSafeInteger(value.independentObservationCount)
+      || value.independentObservationCount < 1
+      || !Number.isSafeInteger(value.observationCount)
+      || value.observationCount < value.independentObservationCount) {
+      throw new Error(
+        "opencounter_master_questionnaire_transition_context_evidence_invalid"
+      );
+    }
+    timestamp(value.firstObservedAt, "transition_context_firstObservedAt");
+    timestamp(value.lastObservedAt, "transition_context_lastObservedAt");
+    if (Date.parse(value.firstObservedAt) > Date.parse(value.lastObservedAt)) {
+      throw new Error(
+        "opencounter_master_questionnaire_transition_context_evidence_invalid"
+      );
+    }
+    const context = {
+      applicability,
+      firstObservedAt: value.firstObservedAt,
+      independentObservationCount: value.independentObservationCount,
+      lastObservedAt: value.lastObservedAt,
+      observationCount: value.observationCount,
+      terminalClassification: value.terminalClassification
+    };
+    const identity = JSON.stringify({
+      applicability,
+      terminalClassification: value.terminalClassification
+    });
+    if (identities.has(identity)) {
+      throw new Error(
+        "opencounter_master_questionnaire_transition_context_evidence_duplicate"
+      );
+    }
+    identities.add(identity);
+    return context;
+  });
+  const sortedContexts = [...contexts].sort(compareTransitionContexts);
+  if (JSON.stringify(contexts) !== JSON.stringify(sortedContexts)
+    || contexts.reduce((sum, value) =>
+      sum + value.observationCount, 0) !== transition.observationCount
+    || contexts.reduce((sum, value) =>
+      sum + value.independentObservationCount, 0)
+        !== transition.independentObservationCount
+    || !sameSorted(
+      new Set(contexts.flatMap(
+        ({ applicability }) => applicability.catalogEntryIds
+      )),
+      transition.applicability.catalogEntryIds
+    )
+    || !sameSorted(
+      new Set(contexts.flatMap(
+        ({ applicability }) => applicability.categoryPaths
+      )),
+      transition.applicability.categoryPaths
+    )
+    || !sameSorted(
+      new Set(contexts.flatMap(
+        ({ applicability }) => applicability.expectedBaseZoningCodes
+      )),
+      transition.applicability.expectedBaseZoningCodes
+    )
+    || !sameSorted(
+      new Set(contexts.flatMap(
+        ({ applicability }) => applicability.locationFixtureIds
+      )),
+      transition.applicability.locationFixtureIds
+    )
+    || !sameSorted(
+      new Set(contexts.flatMap(
+        ({ applicability }) => applicability.observedZoningCodes
+      )),
+      transition.applicability.observedZoningCodes
+    )
+    || !sameSorted(
+      new Set(contexts.flatMap(
+        ({ applicability }) => applicability.overlayFlags
+      )),
+      transition.applicability.overlayFlags
+    )
+    || !sameSorted(
+      new Set(contexts.flatMap(
+        ({ applicability }) => applicability.scenarioIds
+      )),
+      transition.applicability.scenarioIds
+    )) {
+    throw new Error(
+      "opencounter_master_questionnaire_transition_context_evidence_mismatch"
+    );
+  }
+  const contextClassifications = [...new Set(contexts.map(
+    ({ terminalClassification }) => terminalClassification
+  ))].sort(compareTerminalClassifications);
+  if (transition.terminalStatus === null
+    ? contextClassifications.length !== 1 || contextClassifications[0] !== null
+    : JSON.stringify(contextClassifications)
+      !== JSON.stringify(transition.terminalClassifications)) {
+    throw new Error(
+      "opencounter_master_questionnaire_transition_context_classification_mismatch"
+    );
+  }
+  return contexts;
 }
 
 function validateTransitionApplicability(value) {
@@ -762,7 +1257,7 @@ function validateConfidence(value) {
   return structuredClone(value);
 }
 
-function toObservedTransition(edge, transitionEvidenceByEdge) {
+function toObservedTransition(edge, transitionEvidenceByEdge, schemaVersion) {
   const identity = transitionIdentity({
     answerValue: edge.answerValue,
     sourceQuestionId: edge.sourceQuestionKey,
@@ -794,6 +1289,29 @@ function toObservedTransition(edge, transitionEvidenceByEdge) {
       overlayFlags: sorted(evidence.overlayFlags),
       scenarioIds: sorted(evidence.scenarioIds)
     },
+    ...(schemaVersion >= 5 ? {
+      contextEvidence: [...evidence.contextEvidence.values()].map(
+        (context) => ({
+          applicability: {
+            catalogEntryIds: [context.catalogEntryId],
+            categoryPaths: [context.categoryPath],
+            expectedBaseZoningCodes: [context.expectedBaseZoningCode],
+            kind: "observed_only",
+            locationFixtureIds: [context.locationFixtureId],
+            observedZoningCodes: context.observedZoningCode === null
+              ? []
+              : [context.observedZoningCode],
+            overlayFlags: [...context.overlayFlags],
+            scenarioIds: [context.scenarioId]
+          },
+          firstObservedAt: context.firstObservedAt,
+          independentObservationCount: context.independentJobIds.size,
+          lastObservedAt: context.lastObservedAt,
+          observationCount: context.observationCount,
+          terminalClassification: context.terminalClassification
+        })
+      ).sort(compareTransitionContexts)
+    } : {}),
     expectedBaseZoningCodes: sorted(edge.expectedBaseZoningCodes ?? []),
     firstObservedAt: edge.firstObservedAt,
     independentObservationCount: edge.independentObservationCount,
@@ -824,8 +1342,8 @@ function buildTransitionEvidenceByEdge(sourceLedgers) {
         );
       }
       for (let index = 1; index < job.observations.length; index += 1) {
-        const previous = job.observations[index - 1];
         const current = job.observations[index];
+        const previous = findTransitionAnswerSource(job, index, current);
         for (const answer of current.answers) {
           const sourceQuestion = previous.questions.find(
             (question) => question.id === answer.questionId
@@ -855,6 +1373,7 @@ function buildTransitionEvidenceByEdge(sourceLedgers) {
               evidence = {
                 catalogEntryIds: new Set(),
                 categoryPaths: new Set(),
+                contextEvidence: new Map(),
                 expectedBaseZoningCodes: new Set(),
                 independentJobIds: new Set(),
                 locationFixtureIds: new Set(),
@@ -884,6 +1403,43 @@ function buildTransitionEvidenceByEdge(sourceLedgers) {
             evidence.scenarioIds.add(
               `${job.scenario.scenarioId}:${job.scenario.scenarioVersion}`
             );
+            const context = transitionContext({
+              classification: destination.terminalStatus === null
+                ? null
+                : classification,
+              job
+            });
+            const contextIdentity = JSON.stringify({
+              catalogEntryId: context.catalogEntryId,
+              categoryPath: context.categoryPath,
+              expectedBaseZoningCode: context.expectedBaseZoningCode,
+              locationFixtureId: context.locationFixtureId,
+              observedZoningCode: context.observedZoningCode,
+              overlayFlags: context.overlayFlags,
+              scenarioId: context.scenarioId,
+              terminalClassification: context.terminalClassification
+            });
+            let contextEvidence = evidence.contextEvidence.get(contextIdentity);
+            if (contextEvidence === undefined) {
+              contextEvidence = {
+                ...context,
+                firstObservedAt: current.observedAt,
+                independentJobIds: new Set(),
+                lastObservedAt: current.observedAt,
+                observationCount: 0
+              };
+              evidence.contextEvidence.set(contextIdentity, contextEvidence);
+            }
+            contextEvidence.independentJobIds.add(job.jobId);
+            contextEvidence.observationCount += 1;
+            if (Date.parse(current.observedAt)
+              < Date.parse(contextEvidence.firstObservedAt)) {
+              contextEvidence.firstObservedAt = current.observedAt;
+            }
+            if (Date.parse(current.observedAt)
+              > Date.parse(contextEvidence.lastObservedAt)) {
+              contextEvidence.lastObservedAt = current.observedAt;
+            }
             if (destination.terminalStatus !== null) {
               evidence.terminalClassifications.add(classification);
             }
@@ -893,6 +1449,38 @@ function buildTransitionEvidenceByEdge(sourceLedgers) {
     }
   }
   return evidenceByEdge;
+}
+
+function transitionContext({ classification, job }) {
+  return {
+    catalogEntryId: job.catalogEntryId,
+    categoryPath: job.categoryPath.join(" / "),
+    expectedBaseZoningCode: job.locationFixture.expectedBaseZoningCode,
+    locationFixtureId:
+      `${job.locationFixture.locationId}:${job.locationFixture.locationVersion}`,
+    observedZoningCode: observedZoningCodeForGraph(job),
+    overlayFlags: sorted(job.locationFixture.overlayFlags),
+    scenarioId: `${job.scenario.scenarioId}:${job.scenario.scenarioVersion}`,
+    terminalClassification: classification
+  };
+}
+
+function findTransitionAnswerSource(job, index, current) {
+  if (current.answers.length === 0) return job.observations[index - 1];
+  const answerPath = [
+    ...(Array.isArray(job.answerPath) ? job.answerPath : [])
+  ].reverse().find((record) =>
+    record.observedAt === current.observedAt
+    && JSON.stringify(record.answers) === JSON.stringify(current.answers));
+  if (answerPath === undefined) return job.observations[index - 1];
+  const source = job.observations.slice(0, index).findLast((observation) =>
+    observation.checkpointSha256 === answerPath.checkpointSha256
+    && Array.isArray(observation.questions)
+    && observation.questions.length > 0);
+  if (source === undefined) {
+    throw new Error("opencounter_master_questionnaire_answer_path_invalid");
+  }
+  return source;
 }
 
 function createQuestionId(question) {
@@ -951,6 +1539,28 @@ function compareTransitions(left, right) {
     || (left.targetQuestionId ?? "").localeCompare(right.targetQuestionId ?? "")
     || (left.terminalStatus ?? "").localeCompare(right.terminalStatus ?? "")
     || left.firstObservedAt.localeCompare(right.firstObservedAt);
+}
+
+function compareTransitionContexts(left, right) {
+  return left.applicability.catalogEntryIds[0].localeCompare(
+    right.applicability.catalogEntryIds[0]
+  )
+    || left.applicability.expectedBaseZoningCodes[0].localeCompare(
+      right.applicability.expectedBaseZoningCodes[0]
+    )
+    || (left.applicability.observedZoningCodes[0] ?? "").localeCompare(
+      right.applicability.observedZoningCodes[0] ?? ""
+    )
+    || left.applicability.locationFixtureIds[0].localeCompare(
+      right.applicability.locationFixtureIds[0]
+    )
+    || left.applicability.scenarioIds[0].localeCompare(
+      right.applicability.scenarioIds[0]
+    )
+    || compareTerminalClassifications(
+      left.terminalClassification,
+      right.terminalClassification
+    );
 }
 
 function createQuestionFamilyId(providerQuestionId) {

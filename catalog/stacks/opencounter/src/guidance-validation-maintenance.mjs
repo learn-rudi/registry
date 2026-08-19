@@ -1,4 +1,18 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import {
+  chmodSync,
+  closeSync,
+  existsSync,
+  fsyncSync,
+  linkSync,
+  lstatSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  unlinkSync,
+  writeFileSync
+} from "node:fs";
+import path from "node:path";
 
 import { validateMasterQuestionnaire } from
   "./discovery-master-questionnaire.mjs";
@@ -18,6 +32,7 @@ const PROVIDER_TO_PRELIMINARY = new Map([
   ["Permitted with Limitations", "permitted_with_limitations"],
   ["Prohibited", "likely_prohibited"]
 ]);
+const MAXIMUM_VALIDATION_REPORT_BYTES = 50 * 1024 * 1024;
 
 export function buildGuidanceValidationReport({
   cases,
@@ -54,12 +69,13 @@ export function buildGuidanceValidationReport({
       throw new Error("opencounter_guidance_validation_use_mismatch");
     }
     const observed = validateObservedProject(value.observed);
-    const predictedQuestionIds = sortedUnique([
+    const predictedQuestionIds = sortedUnique([...new Set([
+      ...(assessment.predictedQuestionIds ?? []),
       ...assessment.observedPaths.map(({ sourceQuestionId }) =>
         sourceQuestionId),
       ...assessment.remainingQuestions.map(({ internalQuestionId }) =>
         internalQuestionId)
-    ], QUESTION_ID_PATTERN, "predicted_question_ids");
+    ])], QUESTION_ID_PATTERN, "predicted_question_ids");
     const predicted = new Set(predictedQuestionIds);
     const actual = new Set(observed.internalQuestionIds);
     const truePositive = predictedQuestionIds.filter((questionId) =>
@@ -152,6 +168,96 @@ export function buildGuidanceValidationReport({
     ...payload,
     reportId: `ocvr_${reportSha256}`,
     reportSha256
+  };
+}
+
+export function validateGuidanceValidationReport(value) {
+  exactRecord(value, [
+    "artifactKind", "cases", "evidence", "metrics", "reportEpoch",
+    "reportId", "reportSha256", "schemaVersion"
+  ], "report_artifact");
+  if (value.artifactKind !== "opencounter_guidance_validation_report"
+    || value.schemaVersion !== 1
+    || !/^ocvr_[0-9a-f]{64}$/.test(value.reportId)
+    || !/^[0-9a-f]{64}$/.test(value.reportSha256)
+    || value.reportId !== `ocvr_${value.reportSha256}`
+    || !Array.isArray(value.cases)
+    || value.cases.length < 1
+    || value.cases.length > 10_000) {
+    throw new Error("opencounter_guidance_validation_report_invalid");
+  }
+  exactRecord(value.evidence, [
+    "questionnaireId", "questionnaireSha256", "sourceFreezeId"
+  ], "report_evidence");
+  if (!/^ocmq_[0-9a-f]{64}$/.test(value.evidence.questionnaireId)
+    || !/^[0-9a-f]{64}$/.test(value.evidence.questionnaireSha256)
+    || value.evidence.questionnaireId
+      !== `ocmq_${value.evidence.questionnaireSha256}`
+    || !/^ocof_[0-9a-f]{64}$/.test(value.evidence.sourceFreezeId)) {
+    throw new Error("opencounter_guidance_validation_report_evidence_invalid");
+  }
+  validateReportMetrics(value.metrics, value.cases.length);
+  timestamp(value.reportEpoch, "report_epoch");
+  const { reportId: _reportId, reportSha256: _reportSha256, ...payload } = value;
+  if (sha256(payload) !== value.reportSha256) {
+    throw new Error("opencounter_guidance_validation_report_digest_mismatch");
+  }
+  return structuredClone(value);
+}
+
+export function createGuidanceValidationReportStore({ stateDirectory }) {
+  const root = privateDirectory(stateDirectory, "state_directory");
+  const directory = privateDirectory(
+    path.join(root, "guidance-validation-reports"),
+    "report_directory"
+  );
+  return {
+    read(reportSha256) {
+      return readGuidanceValidationReport(
+        resolveValidationReportPath(directory, reportSha256),
+        reportSha256
+      );
+    },
+    write(value) {
+      const report = validateGuidanceValidationReport(value);
+      const serialized = `${JSON.stringify(report, null, 2)}\n`;
+      const bytes = Buffer.byteLength(serialized, "utf8");
+      if (bytes > MAXIMUM_VALIDATION_REPORT_BYTES) {
+        throw new Error("opencounter_guidance_validation_report_too_large");
+      }
+      const reportPath = resolveValidationReportPath(
+        directory,
+        report.reportSha256
+      );
+      if (existsSync(reportPath)) {
+        readGuidanceValidationReport(reportPath, report.reportSha256);
+        return { bytes, path: reportPath, reportSha256: report.reportSha256 };
+      }
+      const temporaryPath = path.join(
+        directory,
+        `${report.reportSha256}.${randomUUID()}.tmp`
+      );
+      let descriptor;
+      try {
+        descriptor = openSync(temporaryPath, "wx", 0o600);
+        writeFileSync(descriptor, serialized, "utf8");
+        fsyncSync(descriptor);
+        closeSync(descriptor);
+        descriptor = undefined;
+        linkSync(temporaryPath, reportPath);
+        unlinkSync(temporaryPath);
+        chmodSync(reportPath, 0o600);
+      } catch (error) {
+        if (descriptor !== undefined) closeSync(descriptor);
+        if (existsSync(temporaryPath)) unlinkSync(temporaryPath);
+        if (error?.code === "EEXIST") {
+          readGuidanceValidationReport(reportPath, report.reportSha256);
+          return { bytes, path: reportPath, reportSha256: report.reportSha256 };
+        }
+        throw error;
+      }
+      return { bytes, path: reportPath, reportSha256: report.reportSha256 };
+    }
   };
 }
 
@@ -287,6 +393,81 @@ function libraryReference(library) {
     tenantId: library.catalog.tenantId,
     tenantVersion: library.catalog.tenantVersion
   };
+}
+
+function validateReportMetrics(value, caseCount) {
+  exactRecord(value, [
+    "caseCount", "classification", "questions"
+  ], "report_metrics");
+  exactRecord(value.classification, [
+    "accuracy", "correct", "scorable"
+  ], "report_classification_metrics");
+  exactRecord(value.questions, [
+    "falseNegative", "falsePositive", "precision", "recall", "truePositive"
+  ], "report_question_metrics");
+  const counts = [
+    value.caseCount,
+    value.classification.correct,
+    value.classification.scorable,
+    value.questions.falseNegative,
+    value.questions.falsePositive,
+    value.questions.truePositive
+  ];
+  const ratios = [
+    value.classification.accuracy,
+    value.questions.precision,
+    value.questions.recall
+  ];
+  if (value.caseCount !== caseCount
+    || counts.some((count) => !Number.isSafeInteger(count) || count < 0)
+    || value.classification.correct > value.classification.scorable
+    || value.classification.scorable > caseCount
+    || ratios.some((ratio) => ratio !== null
+      && (!Number.isFinite(ratio) || ratio < 0 || ratio > 1))) {
+    throw new Error("opencounter_guidance_validation_report_metrics_invalid");
+  }
+}
+
+function privateDirectory(value, label) {
+  if (typeof value !== "string" || !path.isAbsolute(value)) {
+    throw new Error(`opencounter_guidance_validation_${label}_invalid`);
+  }
+  mkdirSync(value, { mode: 0o700, recursive: true });
+  const metadata = lstatSync(value);
+  if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
+    throw new Error(`opencounter_guidance_validation_${label}_invalid`);
+  }
+  chmodSync(value, 0o700);
+  return path.resolve(value);
+}
+
+function resolveValidationReportPath(directory, reportSha256) {
+  if (typeof reportSha256 !== "string"
+    || !/^[0-9a-f]{64}$/.test(reportSha256)) {
+    throw new Error("opencounter_guidance_validation_report_digest_invalid");
+  }
+  return path.join(directory, `${reportSha256}.json`);
+}
+
+function readGuidanceValidationReport(reportPath, expectedSha256) {
+  const metadata = lstatSync(reportPath);
+  if (!metadata.isFile() || metadata.isSymbolicLink()
+    || metadata.size < 1
+    || metadata.size > MAXIMUM_VALIDATION_REPORT_BYTES) {
+    throw new Error("opencounter_guidance_validation_report_file_invalid");
+  }
+  chmodSync(reportPath, 0o600);
+  let value;
+  try {
+    value = JSON.parse(readFileSync(reportPath, "utf8"));
+  } catch {
+    throw new Error("opencounter_guidance_validation_report_json_invalid");
+  }
+  const report = validateGuidanceValidationReport(value);
+  if (report.reportSha256 !== expectedSha256) {
+    throw new Error("opencounter_guidance_validation_report_digest_mismatch");
+  }
+  return report;
 }
 
 function ratio(numerator, denominator) {

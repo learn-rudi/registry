@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
+import { mkdtempSync, rmSync, statSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { test } from "node:test";
 
 import {
   buildGuidanceValidationReport,
-  compareMasterQuestionnaireVersions
+  compareMasterQuestionnaireVersions,
+  createGuidanceValidationReportStore
 } from "../src/guidance-validation-maintenance.mjs";
 import { evaluatePreliminaryGuidance } from
   "../src/preliminary-guidance.mjs";
@@ -52,6 +56,20 @@ test("scores predicted questions and outcomes against exact read-back cases", ()
   assert.equal(report.metrics.questions.recall, 0.666667);
   assert.equal(report.cases[1].novelObservedQuestionIds.length, 1);
   assert.match(report.reportId, /^ocvr_[0-9a-f]{64}$/);
+
+  const stateDirectory = mkdtempSync(path.join(
+    tmpdir(),
+    "opencounter-guidance-validation-"
+  ));
+  try {
+    const store = createGuidanceValidationReportStore({ stateDirectory });
+    const write = store.write(report);
+    assert.equal(statSync(write.path).mode & 0o777, 0o600);
+    assert.equal(statSync(path.dirname(write.path)).mode & 0o777, 0o700);
+    assert.deepEqual(store.read(report.reportSha256), report);
+  } finally {
+    rmSync(stateDirectory, { recursive: true });
+  }
 });
 
 test("turns exact questionnaire evidence drift into a bounded rerun set", () => {

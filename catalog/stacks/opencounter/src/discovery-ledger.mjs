@@ -48,6 +48,26 @@ export function leaseDiscoveryJob(ledgerValue, {
   return completeDiscoveryLease(lease, job);
 }
 
+export function leaseDiscoveryStartJob(ledgerValue, {
+  jobId,
+  leasedAt,
+  workerId
+}) {
+  const lease = prepareDiscoveryLease(ledgerValue, { leasedAt, workerId });
+  if (lease.atCapacity) return { job: null, ledger: lease.ledger };
+  const job = findJob(lease.ledger, jobId);
+  if (lease.ledger.schemaVersion !== 8
+    || job.status !== "queued"
+    || job.nextAction?.kind !== "start"
+    || job.providerReference !== null
+    || job.pendingMutation !== null
+    || job.evidence.some(({ eventType }) =>
+      eventType === "start_dispatch_started")) {
+    throw new Error("opencounter_discovery_start_job_affinity_invalid");
+  }
+  return completeDiscoveryLease(lease, job);
+}
+
 function prepareDiscoveryLease(ledgerValue, { leasedAt, workerId }) {
   const ledger = cloneLedger(ledgerValue);
   const timestamp = isoTimestamp(leasedAt, "leasedAt");
@@ -358,7 +378,7 @@ export function recordDiscoveryVerification(ledgerValue, {
   const job = findJob(ledger, jobId);
   if (ledger.schemaVersion < 2
     || job.providerReference === null
-    || (job.status !== "needs_input" && job.status !== "completed")) {
+    || !["completed", "indeterminate", "needs_input"].includes(job.status)) {
     throw new Error("opencounter_discovery_verification_state_invalid");
   }
   const normalized = validateDiscoveryResult(result, timestamp);
@@ -366,24 +386,15 @@ export function recordDiscoveryVerification(ledgerValue, {
     throw new Error("opencounter_discovery_verification_reference_mismatch");
   }
   let verification;
-  if (job.status === "needs_input") {
-    if (normalized.status !== "needs_requester_input"
-      || job.checkpoint === null) {
-      throw new Error("opencounter_discovery_verification_checkpoint_mismatch");
-    }
-    if (normalized.checkpoint.checkpointSha256 !== job.checkpoint.checkpointSha256
-      && !reconcileExpandedCheckpoint(job, normalized, timestamp, validatorId)) {
-      throw new Error("opencounter_discovery_verification_checkpoint_mismatch");
-    }
-    verification = {
-      checkpointSha256: normalized.checkpoint.checkpointSha256,
-      observedAt: timestamp,
-      providerReference: normalized.providerReference,
-      status: normalized.status
-    };
-  } else {
+  if (job.status === "indeterminate") {
     if (normalized.status !== "completed"
-      || sha256(normalized.terminalResult) !== sha256(job.terminalResult)) {
+      || !promoteVerifiedIndeterminateScenarioCompletion({
+        ledger,
+        job,
+        normalized,
+        timestamp,
+        validatorId
+      })) {
       throw new Error("opencounter_discovery_verification_result_mismatch");
     }
     verification = {
@@ -392,6 +403,63 @@ export function recordDiscoveryVerification(ledgerValue, {
       resultSha256: sha256(normalized.terminalResult),
       status: normalized.status
     };
+  } else if (job.status === "needs_input") {
+    if (normalized.status === "completed"
+      && promoteVerifiedScenarioCompletion({
+        ledger,
+        job,
+        normalized,
+        timestamp,
+        validatorId
+      })) {
+      verification = {
+        observedAt: timestamp,
+        providerReference: normalized.providerReference,
+        resultSha256: sha256(normalized.terminalResult),
+        status: normalized.status
+      };
+    } else if (normalized.status !== "needs_requester_input"
+      || job.checkpoint === null) {
+      throw new Error("opencounter_discovery_verification_checkpoint_mismatch");
+    } else {
+      if (normalized.checkpoint.checkpointSha256
+          !== job.checkpoint.checkpointSha256
+        && !reconcileExpandedCheckpoint(job, normalized, timestamp, validatorId)) {
+        throw new Error("opencounter_discovery_verification_checkpoint_mismatch");
+      }
+      verification = {
+        checkpointSha256: normalized.checkpoint.checkpointSha256,
+        observedAt: timestamp,
+        providerReference: normalized.providerReference,
+        status: normalized.status
+      };
+    }
+  } else {
+    if (normalized.status === "needs_requester_input"
+      && reopenAdaptiveCheckpointAfterUnverifiedCompletion({
+        job,
+        ledger,
+        normalized,
+        timestamp,
+        validatorId
+      })) {
+      verification = {
+        checkpointSha256: normalized.checkpoint.checkpointSha256,
+        observedAt: timestamp,
+        providerReference: normalized.providerReference,
+        status: normalized.status
+      };
+    } else if (normalized.status !== "completed"
+      || sha256(normalized.terminalResult) !== sha256(job.terminalResult)) {
+      throw new Error("opencounter_discovery_verification_result_mismatch");
+    } else {
+      verification = {
+        observedAt: timestamp,
+        providerReference: normalized.providerReference,
+        resultSha256: sha256(normalized.terminalResult),
+        status: normalized.status
+      };
+    }
   }
   job.verification = verification;
   job.updatedAt = timestamp;
@@ -403,6 +471,370 @@ export function recordDiscoveryVerification(ledgerValue, {
   });
   ledger.updatedAt = timestamp;
   return ledger;
+}
+
+export function recordDiscoveryAuthorizedCompletionVerification(ledgerValue, {
+  actorId,
+  answerBasis,
+  answers,
+  checkpointSha256,
+  jobId,
+  observedAt,
+  result
+}) {
+  const ledger = cloneLedger(ledgerValue);
+  const timestamp = isoTimestamp(observedAt, "observedAt");
+  assertMonotonicTimestamp(ledger, timestamp);
+  const validatorId = id(actorId, "actorId");
+  const job = findJob(ledger, jobId);
+  const observation = job.observations.at(-1);
+  const unknownFailure = [...job.errors].reverse().find(
+    ({ effect }) => effect === "unknown"
+  );
+  if (ledger.schemaVersion !== 8
+    || ledger.campaign?.campaignId
+      !== "cincinnati-adaptive-zoning-question-discovery-v1"
+    || job.status !== "needs_input"
+    || job.providerReference === null
+    || job.checkpoint === null
+    || job.checkpoint.checkpointSha256 !== checkpointSha256
+    || job.verification?.status !== "needs_requester_input"
+    || job.verification.checkpointSha256 !== checkpointSha256
+    || job.nextAction !== null
+    || job.pendingMutation !== null
+    || job.lease !== null
+    || observation?.operation !== "reconcile"
+    || observation.resultStatus !== "needs_requester_input"
+    || observation.checkpointSha256 !== checkpointSha256
+    || unknownFailure === undefined
+    || !job.evidence.some(({ eventType }) =>
+      eventType === "continue_dispatch_started")) {
+    throw new Error(
+      "opencounter_discovery_authorized_completion_state_invalid"
+    );
+  }
+  const normalized = validateDiscoveryResult(result, timestamp);
+  if (normalized.providerReference !== job.providerReference
+    || normalized.status !== "completed") {
+    throw new Error(
+      "opencounter_discovery_authorized_completion_result_invalid"
+    );
+  }
+  const normalizedAnswers = validateCheckpointAnswers(
+    answers,
+    job.checkpoint.questions
+  );
+  validateAnswerBasis(
+    answerBasis,
+    job,
+    normalizedAnswers,
+    timestamp,
+    ledger.campaign.authorization.previewSha256
+  );
+  job.observations.push({
+    answers: structuredClone(normalizedAnswers),
+    checkpointSha256: null,
+    observedAt: timestamp,
+    operation: "readback",
+    questions: [],
+    resultStatus: "completed"
+  });
+  recordSuppliedAnswers(
+    job,
+    structuredClone(normalizedAnswers),
+    checkpointSha256,
+    timestamp
+  );
+  job.checkpoint = null;
+  job.status = "completed";
+  job.terminalResult = normalized.terminalResult;
+  job.verification = {
+    observedAt: timestamp,
+    providerReference: normalized.providerReference,
+    resultSha256: sha256(normalized.terminalResult),
+    status: normalized.status
+  };
+  job.updatedAt = timestamp;
+  job.evidence.push({
+    actorId: validatorId,
+    eventId: randomUUID(),
+    eventType: "provider_read_back_authorized_completion_verified",
+    observedAt: timestamp
+  });
+  ledger.updatedAt = timestamp;
+  return ledger;
+}
+
+function reopenAdaptiveCheckpointAfterUnverifiedCompletion({
+  job,
+  ledger,
+  normalized,
+  timestamp,
+  validatorId
+}) {
+  const checkpointSha256 = normalized.checkpoint.checkpointSha256;
+  const terminalObservation = job.observations.at(-1);
+  const priorCheckpoint = job.observations.findLast((observation) =>
+    observation.checkpointSha256 === checkpointSha256
+    && observation.resultStatus === "needs_requester_input"
+    && Array.isArray(observation.questions)
+    && observation.questions.length > 0);
+  const unknownFailure = [...job.errors].reverse().find(
+    ({ effect }) => effect === "unknown"
+  );
+  if (ledger.schemaVersion !== 8
+    || ledger.campaign?.campaignId
+      !== "cincinnati-adaptive-zoning-question-discovery-v1"
+    || job.verification?.status !== "needs_requester_input"
+    || job.verification.checkpointSha256 !== checkpointSha256
+    || job.checkpoint !== null
+    || job.nextAction !== null
+    || job.pendingMutation !== null
+    || job.lease !== null
+    || terminalObservation?.operation !== "reconcile"
+    || terminalObservation.resultStatus !== "completed"
+    || priorCheckpoint === undefined
+    || unknownFailure === undefined) {
+    return false;
+  }
+  const invalidatedAt = terminalObservation.observedAt;
+  terminalObservation.answers = [];
+  terminalObservation.resultStatus = "indeterminate";
+  job.answerPath = job.answerPath.filter(
+    ({ observedAt }) => observedAt !== invalidatedAt
+  );
+  job.answersSupplied = job.answersSupplied.filter(
+    ({ observedAt }) => observedAt !== invalidatedAt
+  );
+  job.checkpoint = structuredClone(normalized.checkpoint);
+  job.observations.push({
+    answers: [],
+    checkpointSha256,
+    observedAt: timestamp,
+    operation: "readback",
+    questions: structuredClone(normalized.checkpoint.questions),
+    resultStatus: "needs_requester_input"
+  });
+  job.status = "needs_input";
+  job.terminalResult = null;
+  job.updatedAt = timestamp;
+  job.evidence.push({
+    actorId: validatorId,
+    eventId: randomUUID(),
+    eventType: "provider_read_back_unverified_completion_reverted",
+    observedAt: timestamp
+  });
+  return true;
+}
+
+function promoteVerifiedIndeterminateScenarioCompletion({
+  ledger,
+  job,
+  normalized,
+  timestamp,
+  validatorId
+}) {
+  const uncertainAction = job.nextAction?.uncertainAction;
+  const input = uncertainAction?.input;
+  const observation = job.observations.at(-1);
+  const checkpointObservation = job.observations.findLast((candidate) =>
+    candidate.checkpointSha256 === input?.checkpointSha256
+    && candidate.resultStatus === "needs_requester_input"
+    && Array.isArray(candidate.questions)
+    && candidate.questions.length > 0);
+  const unknownFailure = [...job.errors].reverse().find(
+    ({ effect }) => effect === "unknown"
+  );
+  const isScenarioCampaign = [6, 7].includes(ledger.schemaVersion)
+    && job.scenario?.scenarioVersion >= 2;
+  const isAdaptiveCampaign = ledger.schemaVersion === 8
+    && ledger.campaign?.campaignId
+      === "cincinnati-adaptive-zoning-question-discovery-v1"
+    && job.scenario?.scenarioVersion === 1;
+  if ((!isScenarioCampaign && !isAdaptiveCampaign)
+    || job.verification?.status !== "needs_requester_input"
+    || job.checkpoint !== null
+    || job.lease !== null
+    || job.pendingMutation?.kind !== "reconcile"
+    || job.nextAction?.kind !== "reconcile"
+    || uncertainAction?.kind !== "continue"
+    || input?.providerReference !== job.providerReference
+    || input.checkpointSha256 !== job.verification.checkpointSha256
+    || checkpointObservation === undefined
+    || observation?.operation !== "reconcile"
+    || observation.resultStatus !== "indeterminate"
+    || unknownFailure === undefined) {
+    return false;
+  }
+  const normalizedAnswers = validateCheckpointAnswers(
+    input.answers,
+    checkpointObservation.questions
+  );
+  const previewSha256 = ledger.schemaVersion >= 7
+    ? ledger.campaign.authorization.previewSha256
+    : job.scenario.previewSha256;
+  const validationJob = structuredClone(job);
+  validationJob.checkpoint = {
+    checkpointSha256: input.checkpointSha256,
+    questions: structuredClone(checkpointObservation.questions)
+  };
+  validateAnswerBasis(
+    uncertainAction.answerBasis,
+    validationJob,
+    normalizedAnswers,
+    timestamp,
+    previewSha256
+  );
+  job.observations.push({
+    answers: structuredClone(normalizedAnswers),
+    checkpointSha256: null,
+    observedAt: timestamp,
+    operation: "readback",
+    questions: [],
+    resultStatus: "completed"
+  });
+  recordSuppliedAnswers(
+    job,
+    structuredClone(normalizedAnswers),
+    input.checkpointSha256,
+    timestamp
+  );
+  job.nextAction = null;
+  job.pendingMutation = null;
+  job.status = "completed";
+  job.terminalResult = normalized.terminalResult;
+  job.updatedAt = timestamp;
+  job.evidence.push({
+    actorId: validatorId,
+    eventId: randomUUID(),
+    eventType: "provider_read_back_indeterminate_reconciliation_completed",
+    observedAt: timestamp
+  });
+  return true;
+}
+
+function promoteVerifiedScenarioCompletion({
+  ledger,
+  job,
+  normalized,
+  timestamp,
+  validatorId
+}) {
+  const observation = job.observations.at(-1);
+  const uncertainFailure = [...job.errors].reverse().find(
+    ({ effect }) => effect === "unknown"
+  );
+  const staleCheckpointFailure = [...job.errors].reverse().find(
+    ({ code, effect }) =>
+      code === "opencounter_checkpoint_state_missing" && effect === "none"
+  );
+  const isScenarioCampaign = [6, 7].includes(ledger.schemaVersion)
+    && job.scenario?.scenarioVersion >= 2;
+  const isAdaptiveLocationContinuation = ledger.schemaVersion === 8
+    && ledger.campaign?.campaignId
+      === "cincinnati-adaptive-zoning-question-discovery-v1"
+    && job.scenario?.scenarioVersion === 1
+    && job.checkpoint?.questions.length === 1
+    && job.checkpoint.questions[0].id === "opencounter-address";
+  if ((!isScenarioCampaign && !isAdaptiveLocationContinuation)
+    || job.verification?.status !== "needs_requester_input"
+    || job.checkpoint === null
+    || job.nextAction !== null
+    || job.pendingMutation !== null
+    || observation?.operation !== "reconcile"
+    || observation.resultStatus !== "needs_requester_input"
+    || observation.checkpointSha256 !== job.checkpoint.checkpointSha256
+    || (uncertainFailure === undefined && staleCheckpointFailure === undefined)
+    || !job.evidence.some(({ eventType }) =>
+      eventType === "continue_dispatch_started")) {
+    return false;
+  }
+  const answers = job.checkpoint.questions.map((question) => {
+    if (question.id === "opencounter-address") {
+      const matchingOptions = question.options.filter(({ value }) =>
+        addressesReferToSameCincinnatiStreet(
+          value,
+          job.locationFixture.address
+        ));
+      if (matchingOptions.length !== 1) {
+        throw new Error("opencounter_discovery_advanced_address_invalid");
+      }
+      return { questionId: question.id, value: matchingOptions[0].value };
+    }
+    if (isAdaptiveLocationContinuation) {
+      throw new Error("opencounter_discovery_adaptive_location_question_invalid");
+    }
+    const rule = job.scenario.answerRules.find(
+      ({ questionId }) => questionId === question.id
+    );
+    if (rule === undefined) {
+      throw new Error("opencounter_discovery_advanced_scenario_answer_missing");
+    }
+    return { questionId: question.id, value: rule.value };
+  });
+  const normalizedAnswers = validateCheckpointAnswers(
+    answers,
+    job.checkpoint.questions
+  );
+  const hasLocationAnswer = normalizedAnswers.some(
+    ({ questionId }) => questionId === "opencounter-address"
+  );
+  const previewSha256 = ledger.schemaVersion >= 7
+    ? ledger.campaign.authorization.previewSha256
+    : job.scenario.previewSha256;
+  validateAnswerBasis(
+    isAdaptiveLocationContinuation
+      ? {
+          kind: "location_fixture",
+          locationId: job.locationFixture.locationId,
+          locationVersion: job.locationFixture.locationVersion
+        }
+      : hasLocationAnswer
+      ? {
+          kind: "scenario_and_location_fixtures",
+          locationId: job.locationFixture.locationId,
+          locationVersion: job.locationFixture.locationVersion,
+          previewSha256,
+          scenarioId: job.scenario.scenarioId,
+          scenarioVersion: job.scenario.scenarioVersion
+        }
+      : {
+          kind: "scenario_fixture",
+          previewSha256,
+          scenarioId: job.scenario.scenarioId,
+          scenarioVersion: job.scenario.scenarioVersion
+        },
+    job,
+    normalizedAnswers,
+    timestamp,
+    previewSha256
+  );
+  const checkpointSha256 = job.checkpoint.checkpointSha256;
+  job.observations.push({
+    answers: structuredClone(normalizedAnswers),
+    checkpointSha256: null,
+    observedAt: timestamp,
+    operation: "readback",
+    questions: [],
+    resultStatus: "completed"
+  });
+  recordSuppliedAnswers(
+    job,
+    structuredClone(normalizedAnswers),
+    checkpointSha256,
+    timestamp
+  );
+  job.checkpoint = null;
+  job.status = "completed";
+  job.terminalResult = normalized.terminalResult;
+  job.updatedAt = timestamp;
+  job.evidence.push({
+    actorId: validatorId,
+    eventId: randomUUID(),
+    eventType: "provider_read_back_advanced_to_completed",
+    observedAt: timestamp
+  });
+  return true;
 }
 
 function reconcileExpandedCheckpoint(job, normalized, timestamp, validatorId) {
@@ -515,7 +947,10 @@ export function queueDiscoveryAnswers(ledgerValue, {
     answerBasis,
     job,
     normalizedAnswers,
-    timestamp
+    timestamp,
+    ledger.schemaVersion === 7
+      ? ledger.campaign.authorization.previewSha256
+      : job.scenario.previewSha256
   );
   job.nextAction = {
     answerBasis: normalizedBasis,
@@ -616,7 +1051,8 @@ export function queueDiscoveryReconciliationRetry(ledgerValue, {
     && !hasModuleReloadRetry;
   const isStartReconciliation = job.pendingMutation?.kind === "reconcile_start"
     && job.nextAction?.kind === "reconcile_start";
-  const isContinuationReconciliation = isHtmlAccessRetry
+  const isContinuationReconciliation =
+    (isHtmlAccessRetry || isModuleReloadRetry)
     && job.pendingMutation?.kind === "reconcile"
     && job.nextAction?.kind === "reconcile"
     && job.nextAction.uncertainAction?.kind === "continue"
@@ -725,7 +1161,22 @@ export function recordDiscoveryFailure(ledgerValue, {
   if (normalizedFailure.effect === "unknown" && job.pendingMutation === null) {
     throw new Error("opencounter_discovery_failure_state_invalid");
   }
+  const staleAdaptiveCheckpoint =
+    normalizedFailure.code === "opencounter_checkpoint_state_missing"
+    && normalizedFailure.effect === "none"
+    && ledger.schemaVersion === 8
+    && ledger.campaign?.campaignId
+      === "cincinnati-adaptive-zoning-question-discovery-v1"
+    && job.providerReference !== null
+    && job.pendingMutation?.kind === "continue"
+    && job.nextAction?.kind === "continue"
+    && job.checkpoint?.checkpointSha256
+      === job.nextAction.input.checkpointSha256
+    && job.verification?.status === "needs_requester_input"
+    && job.verification.checkpointSha256
+      === job.nextAction.input.checkpointSha256;
   const status = normalizedFailure.effect === "unknown"
+      || staleAdaptiveCheckpoint
     ? "indeterminate"
     : "failed";
   job.errors.push({
