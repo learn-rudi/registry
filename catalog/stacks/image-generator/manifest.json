@@ -2,7 +2,7 @@
   "id": "stack:image-generator",
   "kind": "stack",
   "name": "Image Generator",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "delivery": "remote",
   "install": {
     "source": "catalog",

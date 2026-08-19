@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import os
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,13 +22,96 @@ JOB_ID = "7f86d4ed-d706-448a-9dfa-56be726abad4"
 PNG_BYTES = b"\x89PNG\r\n\x1a\nmidjourney-test-image"
 
 
+class MidjourneyBrowserTest(unittest.TestCase):
+    def test_login_browser_command_uses_dedicated_sandboxed_profile(self) -> None:
+        from midjourney_browser import login_browser_command
+
+        profile_dir = Path("/tmp/rudi midjourney/profile")
+        executable = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+        command = login_browser_command(executable, profile_dir)
+
+        self.assertEqual(command[0], executable)
+        self.assertIn(f"--user-data-dir={profile_dir}", command)
+        self.assertEqual(command[-1], "https://www.midjourney.com/imagine")
+        self.assertNotIn("--no-sandbox", command)
+        self.assertNotIn("--disable-setuid-sandbox", command)
+        self.assertNotIn("--enable-automation", command)
+
+    def test_login_launches_detached_browser_without_waiting_for_authentication(self) -> None:
+        from midjourney_browser import PlaywrightMidjourneyDriver
+
+        with tempfile.TemporaryDirectory(prefix="midjourney-browser-test-") as temporary:
+            root = Path(temporary)
+            driver = PlaywrightMidjourneyDriver(
+                state_root=root / "state",
+                output_root=root / "outputs",
+            )
+            process = Mock()
+            executable = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+
+            with (
+                patch.object(driver, "_require_online"),
+                patch(
+                    "midjourney_browser._find_chromium_executable",
+                    return_value=executable,
+                ),
+                patch("midjourney_browser.subprocess.Popen", return_value=process) as launch,
+            ):
+                result = asyncio.run(driver.login())
+
+        self.assertEqual(result, {"browser_ready": True, "browser_started": True})
+        command = launch.call_args.args[0]
+        self.assertEqual(command[0], executable)
+        self.assertEqual(command[-1], "https://www.midjourney.com/imagine")
+        self.assertTrue(launch.call_args.kwargs["start_new_session"])
+        self.assertTrue(launch.call_args.kwargs["close_fds"])
+
+    def test_automated_browser_context_enables_chromium_sandbox(self) -> None:
+        from midjourney_browser import persistent_context_launch_options
+
+        executable = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+        options = persistent_context_launch_options(
+            show_browser=True,
+            executable=executable,
+        )
+
+        self.assertFalse(options["headless"])
+        self.assertTrue(options["chromium_sandbox"])
+        self.assertEqual(options["locale"], "en-US")
+        self.assertEqual(options["executable_path"], executable)
+
+    @unittest.skipIf(os.name == "nt", "Chrome SingletonLock is a POSIX symlink")
+    def test_login_reuses_active_dedicated_profile_browser(self) -> None:
+        from midjourney_browser import PlaywrightMidjourneyDriver
+
+        with tempfile.TemporaryDirectory(prefix="midjourney-browser-test-") as temporary:
+            root = Path(temporary)
+            driver = PlaywrightMidjourneyDriver(
+                state_root=root / "state",
+                output_root=root / "outputs",
+            )
+            driver.profile_dir.mkdir(parents=True)
+            (driver.profile_dir / "SingletonLock").symlink_to(
+                f"test-host-{os.getpid()}"
+            )
+
+            with (
+                patch.object(driver, "_require_online"),
+                patch("midjourney_browser.subprocess.Popen") as launch,
+            ):
+                result = asyncio.run(driver.login())
+
+        self.assertEqual(result, {"browser_ready": True, "browser_started": False})
+        launch.assert_not_called()
+
+
 class FakeMidjourneyDriver:
     def __init__(self, output_root: Path) -> None:
         self.output_root = output_root
         self.generate_calls: list[dict] = []
         self.export_calls: list[dict] = []
         self.session_calls = 0
-        self.login_calls: list[int] = []
+        self.login_calls = 0
         self.generate_error: Exception | None = None
         self.export_error: Exception | None = None
 
@@ -34,9 +119,9 @@ class FakeMidjourneyDriver:
         self.session_calls += 1
         return {"authenticated": True}
 
-    async def login(self, *, timeout_seconds: int) -> dict:
-        self.login_calls.append(timeout_seconds)
-        return {"authenticated": True}
+    async def login(self) -> dict:
+        self.login_calls += 1
+        return {"browser_ready": True, "browser_started": True}
 
     async def generate(
         self,
@@ -116,7 +201,7 @@ class MidjourneyServiceTest(unittest.TestCase):
     def tearDown(self) -> None:
         self.temporary.cleanup()
 
-    def test_session_status_and_login_use_exact_input_contracts(self) -> None:
+    def test_login_returns_pending_authentication_when_browser_is_ready(self) -> None:
         status = asyncio.run(self.service.session_status({}))
         login = asyncio.run(self.service.login({"timeout_seconds": 90}))
 
@@ -124,7 +209,11 @@ class MidjourneyServiceTest(unittest.TestCase):
         self.assertTrue(status["authenticated"])
         self.assertEqual(status["profile_mode"], "dedicated")
         self.assertEqual(login["provider"], "midjourney")
-        self.assertEqual(self.driver.login_calls, [90])
+        self.assertTrue(login["browser_ready"])
+        self.assertTrue(login["browser_started"])
+        self.assertFalse(login["authenticated"])
+        self.assertTrue(login["login_required"])
+        self.assertEqual(self.driver.login_calls, 1)
 
         with self.assertRaises(ToolError) as raised:
             asyncio.run(self.service.session_status({"unexpected": True}))

@@ -62,6 +62,12 @@ installed stack exposes a different tool set than this catalog version, report
 the mismatch and use the live tool schema only when doing so remains within the
 user's request.
 
+Midjourney login is a two-step workflow. Call `midjourney_login` to open the
+dedicated visible browser; the call returns when the browser is ready and does
+not claim authentication. Tell the user to complete sign-in and close that
+window, then call `midjourney_session_status`. Do not generate or export until
+status returns `authenticated: true`.
+
 ## Failure Behavior
 
 - Missing stack or tools: stop and ask the user to install, index, or integrate

@@ -43,6 +43,19 @@ class ImageGeneratorMcpStdioTest(unittest.IsolatedAsyncioTestCase):
                     midjourney_generate = next(
                         tool for tool in tools.tools if tool.name == "midjourney_generate"
                     )
+                    midjourney_login = next(
+                        tool for tool in tools.tools if tool.name == "midjourney_login"
+                    )
+                    self.assertIn(
+                        "return as soon as the browser is ready",
+                        midjourney_login.description,
+                    )
+                    self.assertIn(
+                        "backward compatibility",
+                        midjourney_login.inputSchema["properties"]["timeout_seconds"][
+                            "description"
+                        ],
+                    )
                     properties = midjourney_generate.inputSchema["properties"]
                     self.assertTrue(
                         {

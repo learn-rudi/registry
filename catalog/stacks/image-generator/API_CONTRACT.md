@@ -1,6 +1,6 @@
 # Image Generator API Contract
 
-Version: `0.4.0`
+Version: `0.5.0`
 
 This stack exposes MCP tools for agent-facing content image generation. The
 contract is intentionally provider-portable: callers choose a provider and a
@@ -311,14 +311,37 @@ The tool opens the Create page read-only and returns:
 Request:
 
 ```json
+{}
+```
+
+This starts a visible, sandboxed Chromium process with the dedicated RUDI
+profile and returns as soon as the browser is ready. The MCP request does not
+remain open while the user completes Midjourney's login flow. The user signs in
+inside that browser, closes the window, and then calls
+`midjourney_session_status` to verify the persisted session.
+
+`timeout_seconds` remains an accepted 30-600 integer for backward compatibility
+but no longer bounds human sign-in. The stack never reads or returns
+credentials, process IDs, debugging endpoints, cookies, or browser storage.
+
+Launch response:
+
+```json
 {
-  "timeout_seconds": 300
+  "ok": true,
+  "provider": "midjourney",
+  "authenticated": false,
+  "login_required": true,
+  "browser_ready": true,
+  "browser_started": true,
+  "profile_mode": "dedicated",
+  "next_step": "Complete sign-in in the visible dedicated browser, close the window, then call midjourney_session_status."
 }
 ```
 
-This opens visible Chromium and waits for the user to complete Midjourney's own
-login flow. `timeout_seconds` is 30-600 and defaults to 180. The stack never
-reads or returns credentials. Success returns `authenticated: true`.
+`browser_started` is false when the same stack process already has an active
+manual login browser. Authentication is deliberately reported as pending until
+the separate status call proves that the Create prompt is available.
 
 ### `midjourney_generate`
 
@@ -441,6 +464,9 @@ artifact shape used by `midjourney_generate`.
 
 - Login, UI drift, dependency, timeout, and download failures are structured;
   browser exceptions and session data are not exposed.
+- Manual login is a two-step operation: launch returns immediately, the user
+  signs in and closes the dedicated browser, then session status verifies the
+  persisted session. Callers must not treat browser launch as authentication.
 - Generation retry is safe only with the same `request_id`, submitted prompt,
   reference roles, weights, and file content digests. Different input returns
   `idempotency_conflict`.
