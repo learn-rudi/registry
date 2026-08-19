@@ -44,6 +44,14 @@ API keys and other arbitrary parent variables. Claude runs with no tools in
 safe plan mode. Codex runs ephemeral, read-only, with user config and rules
 ignored.
 
+Local Claude and Codex discovery is compatibility-based rather than tied to one
+exact patch release. Claude Code versions from `2.1.219` through the `2.1.x`
+line and Codex CLI versions from `0.145.0` through `0.149.x` are eligible. At
+startup, the stack chooses the first eligible executable that still advertises
+every guarded option used by its tool-free or read-only invocation. Versions
+outside those reviewed ranges, or binaries missing a guarded option, fail
+closed until the policy is reviewed again.
+
 ## State and ownership
 
 Portable source lives in this Registry package. Local runtime state lives under

@@ -31,10 +31,11 @@ test("Codex uses an isolated read-only ephemeral stdin invocation", async () => 
     });
     const host = new CodexCliAgentHost({
       binaryPath: "/usr/local/bin/codex",
+      capabilitiesVerified: true,
       codexHome: runtimeDirectory,
       executor,
       runtimeDirectory,
-      runtimeRef: "codex-cli 0.145.0",
+      runtimeRef: "codex-cli 0.147.0",
     });
     const prompt = "synthetic prompt supplied only over stdin";
 
@@ -55,7 +56,7 @@ test("Codex uses an isolated read-only ephemeral stdin invocation", async () => 
       ok: true,
       outputText: '{"status":"ok"}',
       providerSessionRef: "thread-safe-ref",
-      runtimeRef: "codex-cli 0.145.0",
+      runtimeRef: "codex-cli 0.147.0",
       usage: { inputTokens: 9, outputTokens: 4, totalTokens: 13 },
     });
     const execution = executor.requests[0];
@@ -79,11 +80,52 @@ test("Codex uses an isolated read-only ephemeral stdin invocation", async () => 
   }
 });
 
+test("Codex rejects an in-range runtime without verified guarded capabilities", async () => {
+  const runtimeDirectory = mkdtempSync(join(tmpdir(), "rudi-codex-capability-test-"));
+  try {
+    const executor = new RecordingProcessExecutor(successfulCodexResult());
+    const host = new CodexCliAgentHost({
+      binaryPath: "/usr/local/bin/codex",
+      capabilitiesVerified: false,
+      codexHome: runtimeDirectory,
+      executor,
+      runtimeDirectory,
+      runtimeRef: "codex-cli 0.147.0",
+    });
+    const result = await host.invoke(validCodexRequest("missing-option"));
+    assert.equal(result.failureClass, "configuration_invalid");
+    assert.equal(executor.requests.length, 0);
+  } finally {
+    rmSync(runtimeDirectory, { force: true, recursive: true });
+  }
+});
+
+test("Codex rejects the unreviewed upper version boundary before execution", async () => {
+  const runtimeDirectory = mkdtempSync(join(tmpdir(), "rudi-codex-version-test-"));
+  try {
+    const executor = new RecordingProcessExecutor(successfulCodexResult());
+    const host = new CodexCliAgentHost({
+      binaryPath: "/usr/local/bin/codex",
+      capabilitiesVerified: true,
+      codexHome: runtimeDirectory,
+      executor,
+      runtimeDirectory,
+      runtimeRef: "codex-cli 0.150.0",
+    });
+    const result = await host.invoke(validCodexRequest("future-version"));
+    assert.equal(result.failureClass, "configuration_invalid");
+    assert.equal(executor.requests.length, 0);
+  } finally {
+    rmSync(runtimeDirectory, { force: true, recursive: true });
+  }
+});
+
 test("Codex blocks retry when process termination is unconfirmed", async () => {
   const runtimeDirectory = mkdtempSync(join(tmpdir(), "rudi-codex-stop-test-"));
   try {
     const host = new CodexCliAgentHost({
       binaryPath: "/usr/local/bin/codex",
+      capabilitiesVerified: true,
       codexHome: runtimeDirectory,
       executor: new RecordingProcessExecutor({
         cancelled: true,
@@ -126,4 +168,36 @@ class RecordingProcessExecutor {
     this.requests.push(request);
     return this.result;
   }
+}
+
+function validCodexRequest(suffix) {
+  return {
+    adapterId: "codex-cli-v1",
+    contentClass: "synthetic_nonprivate",
+    correlationId: `request:codex-${suffix}`,
+    invocationId: `invocation:codex-${suffix}`,
+    outputFormat: "json",
+    prompt: "synthetic prompt",
+    timeoutMs: 25_000,
+  };
+}
+
+function successfulCodexResult() {
+  return {
+    cancelled: false,
+    exitCode: 0,
+    startError: false,
+    stderrHadOutput: false,
+    stdout: [
+      JSON.stringify({ type: "thread.started", thread_id: "thread-safe-ref" }),
+      JSON.stringify({
+        item: { id: "item-1", text: '{"status":"ok"}', type: "agent_message" },
+        type: "item.completed",
+      }),
+      JSON.stringify({ type: "turn.completed", usage: {} }),
+    ].join("\n"),
+    stdoutOverflow: false,
+    terminationConfirmed: true,
+    timedOut: false,
+  };
 }
