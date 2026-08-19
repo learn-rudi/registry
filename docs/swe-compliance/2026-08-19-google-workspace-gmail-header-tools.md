@@ -36,6 +36,8 @@
 - Green command: `npm run test:gmail` from `catalog/stacks/google-workspace`.
 - Refactor constraints: no unrelated cleanup; retain the header-only boundary and existing account selection behavior.
 - Regression checks: Google Workspace build plus Registry tests.
+- CI architecture red: GitHub Actions run `32220961749` failed `npm run stacks:verify -- --changed-from f60b46e... --prepare` because `src/index.ts` grew from its 3,262-line debt baseline to 3,312 lines.
+- Architecture green: Gmail search tool definitions and both search handlers moved into `src/gmail-search.ts`; the entrypoint is now 3,228 lines. The unchanged stack-verification command passed, including build and a live stdio surface check for 69 tools.
 
 ## Phase 5: Full Verification
 
@@ -47,6 +49,7 @@
 - Security checks: high-confidence credential scan, generated-junk review, package-size review, JSON parse, and scoped `git diff --check`.
 - Live smoke: not required for publication because it would require mailbox credentials; the deterministic mocked contract proves the privacy boundary.
 - Evidence: the unchanged Gmail command passed; the stack TypeScript build passed; Registry `npm test` passed 245/245; 152/152 packages validated; index sync/check and Registry build passed; package dry-run produced 958 files at 2,243,751 bytes packed; both repository-policy and package-scoped debt scans reported zero findings; JSON, whitespace, and high-confidence credential scans passed; production dependency audit reported zero vulnerabilities.
+- Post-refactor evidence: Gmail test/build, changed-stack architecture verification, Registry 245-test suite, 152-package validation, Registry build, package-scoped debt scan, and whitespace checks all passed unchanged after the CI fix.
 - Generated-artifact note: package verification created only `catalog/stacks/google-workspace/{dist,node_modules}`. The hygiene dry run identified exactly those two reproducible targets. They are ignored and excluded from the commit. A second clean worktree at commit `1178d74` passed `npm run catalog:clean:check` with zero targets. That clean checkout also exposed the required post-commit canonical `generatedAt` refresh, which was applied before publication.
 
 ## Phase 6: Docs, Contracts, And Closure
