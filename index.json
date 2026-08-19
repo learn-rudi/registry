@@ -1,14 +1,14 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-08-19T06:21:02.000Z",
+  "generatedAt": "2026-08-19T06:24:27.000Z",
   "stats": {
-    "total": 152,
+    "total": 153,
     "byKind": {
       "agent": 5,
       "binary": 27,
       "runtime": 5,
-      "skill": 67,
+      "skill": 68,
       "stack": 48
     }
   },
@@ -2151,6 +2151,20 @@
           "operator",
           "macos-automation"
         ]
+      }
+    },
+    "skill:map-change-impact": {
+      "id": "skill:map-change-impact",
+      "kind": "skill",
+      "name": "map-change-impact",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/map-change-impact"
+      },
+      "meta": {
+        "description": "Map the exact repository paths a proposed feature, fix, refactor, migration, or remediation will affect and print the ordered actions, risks, dependencies, and verification needed before implementation. Use when a user asks what file paths will be impacted, what needs to change, what has already been implemented, what remains to do, what the blast radius is, or wants an implementation-ready change map without starting the edits."
       }
     },
     "skill:ms-office": {
