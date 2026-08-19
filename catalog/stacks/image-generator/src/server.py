@@ -181,9 +181,10 @@ async def list_tools() -> list[types.Tool]:
         types.Tool(
             name="midjourney_login",
             description=(
-                "Open the dedicated RUDI Chromium profile so the user can sign in "
-                "to Midjourney. Credentials are entered by the user in the browser "
-                "and are never returned through MCP."
+                "Open the dedicated RUDI Chromium profile and return as soon as the "
+                "browser is ready. The user completes Midjourney sign-in, closes the "
+                "window, and then calls midjourney_session_status. Credentials are "
+                "entered by the user and are never returned through MCP."
             ),
             inputSchema={
                 "type": "object",
@@ -194,6 +195,11 @@ async def list_tools() -> list[types.Tool]:
                         "minimum": MIN_TIMEOUT_SECONDS,
                         "maximum": MAX_TIMEOUT_SECONDS,
                         "default": DEFAULT_TIMEOUT_SECONDS,
+                        "description": (
+                            "Accepted for backward compatibility and validated, but "
+                            "does not bound human sign-in because this tool returns "
+                            "as soon as the browser is ready."
+                        ),
                     },
                 },
             },

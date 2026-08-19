@@ -25,7 +25,7 @@ from midjourney_references import reference_inputs, request_fingerprint
 class MidjourneyDriver(Protocol):
     async def session_status(self) -> dict[str, Any]: ...
 
-    async def login(self, *, timeout_seconds: int) -> dict[str, Any]: ...
+    async def login(self) -> dict[str, Any]: ...
 
     async def generate(
         self,
@@ -76,15 +76,23 @@ class MidjourneyService:
 
     async def login(self, args: dict[str, Any]) -> dict[str, Any]:
         exact_keys(args, {"timeout_seconds"})
-        timeout_seconds = bounded_timeout(args.get("timeout_seconds"))
-        result = await self.driver.login(timeout_seconds=timeout_seconds)
-        authenticated = result.get("authenticated") if isinstance(result, dict) else None
-        if authenticated is not True:
-            raise ToolError("authentication_required", "Midjourney login did not complete.")
+        bounded_timeout(args.get("timeout_seconds"))
+        result = await self.driver.login()
+        browser_ready = result.get("browser_ready") if isinstance(result, dict) else None
+        browser_started = result.get("browser_started") if isinstance(result, dict) else None
+        if browser_ready is not True or not isinstance(browser_started, bool):
+            raise ToolError("internal_error", "Midjourney driver returned an invalid login state.")
         return ok_result(
             provider="midjourney",
-            authenticated=True,
+            authenticated=False,
+            login_required=True,
+            browser_ready=True,
+            browser_started=browser_started,
             profile_mode="dedicated",
+            next_step=(
+                "Complete sign-in in the visible dedicated browser, close the "
+                "window, then call midjourney_session_status."
+            ),
         )
 
     async def generate(self, args: dict[str, Any]) -> dict[str, Any]:

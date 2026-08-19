@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 import stat
+import subprocess
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -116,12 +117,64 @@ def _find_chromium_executable() -> str | None:
     return None
 
 
+def login_browser_command(executable: str, profile_dir: Path) -> tuple[str, ...]:
+    """Build the fixed, visible login command for the dedicated profile."""
+    return (
+        executable,
+        f"--user-data-dir={profile_dir}",
+        "--no-first-run",
+        "--no-default-browser-check",
+        "--new-window",
+        MIDJOURNEY_IMAGINE_URL,
+    )
+
+
+def persistent_context_launch_options(
+    *,
+    show_browser: bool,
+    executable: str | None,
+) -> dict[str, Any]:
+    options: dict[str, Any] = {
+        "headless": not show_browser,
+        "locale": "en-US",
+        "chromium_sandbox": True,
+    }
+    if executable:
+        options["executable_path"] = executable
+    return options
+
+
+def profile_browser_is_running(profile_dir: Path) -> bool:
+    socket_path = profile_dir / "SingletonSocket"
+    if socket_path.is_symlink() and socket_path.exists():
+        return True
+
+    lock_path = profile_dir / "SingletonLock"
+    if not lock_path.is_symlink():
+        return False
+    try:
+        target = os.readlink(lock_path)
+    except OSError:
+        return False
+    match = re.search(r"-([1-9][0-9]*)$", target)
+    if match is None:
+        return False
+    try:
+        os.kill(int(match.group(1)), 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
 class PlaywrightMidjourneyDriver:
     def __init__(self, *, state_root: Path, output_root: Path) -> None:
         self.state_root = state_root.expanduser().resolve()
         self.profile_dir = self.state_root / "profile"
         self.lock = _ProfileLock(self.state_root / "profile.lock")
         self.output_root = output_root.expanduser().resolve()
+        self._login_process: subprocess.Popen[bytes] | None = None
 
     def _require_online(self) -> None:
         if os.environ.get("RUDI_VERIFY_OFFLINE") == "1":
@@ -150,6 +203,17 @@ class PlaywrightMidjourneyDriver:
         playwright = None
         context = None
         try:
+            if profile_browser_is_running(self.profile_dir):
+                raise ToolError(
+                    "browser_busy",
+                    "The dedicated Midjourney sign-in browser is still open.",
+                    {
+                        "remediation": (
+                            "Finish sign-in, close the dedicated browser window, "
+                            "then retry."
+                        )
+                    },
+                )
             try:
                 playwright = await async_playwright().start()
             except Exception as exc:
@@ -158,12 +222,10 @@ class PlaywrightMidjourneyDriver:
                     "Could not initialize Playwright for Midjourney automation.",
                 ) from exc
             executable = _find_chromium_executable()
-            launch_options: dict[str, Any] = {
-                "headless": not show_browser,
-                "locale": "en-US",
-            }
-            if executable:
-                launch_options["executable_path"] = executable
+            launch_options = persistent_context_launch_options(
+                show_browser=show_browser,
+                executable=executable,
+            )
             try:
                 context = await playwright.chromium.launch_persistent_context(
                     str(self.profile_dir),
@@ -247,21 +309,52 @@ class PlaywrightMidjourneyDriver:
             await self._navigate_imagine(page, 60)
             return {"authenticated": await self._authenticated(page)}
 
-    async def login(self, *, timeout_seconds: int) -> dict[str, Any]:
-        async with self._page(show_browser=True) as page:
-            await self._navigate_imagine(page, timeout_seconds)
-            await page.bring_to_front()
-            deadline = time.monotonic() + timeout_seconds
-            while time.monotonic() < deadline:
-                state = await self._authentication_state(page)
-                if state is True:
-                    return {"authenticated": True}
-                await asyncio.sleep(0.5)
-            raise ToolError(
-                "authentication_required",
-                "Midjourney login timed out before the Create prompt became available.",
-                {"timeout_seconds": timeout_seconds},
-            )
+    async def login(self) -> dict[str, Any]:
+        self._require_online()
+        self.profile_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            self.profile_dir.chmod(0o700)
+        except OSError:
+            pass
+        self.lock.acquire()
+        try:
+            if (
+                profile_browser_is_running(self.profile_dir)
+                or (
+                    self._login_process is not None
+                    and self._login_process.poll() is None
+                )
+            ):
+                return {"browser_ready": True, "browser_started": False}
+            executable = _find_chromium_executable()
+            if executable is None:
+                raise ToolError(
+                    "browser_dependency",
+                    "Could not find Chromium for the Midjourney login browser.",
+                    {
+                        "remediation": (
+                            "Install Chromium or configure MIDJOURNEY_CHROMIUM_EXECUTABLE, "
+                            "then retry."
+                        )
+                    },
+                )
+            try:
+                self._login_process = subprocess.Popen(
+                    login_browser_command(executable, self.profile_dir),
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    close_fds=True,
+                    start_new_session=True,
+                )
+            except OSError as exc:
+                raise ToolError(
+                    "browser_dependency",
+                    "Could not open Chromium for Midjourney sign-in.",
+                ) from exc
+            return {"browser_ready": True, "browser_started": True}
+        finally:
+            self.lock.release()
 
     async def _job_ids(self, page: Any) -> set[str]:
         hrefs = await page.locator('a[href^="/jobs/"]').evaluate_all(

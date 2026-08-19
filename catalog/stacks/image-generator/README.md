@@ -93,9 +93,11 @@ after `GEMINI_API_KEY` is available to the router environment.
 
 Midjourney uses a dedicated profile under local RUDI state. It does not inspect,
 copy, or reuse the user's normal Chrome cookies. Sign in once by calling
-`midjourney_login`; the tool opens a visible browser and waits while the user
-completes Midjourney's own login flow. Credentials and browser storage are never
-returned through MCP or written to the registry.
+`midjourney_login`; the tool opens a visible, sandboxed browser and returns as
+soon as that browser is ready. Complete Midjourney's login flow in the window,
+close it, then call `midjourney_session_status` to verify the persisted session.
+Credentials, process details, and browser storage are never returned through
+MCP or written to the registry.
 
 Every generation requires a `request_id`. A successful replay returns the same
 job and artifact metadata without submitting another paid job. If a browser
@@ -245,10 +247,12 @@ making provider API calls.
 Sign in to Midjourney's dedicated browser profile:
 
 ```json
-{
-  "timeout_seconds": 300
-}
+{}
 ```
+
+The launch response means the browser is ready, not that authentication is
+complete. Sign in, close the dedicated window, and call
+`midjourney_session_status` before generation.
 
 Generate and export all four Midjourney variations:
 
@@ -297,11 +301,14 @@ Export two variations from an existing job:
   a new request ID only after confirming the intended file.
 - `provider_error` or `timeout`: the stack reached the provider but the provider
   call failed or exceeded 120 seconds.
-- `authentication_required`: call `midjourney_login` and complete sign-in in
-  the dedicated browser window.
+- `authentication_required`: call `midjourney_login`; after it returns,
+  complete sign-in, close the dedicated browser, and call
+  `midjourney_session_status`.
 - `browser_dependency`: install Chromium or a Playwright-managed Chromium.
 - `browser_challenge`: retry in visible mode and complete Midjourney's browser
   verification challenge if prompted; visible mode is the default.
+- `browser_busy`: finish or close the dedicated manual login browser before a
+  status, generation, or export call uses the same profile.
 - `ui_drift`: Midjourney changed a required control; do not retry blindly.
 - `idempotency_conflict`: reuse the request ID only with the exact same prompt
   and aspect-ratio request.
