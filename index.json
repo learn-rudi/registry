@@ -1,7 +1,7 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-08-09T00:56:47.000Z",
+  "generatedAt": "2026-08-19T21:49:32.000Z",
   "stats": {
     "total": 152,
     "byKind": {
@@ -3274,7 +3274,7 @@
       "id": "stack:agent-hosts",
       "kind": "stack",
       "name": "Agent Hosts",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",

@@ -9,15 +9,38 @@ import {
   validateProviderInvocation,
   validateProviderOutput,
 } from "./provider-contract.js";
+import {
+  helpTextExposesRequiredOptions,
+  isRuntimeVersionInRange,
+} from "./runtime-compatibility.js";
 
 const MAX_CLI_STDOUT_BYTES = 2_097_152;
-export const SUPPORTED_CLAUDE_RUNTIME_REF = "2.1.219 (Claude Code)";
+const CLAUDE_RUNTIME_PATTERN = /^(\d+)\.(\d+)\.(\d+) \(Claude Code\)$/u;
+const MINIMUM_CLAUDE_VERSION = Object.freeze([2, 1, 219]);
+const MAXIMUM_CLAUDE_VERSION_EXCLUSIVE = Object.freeze([2, 2, 0]);
+const REQUIRED_CLAUDE_OPTIONS = Object.freeze([
+  "--print",
+  "--input-format",
+  "--output-format",
+  "--verbose",
+  "--no-session-persistence",
+  "--safe-mode",
+  "--disable-slash-commands",
+  "--no-chrome",
+  "--strict-mcp-config",
+  "--tools",
+  "--permission-mode",
+]);
+export const MINIMUM_CLAUDE_RUNTIME_REF = "2.1.219 (Claude Code)";
+export const MAXIMUM_CLAUDE_RUNTIME_REF_EXCLUSIVE = "2.2.0 (Claude Code)";
+export const SUPPORTED_CLAUDE_RUNTIME_REF = MINIMUM_CLAUDE_RUNTIME_REF;
 
 export class ClaudeCodeAgentHost {
   adapterId = "claude-code-cli-v1";
 
   constructor({
     binaryPath,
+    capabilitiesVerified = false,
     executor = new NodeProcessExecutor(),
     modelRef = "claude-host-default",
     runtimeDirectory,
@@ -25,6 +48,7 @@ export class ClaudeCodeAgentHost {
   }) {
     if (!isAbsolute(binaryPath)) throw new Error("Claude binary path must be absolute.");
     this.binaryPath = binaryPath;
+    this.capabilitiesVerified = capabilitiesVerified === true;
     this.executor = executor;
     this.modelRef = requireMetadata(modelRef, "Claude model reference");
     this.runtimeDirectory = requireEmptyDirectory(runtimeDirectory, "Claude");
@@ -46,12 +70,20 @@ export class ClaudeCodeAgentHost {
       return { adapterId: this.adapterId, status: "unavailable" };
     }
     const observedRuntimeRef = safeMetadata(version.stdout, this.runtimeRef);
-    if (observedRuntimeRef !== SUPPORTED_CLAUDE_RUNTIME_REF) {
+    if (!isCompatibleClaudeRuntime(observedRuntimeRef)) {
       return {
         adapterId: this.adapterId,
         runtimeRef: observedRuntimeRef,
         status: "unavailable",
-        summary: "Installed Claude runtime is outside the V0 allowlist.",
+        summary: "Installed Claude runtime is outside the supported V0 version range.",
+      };
+    }
+    if (!this.capabilitiesVerified) {
+      return {
+        adapterId: this.adapterId,
+        runtimeRef: observedRuntimeRef,
+        status: "unavailable",
+        summary: "Installed Claude runtime lacks required guarded CLI options.",
       };
     }
     const auth = await this.executor.execute({
@@ -72,17 +104,22 @@ export class ClaudeCodeAgentHost {
   }
 
   async invoke(request, options = {}) {
-    if (this.runtimeRef !== SUPPORTED_CLAUDE_RUNTIME_REF) {
-      return failure(this.adapterId, request?.invocationId,
-        "configuration_invalid", false,
-        "Installed Claude runtime is outside the V0 allowlist.");
-    }
     try {
       validateProviderInvocation(request, this.adapterId);
     } catch {
       return failure(this.adapterId, request?.invocationId,
         "configuration_invalid", false,
         "Agent Host invocation did not satisfy the contract.");
+    }
+    if (!isCompatibleClaudeRuntime(this.runtimeRef)) {
+      return failure(this.adapterId, request.invocationId,
+        "configuration_invalid", false,
+        "Installed Claude runtime is outside the supported V0 version range.");
+    }
+    if (!this.capabilitiesVerified) {
+      return failure(this.adapterId, request.invocationId,
+        "configuration_invalid", false,
+        "Installed Claude runtime lacks required guarded CLI options.");
     }
     const execution = await this.executor.execute({
       arguments: [
@@ -138,6 +175,19 @@ export class ClaudeCodeAgentHost {
       );
     }
   }
+}
+
+export function isCompatibleClaudeRuntime(runtimeRef) {
+  return isRuntimeVersionInRange(
+    runtimeRef,
+    CLAUDE_RUNTIME_PATTERN,
+    MINIMUM_CLAUDE_VERSION,
+    MAXIMUM_CLAUDE_VERSION_EXCLUSIVE
+  );
+}
+
+export function claudeHelpExposesGuardedCapabilities(helpText) {
+  return helpTextExposesRequiredOptions(helpText, REQUIRED_CLAUDE_OPTIONS);
 }
 
 class ClaudeProviderRejectedError extends Error {}
@@ -222,11 +272,37 @@ function mapProcessFailure(adapterId, invocationId, execution) {
     return failure(adapterId, invocationId, "invalid_output", false,
       "Claude process output exceeded its byte limit.");
   }
+  if (isClaudeRateLimited(execution.stdout)) {
+    return failure(adapterId, invocationId, "rate_limited", true,
+      "Claude subscription rate limit was reached.");
+  }
   if (execution.exitCode !== 0) {
     return failure(adapterId, invocationId, "process_failed", false,
       "Claude exited without a successful result.");
   }
   return undefined;
+}
+
+function isClaudeRateLimited(stdout) {
+  if (typeof stdout !== "string") return false;
+  for (const line of stdout.split(/\r?\n/u)) {
+    if (line.trim().length === 0) continue;
+    try {
+      const event = JSON.parse(line);
+      if (!isRecord(event)) continue;
+      if (
+        event.type === "rate_limit_event"
+        && isRecord(event.rate_limit_info)
+        && event.rate_limit_info.status === "rejected"
+      ) {
+        return true;
+      }
+      if (event.api_error_status === 429 || event.error === "rate_limit") return true;
+    } catch {
+      // Ignore non-JSON process output and continue to the generic failure mapping.
+    }
+  }
+  return false;
 }
 
 function isClaudeAuthenticated(execution) {
