@@ -45,10 +45,11 @@
 
 ## Execution Record
 
-- Status: publication verification in progress on 2026-08-19 ET.
+- Status: publication verification complete on 2026-08-19 ET.
 - Red: the recovered focused test ran against the unchanged base and failed all three cases because `SKILL.md` and `agents/openai.yaml` were absent.
 - Green: the unchanged focused test passed 3/3 after recovery.
 - Skill validation: bundled `quick_validate.py` passed; YAML parsed; the 45-character short description is within the 25–64 character UI range; the default prompt explicitly invokes `$map-change-impact`.
 - Skill-creator review: the self-contained two-file skill structure is sufficient; automatic invocation remains at its default; no placeholder directories, duplicated README, scripts, references, assets, or explicit-only policy were added.
 - Registry gates: 29 test files / 248 tests passed; 153/153 packages validated; build/compile passed with 68 skills and 48 stacks.
 - Portability/safety: no absolute host path, personal default, risky filename, or secret-pattern addition was found. The scoped JS debt scan reported zero findings.
+- Index/hygiene/package: generated index checks passed at 153 packages (68 skills); catalog hygiene found zero removable targets; production audit reported zero vulnerabilities; package dry-run contained both skill files. The Registry test source is intentionally excluded from the published npm archive.
