@@ -56,6 +56,166 @@ async function promoteContact(client, overrides) {
   return result.rows[0]?.result;
 }
 
+async function classifyContactAddress(client, overrides) {
+  const result = await client.query(
+    `
+    select classify_contact_address(
+      p_email := $1::text,
+      p_category := $2::text,
+      p_source := $3::text,
+      p_reason := $4::text,
+      p_created_by_actor_id := $5::uuid
+    ) as result
+    `,
+    [
+      overrides.email,
+      overrides.category,
+      overrides.source ?? "manual",
+      overrides.reason ?? null,
+      overrides.created_by_actor_id ?? null,
+    ]
+  );
+  return result.rows[0]?.result;
+}
+
+test(
+  "address classification is mailbox-scoped, idempotent, and manually overridable",
+  { skip: liveSkipReason },
+  async () => {
+    const pool = new Pool(createPoolConfig(DATABASE_URL));
+    const client = await pool.connect();
+    const runId = randomUUID();
+    const domain = `classification-${runId}.example.invalid`;
+    const personEmail = `evan@${domain}`;
+    const sharedEmail = `info@${domain}`;
+    const sourcePrefix = `live-classification-test-${runId}`;
+
+    try {
+      await client.query("begin");
+      try {
+        const inserted = await recordObservations(client, [
+          {
+            source: "gmail",
+            source_id: `${sourcePrefix}-1`,
+            observed_at: "2026-08-03T09:00:00-04:00",
+            address_role: "from",
+            address: personEmail,
+            display_name: "Evan Example",
+          },
+          {
+            source: "gmail",
+            source_id: `${sourcePrefix}-2`,
+            observed_at: "2026-08-03T10:00:00-04:00",
+            address_role: "from",
+            address: sharedEmail,
+            display_name: "Example Organization",
+          },
+        ]);
+        assert.equal(inserted.inserted, 2);
+
+        const suggestions = await client.query(
+          `
+          select email, suggested_address_category, address_category, classification_source
+          from v_contact_candidates
+          where email = any($1::text[])
+          order by email
+          `,
+          [[personEmail, sharedEmail]]
+        );
+        assert.deepEqual(suggestions.rows, [
+          {
+            email: personEmail,
+            suggested_address_category: "unknown",
+            address_category: "unknown",
+            classification_source: "heuristic",
+          },
+          {
+            email: sharedEmail,
+            suggested_address_category: "shared_inbox",
+            address_category: "shared_inbox",
+            classification_source: "heuristic",
+          },
+        ]);
+
+        const created = await classifyContactAddress(client, {
+          email: sharedEmail.toUpperCase(),
+          category: "notification",
+          reason: "Synthetic manual override",
+        });
+        assert.equal(created.status, "created");
+        assert.equal(created.category, "notification");
+
+        const replay = await classifyContactAddress(client, {
+          email: sharedEmail,
+          category: "notification",
+          reason: "Synthetic manual override",
+        });
+        assert.equal(replay.status, "unchanged");
+        assert.equal(replay.classification_id, created.classification_id);
+
+        const updated = await classifyContactAddress(client, {
+          email: sharedEmail,
+          category: "shared_inbox",
+          reason: "Corrected after review",
+        });
+        assert.equal(updated.status, "updated");
+        assert.equal(updated.previous_category, "notification");
+        assert.equal(updated.category, "shared_inbox");
+
+        const effective = await client.query(
+          `
+          select email, suggested_address_category, address_category, classification_source
+          from v_contact_candidates
+          where email = any($1::text[])
+          order by email
+          `,
+          [[personEmail, sharedEmail]]
+        );
+        assert.deepEqual(effective.rows, [
+          {
+            email: personEmail,
+            suggested_address_category: "unknown",
+            address_category: "unknown",
+            classification_source: "heuristic",
+          },
+          {
+            email: sharedEmail,
+            suggested_address_category: "shared_inbox",
+            address_category: "shared_inbox",
+            classification_source: "manual",
+          },
+        ]);
+
+        await client.query("savepoint invalid_category");
+        await assert.rejects(
+          () =>
+            classifyContactAddress(client, {
+              email: sharedEmail,
+              category: "company",
+            }),
+          /invalid category/
+        );
+        await client.query("rollback to savepoint invalid_category");
+      } finally {
+        await client.query("rollback");
+      }
+
+      const residue = await client.query(
+        `
+        select
+          (select count(*)::integer from discovery_observations where source_id like $1::text) as observations,
+          (select count(*)::integer from contact_address_classifications where email = $2::text) as classifications
+        `,
+        [`${sourcePrefix}%`, sharedEmail]
+      );
+      assert.deepEqual(residue.rows[0], { observations: 0, classifications: 0 });
+    } finally {
+      client.release();
+      await pool.end();
+    }
+  }
+);
+
 test(
   "contact discovery preview and promotion are deduplicated, atomic, and rollback-safe",
   { skip: liveSkipReason },

@@ -66,6 +66,10 @@ unavailable.
 - `rudi_crm_get_engagement_context`
 - `rudi_crm_get_latest_correspondence`
 
+`rudi_crm_list_people` returns the primary address in `email` and every stored
+address in `emails`, including each address's `work`, `personal`, `alias`,
+`former`, or `unknown` label, primary flag, source, and verification timestamp.
+
 Use only tools that are actually available in the active RUDI router. If the
 installed stack exposes a different tool set than this catalog version, report
 the mismatch and use the live tool schema only when doing so remains within the

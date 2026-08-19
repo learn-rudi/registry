@@ -4,6 +4,7 @@ import { createPoolConfig } from "../dist/contract.js";
 import {
   ActivityFeedInput,
   AttentionBriefInput,
+  ClassifyContactAddressInput,
   ListPeopleInput,
   ListContactCandidatesInput,
   PromoteContactInput,
@@ -111,14 +112,17 @@ test("contact discovery schemas enforce bounded preview and explicit promotion",
   const preview = ListContactCandidatesInput.parse({
     min_observations: 3,
     since: "2025-08-04T00:00:00-04:00",
+    address_category: "shared_inbox",
   });
 
   assert.equal(preview.limit, 25);
   assert.equal(preview.offset, 0);
   assert.equal(preview.include_existing, false);
+  assert.equal(preview.address_category, "shared_inbox");
   assert.throws(() => ListContactCandidatesInput.parse({ min_observations: 0 }));
   assert.throws(() => ListContactCandidatesInput.parse({ limit: 101 }));
   assert.throws(() => ListContactCandidatesInput.parse({ since: "2025-08-04" }));
+  assert.throws(() => ListContactCandidatesInput.parse({ address_category: "company" }));
 
   const promotion = PromoteContactInput.parse({
     email: "  Contact@Example.COM ",
@@ -139,6 +143,30 @@ test("contact discovery schemas enforce bounded preview and explicit promotion",
       email: "contact@example.com",
       full_name: "Example Contact",
       existing_person_id: "not-a-uuid",
+    })
+  );
+
+  const classification = ClassifyContactAddressInput.parse({
+    email: "  Info@Cintrifuse.COM ",
+    category: "shared_inbox",
+    source: "manual",
+    reason: "Organization-level inbox confirmed by the user.",
+  });
+  assert.equal(classification.email, "info@cintrifuse.com");
+  assert.equal(classification.category, "shared_inbox");
+  assert.equal(classification.source, "manual");
+  assert.throws(() =>
+    ClassifyContactAddressInput.parse({
+      email: "not-an-email",
+      category: "person",
+      source: "manual",
+    })
+  );
+  assert.throws(() =>
+    ClassifyContactAddressInput.parse({
+      email: "info@cintrifuse.com",
+      category: "company",
+      source: "manual",
     })
   );
 });

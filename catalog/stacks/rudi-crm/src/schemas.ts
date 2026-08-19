@@ -7,6 +7,15 @@ const optionalText = z.string().trim().optional();
 const optionalUuid = z.string().uuid().optional();
 const normalizedEmail = z.string().trim().toLowerCase().email().max(320);
 
+export const ContactAddressCategory = z.enum([
+  "person",
+  "shared_inbox",
+  "marketing",
+  "notification",
+  "automated",
+  "unknown",
+]);
+
 export const MAX_RESULT_LIMIT = 100;
 export const DEFAULT_RESULT_LIMIT = 25;
 
@@ -85,6 +94,15 @@ export const ListContactCandidatesInput = PagedInput.extend({
   min_observations: z.number().int().min(1).max(10_000).default(2),
   since: isoDateTime.optional(),
   include_existing: z.boolean().default(false),
+  address_category: ContactAddressCategory.optional(),
+});
+
+export const ClassifyContactAddressInput = z.object({
+  email: normalizedEmail,
+  category: ContactAddressCategory,
+  source: z.enum(["manual", "agent", "rule", "import"]).default("manual"),
+  reason: z.string().trim().max(1_000).optional(),
+  created_by_actor_id: optionalUuid,
 });
 
 export const PromoteContactInput = z.object({
@@ -227,6 +245,7 @@ export type LimitArgs = z.infer<typeof LimitInput>;
 export type PagedArgs = z.infer<typeof PagedInput>;
 export type ListPeopleArgs = z.infer<typeof ListPeopleInput>;
 export type ListContactCandidatesArgs = z.infer<typeof ListContactCandidatesInput>;
+export type ClassifyContactAddressArgs = z.infer<typeof ClassifyContactAddressInput>;
 export type PromoteContactArgs = z.infer<typeof PromoteContactInput>;
 export type ListOrganizationsArgs = z.infer<typeof ListOrganizationsInput>;
 export type ListEngagementsArgs = z.infer<typeof ListEngagementsInput>;
