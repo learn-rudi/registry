@@ -39,7 +39,7 @@
 
 ## Phase 5: Full Verification
 
-- Status: Complete, subject to a clean-worktree catalog-hygiene rerun after commit.
+- Status: Complete.
 - Targeted tests: Google Workspace Gmail contract test and build.
 - Full suite: Registry `npm test`.
 - Build and catalog gates: `npm run validate`, `npm run indexes:sync`, `npm run indexes:check`, `npm run catalog:clean:check`, `npm run build`, and `npm pack --dry-run --json`.
@@ -47,11 +47,11 @@
 - Security checks: high-confidence credential scan, generated-junk review, package-size review, JSON parse, and scoped `git diff --check`.
 - Live smoke: not required for publication because it would require mailbox credentials; the deterministic mocked contract proves the privacy boundary.
 - Evidence: the unchanged Gmail command passed; the stack TypeScript build passed; Registry `npm test` passed 245/245; 152/152 packages validated; index sync/check and Registry build passed; package dry-run produced 958 files at 2,243,751 bytes packed; both repository-policy and package-scoped debt scans reported zero findings; JSON, whitespace, and high-confidence credential scans passed; production dependency audit reported zero vulnerabilities.
-- Generated-artifact note: package verification created only `catalog/stacks/google-workspace/{dist,node_modules}`. The hygiene dry run identified exactly those two reproducible targets. They are ignored and excluded from the commit; the blocking hygiene gate will be rerun in a second clean worktree rather than deleting them without user confirmation.
+- Generated-artifact note: package verification created only `catalog/stacks/google-workspace/{dist,node_modules}`. The hygiene dry run identified exactly those two reproducible targets. They are ignored and excluded from the commit. A second clean worktree at commit `1178d74` passed `npm run catalog:clean:check` with zero targets. That clean checkout also exposed the required post-commit canonical `generatedAt` refresh, which was applied before publication.
 
 ## Phase 6: Docs, Contracts, And Closure
 
-- Status: Ready for commit and clean-worktree verification.
+- Status: Complete.
 - Documentation: README and manifest list the header-only contact-discovery surface.
 - Accepted debt: no authenticated mailbox smoke in this follower acceptance pass.
 - Definition of Done: issue #25 has a focused PR; red lineage is recorded; focused/full tests and Registry gates pass; index is regenerated; no unrelated Registry paths are included.
