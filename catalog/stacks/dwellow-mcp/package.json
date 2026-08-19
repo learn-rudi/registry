@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "verify": "node --check src/index.js && node --test test/*.test.mjs"
+    "verify": "node --check src/index.js && node --test test/*.test.mjs",
+    "verify:live": "DWELLOW_MCP_LIVE_TEST=1 node --test test/live-contract.test.mjs"
   }
 }
