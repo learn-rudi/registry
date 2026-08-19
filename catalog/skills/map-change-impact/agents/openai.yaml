@@ -1,0 +1,4 @@
+interface:
+  display_name: "Map Change Impact"
+  short_description: "Map impacted files, actions, risks, and proof"
+  default_prompt: "Use $map-change-impact to print the file paths this change affects and the ordered actions required."
