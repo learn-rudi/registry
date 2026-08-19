@@ -7,6 +7,11 @@ import { test } from "node:test";
 import { createDiscoveryCampaignController } from "../src/discovery-controller.mjs";
 import { createGuidanceCheckpointSha256 } from "../src/core.mjs";
 import { createDiscoveryLedgerStore } from "../src/discovery-ledger-store.mjs";
+import {
+  createSiteIssueJournalStore,
+  deriveSiteIssueEventsFromLedgers
+} from
+  "../src/discovery-site-issue-journal.mjs";
 import { createCatalogDiscoveryLedger } from "../src/discovery-plan.mjs";
 import { loadZoningCatalog } from "../src/zoning-catalog.mjs";
 
@@ -719,4 +724,125 @@ test("contains an unusable provider response as indeterminate without replacemen
   } finally {
     rmSync(stateDirectory, { force: true, recursive: true });
   }
+});
+
+test("records a classified dispatch failure in the configured issue journal", async () => {
+  const stateDirectory = mkdtempSync(path.join(
+    tmpdir(),
+    "opencounter-controller-issue-journal-"
+  ));
+  try {
+    const store = createDiscoveryLedgerStore({ stateDirectory });
+    const issueStore = createSiteIssueJournalStore({ stateDirectory });
+    const ledger = createTestLedger();
+    await store.initialize(ledger);
+    const timestamps = [
+      "2026-08-03T12:31:00.000Z",
+      "2026-08-03T12:31:01.000Z",
+      "2026-08-03T12:31:02.000Z"
+    ];
+    const controller = createDiscoveryCampaignController({
+      issueStore,
+      now: () => timestamps.shift(),
+      store
+    });
+    const request = await controller.prepareNextDispatch({
+      ledgerId: ledger.ledgerId,
+      workerId: "runner-1"
+    });
+
+    const outcome = await controller.recordUnknownDispatchFailure({
+      failureCode: "provider_request_timeout",
+      ledgerId: ledger.ledgerId,
+      request
+    });
+    const event = issueStore.readEvent(outcome.issueEventSha256).artifact;
+    const persisted = await store.read(ledger.ledgerId);
+    const derived = deriveSiteIssueEventsFromLedgers({ ledgers: [persisted] })
+      .filter(({ jobId }) => jobId === request.jobId);
+
+    assert.equal(outcome.jobId, request.jobId);
+    assert.equal(outcome.status, "indeterminate");
+    assert.equal(outcome.issueEventId, event.eventId);
+    assert.equal(event.code, "provider_request_timeout");
+    assert.equal(event.category,
+      "provider_dispatch_timeout_or_unusable");
+    assert.equal(event.stage, "start");
+    assert.match(event.sourceEventKey,
+      /^ledger-error:0:[0-9a-f]{64}$/);
+    assert.equal(event.effect, "unknown");
+    assert.deepEqual(derived, [event]);
+  } finally {
+    rmSync(stateDirectory, { force: true, recursive: true });
+  }
+});
+
+test("closes the persisted issue when terminal verification recovers the job", async () => {
+  const ledgerId = `ocdl_${"1".repeat(64)}`;
+  const jobId = `ocdj_${"2".repeat(64)}`;
+  const providerReference = "opencounter:project:3000403";
+  const error = {
+    code: "provider_request_timeout",
+    effect: "unknown",
+    message: "This raw provider-facing message must not enter the issue event.",
+    observedAt: "2026-08-03T12:31:02.000Z"
+  };
+  const job = {
+    checkpoint: null,
+    errors: [error],
+    evidence: [{
+      eventId: "dispatch-start-event",
+      eventType: "continue_dispatch_started",
+      observedAt: "2026-08-03T12:31:01.000Z"
+    }],
+    jobId,
+    observations: [],
+    providerReference,
+    status: "completed",
+    verification: {
+      observedAt: "2026-08-03T12:31:03.000Z",
+      providerReference,
+      status: "completed"
+    }
+  };
+  const ledger = { jobs: [job], ledgerId };
+  const written = [];
+  const noop = async () => ledger;
+  const store = {
+    beginDispatch: noop,
+    leaseJob: noop,
+    leaseNext: noop,
+    queueLocationAnswer: noop,
+    read: async () => ledger,
+    recordFailure: noop,
+    recordLateResult: noop,
+    recordResult: noop,
+    recordVerification: async () => ledger
+  };
+  const controller = createDiscoveryCampaignController({
+    issueStore: { writeEvent: (event) => written.push(event) },
+    now: () => "2026-08-03T12:31:03.000Z",
+    store
+  });
+
+  const outcome = await controller.recordVerificationResult({
+    actorId: "validator",
+    ledgerId,
+    request: {
+      args: { providerReference },
+      jobId,
+      tool: "opencounter_get_guidance_result"
+    },
+    result: {}
+  });
+
+  assert.deepEqual(outcome, {
+    automaticallyQueuedLocation: false,
+    jobId,
+    status: "completed"
+  });
+  assert.deepEqual(written.map(({ eventType }) => eventType),
+    ["detected", "recovered"]);
+  assert.equal(written[0].incidentId, written[1].incidentId);
+  assert.equal(JSON.stringify(written).includes("raw provider-facing"), false);
 });

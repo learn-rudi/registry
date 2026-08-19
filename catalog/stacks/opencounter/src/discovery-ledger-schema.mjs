@@ -21,6 +21,18 @@ import {
   createScenarioBranchLedgerSha256
 } from "./discovery-scenario-wave.mjs";
 import {
+  createAdaptiveZoningCampaignJobSha256,
+  createAdaptiveZoningCampaignLedgerSha256
+} from "./discovery-adaptive-campaign.mjs";
+import {
+  createScenarioWaveAdjudicationSha256,
+  createScenarioWaveDriftPacketSha256,
+  createScenarioWaveFenceSha256,
+  createScenarioWaveResidualJobSha256,
+  createScenarioWaveResidualLedgerSha256,
+  createScenarioWaveResidualValueSha256
+} from "./discovery-scenario-residual-identity.mjs";
+import {
   boundedObject, exactKeys, record, text, timestamp, validateBoundedArray,
   validateEvidenceRecords, validateProviderReference, validateQuestionGraph
 } from "./discovery-schema-helpers.mjs";
@@ -44,9 +56,25 @@ const REQUIRED_BASE_ZONING_CODES = [
 const STATUSES = new Set([
   "active", "completed", "failed", "indeterminate", "needs_input", "queued"
 ]);
+const SCENARIO_BRANCH_CAMPAIGN_IDS = new Set([
+  "cincinnati-zoning-common-fictional-branch-wave-2",
+  "cincinnati-zoning-scenario-branch-wave-1"
+]);
+const SCENARIO_RESIDUAL_PARENT_BY_CAMPAIGN = new Map([
+  [
+    "cincinnati-zoning-common-fictional-branch-wave-2-residual",
+    "cincinnati-zoning-common-fictional-branch-wave-2"
+  ],
+  [
+    "cincinnati-zoning-scenario-branch-wave-1-residual",
+    "cincinnati-zoning-scenario-branch-wave-1"
+  ]
+]);
 
 export function validateDiscoveryLedgerShape(value) {
   const ledger = record(value, "ledger");
+  if (ledger.schemaVersion === 8) return validateAdaptiveZoningCampaignLedger(ledger);
+  if (ledger.schemaVersion === 7) return validateScenarioWaveResidualLedger(ledger);
   if (ledger.schemaVersion === 6) return validateScenarioBranchCampaignLedger(ledger);
   if (ledger.schemaVersion === 4) return validateZoningPortfolioResidualLedger(ledger);
   if (ledger.schemaVersion === 3) return validateZoningPortfolioCampaignLedger(ledger);
@@ -84,6 +112,547 @@ export function validateDiscoveryLedgerShape(value) {
   }
   validateQuestionGraph(ledger.questionGraph);
   return structuredClone(ledger);
+}
+
+function validateAdaptiveZoningCampaignLedger(ledger) {
+  exactKeys(ledger, [
+    "campaign", "catalog", "createdAt", "jobs", "ledgerId", "ledgerSha256",
+    "questionGraph", "schemaVersion", "updatedAt"
+  ], "ledger");
+  if (ledger.schemaVersion !== 8
+    || !LEDGER_ID_PATTERN.test(ledger.ledgerId)
+    || !SHA256_PATTERN.test(ledger.ledgerSha256)
+    || ledger.ledgerId !== `ocdl_${ledger.ledgerSha256}`
+    || !Array.isArray(ledger.jobs)
+    || ledger.jobs.length < 1
+    || ledger.jobs.length > 48) {
+    throw new Error("opencounter_adaptive_campaign_ledger_invalid");
+  }
+  timestamp(ledger.createdAt, "ledger.createdAt");
+  timestamp(ledger.updatedAt, "ledger.updatedAt");
+  if (Date.parse(ledger.updatedAt) < Date.parse(ledger.createdAt)) {
+    throw new Error("opencounter_discovery_ledger_time_invalid");
+  }
+  validateCatalogCampaignIdentity(ledger.catalog);
+  const campaign = validateAdaptiveZoningCampaign(
+    ledger.campaign,
+    ledger.jobs.length,
+    ledger.createdAt
+  );
+  const jobIds = new Set();
+  const cells = new Set();
+  const assignedZones = new Set();
+  for (const [index, job] of ledger.jobs.entries()) {
+    validateCatalogCampaignJobFields(job, index, ledger);
+    validateZoningPortfolioLocationFixture(job.locationFixture, index);
+    const candidate = campaign.candidateManifest[index];
+    const cell = `${candidate.catalogEntryId}:${candidate.targetBaseZoningCode}`;
+    const expectedJobSha256 = createAdaptiveZoningCampaignJobSha256({
+      candidate,
+      catalog: ledger.catalog,
+      portfolioSha256: campaign.locationPortfolio.portfolioSha256,
+      previewSha256: campaign.source.adaptivePreviewSha256,
+      scenario: job.scenario
+    });
+    if (jobIds.has(job.jobId)
+      || cells.has(cell)
+      || job.jobSha256 !== expectedJobSha256
+      || job.catalogEntryId !== candidate.catalogEntryId
+      || JSON.stringify(job.categoryPath)
+        !== JSON.stringify(candidate.categoryPath)
+      || job.locationFixture.expectedBaseZoningCode
+        !== candidate.targetBaseZoningCode
+      || sha256(job.locationFixture) !== candidate.locationFixtureSha256
+      || job.providerInputSha256 !== candidate.providerInputSha256
+      || job.scenario.scenarioId
+        !== "adaptive-zoning-initial-checkpoint-observation"
+      || job.scenario.scenarioVersion !== 1
+      || JSON.stringify(job.scenario.answerRules) !== "[]"
+      || JSON.stringify(job.scenario.assumptions) !== JSON.stringify({
+        candidateId: candidate.candidateId,
+        targetBaseZoningCode: candidate.targetBaseZoningCode,
+        targetSamplingStratum: candidate.targetSamplingStratum
+      })) {
+      throw new Error("opencounter_adaptive_campaign_job_invalid");
+    }
+    jobIds.add(job.jobId);
+    cells.add(cell);
+    assignedZones.add(candidate.targetBaseZoningCode);
+  }
+  if (assignedZones.size
+      !== campaign.locationPortfolio.assignedLocationCount) {
+    throw new Error("opencounter_adaptive_campaign_location_invalid");
+  }
+  const expectedLedgerSha256 = createAdaptiveZoningCampaignLedgerSha256({
+    campaign: ledger.campaign,
+    catalog: ledger.catalog,
+    jobs: ledger.jobs
+  });
+  if (expectedLedgerSha256 !== ledger.ledgerSha256) {
+    throw new Error("opencounter_discovery_ledger_identity_invalid");
+  }
+  validateQuestionGraph(ledger.questionGraph);
+  return structuredClone(ledger);
+}
+
+function validateAdaptiveZoningCampaign(value, jobCount, createdAt) {
+  const campaign = record(value, "ledger.campaign");
+  exactKeys(campaign, [
+    "authorization", "authorizationRequired", "campaignId", "campaignVersion",
+    "candidateManifest", "leaseDurationSeconds", "locationPortfolio",
+    "maximumProviderConcurrency", "plannedRunCount", "source"
+  ], "ledger.campaign");
+  if (campaign.authorizationRequired !== true
+    || campaign.campaignId
+      !== "cincinnati-adaptive-zoning-question-discovery-v1"
+    || campaign.campaignVersion !== 1
+    || campaign.leaseDurationSeconds !== 900
+    || campaign.maximumProviderConcurrency !== 2
+    || campaign.plannedRunCount !== jobCount
+    || !Array.isArray(campaign.candidateManifest)
+    || campaign.candidateManifest.length !== jobCount) {
+    throw new Error("opencounter_adaptive_campaign_identity_invalid");
+  }
+  const source = validateAdaptiveZoningCampaignSource(campaign.source);
+  validateScenarioCampaignAuthorization(
+    campaign.authorization,
+    jobCount,
+    createdAt,
+    source.adaptivePreviewSha256
+  );
+  const portfolio = record(
+    campaign.locationPortfolio,
+    "ledger.campaign.locationPortfolio"
+  );
+  exactKeys(portfolio, [
+    "assignedLocationCount", "assignmentStrategy", "portfolioId",
+    "portfolioSha256", "portfolioVersion"
+  ], "ledger.campaign.locationPortfolio");
+  if (!Number.isSafeInteger(portfolio.assignedLocationCount)
+    || portfolio.assignedLocationCount < 1
+    || portfolio.assignedLocationCount > jobCount
+    || portfolio.assignmentStrategy !== "target_zone_exact"
+    || portfolio.portfolioId
+      !== "cincinnati-base-zoning-address-portfolio"
+    || !SHA256_PATTERN.test(portfolio.portfolioSha256)
+    || portfolio.portfolioVersion !== 1) {
+    throw new Error("opencounter_adaptive_campaign_location_invalid");
+  }
+  const candidateIds = new Set();
+  const cells = new Set();
+  for (const [index, value_] of campaign.candidateManifest.entries()) {
+    const path = `ledger.campaign.candidateManifest[${index}]`;
+    const candidate = record(value_, path);
+    exactKeys(candidate, [
+      "candidateId", "catalogEntryId", "categoryPath",
+      "locationFixtureSha256", "providerInputSha256",
+      "targetBaseZoningCode", "targetSamplingStratum"
+    ], path);
+    const cell = `${candidate.catalogEntryId}:${candidate.targetBaseZoningCode}`;
+    if (!/^ocazc_[0-9a-f]{64}$/.test(candidate.candidateId)
+      || candidateIds.has(candidate.candidateId)
+      || cells.has(cell)
+      || !/^[a-z0-9_]+(?:\.[a-z0-9_]+)+$/.test(candidate.catalogEntryId)
+      || !Array.isArray(candidate.categoryPath)
+      || candidate.categoryPath.length < 1
+      || candidate.categoryPath.length > 2
+      || !candidate.categoryPath.every((segment) => {
+        try {
+          text(segment, 200, `${path}.categoryPath[]`);
+          return true;
+        } catch {
+          return false;
+        }
+      })
+      || !SHA256_PATTERN.test(candidate.locationFixtureSha256)
+      || !SHA256_PATTERN.test(candidate.providerInputSha256)
+      || !ZONING_CODE_PATTERN.test(candidate.targetBaseZoningCode)
+      || !ID_PATTERN.test(candidate.targetSamplingStratum)) {
+      throw new Error("opencounter_adaptive_campaign_candidate_invalid");
+    }
+    candidateIds.add(candidate.candidateId);
+    cells.add(cell);
+  }
+  return campaign;
+}
+
+function validateAdaptiveZoningCampaignSource(value) {
+  const source = record(value, "ledger.campaign.source");
+  exactKeys(source, [
+    "adaptivePreviewId", "adaptivePreviewSha256", "completionClaimId",
+    "completionClaimSha256", "questionnaireId", "questionnaireSha256",
+    "sourceFreezeId", "sourceLedgerSnapshotSha256s"
+  ], "ledger.campaign.source");
+  if (!/^ocaz_[0-9a-f]{64}$/.test(source.adaptivePreviewId)
+    || !SHA256_PATTERN.test(source.adaptivePreviewSha256)
+    || source.adaptivePreviewId
+      !== `ocaz_${source.adaptivePreviewSha256}`
+    || !/^ocswc_[0-9a-f]{64}$/.test(source.completionClaimId)
+    || !SHA256_PATTERN.test(source.completionClaimSha256)
+    || source.completionClaimId
+      !== `ocswc_${source.completionClaimSha256}`
+    || !/^ocmq_[0-9a-f]{64}$/.test(source.questionnaireId)
+    || !SHA256_PATTERN.test(source.questionnaireSha256)
+    || source.questionnaireId !== `ocmq_${source.questionnaireSha256}`
+    || !FREEZE_ID_PATTERN.test(source.sourceFreezeId)
+    || !Array.isArray(source.sourceLedgerSnapshotSha256s)
+    || source.sourceLedgerSnapshotSha256s.length < 1
+    || source.sourceLedgerSnapshotSha256s.length > 10
+    || new Set(source.sourceLedgerSnapshotSha256s).size
+      !== source.sourceLedgerSnapshotSha256s.length
+    || !source.sourceLedgerSnapshotSha256s.every((digest) =>
+      SHA256_PATTERN.test(digest))) {
+    throw new Error("opencounter_adaptive_campaign_source_invalid");
+  }
+  return source;
+}
+
+function validateScenarioWaveResidualLedger(ledger) {
+  exactKeys(ledger, [
+    "campaign", "catalog", "createdAt", "jobs", "ledgerId", "ledgerSha256",
+    "questionGraph", "schemaVersion", "updatedAt"
+  ], "ledger");
+  if (ledger.schemaVersion !== 7
+    || !LEDGER_ID_PATTERN.test(ledger.ledgerId)
+    || !SHA256_PATTERN.test(ledger.ledgerSha256)
+    || ledger.ledgerId !== `ocdl_${ledger.ledgerSha256}`
+    || !Array.isArray(ledger.jobs)
+    || ledger.jobs.length < 1
+    || ledger.jobs.length >= 20) {
+    throw new Error("opencounter_discovery_ledger_invalid");
+  }
+  timestamp(ledger.createdAt, "ledger.createdAt");
+  timestamp(ledger.updatedAt, "ledger.updatedAt");
+  if (Date.parse(ledger.updatedAt) < Date.parse(ledger.createdAt)) {
+    throw new Error("opencounter_discovery_ledger_time_invalid");
+  }
+  validateCatalogCampaignIdentity(ledger.catalog);
+  const residual = validateScenarioWaveResidualCampaign(
+    ledger.campaign,
+    ledger.jobs.length,
+    ledger.createdAt
+  );
+  const jobIds = new Set();
+  const scenarioIds = new Set();
+  const affectedLocationIdentities = new Set(residual.driftPacket.drifts.map(
+    ({ locationIdentitySha256 }) => locationIdentitySha256
+  ));
+  for (const [index, job] of ledger.jobs.entries()) {
+    validateCatalogCampaignJobFields(job, index, ledger);
+    validateZoningPortfolioLocationFixture(job.locationFixture, index);
+    validateScenarioBranchJobProvenance(job, {
+      campaignId: residual.parentCampaign.campaignId,
+      campaignVersion: residual.parentCampaign.campaignVersion,
+      proposalFactPolicy: ledger.campaign.proposalFactPolicy
+    });
+    const sourceJob = residual.remainingJobs[index];
+    const expectedJobSha256 = createScenarioWaveResidualJobSha256({
+      campaign: ledger.campaign,
+      catalog: ledger.catalog,
+      job,
+      sourceJob
+    });
+    const locationIdentitySha256 = createScenarioWaveResidualValueSha256({
+      boundarySha256: job.locationFixture.boundarySha256,
+      locationId: job.locationFixture.locationId,
+      locationVersion: job.locationFixture.locationVersion,
+      parcelKey: job.locationFixture.parcelKey,
+      rollupId: job.locationFixture.rollupId
+    });
+    if (expectedJobSha256 !== job.jobSha256
+      || jobIds.has(job.jobId)
+      || scenarioIds.has(job.scenario.scenarioId)
+      || job.scenario.scenarioId !== sourceJob.scenarioId
+      || job.scenario.previewSha256 !== residual.sourcePreviewSha256
+      || job.providerInputSha256 !== sourceJob.providerInputSha256
+      || createScenarioWaveResidualValueSha256(job.locationFixture)
+        !== sourceJob.locationFixtureSha256
+      || createScenarioWaveResidualValueSha256(job.scenario)
+        !== sourceJob.scenarioSha256
+      || affectedLocationIdentities.has(locationIdentitySha256)) {
+      throw new Error("opencounter_discovery_scenario_residual_job_invalid");
+    }
+    jobIds.add(job.jobId);
+    scenarioIds.add(job.scenario.scenarioId);
+  }
+  const expectedLedgerSha256 = createScenarioWaveResidualLedgerSha256({
+    campaign: ledger.campaign,
+    catalog: ledger.catalog,
+    jobs: ledger.jobs
+  });
+  if (expectedLedgerSha256 !== ledger.ledgerSha256) {
+    throw new Error("opencounter_discovery_ledger_identity_invalid");
+  }
+  validateQuestionGraph(ledger.questionGraph);
+  return structuredClone(ledger);
+}
+
+function validateScenarioWaveResidualCampaign(value, jobCount, createdAt) {
+  const campaign = record(value, "ledger.campaign");
+  exactKeys(campaign, [
+    "authorization", "authorizationRequired", "campaignId", "campaignVersion",
+    "leaseDurationSeconds", "maximumProviderConcurrency", "plannedRunCount",
+    "previewSha256", "proposalFactPolicy", "residualOf", "sourceObservation"
+  ], "ledger.campaign");
+  const expectedParentCampaignId =
+    SCENARIO_RESIDUAL_PARENT_BY_CAMPAIGN.get(campaign.campaignId);
+  if (campaign.authorizationRequired !== true
+    || expectedParentCampaignId === undefined
+    || campaign.campaignVersion !== 1
+    || campaign.leaseDurationSeconds !== 900
+    || campaign.maximumProviderConcurrency !== 2
+    || campaign.plannedRunCount !== jobCount
+    || !SHA256_PATTERN.test(campaign.previewSha256)) {
+    throw new Error("opencounter_discovery_scenario_residual_campaign_invalid");
+  }
+  validateProposalFactPolicy(campaign.proposalFactPolicy);
+  const source = record(campaign.sourceObservation, "ledger.campaign.sourceObservation");
+  exactKeys(source, [
+    "evidenceSetSha256", "freezeId", "previewSha256"
+  ], "ledger.campaign.sourceObservation");
+  if (!SHA256_PATTERN.test(source.evidenceSetSha256)
+    || !FREEZE_ID_PATTERN.test(source.freezeId)
+    || !SHA256_PATTERN.test(source.previewSha256)) {
+    throw new Error("opencounter_discovery_scenario_source_invalid");
+  }
+  validateScenarioCampaignAuthorization(
+    campaign.authorization,
+    jobCount,
+    createdAt,
+    campaign.previewSha256
+  );
+  const residual = validateScenarioWaveResidualAncestry(
+    campaign.residualOf,
+    jobCount,
+    source.previewSha256,
+    expectedParentCampaignId
+  );
+  if (campaign.authorization.authorizationId
+      === residual.parentAuthorization.authorizationId) {
+    throw new Error("opencounter_discovery_scenario_residual_authorization_invalid");
+  }
+  return residual;
+}
+
+function validateScenarioWaveResidualAncestry(
+  value,
+  jobCount,
+  sourcePreviewSha256,
+  expectedParentCampaignId
+) {
+  const residual = record(value, "ledger.campaign.residualOf");
+  exactKeys(residual, [
+    "consumedJobs", "driftPacket", "parentAuthorization", "parentCampaign",
+    "remainingJobs", "sourceLedgerId", "sourceLedgerSha256",
+    "sourceLedgerSnapshotSha256", "sourcePreviewSha256"
+  ], "ledger.campaign.residualOf");
+  if (!LEDGER_ID_PATTERN.test(residual.sourceLedgerId)
+    || !SHA256_PATTERN.test(residual.sourceLedgerSha256)
+    || residual.sourceLedgerId !== `ocdl_${residual.sourceLedgerSha256}`
+    || !SHA256_PATTERN.test(residual.sourceLedgerSnapshotSha256)
+    || residual.sourcePreviewSha256 !== sourcePreviewSha256
+    || !Array.isArray(residual.consumedJobs)
+    || !Array.isArray(residual.remainingJobs)
+    || residual.remainingJobs.length !== jobCount
+    || residual.consumedJobs.length < 1
+    || residual.consumedJobs.length + residual.remainingJobs.length !== 20) {
+    throw new Error("opencounter_discovery_scenario_residual_source_invalid");
+  }
+  const parentCampaign = record(
+    residual.parentCampaign,
+    "ledger.campaign.residualOf.parentCampaign"
+  );
+  exactKeys(parentCampaign, [
+    "campaignId", "campaignVersion"
+  ], "ledger.campaign.residualOf.parentCampaign");
+  if (parentCampaign.campaignId !== expectedParentCampaignId
+    || parentCampaign.campaignVersion !== 3) {
+    throw new Error("opencounter_discovery_scenario_residual_source_invalid");
+  }
+  validateScenarioCampaignAuthorization(
+    residual.parentAuthorization,
+    20,
+    "9999-12-31T23:59:59.999Z",
+    residual.sourcePreviewSha256
+  );
+  const consumedIds = new Set();
+  const scenarioIds = new Set();
+  for (const value_ of residual.consumedJobs) {
+    const consumed = record(value_, "ledger.campaign.residualOf.consumedJobs[]");
+    exactKeys(consumed, [
+      "jobId", "jobSha256", "providerReference", "scenarioId",
+      "startDispatchEventIds"
+    ], "ledger.campaign.residualOf.consumedJobs[]");
+    if (!JOB_ID_PATTERN.test(consumed.jobId)
+      || !SHA256_PATTERN.test(consumed.jobSha256)
+      || consumed.jobId !== `ocdj_${consumed.jobSha256}`
+      || !ID_PATTERN.test(consumed.scenarioId)
+      || typeof consumed.providerReference !== "string"
+      || !/^opencounter:project:[0-9]{1,20}$/.test(consumed.providerReference)
+      || !Array.isArray(consumed.startDispatchEventIds)
+      || consumed.startDispatchEventIds.length < 1
+      || consumedIds.has(consumed.jobId)
+      || scenarioIds.has(consumed.scenarioId)) {
+      throw new Error("opencounter_discovery_scenario_residual_partition_invalid");
+    }
+    consumedIds.add(consumed.jobId);
+    scenarioIds.add(consumed.scenarioId);
+  }
+  const remainingIds = new Set();
+  for (const value_ of residual.remainingJobs) {
+    const remaining = record(value_, "ledger.campaign.residualOf.remainingJobs[]");
+    exactKeys(remaining, [
+      "jobId", "jobSha256", "locationFixtureSha256", "providerInputSha256",
+      "scenarioId", "scenarioSha256"
+    ], "ledger.campaign.residualOf.remainingJobs[]");
+    if (!JOB_ID_PATTERN.test(remaining.jobId)
+      || !SHA256_PATTERN.test(remaining.jobSha256)
+      || remaining.jobId !== `ocdj_${remaining.jobSha256}`
+      || !SHA256_PATTERN.test(remaining.locationFixtureSha256)
+      || !SHA256_PATTERN.test(remaining.providerInputSha256)
+      || !ID_PATTERN.test(remaining.scenarioId)
+      || !SHA256_PATTERN.test(remaining.scenarioSha256)
+      || consumedIds.has(remaining.jobId)
+      || remainingIds.has(remaining.jobId)
+      || scenarioIds.has(remaining.scenarioId)) {
+      throw new Error("opencounter_discovery_scenario_residual_partition_invalid");
+    }
+    remainingIds.add(remaining.jobId);
+    scenarioIds.add(remaining.scenarioId);
+  }
+  validateScenarioWaveDriftPacket(
+    residual.driftPacket,
+    residual,
+    consumedIds
+  );
+  return residual;
+}
+
+function validateScenarioWaveDriftPacket(value, residual, consumedIds) {
+  const packet = record(value, "ledger.campaign.residualOf.driftPacket");
+  exactKeys(packet, [
+    "adjudication", "artifactKind", "driftPacketId", "driftPacketSha256",
+    "drifts", "observedAt", "parentFence", "schemaVersion", "sourceLedgerId",
+    "sourceLedgerSha256", "sourceLedgerSnapshotSha256"
+  ], "ledger.campaign.residualOf.driftPacket");
+  const payload = structuredClone(packet);
+  delete payload.driftPacketId;
+  delete payload.driftPacketSha256;
+  if (packet.artifactKind !== "scenario_wave_source_zoning_drift"
+    || packet.schemaVersion !== 1
+    || !SHA256_PATTERN.test(packet.driftPacketSha256)
+    || packet.driftPacketId !== `ocswd_${packet.driftPacketSha256}`
+    || createScenarioWaveDriftPacketSha256(payload) !== packet.driftPacketSha256
+    || packet.sourceLedgerId !== residual.sourceLedgerId
+    || packet.sourceLedgerSha256 !== residual.sourceLedgerSha256
+    || packet.sourceLedgerSnapshotSha256 !== residual.sourceLedgerSnapshotSha256
+    || !Array.isArray(packet.drifts)
+    || packet.drifts.length < 1) {
+    throw new Error("opencounter_discovery_scenario_residual_drift_invalid");
+  }
+  timestamp(packet.observedAt, "ledger.campaign.residualOf.driftPacket.observedAt");
+  const driftJobIds = [];
+  for (const value_ of packet.drifts) {
+    const drift = record(value_, "ledger.campaign.residualOf.driftPacket.drifts[]");
+    exactKeys(drift, [
+      "address", "catalogEntryId", "expectedBaseZoningCode",
+      "locationIdentitySha256", "locationFixtureSha256", "officialEvidence",
+      "parcelKey", "providerReference", "providerTerminalResultSha256",
+      "providerVerificationSha256", "providerZoningCode", "reason",
+      "scenarioId", "sourceJobId"
+    ], "ledger.campaign.residualOf.driftPacket.drifts[]");
+    if (!consumedIds.has(drift.sourceJobId)
+      || !SHA256_PATTERN.test(drift.locationIdentitySha256)
+      || !SHA256_PATTERN.test(drift.locationFixtureSha256)
+      || !SHA256_PATTERN.test(drift.providerTerminalResultSha256)
+      || !SHA256_PATTERN.test(drift.providerVerificationSha256)
+      || !ZONING_CODE_PATTERN.test(drift.expectedBaseZoningCode)
+      || !ZONING_CODE_PATTERN.test(drift.providerZoningCode)
+      || !PARCEL_KEY_PATTERN.test(drift.parcelKey)
+      || !ID_PATTERN.test(drift.scenarioId)
+      || typeof drift.address !== "string"
+      || drift.address.length < 1
+      || drift.address.length > 500
+      || typeof drift.catalogEntryId !== "string"
+      || drift.catalogEntryId.length < 1
+      || drift.catalogEntryId.length > 500
+      || typeof drift.providerReference !== "string"
+      || !/^opencounter:project:[0-9]{1,20}$/.test(drift.providerReference)
+      || drift.reason !== "provider_terminal_zoning_mismatch"
+      || drift.expectedBaseZoningCode === drift.providerZoningCode) {
+      throw new Error("opencounter_discovery_scenario_residual_drift_invalid");
+    }
+    validateScenarioWaveOfficialEvidence(drift.officialEvidence, drift);
+    driftJobIds.push(drift.sourceJobId);
+  }
+  validateScenarioWaveAdjudication(packet.adjudication);
+  if (JSON.stringify(packet.adjudication.affectedScenarioIds)
+      !== JSON.stringify(packet.drifts.map(({ scenarioId }) => scenarioId).sort())) {
+    throw new Error("opencounter_discovery_scenario_residual_adjudication_invalid");
+  }
+  validateScenarioWaveFence(
+    packet.parentFence,
+    driftJobIds.sort(),
+    residual.sourceLedgerSnapshotSha256
+  );
+}
+
+function validateScenarioWaveOfficialEvidence(value, drift) {
+  const evidence = record(value, "driftPacket.drifts[].officialEvidence");
+  exactKeys(evidence, [
+    "evidenceRef", "evidenceSha256", "observedAt", "observedZoningCode",
+    "parcelIntersectionMethod", "source", "sourceJobId"
+  ], "driftPacket.drifts[].officialEvidence");
+  if (typeof evidence.evidenceRef !== "string"
+    || evidence.evidenceRef.length < 1
+    || evidence.evidenceRef.length > 500
+    || !SHA256_PATTERN.test(evidence.evidenceSha256)
+    || evidence.observedZoningCode !== drift.providerZoningCode
+    || evidence.parcelIntersectionMethod !== "full_parcel_polygon_intersection"
+    || evidence.source !== "city_of_cincinnati_cagis"
+    || evidence.sourceJobId !== drift.sourceJobId) {
+    throw new Error("opencounter_discovery_scenario_residual_drift_invalid");
+  }
+  timestamp(evidence.observedAt, "driftPacket.drifts[].officialEvidence.observedAt");
+}
+
+function validateScenarioWaveAdjudication(value) {
+  const adjudication = record(value, "driftPacket.adjudication");
+  exactKeys(adjudication, [
+    "adjudicationId", "adjudicationSha256", "affectedScenarioIds",
+    "requiredResolution", "schemaVersion", "status"
+  ], "driftPacket.adjudication");
+  const payload = structuredClone(adjudication);
+  delete payload.adjudicationId;
+  delete payload.adjudicationSha256;
+  if (!SHA256_PATTERN.test(adjudication.adjudicationSha256)
+    || adjudication.adjudicationId
+      !== `ocswa_${adjudication.adjudicationSha256}`
+    || createScenarioWaveAdjudicationSha256(payload)
+      !== adjudication.adjudicationSha256
+    || adjudication.status !== "pending") {
+    throw new Error("opencounter_discovery_scenario_residual_adjudication_invalid");
+  }
+}
+
+function validateScenarioWaveFence(value, driftJobIds, sourceSnapshotSha256) {
+  const fence = record(value, "driftPacket.parentFence");
+  exactKeys(fence, [
+    "driftJobIds", "fenceId", "fenceSha256", "kind", "newStartsAllowed",
+    "schemaVersion", "sourceLedgerSnapshotSha256"
+  ], "driftPacket.parentFence");
+  const payload = structuredClone(fence);
+  delete payload.fenceId;
+  delete payload.fenceSha256;
+  if (!SHA256_PATTERN.test(fence.fenceSha256)
+    || fence.fenceId !== `ocswf_${fence.fenceSha256}`
+    || createScenarioWaveFenceSha256(payload) !== fence.fenceSha256
+    || fence.kind !== "verified_zoning_context_drift"
+    || fence.newStartsAllowed !== false
+    || fence.sourceLedgerSnapshotSha256 !== sourceSnapshotSha256
+    || JSON.stringify(fence.driftJobIds) !== JSON.stringify(driftJobIds)) {
+    throw new Error("opencounter_discovery_scenario_residual_fence_invalid");
+  }
 }
 
 function validateScenarioBranchCampaignLedger(ledger) {
@@ -191,7 +760,7 @@ function validateScenarioBranchCampaign(value, jobCount, createdAt) {
     "proposalFactPolicy", "sourceObservation"
   ], "ledger.campaign");
   if (campaign.authorizationRequired !== true
-    || campaign.campaignId !== "cincinnati-zoning-scenario-branch-wave-1"
+    || !SCENARIO_BRANCH_CAMPAIGN_IDS.has(campaign.campaignId)
     || campaign.campaignVersion !== 3
     || campaign.leaseDurationSeconds !== 900
     || campaign.maximumProviderConcurrency !== 2

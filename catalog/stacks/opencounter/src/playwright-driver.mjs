@@ -142,6 +142,7 @@ export function createPlaywrightOpenCounterDriver({
         guidanceState
       ),
       pageRunner,
+      persistObservedResult: true,
       providerReference: input.providerReference,
       stateStore
     }),
@@ -155,6 +156,7 @@ export function createPlaywrightOpenCounterDriver({
 async function runWithResumeState({
   action,
   pageRunner,
+  persistObservedResult = false,
   providerReference,
   stateStore
 }) {
@@ -173,7 +175,22 @@ async function runWithResumeState({
   }
   return pageRunner(
     Promise.resolve(session.storageState),
-    (page, context) => action(page, context, session.guidanceState)
+    async (page, context) => {
+      const result = await action(page, context, session.guidanceState);
+      if (persistObservedResult && session.guidanceState !== null) {
+        await saveState(
+          stateStore,
+          context,
+          validatedReference,
+          guidanceStateAfterResult(
+            validatedReference,
+            session.guidanceState,
+            result
+          )
+        );
+      }
+      return result;
+    }
   );
 }
 

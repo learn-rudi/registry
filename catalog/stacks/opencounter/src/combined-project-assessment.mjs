@@ -28,10 +28,9 @@ export function buildPhysicalFeasibilityAssessment(input) {
   exactRecord(input, [
     "domains", "evidence", "generatedAt", "siteContext", "sourceSystem"
   ], "physical_input");
-  const evidence = validateEvidence(input.evidence);
-  const domains = validateDomains(input.domains, new Set(evidence.map(
-    ({ evidenceRef }) => evidenceRef
-  )));
+  const schemaVersion = 2;
+  const evidence = validateEvidence(input.evidence, schemaVersion);
+  const domains = validateDomains(input.domains, evidence, schemaVersion);
   const payload = {
     artifactKind: "opencounter_physical_feasibility",
     domains,
@@ -39,7 +38,7 @@ export function buildPhysicalFeasibilityAssessment(input) {
     feasibilityClassification: derivePhysicalClassification(domains),
     generatedAt: timestamp(input.generatedAt, "generatedAt"),
     limitation: PHYSICAL_LIMITATION,
-    schemaVersion: 1,
+    schemaVersion,
     siteContext: validateSiteContext(input.siteContext),
     sourceSystem: validateSourceSystem(input.sourceSystem)
   };
@@ -58,17 +57,19 @@ export function validatePhysicalFeasibilityAssessment(value) {
     "schemaVersion", "siteContext", "sourceSystem"
   ], "physical_artifact");
   if (value.artifactKind !== "opencounter_physical_feasibility"
-    || value.schemaVersion !== 1
+    || ![1, 2].includes(value.schemaVersion)
     || !/^ocpf_[0-9a-f]{64}$/.test(value.assessmentId)
     || !SHA256_PATTERN.test(value.assessmentSha256)
     || value.assessmentId !== `ocpf_${value.assessmentSha256}`
     || value.limitation !== PHYSICAL_LIMITATION) {
     throw new Error("opencounter_physical_feasibility_artifact_invalid");
   }
-  const evidence = validateEvidence(value.evidence);
-  const domains = validateDomains(value.domains, new Set(evidence.map(
-    ({ evidenceRef }) => evidenceRef
-  )));
+  const evidence = validateEvidence(value.evidence, value.schemaVersion);
+  const domains = validateDomains(
+    value.domains,
+    evidence,
+    value.schemaVersion
+  );
   const feasibilityClassification = derivePhysicalClassification(domains);
   if (value.feasibilityClassification !== feasibilityClassification) {
     throw new Error("opencounter_physical_feasibility_classification_invalid");
@@ -212,17 +213,34 @@ export function validateCombinedProjectAssessment(value) {
   };
 }
 
-function validateDomains(values, evidenceRefs) {
+function validateDomains(values, evidence, schemaVersion) {
   if (!Array.isArray(values) || values.length !== SITE_DOMAINS.length) {
     throw new Error("opencounter_physical_feasibility_domains_invalid");
   }
+  const evidenceByRef = new Map(evidence.map((item) => [
+    item.evidenceRef,
+    item
+  ]));
   const domains = values.map((value) => {
-    exactRecord(value, ["domain", "findings", "status"], "domain");
+    exactRecord(value, schemaVersion >= 2
+      ? ["domain", "evidenceRefs", "findings", "status"]
+      : ["domain", "findings", "status"], "domain");
     if (!SITE_DOMAINS.includes(value.domain)
       || !DOMAIN_STATUSES.has(value.status)
       || !Array.isArray(value.findings)
       || value.findings.length > 100) {
       throw new Error("opencounter_physical_feasibility_domain_invalid");
+    }
+    const domainEvidenceRefs = schemaVersion >= 2
+      ? stringArray(value.evidenceRefs, 100, true)
+      : [];
+    if (schemaVersion >= 2 && domainEvidenceRefs.some((evidenceRef) => {
+      const source = evidenceByRef.get(evidenceRef);
+      return source === undefined || !source.domains.includes(value.domain);
+    })) {
+      throw new Error(
+        "opencounter_physical_feasibility_domain_evidence_invalid"
+      );
     }
     const codes = new Set();
     const findings = value.findings.map((finding) => {
@@ -241,7 +259,8 @@ function validateDomains(values, evidenceRefs) {
         true
       );
       if (findingEvidenceRefs.some((evidenceRef) =>
-        !evidenceRefs.has(evidenceRef))) {
+        !evidenceByRef.has(evidenceRef)
+        || schemaVersion >= 2 && !domainEvidenceRefs.includes(evidenceRef))) {
         throw new Error(
           "opencounter_physical_feasibility_finding_evidence_invalid"
         );
@@ -264,6 +283,7 @@ function validateDomains(values, evidenceRefs) {
     }
     return {
       domain: value.domain,
+      ...(schemaVersion >= 2 ? { evidenceRefs: domainEvidenceRefs } : {}),
       findings,
       status: value.status
     };
@@ -295,13 +315,15 @@ function validateMeasurements(values) {
   }).sort((left, right) => left.name.localeCompare(right.name));
 }
 
-function validateEvidence(values) {
+function validateEvidence(values, schemaVersion) {
   if (!Array.isArray(values) || values.length < 1 || values.length > 500) {
     throw new Error("opencounter_physical_feasibility_evidence_invalid");
   }
   const refs = new Set();
   return values.map((value) => {
-    exactRecord(value, [
+    exactRecord(value, schemaVersion >= 2 ? [
+      "artifactSha256", "domains", "evidenceRef", "observedAt", "source"
+    ] : [
       "artifactSha256", "evidenceRef", "observedAt", "source"
     ], "evidence");
     const evidenceRef = boundedText(value.evidenceRef, 500, "evidence_ref");
@@ -309,8 +331,16 @@ function validateEvidence(values) {
       throw new Error("opencounter_physical_feasibility_evidence_invalid");
     }
     refs.add(evidenceRef);
+    const domains = schemaVersion >= 2
+      ? stringArray(value.domains, SITE_DOMAINS.length, true)
+      : null;
+    if (schemaVersion >= 2
+      && domains.some((domain) => !SITE_DOMAINS.includes(domain))) {
+      throw new Error("opencounter_physical_feasibility_evidence_domain_invalid");
+    }
     return {
       artifactSha256: value.artifactSha256,
+      ...(schemaVersion >= 2 ? { domains } : {}),
       evidenceRef,
       observedAt: timestamp(value.observedAt, "evidence_observedAt"),
       source: boundedText(value.source, 500, "evidence_source")

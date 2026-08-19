@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { test } from "node:test";
 
 import {
@@ -12,15 +14,29 @@ import {
 } from "../src/discovery-scenario-wave.mjs";
 import { buildVerifiedObservationPortfolio } from
   "../src/discovery-observation-portfolio.mjs";
-import { createNormalizedQuestionSignatureSha256 } from
+import {
+  buildObservedQuestionGraph,
+  createNormalizedQuestionSignatureSha256
+} from
   "../src/discovery-question-graph.mjs";
 import { createScenarioSiteFactEvidenceArtifact } from
   "../src/discovery-site-fact-evidence.mjs";
 import {
+  buildScenarioWaveAdjudicationPreview,
+  buildScenarioWaveResidualDriftPacket,
+  buildScenarioWaveResidualPreview,
+  createScenarioWaveResidualArtifactStore,
+  createScenarioWaveResidualLedger,
+  resolveScenarioWaveAdjudication
+} from "../src/discovery-scenario-residual.mjs";
+import {
   beginDiscoveryDispatch,
   leaseNextDiscoveryJob,
   queueDiscoveryAnswers,
+  queueDiscoveryReconciliation,
+  recordDiscoveryFailure,
   recordDiscoveryResult,
+  recordDiscoveryVerification,
   validateDiscoveryLedger
 } from "../src/discovery-ledger.mjs";
 import { createGuidanceCheckpointSha256 } from "../src/core.mjs";
@@ -303,6 +319,62 @@ test("plans stable authorized jobs with exact synthetic scenario answers", () =>
   }), /source_snapshot_mismatch/);
 });
 
+test("admits only the closed common-fictional Wave 2 campaign identity", () => {
+  const waveTwoDefinition = structuredClone(definition);
+  waveTwoDefinition.campaignId =
+    "cincinnati-zoning-common-fictional-branch-wave-2";
+  const { freeze, siteFactEvidence, siteFactEvidenceArtifacts, sourceLedgers } =
+    createScenarioFixtures(waveTwoDefinition);
+  const preview = buildScenarioBranchWavePreview({
+    catalog,
+    definition: waveTwoDefinition,
+    freeze,
+    siteFactEvidence,
+    siteFactEvidenceArtifacts,
+    sourceLedgers
+  });
+  const input = {
+    authorization: {
+      approvedAt: "2026-08-05T03:00:00.000Z",
+      approvedBy: "requester",
+      authorizationId: "requester-approved-common-fictional-wave-2",
+      maximumProviderProjects: 20,
+      previewSha256: preview.previewSha256
+    },
+    catalog,
+    createdAt: "2026-08-05T03:00:00.001Z",
+    definition: waveTwoDefinition,
+    freeze,
+    siteFactEvidence,
+    siteFactEvidenceArtifacts,
+    sourceLedgers
+  };
+  const ledger = createScenarioBranchLedger(input);
+
+  assert.deepEqual(validateDiscoveryLedger(ledger), ledger);
+
+  const unknownDefinition = structuredClone(waveTwoDefinition);
+  unknownDefinition.campaignId = "unapproved-scenario-campaign";
+  const unknownPreview = buildScenarioBranchWavePreview({
+    catalog,
+    definition: unknownDefinition,
+    freeze,
+    siteFactEvidence,
+    siteFactEvidenceArtifacts,
+    sourceLedgers
+  });
+  const unknownLedger = createScenarioBranchLedger({
+    ...input,
+    authorization: {
+      ...input.authorization,
+      previewSha256: unknownPreview.previewSha256
+    },
+    definition: unknownDefinition
+  });
+  assert.throws(() => validateDiscoveryLedger(unknownLedger),
+    /scenario_campaign_invalid/);
+});
+
 test("queues signature-bound mixed-provenance scenario answers from the approved preview", () => {
   const { freeze, siteFactEvidence, siteFactEvidenceArtifacts, sourceLedgers } =
     createScenarioFixtures(definition);
@@ -394,6 +466,565 @@ test("queues signature-bound mixed-provenance scenario answers from the approved
   });
   assert.deepEqual(queued.nextAction.input.answers, answers);
   assert.deepEqual(validateDiscoveryLedger(ledger), ledger);
+});
+
+test("promotes an uncertain scenario continuation when readback proves completion", () => {
+  const { freeze, siteFactEvidence, siteFactEvidenceArtifacts, sourceLedgers } =
+    createScenarioFixtures(definition);
+  const preview = buildScenarioBranchWavePreview({
+    catalog,
+    definition,
+    freeze,
+    siteFactEvidence,
+    siteFactEvidenceArtifacts,
+    sourceLedgers
+  });
+  let ledger = createScenarioBranchLedger({
+    authorization: {
+      approvedAt: "2026-08-04T20:05:00.000Z",
+      approvedBy: "requester",
+      authorizationId: "requester-approved-scenario-wave-1",
+      maximumProviderProjects: 20,
+      previewSha256: preview.previewSha256
+    },
+    catalog,
+    createdAt: "2026-08-04T20:10:00.000Z",
+    definition,
+    freeze,
+    siteFactEvidence,
+    siteFactEvidenceArtifacts,
+    sourceLedgers
+  });
+  let leased = leaseNextDiscoveryJob(ledger, {
+    leasedAt: "2026-08-04T20:11:00.000Z",
+    workerId: "scenario-runner-1"
+  });
+  ledger = beginDiscoveryDispatch(leased.ledger, {
+    dispatchedAt: "2026-08-04T20:12:00.000Z",
+    jobId: leased.job.jobId,
+    leaseToken: leased.job.lease.leaseToken,
+    workerId: "scenario-runner-1"
+  });
+  const providerReference = "opencounter:project:2999999";
+  const questions = leased.job.scenario.answerRules.map(({ questionId }) =>
+    createSyntheticQuestion(questionId));
+  const checkpointSha256 = createGuidanceCheckpointSha256(
+    providerReference,
+    questions
+  );
+  const checkpointResult = {
+    checkpoint: {
+      checkpointSha256,
+      expiresAt: "2026-08-05T20:13:00.000Z",
+      questions,
+      schemaVersion: 1
+    },
+    providerReference,
+    schemaVersion: 1,
+    source: "opencounter",
+    status: "needs_requester_input"
+  };
+  ledger = recordDiscoveryResult(ledger, {
+    jobId: leased.job.jobId,
+    leaseToken: leased.job.lease.leaseToken,
+    observedAt: "2026-08-04T20:13:00.000Z",
+    result: checkpointResult,
+    workerId: "scenario-runner-1"
+  });
+  ledger = recordDiscoveryVerification(ledger, {
+    actorId: "validator",
+    jobId: leased.job.jobId,
+    observedAt: "2026-08-04T20:13:30.000Z",
+    result: checkpointResult
+  });
+  const checkpointed = ledger.jobs.find(({ jobId }) =>
+    jobId === leased.job.jobId);
+  const answers = checkpointed.scenario.answerRules.map(
+    ({ questionId, value }) => ({ questionId, value })
+  );
+  ledger = queueDiscoveryAnswers(ledger, {
+    actorId: "coordinator",
+    answerBasis: {
+      kind: "scenario_fixture",
+      previewSha256: preview.previewSha256,
+      scenarioId: checkpointed.scenario.scenarioId,
+      scenarioVersion: checkpointed.scenario.scenarioVersion
+    },
+    answers,
+    checkpointSha256,
+    jobId: checkpointed.jobId,
+    queuedAt: "2026-08-04T20:14:00.000Z"
+  });
+  leased = leaseNextDiscoveryJob(ledger, {
+    leasedAt: "2026-08-04T20:15:00.000Z",
+    workerId: "scenario-runner-1"
+  });
+  ledger = beginDiscoveryDispatch(leased.ledger, {
+    dispatchedAt: "2026-08-04T20:16:00.000Z",
+    jobId: leased.job.jobId,
+    leaseToken: leased.job.lease.leaseToken,
+    workerId: "scenario-runner-1"
+  });
+  ledger = recordDiscoveryFailure(ledger, {
+    failure: {
+      code: "provider_dispatch_unusable",
+      effect: "unknown",
+      message: "Continuation result was unusable."
+    },
+    jobId: leased.job.jobId,
+    leaseToken: leased.job.lease.leaseToken,
+    observedAt: "2026-08-04T20:17:00.000Z",
+    workerId: "scenario-runner-1"
+  });
+  ledger = queueDiscoveryReconciliation(ledger, {
+    actorId: "coordinator",
+    jobId: leased.job.jobId,
+    queuedAt: "2026-08-04T20:18:00.000Z"
+  });
+  leased = leaseNextDiscoveryJob(ledger, {
+    leasedAt: "2026-08-04T20:19:00.000Z",
+    workerId: "scenario-runner-2"
+  });
+  ledger = beginDiscoveryDispatch(leased.ledger, {
+    dispatchedAt: "2026-08-04T20:20:00.000Z",
+    jobId: leased.job.jobId,
+    leaseToken: leased.job.lease.leaseToken,
+    workerId: "scenario-runner-2"
+  });
+  const reconcilingLedger = structuredClone(ledger);
+  ledger = recordDiscoveryResult(ledger, {
+    jobId: leased.job.jobId,
+    leaseToken: leased.job.lease.leaseToken,
+    observedAt: "2026-08-04T20:21:00.000Z",
+    result: checkpointResult,
+    workerId: "scenario-runner-2"
+  });
+
+  const terminalResult = { zoningDistrict: "MA" };
+  ledger = recordDiscoveryVerification(ledger, {
+    actorId: "validator",
+    jobId: leased.job.jobId,
+    observedAt: "2026-08-04T20:22:00.000Z",
+    result: {
+      providerReference,
+      result: terminalResult,
+      schemaVersion: 1,
+      source: "opencounter",
+      status: "completed"
+    }
+  });
+
+  const completed = ledger.jobs.find(({ jobId }) => jobId === leased.job.jobId);
+  assert.equal(completed.status, "completed");
+  assert.deepEqual(completed.terminalResult, terminalResult);
+  assert.deepEqual(completed.answersSupplied.at(-1).answers, answers);
+  assert.equal(completed.verification.status, "completed");
+  assert.deepEqual(validateDiscoveryLedger(ledger), ledger);
+
+  let indeterminateLedger = recordDiscoveryResult(reconcilingLedger, {
+    jobId: leased.job.jobId,
+    leaseToken: leased.job.lease.leaseToken,
+    observedAt: "2026-08-04T20:21:00.000Z",
+    result: {
+      failureClass: "indeterminate",
+      providerReference,
+      providerRoute: "/projects/2999999/guide/location",
+      schemaVersion: 1,
+      source: "opencounter",
+      status: "indeterminate"
+    },
+    workerId: "scenario-runner-2"
+  });
+  indeterminateLedger = recordDiscoveryVerification(indeterminateLedger, {
+    actorId: "validator",
+    jobId: leased.job.jobId,
+    observedAt: "2026-08-04T20:22:00.000Z",
+    result: {
+      providerReference,
+      result: terminalResult,
+      schemaVersion: 1,
+      source: "opencounter",
+      status: "completed"
+    }
+  });
+  const recovered = indeterminateLedger.jobs.find(
+    ({ jobId }) => jobId === leased.job.jobId
+  );
+  assert.equal(recovered.status, "completed");
+  assert.deepEqual(recovered.terminalResult, terminalResult);
+  assert.deepEqual(recovered.answersSupplied.at(-1).answers, answers);
+  assert.equal(recovered.verification.status, "completed");
+  assert.deepEqual(validateDiscoveryLedger(indeterminateLedger), indeterminateLedger);
+  const graph = buildObservedQuestionGraph(indeterminateLedger);
+  assert.equal(graph.edges.some(({ terminalStatus }) =>
+    terminalStatus === "completed"), true);
+});
+
+test("plans an exact preview-bound residual for only never-started scenarios", () => {
+  const { driftPacket, sourceLedger } = createScenarioResidualFixture();
+  const sourceBefore = structuredClone(sourceLedger);
+  const preview = buildScenarioWaveResidualPreview({
+    driftPacket,
+    sourceLedger
+  });
+
+  assert.equal(preview.plannedRunCount, 14);
+  assert.deepEqual(preview.requiredAuthorization, {
+    maximumProviderProjects: 14,
+    previewSha256: preview.previewSha256,
+    required: true
+  });
+  assert.equal(preview.residualOf.consumedJobs.length, 6);
+  assert.equal(preview.residualOf.remainingJobs.length, 14);
+  assert.equal(preview.scenarios.length, 14);
+  assert.equal(preview.scenarios.some(({ sourceJobId }) =>
+    preview.residualOf.consumedJobs.some(({ jobId }) => jobId === sourceJobId)),
+  false);
+  assert.deepEqual(sourceLedger, sourceBefore);
+
+  const authorization = {
+    approvedAt: "2026-08-04T21:00:00.000Z",
+    approvedBy: "requester",
+    authorizationId: "requester-approved-scenario-wave-1-residual",
+    maximumProviderProjects: 14,
+    previewSha256: preview.previewSha256
+  };
+  const first = createScenarioWaveResidualLedger({
+    authorization,
+    createdAt: "2026-08-04T21:01:00.000Z",
+    driftPacket,
+    sourceLedger
+  });
+  const second = createScenarioWaveResidualLedger({
+    authorization,
+    createdAt: "2026-08-04T21:01:00.000Z",
+    driftPacket,
+    sourceLedger
+  });
+
+  assert.equal(first.schemaVersion, 7);
+  assert.equal(first.jobs.length, 14);
+  assert.equal(first.ledgerId, second.ledgerId);
+  assert.deepEqual(first.jobs.map(({ jobId }) => jobId),
+    second.jobs.map(({ jobId }) => jobId));
+  assert.equal(first.jobs.every(({ providerReference, status }) =>
+    providerReference === null && status === "queued"), true);
+  assert.deepEqual(validateDiscoveryLedger(first), first);
+  assert.deepEqual(sourceLedger, sourceBefore);
+  const stateDirectory = mkdtempSync(path.join(
+    tmpdir(),
+    "opencounter-scenario-residual-test-"
+  ));
+  try {
+    const store = createScenarioWaveResidualArtifactStore({ stateDirectory });
+    const storedPacket = store.writeDriftPacket(driftPacket, sourceLedger);
+    const storedPreview = store.writePreview(preview, {
+      driftPacket,
+      sourceLedger
+    });
+    assert.equal(statSync(storedPacket.path).mode & 0o777, 0o600);
+    assert.equal(statSync(storedPreview.path).mode & 0o777, 0o600);
+    assert.deepEqual(
+      store.readDriftPacket(driftPacket.driftPacketSha256, sourceLedger).artifact,
+      driftPacket
+    );
+    assert.deepEqual(
+      store.readPreview(preview.previewSha256, {
+        driftPacket,
+        sourceLedger
+      }).artifact,
+      preview
+    );
+  } finally {
+    rmSync(stateDirectory, { force: true, recursive: true });
+  }
+  const changedSnapshot = structuredClone(sourceLedger);
+  changedSnapshot.updatedAt = "2026-08-04T20:39:30.000Z";
+  assert.throws(() => buildScenarioWaveResidualPreview({
+    driftPacket,
+    sourceLedger: changedSnapshot
+  }), /drift_packet|snapshot|source/i);
+  assert.throws(() => createScenarioWaveResidualLedger({
+    authorization: sourceLedger.campaign.authorization,
+    createdAt: "2026-08-04T21:01:00.000Z",
+    driftPacket,
+    sourceLedger
+  }), /authorization/i);
+});
+
+test("plans a closed Wave 2 residual after every started project is verified", () => {
+  const waveTwoDefinition = structuredClone(definition);
+  waveTwoDefinition.campaignId =
+    "cincinnati-zoning-common-fictional-branch-wave-2";
+  for (const scenario of waveTwoDefinition.scenarios) {
+    scenario.scenarioVersion = 3;
+  }
+  const { driftPacket, sourceLedger } = createScenarioResidualFixture({
+    completedJobCount: 7,
+    definitionValue: waveTwoDefinition,
+    driftedJobIndex: 6
+  });
+
+  const preview = buildScenarioWaveResidualPreview({
+    driftPacket,
+    sourceLedger
+  });
+
+  assert.equal(preview.campaignId,
+    "cincinnati-zoning-common-fictional-branch-wave-2-residual");
+  assert.equal(preview.plannedRunCount, 13);
+  assert.equal(preview.requiredAuthorization.maximumProviderProjects, 13);
+  assert.equal(preview.residualOf.consumedJobs.length, 7);
+  assert.equal(preview.residualOf.remainingJobs.length, 13);
+  assert.deepEqual(preview.residualOf.parentCampaign, {
+    campaignId: "cincinnati-zoning-common-fictional-branch-wave-2",
+    campaignVersion: 3
+  });
+  const residualLedger = createScenarioWaveResidualLedger({
+    authorization: {
+      approvedAt: "2026-08-04T21:00:00.000Z",
+      approvedBy: "requester",
+      authorizationId: "requester-approved-common-fictional-wave-2-residual",
+      maximumProviderProjects: 13,
+      previewSha256: preview.previewSha256
+    },
+    createdAt: "2026-08-04T21:01:00.000Z",
+    driftPacket,
+    sourceLedger
+  });
+  assert.equal(residualLedger.jobs.length, 13);
+  assert.equal(residualLedger.jobs.every(({ providerReference, status }) =>
+    providerReference === null && status === "queued"), true);
+  assert.deepEqual(validateDiscoveryLedger(residualLedger), residualLedger);
+});
+
+test("binds residual continuation answers to the new residual preview", () => {
+  const { driftPacket, sourceLedger } = createScenarioResidualFixture();
+  const preview = buildScenarioWaveResidualPreview({ driftPacket, sourceLedger });
+  let ledger = createScenarioWaveResidualLedger({
+    authorization: {
+      approvedAt: "2026-08-04T21:00:00.000Z",
+      approvedBy: "requester",
+      authorizationId: "requester-approved-scenario-wave-1-residual",
+      maximumProviderProjects: 14,
+      previewSha256: preview.previewSha256
+    },
+    createdAt: "2026-08-04T21:01:00.000Z",
+    driftPacket,
+    sourceLedger
+  });
+  const leased = leaseNextDiscoveryJob(ledger, {
+    leasedAt: "2026-08-04T21:02:00.000Z",
+    workerId: "scenario-residual-runner"
+  });
+  ledger = beginDiscoveryDispatch(leased.ledger, {
+    dispatchedAt: "2026-08-04T21:02:01.000Z",
+    jobId: leased.job.jobId,
+    leaseToken: leased.job.lease.leaseToken,
+    workerId: "scenario-residual-runner"
+  });
+  const providerReference = "opencounter:project:2999998";
+  const questions = leased.job.scenario.answerRules.map(({ questionId }) =>
+    createSyntheticQuestion(questionId));
+  const checkpointSha256 = createGuidanceCheckpointSha256(
+    providerReference,
+    questions
+  );
+  ledger = recordDiscoveryResult(ledger, {
+    jobId: leased.job.jobId,
+    leaseToken: leased.job.lease.leaseToken,
+    observedAt: "2026-08-04T21:02:02.000Z",
+    result: {
+      checkpoint: {
+        checkpointSha256,
+        expiresAt: "2026-08-05T21:02:02.000Z",
+        questions,
+        schemaVersion: 1
+      },
+      providerReference,
+      schemaVersion: 1,
+      source: "opencounter",
+      status: "needs_requester_input"
+    },
+    workerId: "scenario-residual-runner"
+  });
+  const checkpointed = ledger.jobs.find(({ jobId }) => jobId === leased.job.jobId);
+  const answers = checkpointed.scenario.answerRules.map(({ questionId, value }) => ({
+    questionId,
+    value
+  }));
+  const basis = {
+    kind: "scenario_fixture",
+    previewSha256: preview.previewSha256,
+    scenarioId: checkpointed.scenario.scenarioId,
+    scenarioVersion: checkpointed.scenario.scenarioVersion
+  };
+
+  assert.throws(() => queueDiscoveryAnswers(ledger, {
+    actorId: "coordinator",
+    answerBasis: {
+      ...basis,
+      previewSha256: checkpointed.scenario.previewSha256
+    },
+    answers,
+    checkpointSha256,
+    jobId: checkpointed.jobId,
+    queuedAt: "2026-08-04T21:02:03.000Z"
+  }), /answer_basis/i);
+  ledger = queueDiscoveryAnswers(ledger, {
+    actorId: "coordinator",
+    answerBasis: basis,
+    answers,
+    checkpointSha256,
+    jobId: checkpointed.jobId,
+    queuedAt: "2026-08-04T21:02:03.000Z"
+  });
+
+  assert.equal(ledger.jobs.find(({ jobId }) => jobId === checkpointed.jobId)
+    .nextAction.answerBasis.previewSha256, preview.previewSha256);
+  assert.deepEqual(validateDiscoveryLedger(ledger), ledger);
+});
+
+test("previews zero-project adjudication only after the residual is verified", () => {
+  const { driftPacket, residualLedger, sourceLedger } =
+    createCompletedScenarioResidualFixture();
+  const sourceBefore = structuredClone(sourceLedger);
+  const residualBefore = structuredClone(residualLedger);
+  const first = buildScenarioWaveAdjudicationPreview({
+    driftPacket,
+    residualLedger,
+    sourceLedger
+  });
+  const second = buildScenarioWaveAdjudicationPreview({
+    driftPacket,
+    residualLedger,
+    sourceLedger
+  });
+
+  assert.deepEqual(first, second);
+  assert.deepEqual(first.requiredAuthorization, {
+    maximumProviderProjects: 0,
+    previewSha256: first.previewSha256,
+    required: true
+  });
+  assert.equal(first.authorizedOutcome, "scenario_wave_1_complete");
+  assert.equal(first.coverageMetric, "first_pass_provider_question_id_coverage");
+  assert.deepEqual(first.excludedClaims, ["answer_branch_complete"]);
+  assert.equal(first.logicalScenarioCount, 20);
+  assert.equal(first.dispositions.length, 1);
+  assert.deepEqual(first.dispositions[0], {
+    acceptedBaseZoningCode: "SF-20",
+    catalogEntryId: "accessory_uses.drive_box",
+    disposition: "accept_verified_terminal_result_in_observed_context",
+    expectedBaseZoningCode: "SF-2",
+    officialEvidenceRef: "city-cagis-feature-333",
+    officialEvidenceSha256: digest("city-cagis-feature-333-sf-20"),
+    providerReference: sourceLedger.jobs[5].providerReference,
+    providerTerminalResultSha256:
+      driftPacket.drifts[0].providerTerminalResultSha256,
+    providerVerificationSha256:
+      driftPacket.drifts[0].providerVerificationSha256,
+    scenarioId: "drive-box-screened-outside-floodplain",
+    sourceJobId: sourceLedger.jobs[5].jobId
+  });
+  assert.equal(first.limitations.some((value) => /SF-2/.test(value)), true);
+  assert.equal(first.source.residualLedgerSnapshotSha256.length, 64);
+  assert.deepEqual(sourceLedger, sourceBefore);
+  assert.deepEqual(residualLedger, residualBefore);
+
+  const stateDirectory = mkdtempSync(path.join(
+    tmpdir(),
+    "opencounter-scenario-adjudication-test-"
+  ));
+  try {
+    const store = createScenarioWaveResidualArtifactStore({ stateDirectory });
+    const stored = store.writeAdjudicationPreview(first, {
+      driftPacket,
+      residualLedger,
+      sourceLedger
+    });
+    assert.equal(statSync(stored.path).mode & 0o777, 0o600);
+    assert.deepEqual(store.readAdjudicationPreview(first.previewSha256, {
+      driftPacket,
+      residualLedger,
+      sourceLedger
+    }).artifact, first);
+  } finally {
+    rmSync(stateDirectory, { force: true, recursive: true });
+  }
+
+  const incompleteResidual = structuredClone(residualLedger);
+  incompleteResidual.jobs[0].status = "needs_input";
+  assert.throws(() => buildScenarioWaveAdjudicationPreview({
+    driftPacket,
+    residualLedger: incompleteResidual,
+    sourceLedger
+  }), /residual.*complete|verification|ledger/i);
+});
+
+test("resolves only the exact approved zero-project adjudication", () => {
+  const { driftPacket, residualLedger, sourceLedger } =
+    createCompletedScenarioResidualFixture();
+  const preview = buildScenarioWaveAdjudicationPreview({
+    driftPacket,
+    residualLedger,
+    sourceLedger
+  });
+  const authorization = {
+    approvedAt: "2026-08-04T22:00:00.000Z",
+    approvedBy: "requester",
+    authorizationId: "requester-approved-sf20-adjudication",
+    maximumProviderProjects: 0,
+    previewSha256: preview.previewSha256
+  };
+  const inputs = {
+    authorization,
+    driftPacket,
+    preview,
+    residualLedger,
+    resolvedAt: "2026-08-04T22:01:00.000Z",
+    sourceLedger
+  };
+  const first = resolveScenarioWaveAdjudication(inputs);
+  const second = resolveScenarioWaveAdjudication(inputs);
+
+  assert.deepEqual(first, second);
+  assert.equal(first.status, "resolved");
+  assert.equal(first.authorization.maximumProviderProjects, 0);
+  assert.equal(first.authorization.previewSha256, preview.previewSha256);
+  assert.equal(first.completionClaim.kind, "scenario_wave_1_complete");
+  assert.equal(first.completionClaim.logicalScenarioCount, 20);
+  assert.equal(first.completionClaim.coverageMetric,
+    "first_pass_provider_question_id_coverage");
+  assert.deepEqual(first.completionClaim.excludedClaims,
+    ["answer_branch_complete"]);
+  assert.match(first.adjudicationId, /^ocswa_[0-9a-f]{64}$/);
+  assert.match(first.completionClaim.claimId, /^ocswc_[0-9a-f]{64}$/);
+
+  const stateDirectory = mkdtempSync(path.join(
+    tmpdir(),
+    "opencounter-scenario-adjudication-resolution-test-"
+  ));
+  try {
+    const store = createScenarioWaveResidualArtifactStore({ stateDirectory });
+    const stored = store.writeAdjudicationResolution(first, inputs);
+    assert.equal(statSync(stored.path).mode & 0o777, 0o600);
+    assert.deepEqual(store.readAdjudicationResolution(
+      first.adjudicationSha256,
+      inputs
+    ).artifact, first);
+  } finally {
+    rmSync(stateDirectory, { force: true, recursive: true });
+  }
+
+  assert.throws(() => resolveScenarioWaveAdjudication({
+    ...inputs,
+    authorization: { ...authorization, maximumProviderProjects: 1 }
+  }), /authorization/i);
+  assert.throws(() => resolveScenarioWaveAdjudication({
+    ...inputs,
+    authorization: { ...authorization, previewSha256: digest("wrong-preview") }
+  }), /authorization/i);
 });
 
 test("queues one checkpoint containing location and approved scenario answers", () => {
@@ -517,6 +1148,166 @@ function createScenarioFixtures(value) {
     ...siteFacts,
     sourceLedgers
   };
+}
+
+function createScenarioResidualFixture({
+  completedJobCount = 6,
+  definitionValue = definition,
+  driftedJobIndex = 5
+} = {}) {
+  const { freeze, siteFactEvidence, siteFactEvidenceArtifacts, sourceLedgers } =
+    createScenarioFixtures(definitionValue);
+  const preview = buildScenarioBranchWavePreview({
+    catalog,
+    definition: definitionValue,
+    freeze,
+    siteFactEvidence,
+    siteFactEvidenceArtifacts,
+    sourceLedgers
+  });
+  let sourceLedger = createScenarioBranchLedger({
+    authorization: {
+      approvedAt: "2026-08-04T20:05:00.000Z",
+      approvedBy: "requester",
+      authorizationId: definitionValue.campaignId
+        === "cincinnati-zoning-common-fictional-branch-wave-2"
+        ? "requester-approved-common-fictional-wave-2"
+        : "requester-approved-scenario-wave-1",
+      maximumProviderProjects: 20,
+      previewSha256: preview.previewSha256
+    },
+    catalog,
+    createdAt: "2026-08-04T20:10:00.000Z",
+    definition: definitionValue,
+    freeze,
+    siteFactEvidence,
+    siteFactEvidenceArtifacts,
+    sourceLedgers
+  });
+  for (let index = 0; index < completedJobCount; index += 1) {
+    const leasedAt = new Date(Date.parse("2026-08-04T20:11:00.000Z")
+      + index * 4_000).toISOString();
+    const dispatchedAt = new Date(Date.parse(leasedAt) + 1_000).toISOString();
+    const observedAt = new Date(Date.parse(leasedAt) + 2_000).toISOString();
+    const verifiedAt = new Date(Date.parse(leasedAt) + 3_000).toISOString();
+    const leased = leaseNextDiscoveryJob(sourceLedger, {
+      leasedAt,
+      workerId: "scenario-source-runner"
+    });
+    sourceLedger = beginDiscoveryDispatch(leased.ledger, {
+      dispatchedAt,
+      jobId: leased.job.jobId,
+      leaseToken: leased.job.lease.leaseToken,
+      workerId: "scenario-source-runner"
+    });
+    const providerReference = `opencounter:project:${2_999_900 + index}`;
+    const zoningCode = index === driftedJobIndex
+      ? "SF-20"
+      : leased.job.locationFixture.expectedBaseZoningCode;
+    const result = {
+      providerReference,
+      result: {
+        classification: "Permitted",
+        landUseCode: leased.job.catalogEntryId,
+        zoningDistrict: `Synthetic zoning (${zoningCode})`
+      },
+      schemaVersion: 1,
+      source: "opencounter",
+      status: "completed"
+    };
+    sourceLedger = recordDiscoveryResult(sourceLedger, {
+      jobId: leased.job.jobId,
+      leaseToken: leased.job.lease.leaseToken,
+      observedAt,
+      result,
+      workerId: "scenario-source-runner"
+    });
+    sourceLedger = recordDiscoveryVerification(sourceLedger, {
+      actorId: "validator",
+      jobId: leased.job.jobId,
+      observedAt: verifiedAt,
+      result
+    });
+  }
+  const driftedJob = sourceLedger.jobs[driftedJobIndex];
+  if (driftedJobIndex === 5) {
+    assert.equal(driftedJob.scenario.scenarioId,
+      "drive-box-screened-outside-floodplain");
+  }
+  const driftPacket = buildScenarioWaveResidualDriftPacket({
+    observedAt: "2026-08-04T20:40:00.000Z",
+    officialEvidence: [{
+      evidenceRef: "city-cagis-feature-333",
+      evidenceSha256: digest("city-cagis-feature-333-sf-20"),
+      observedAt: "2026-08-04T20:39:00.000Z",
+      observedZoningCode: "SF-20",
+      parcelIntersectionMethod: "full_parcel_polygon_intersection",
+      source: "city_of_cincinnati_cagis",
+      sourceJobId: driftedJob.jobId
+    }],
+    sourceLedger
+  });
+  return { driftPacket, sourceLedger };
+}
+
+function createCompletedScenarioResidualFixture() {
+  const { driftPacket, sourceLedger } = createScenarioResidualFixture();
+  const preview = buildScenarioWaveResidualPreview({ driftPacket, sourceLedger });
+  let residualLedger = createScenarioWaveResidualLedger({
+    authorization: {
+      approvedAt: "2026-08-04T21:00:00.000Z",
+      approvedBy: "requester",
+      authorizationId: "requester-approved-scenario-wave-1-residual",
+      maximumProviderProjects: 14,
+      previewSha256: preview.previewSha256
+    },
+    createdAt: "2026-08-04T21:01:00.000Z",
+    driftPacket,
+    sourceLedger
+  });
+  for (let index = 0; index < residualLedger.jobs.length; index += 1) {
+    const leasedAt = new Date(Date.parse("2026-08-04T21:02:00.000Z")
+      + index * 4_000).toISOString();
+    const dispatchedAt = new Date(Date.parse(leasedAt) + 1_000).toISOString();
+    const observedAt = new Date(Date.parse(leasedAt) + 2_000).toISOString();
+    const verifiedAt = new Date(Date.parse(leasedAt) + 3_000).toISOString();
+    const leased = leaseNextDiscoveryJob(residualLedger, {
+      leasedAt,
+      workerId: "scenario-residual-runner"
+    });
+    residualLedger = beginDiscoveryDispatch(leased.ledger, {
+      dispatchedAt,
+      jobId: leased.job.jobId,
+      leaseToken: leased.job.lease.leaseToken,
+      workerId: "scenario-residual-runner"
+    });
+    const zoningCode = leased.job.locationFixture.expectedBaseZoningCode;
+    const result = {
+      providerReference: `opencounter:project:${3_100_000 + index}`,
+      result: {
+        classification: "Permitted",
+        landUseCode: leased.job.catalogEntryId,
+        zoningDistrict: `Synthetic zoning (${zoningCode})`
+      },
+      schemaVersion: 1,
+      source: "opencounter",
+      status: "completed"
+    };
+    residualLedger = recordDiscoveryResult(residualLedger, {
+      jobId: leased.job.jobId,
+      leaseToken: leased.job.lease.leaseToken,
+      observedAt,
+      result,
+      workerId: "scenario-residual-runner"
+    });
+    residualLedger = recordDiscoveryVerification(residualLedger, {
+      actorId: "validator",
+      jobId: leased.job.jobId,
+      observedAt: verifiedAt,
+      result
+    });
+  }
+  return { driftPacket, residualLedger, sourceLedger };
 }
 
 function createSourceLedgers(value) {

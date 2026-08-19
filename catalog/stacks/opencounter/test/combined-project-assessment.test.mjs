@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { test } from "node:test";
 
 import {
@@ -17,14 +18,28 @@ import {
   siteContext
 } from "./fixtures/preliminary-guidance-fixture.mjs";
 
+const SITE_DOMAINS = [
+  "development_envelope",
+  "existing_building",
+  "parking_access_loading_circulation",
+  "topography_flood_environment",
+  "utilities_infrastructure"
+];
+
 test("derives physical feasibility only from all required evidence domains", () => {
   const physical = physicalAssessment({
     parking_access_loading_circulation: "pass_with_constraints"
   });
   assert.equal(physical.feasibilityClassification,
     "feasible_with_constraints");
+  assert.equal(physical.schemaVersion, 2);
+  assert.ok(physical.domains.every(({ evidenceRefs }) =>
+    evidenceRefs.length > 0));
   assert.match(physical.assessmentId, /^ocpf_[0-9a-f]{64}$/);
   assert.deepEqual(validatePhysicalFeasibilityAssessment(physical), physical);
+  const legacy = toLegacyPhysicalAssessment(physical);
+  assert.equal(legacy.schemaVersion, 1);
+  assert.deepEqual(validatePhysicalFeasibilityAssessment(legacy), legacy);
 
   assert.throws(() => buildPhysicalFeasibilityAssessment({
     domains: domains().slice(0, 4),
@@ -33,6 +48,18 @@ test("derives physical feasibility only from all required evidence domains", () 
     siteContext: physicalSiteContext(),
     sourceSystem: sourceSystem()
   }), /domains/i);
+
+  const unsupported = evidence();
+  unsupported[0].domains = unsupported[0].domains.filter(
+    (domain) => domain !== "utilities_infrastructure"
+  );
+  assert.throws(() => buildPhysicalFeasibilityAssessment({
+    domains: domains(),
+    evidence: unsupported,
+    generatedAt: "2026-08-04T22:00:00.000Z",
+    siteContext: physicalSiteContext(),
+    sourceSystem: sourceSystem()
+  }), /domain.*evidence|evidence.*domain/i);
 });
 
 test("keeps legal and physical conclusions separate in one combined result", () => {
@@ -119,16 +146,11 @@ function physicalAssessment(statusOverrides = {}) {
 }
 
 function domains(statusOverrides = {}) {
-  return [
-    "development_envelope",
-    "existing_building",
-    "parking_access_loading_circulation",
-    "topography_flood_environment",
-    "utilities_infrastructure"
-  ].map((domain) => {
+  return SITE_DOMAINS.map((domain) => {
     const status = statusOverrides[domain] ?? "pass";
     return {
       domain,
+      evidenceRefs: ["site-engine:example-assessment"],
       findings: status === "pass" ? [] : [{
         code: domain === "parking_access_loading_circulation"
           ? "shared_access_review"
@@ -148,6 +170,7 @@ function domains(statusOverrides = {}) {
 function evidence() {
   return [{
     artifactSha256: "a".repeat(64),
+    domains: [...SITE_DOMAINS],
     evidenceRef: "site-engine:example-assessment",
     observedAt: "2026-08-04T21:30:00.000Z",
     source: "Pre Dev Intel site-engine test fixture"
@@ -168,4 +191,30 @@ function sourceSystem() {
     name: "Pre Dev Intel site-engine",
     version: "test-fixture-v1"
   };
+}
+
+function toLegacyPhysicalAssessment(value) {
+  const payload = structuredClone(value);
+  delete payload.assessmentId;
+  delete payload.assessmentSha256;
+  payload.schemaVersion = 1;
+  payload.domains.forEach((domain) => delete domain.evidenceRefs);
+  payload.evidence.forEach((item) => delete item.domains);
+  const assessmentSha256 = createHash("sha256")
+    .update(JSON.stringify(sortJson(payload)), "utf8")
+    .digest("hex");
+  return {
+    ...payload,
+    assessmentId: `ocpf_${assessmentSha256}`,
+    assessmentSha256
+  };
+}
+
+function sortJson(value) {
+  if (Array.isArray(value)) return value.map(sortJson);
+  if (value === null || typeof value !== "object") return value;
+  return Object.fromEntries(Object.keys(value).sort().map((key) => [
+    key,
+    sortJson(value[key])
+  ]));
 }

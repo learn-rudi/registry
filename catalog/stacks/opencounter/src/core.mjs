@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import path from "node:path";
 
+import { evaluateProjectAssessment } from "./project-assessment.mjs";
+
 const WORKFLOWS = new Set(["zoning", "business", "special_events", "residential"]);
 const OPENCOUNTER_ORIGIN = "https://opencounter.cincinnati-oh.gov";
 
@@ -21,6 +23,8 @@ export function createOpenCounterToolResponse(result) {
 export function createOpenCounterService({
   driver,
   now = () => new Date().toISOString(),
+  projectAssessmentStore,
+  questionnaireStore,
   zoningCatalog
 }) {
   if (!driver || typeof driver !== "object") throw new Error("driver is required.");
@@ -28,6 +32,34 @@ export function createOpenCounterService({
     ? null
     : indexZoningCatalog(zoningCatalog);
   return {
+    async assessProject(input) {
+      if (zoningCatalogIndex === null) {
+        throw new Error("opencounter_catalog_unavailable");
+      }
+      if (!questionnaireStore
+        || typeof questionnaireStore.read !== "function"
+        || !projectAssessmentStore
+        || typeof projectAssessmentStore.write !== "function") {
+        throw new Error("opencounter_project_assessment_unavailable");
+      }
+      const questionnaireSha256 = boundedSha256(
+        input?.questionnaireSha256,
+        "questionnaireSha256"
+      );
+      const questionnaire = questionnaireStore.read(questionnaireSha256);
+      const assessment = evaluateProjectAssessment({
+        catalog: zoningCatalogIndex.catalog,
+        input,
+        questionnaire
+      });
+      const artifact = projectAssessmentStore.write(assessment);
+      return {
+        artifact,
+        assessment,
+        schemaVersion: 1,
+        status: assessment.status
+      };
+    },
     async getZoningUseCatalog(input) {
       exactKeys(input, []);
       if (zoningCatalogIndex === null) throw new Error("opencounter_catalog_unavailable");

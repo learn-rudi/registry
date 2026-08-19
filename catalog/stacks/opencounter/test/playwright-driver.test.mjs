@@ -109,6 +109,96 @@ test("falls back from an incomplete summary to the existing location route", asy
     "https://opencounter.cincinnati-oh.gov/projects/2819849/guide/location");
 });
 
+test("reconciliation persists an expanded active checkpoint for continuation", async () => {
+  const providerReference = "opencounter:project:2819851";
+  const priorQuestion = {
+    id: "existing_use",
+    options: [{ label: "Yes", value: "Yes" }, { label: "No", value: "No" }],
+    prompt: "Does this use already exist?",
+    required: true,
+    type: "single_select"
+  };
+  const expandedQuestions = [priorQuestion, {
+    id: "new_use_above_ground_floor",
+    options: [{ label: "Yes", value: "Yes" }, { label: "No", value: "No" }],
+    prompt: "Will residential units be exclusively above the ground floor?",
+    required: true,
+    type: "single_select"
+  }];
+  const guidanceState = {
+    activeCheckpoint: {
+      checkpointSha256: createGuidanceCheckpointSha256(
+        providerReference,
+        [priorQuestion]
+      ),
+      questions: [priorQuestion]
+    },
+    requestedAddress: "1005 meta drive cincinnati oh 45237"
+  };
+  const rewrites = [];
+  let currentUrl = "about:blank";
+  const driver = createPlaywrightOpenCounterDriver({
+    artifactStore: {},
+    pageRunner: async (storageStatePromise, action) => {
+      await storageStatePromise;
+      return action({
+        async evaluate() {
+          return {
+            addressConfirmationPending: false,
+            addressValue: "1005 Meta Drive, Cincinnati, Ohio 45237",
+            questions: expandedQuestions
+          };
+        },
+        async goto(url) {
+          currentUrl = url;
+          return { status: () => 200 };
+        },
+        locator(selector) {
+          assert.equal(selector, "main h1, main h2, main h3, main h4");
+          return {
+            async count() { return 1; },
+            async allTextContents() { return ["Project Details"]; },
+            first() { return { async isVisible() { return true; } }; }
+          };
+        },
+        async waitForTimeout() {},
+        url() { return currentUrl; }
+      }, {
+        async storageState() { return { cookies: [{ name: "session" }] }; }
+      });
+    },
+    stateStore: {
+      async loadSession() {
+        return { guidanceState, storageState: { cookies: [] } };
+      },
+      async rewrite(reference, storageState, expiresAt, nextGuidanceState) {
+        rewrites.push({ expiresAt, nextGuidanceState, reference, storageState });
+      }
+    }
+  });
+
+  assert.deepEqual(await driver.reconcileGuidance({ providerReference }), {
+    providerReference,
+    questions: expandedQuestions,
+    status: "needs_requester_input"
+  });
+  assert.equal(rewrites.length, 1);
+  assert.equal(rewrites[0].reference, providerReference);
+  assert.deepEqual(rewrites[0].storageState, {
+    cookies: [{ name: "session" }]
+  });
+  assert.deepEqual(rewrites[0].nextGuidanceState, {
+    ...guidanceState,
+    activeCheckpoint: {
+      checkpointSha256: createGuidanceCheckpointSha256(
+        providerReference,
+        expandedQuestions
+      ),
+      questions: expandedQuestions
+    }
+  });
+});
+
 test("rejects a provider HTTP failure before interpreting guidance page state", async () => {
   const providerReference = "opencounter:project:2819850";
   const driver = createPlaywrightOpenCounterDriver({

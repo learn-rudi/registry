@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 
+import { addressesReferToSameCincinnatiStreet } from
+  "./address-normalization.mjs";
 import { validateMasterQuestionnaire } from
   "./discovery-master-questionnaire.mjs";
 import { validateZoningCatalog } from "./zoning-catalog.mjs";
@@ -16,7 +18,7 @@ const CLASSIFICATION_MAP = new Map([
 ]);
 const LIMITATIONS = [
   "Observed OpenCounter behavior is not a normative zoning-code determination.",
-  "The questionnaire is first-pass evidence and does not establish branch exhaustiveness.",
+  "The questionnaire is observed evidence and does not establish branch exhaustiveness.",
   "Physical feasibility, development-envelope constraints, and remaining approvals are outside this result."
 ];
 
@@ -259,26 +261,60 @@ function assessUse({
   const relevantIds = new Set(relevantQuestions.map(
     ({ internalQuestionId }) => internalQuestionId
   ));
-  const addressQuestionIds = new Set(questionnaire.questions
-    .filter(({ providerQuestionId }) =>
-      providerQuestionId === "opencounter-address")
+  const addressQuestions = questionnaire.questions.filter(
+    ({ providerQuestionId }) => providerQuestionId === "opencounter-address"
+  );
+  const addressQuestionIds = new Set(addressQuestions
     .map(({ internalQuestionId }) => internalQuestionId));
-  const rootQuestions = relevantQuestions.filter((question) =>
-    question.conditions.observedIncomingTransitions.length === 0
-    || question.conditions.observedIncomingTransitions.some((transition) =>
-      addressQuestionIds.has(transition.sourceQuestionId)
-      && transition.applicability.catalogEntryIds.includes(
-        candidateUse.catalogEntryId
-      )));
+  const addressTerminalEvidence = buildAddressTerminalPaths({
+    addressQuestions,
+    candidateUse,
+    siteContext
+  });
+  const addressTerminalPaths = addressTerminalEvidence.paths;
+  const predictedQuestionIds = new Set(addressTerminalPaths.map(
+    ({ sourceQuestionId }) => sourceQuestionId
+  ));
+  const rootQuestions = [];
+  for (const question of relevantQuestions) {
+    if (question.conditions.observedIncomingTransitions.length === 0) {
+      if (addressTerminalPaths.length === 0
+        || rootMatchesAddressTerminalContext(
+          question,
+          addressTerminalEvidence.contexts
+        )) {
+        rootQuestions.push(question);
+      }
+      continue;
+    }
+    const addressTransitions = question.conditions.observedIncomingTransitions
+      .filter((transition) =>
+        addressQuestionIds.has(transition.sourceQuestionId)
+        && addressesReferToSameCincinnatiStreet(
+          transition.answerValue,
+          siteContext.matchedAddress
+        )
+        && matchingTransitionContexts(
+          transition,
+          candidateUse.catalogEntryId,
+          siteContext
+        ).length > 0);
+    if (addressTransitions.length > 0) {
+      rootQuestions.push(question);
+      addressTransitions.forEach(({ sourceQuestionId }) =>
+        predictedQuestionIds.add(sourceQuestionId));
+    }
+  }
   const queue = [...rootQuestions].sort(compareQuestions);
   const visited = new Set();
   const nextQuestions = [];
-  const observedPaths = [];
+  const observedPaths = [...addressTerminalPaths];
   const reasons = new Set();
   while (queue.length > 0) {
     const question = queue.shift();
     if (visited.has(question.internalQuestionId)) continue;
     visited.add(question.internalQuestionId);
+    predictedQuestionIds.add(question.internalQuestionId);
     if (!contextMatches(question.applicability, siteContext)) {
       reasons.add("zoning_context_not_observed");
     }
@@ -294,15 +330,21 @@ function assessUse({
           candidateUse.catalogEntryId
         )
     );
-    const transitions = useTransitions.filter((transition) =>
-      contextMatches(transition.applicability, siteContext));
+    const transitions = useTransitions.map((transition) => ({
+      contexts: matchingTransitionContexts(
+        transition,
+        candidateUse.catalogEntryId,
+        siteContext
+      ),
+      transition
+    })).filter(({ contexts }) => contexts.length > 0);
     if (transitions.length === 0) {
       reasons.add(useTransitions.length > 0
         ? "zoning_context_not_observed"
         : "answer_branch_unobserved");
       continue;
     }
-    for (const transition of transitions) {
+    for (const { contexts, transition } of transitions) {
       if (transition.targetQuestionId !== null) {
         const target = questionsById.get(transition.targetQuestionId);
         if (target === undefined || !relevantIds.has(target.internalQuestionId)) {
@@ -314,23 +356,30 @@ function assessUse({
         queue.sort(compareQuestions);
         continue;
       }
+      const scopedEvidence = scopeTerminalTransitionEvidence(
+        transition,
+        contexts
+      );
       observedPaths.push({
         answer: {
           evidenceRefs: [...answer.evidenceRefs],
           source: answer.source,
           value: answer.value
         },
-        firstObservedAt: transition.firstObservedAt,
-        independentObservationCount: transition.independentObservationCount,
-        lastObservedAt: transition.lastObservedAt,
-        observationCount: transition.observationCount,
+        firstObservedAt: scopedEvidence.firstObservedAt,
+        independentObservationCount:
+          scopedEvidence.independentObservationCount,
+        lastObservedAt: scopedEvidence.lastObservedAt,
+        observationCount: scopedEvidence.observationCount,
         sourceQuestionId: transition.sourceQuestionId,
-        terminalClassifications: [...transition.terminalClassifications],
+        terminalClassifications: scopedEvidence.terminalClassifications,
         terminalStatus: transition.terminalStatus
       });
     }
   }
-  if (rootQuestions.length === 0) reasons.add("question_entry_path_unobserved");
+  if (rootQuestions.length === 0 && observedPaths.length === 0) {
+    reasons.add("question_entry_path_unobserved");
+  }
   let preliminaryClassification = "insufficient_information";
   if (nextQuestions.length === 0 && reasons.size === 0) {
     const classifications = new Set(observedPaths.flatMap(
@@ -353,10 +402,121 @@ function assessUse({
     categoryPath: [...entry.categoryPath],
     observedPaths: observedPaths.sort(compareObservedPaths),
     preliminaryClassification,
+    predictedQuestionIds: [...predictedQuestionIds].sort(
+      (left, right) => left.localeCompare(right)
+    ),
     providerLabel: entry.providerLabel,
     reasons: [...reasons].sort((left, right) => left.localeCompare(right)),
     remainingQuestions: nextQuestions.sort(compareQuestions)
   };
+}
+
+function buildAddressTerminalPaths({
+  addressQuestions,
+  candidateUse,
+  siteContext
+}) {
+  const evidenceRefs = siteContext.evidence.map(({ evidenceRef }) => evidenceRef);
+  const matchedContexts = [];
+  const paths = [];
+  for (const question of addressQuestions) {
+    for (const transition of question.outcomes.observedTransitions) {
+      if (transition.terminalStatus === null
+        || !Array.isArray(transition.contextEvidence)
+        || !addressesReferToSameCincinnatiStreet(
+          transition.answerValue,
+          siteContext.matchedAddress
+        )) {
+        continue;
+      }
+      const contexts = matchingTransitionContexts(
+        transition,
+        candidateUse.catalogEntryId,
+        siteContext
+      );
+      if (contexts.length === 0) continue;
+      const scopedEvidence = scopeTerminalTransitionEvidence(
+        transition,
+        contexts
+      );
+      matchedContexts.push(...contexts);
+      paths.push({
+        answer: {
+          evidenceRefs: [...evidenceRefs],
+          source: "site_evidence",
+          value: transition.answerValue
+        },
+        firstObservedAt: scopedEvidence.firstObservedAt,
+        independentObservationCount:
+          scopedEvidence.independentObservationCount,
+        lastObservedAt: scopedEvidence.lastObservedAt,
+        observationCount: scopedEvidence.observationCount,
+        sourceQuestionId: transition.sourceQuestionId,
+        terminalClassifications: scopedEvidence.terminalClassifications,
+        terminalStatus: transition.terminalStatus
+      });
+    }
+  }
+  return {
+    contexts: matchedContexts,
+    paths: paths.sort(compareObservedPaths)
+  };
+}
+
+function rootMatchesAddressTerminalContext(question, contexts) {
+  return contexts.some(({ applicability }) =>
+    applicability.locationFixtureIds.some((fixtureId) =>
+      question.applicability.locationFixtureIds.includes(fixtureId))
+    && applicability.scenarioIds.some((scenarioId) =>
+      question.applicability.scenarioIds.includes(scenarioId)));
+}
+
+function matchingTransitionContexts(transition, catalogEntryId, siteContext) {
+  if (!Array.isArray(transition.contextEvidence)) {
+    return transition.applicability.catalogEntryIds.includes(catalogEntryId)
+      && contextMatches(transition.applicability, siteContext)
+      ? [null]
+      : [];
+  }
+  return transition.contextEvidence.filter(({ applicability }) =>
+    applicability.catalogEntryIds.includes(catalogEntryId)
+    && contextMatches(applicability, siteContext));
+}
+
+function scopeTerminalTransitionEvidence(transition, contexts) {
+  if (contexts.length === 1 && contexts[0] === null) {
+    return {
+      firstObservedAt: transition.firstObservedAt,
+      independentObservationCount: transition.independentObservationCount,
+      lastObservedAt: transition.lastObservedAt,
+      observationCount: transition.observationCount,
+      terminalClassifications: [...transition.terminalClassifications]
+    };
+  }
+  return {
+    firstObservedAt: contexts.reduce((earliest, context) =>
+      context.firstObservedAt.localeCompare(earliest) < 0
+        ? context.firstObservedAt
+        : earliest, contexts[0].firstObservedAt),
+    independentObservationCount: contexts.reduce((sum, context) =>
+      sum + context.independentObservationCount, 0),
+    lastObservedAt: contexts.reduce((latest, context) =>
+      context.lastObservedAt.localeCompare(latest) > 0
+        ? context.lastObservedAt
+        : latest, contexts[0].lastObservedAt),
+    observationCount: contexts.reduce((sum, context) =>
+      sum + context.observationCount, 0),
+    terminalClassifications: [...new Set(contexts.map(
+      ({ terminalClassification }) => terminalClassification
+    ))].sort(compareTerminalClassifications)
+  };
+}
+
+function compareTerminalClassifications(left, right) {
+  if (left === right) return 0;
+  if (left === null) return -1;
+  if (right === null) return 1;
+  return left.localeCompare(right);
 }
 
 function mergeNextQuestions(assessments) {

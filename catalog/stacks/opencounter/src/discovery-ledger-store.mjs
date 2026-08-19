@@ -18,12 +18,14 @@ import { buildObservedQuestionGraph } from "./discovery-question-graph.mjs";
 import {
   beginDiscoveryDispatch,
   leaseDiscoveryJob,
+  leaseDiscoveryStartJob,
   leaseNextDiscoveryJob,
   queueDiscoveryAnswers,
   queueDiscoveryLocationAnswer,
   queueDiscoveryPreEffectRetry,
   queueDiscoveryReconciliation,
   queueDiscoveryReconciliationRetry,
+  recordDiscoveryAuthorizedCompletionVerification,
   recordDiscoveryFailure,
   recordLateDiscoveryResult,
   recordDiscoveryResult,
@@ -85,6 +87,20 @@ export function createDiscoveryLedgerStore({ stateDirectory }) {
         };
       });
     },
+    async leaseStartJob(input) {
+      return withLedgerLock(directory, input.ledgerId, () => {
+        const ledger = readLedgerFile(
+          resolveLedgerPath(directory, input.ledgerId),
+          input.ledgerId
+        );
+        const result = leaseDiscoveryStartJob(ledger, input);
+        writeLedgerFile(directory, prepareLedger(result.ledger));
+        return {
+          job: result.job,
+          ledger: prepareLedger(result.ledger)
+        };
+      });
+    },
     async queueAnswers(input) {
       return updateLedger(directory, input.ledgerId, (ledger) =>
         queueDiscoveryAnswers(ledger, input));
@@ -122,6 +138,10 @@ export function createDiscoveryLedgerStore({ stateDirectory }) {
     async recordFailure(input) {
       return updateLedger(directory, input.ledgerId, (ledger) =>
         recordDiscoveryFailure(ledger, input));
+    },
+    async recordAuthorizedCompletionVerification(input) {
+      return updateLedger(directory, input.ledgerId, (ledger) =>
+        recordDiscoveryAuthorizedCompletionVerification(ledger, input));
     },
     async recordLateResult(input) {
       return updateLedger(directory, input.ledgerId, (ledger) =>

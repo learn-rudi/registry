@@ -161,7 +161,13 @@ export function validateDiscoveryFailure(value) {
   };
 }
 
-export function validateAnswerBasis(value, job, answers, queuedAt) {
+export function validateAnswerBasis(
+  value,
+  job,
+  answers,
+  queuedAt,
+  authorizedPreviewSha256 = job.scenario.previewSha256
+) {
   if (value === undefined) {
     throw new Error("opencounter_discovery_answer_basis_required");
   }
@@ -193,7 +199,7 @@ export function validateAnswerBasis(value, job, answers, queuedAt) {
       || basis.scenarioVersion !== job.scenario.scenarioVersion
       || (previewBound && (
         !SHA256_PATTERN.test(basis.previewSha256)
-        || basis.previewSha256 !== job.scenario.previewSha256
+        || basis.previewSha256 !== authorizedPreviewSha256
       ))) {
       throw new Error("opencounter_discovery_answer_basis_invalid");
     }
@@ -235,7 +241,7 @@ export function validateAnswerBasis(value, job, answers, queuedAt) {
       || basis.scenarioVersion !== job.scenario.scenarioVersion
       || (previewBound && (
         !SHA256_PATTERN.test(basis.previewSha256)
-        || basis.previewSha256 !== job.scenario.previewSha256
+        || basis.previewSha256 !== authorizedPreviewSha256
       ))) {
       throw new Error("opencounter_discovery_answer_basis_invalid");
     }

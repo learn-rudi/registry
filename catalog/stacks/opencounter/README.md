@@ -44,6 +44,14 @@ absolute local state directory; otherwise the stack uses
 `~/.rudi/state/opencounter`. Do not print or commit the key. Service Desk never
 receives the key or decrypted browser state.
 
+Provider-free project assessment reads exact questionnaire artifacts from
+`$OPENCOUNTER_QUESTIONNAIRE_STATE_DIRECTORY/master-questionnaires`, defaulting
+to `~/.rudi/state/opencounter-discovery/master-questionnaires`. It writes
+idempotency-bound, content-addressed results beneath
+`OPENCOUNTER_ASSESSMENT_STATE_DIRECTORY`, defaulting to
+`~/.rudi/state/opencounter-assessment`. All directories must be absolute;
+private directories are mode `0700` and artifacts are mode `0600`.
+
 Exported PDFs are written beneath `$RUDI_HOME/artifacts/opencounter` when
 `RUDI_HOME` is configured, otherwise beneath
 `~/.rudi/artifacts/opencounter`. The stack verifies the `%PDF-` signature,
@@ -54,6 +62,7 @@ metadata rather than PDF bytes over MCP.
 The exact MCP surface is:
 
 ```text
+opencounter_assess_project
 opencounter_get_zoning_use_catalog
 opencounter_start_zoning_guidance
 opencounter_reconcile_zoning_start
@@ -63,6 +72,46 @@ opencounter_export_guidance
 opencounter_get_guidance_result
 opencounter_reconcile_guidance
 ```
+
+## Provider-free project assessment
+
+`opencounter_assess_project` is the front-door decision action for one
+Cincinnati address and project idea. It is additive to the existing browser
+tools and never calls their driver. The caller supplies an exact questionnaire
+SHA-256, a stable assessment key and observation time, a structured site
+resolution, any requester answers, an optional confirmed catalog entry, and an
+optional schema-v2 physical-feasibility artifact.
+
+The operator workflow resolves the site through `stack:dwellow-mcp` before the
+assessment call. `lookup_location` establishes the canonical address, parcel,
+rollup, and base zoning; multiple plausible rollups remain an explicit blocker.
+`get_zoning_rules` establishes provenance for the exact returned code. When the
+request includes physical feasibility, the operator may additionally collect
+boundary, frontage, conditions, and site-envelope evidence, but must stop at
+the envelope boundary unless the requester explicitly continues farther.
+OpenCounter does not silently invoke or impersonate the Dwellow stack.
+
+Project-idea mapping is deliberately conservative. An exact
+`confirmedCatalogEntryId` is treated as requester-confirmed. Otherwise a
+bounded lexical mapper returns at most five deterministic `agent_candidate`
+records and the status `needs_use_confirmation`; it never chooses one on the
+requester's behalf. Once site and use are resolved, the action reuses the
+observed questionnaire and asks only reachable unanswered questions.
+
+Every result preserves the legal assessment, physical-evidence status, site
+issues, next actions, questionnaire/catalog evidence, and provider-escalation
+state. A physical artifact must cover all five evidence domains and match the
+exact resolved parcel/rollup before a combined result is possible. An
+unobserved answer branch or zoning context produces a digest-bound preview for
+`opencounter_start_zoning_guidance`, but both the assessment and preview say
+`authorizationGranted: false`. A separate exact requester authorization is
+required before any provider project may be created.
+
+Writes are content-addressed and bound to `assessmentKey`. Repeating the same
+key and exact input reuses the same artifact; changing input under that key
+fails with `opencounter_project_assessment_idempotency_conflict`. The action
+does not place private questionnaires, parcel facts, or assessment artifacts in
+this public package.
 
 `opencounter_start_zoning_guidance` is the admitted Service Desk Zoning Check
 start capability. It accepts only the fixed Cincinnati jurisdiction, packaged
@@ -178,6 +227,85 @@ normalized-signature, answer-value, or transition coverage, cannot establish
 answer-branch completeness, and must never produce or imply
 `answer_branch_complete`.
 
+Schema-v6 campaign identity is a closed set. It currently admits the original
+`cincinnati-zoning-scenario-branch-wave-1` campaign and the separately
+previewed `cincinnati-zoning-common-fictional-branch-wave-2` campaign. Adding a
+new campaign still requires an explicit schema change; a matching 20-job shape
+does not admit an arbitrary campaign ID.
+
+#### Scenario-wave residuals
+
+The schema-v4 residual campaign is an exact precedent only for the 126-job
+zoning portfolio. `src/discovery-residual-campaign.mjs` selects its source jobs
+by persisted `start_dispatch_started` intent, while
+`src/discovery-ledger-schema.mjs` requires exactly 20 jobs for schema v6 and
+hard-codes the 126-job partition arithmetic for schema v4. It is not a
+Scenario-Wave residual contract. A Scenario-Wave residual must therefore use a
+distinct, closed and versioned preview and ledger type; it must not coerce the
+20-job schema-v6 ledger through the schema-v4 path.
+
+Residual planning preserves and durably fences the original schema-v6 ledger
+and its exact post-start immutable snapshot. It partitions all 20 parent jobs,
+without omission or overlap, from persisted `start_dispatch_started` evidence:
+consumed jobs are excluded and never replanned, and only never-started jobs
+with no provider reference, pending mutation, or ambiguous provider effect are
+eligible. Each selected job receives a new job ID and reset execution envelope,
+and the residual receives a new ledger ID. In the current six-consumed,
+14-remaining case, the 14 unaffected jobs may inherit byte-for-byte their
+validated `locationFixture`, `providerInputSha256`, scenario source
+observation, answer rules and declarations, and site- or mixed-fact evidence.
+They are not regenerated merely because a different consumed job drifted, but
+the preview must prove none shares the affected stable location identity. A
+corrected fixture must never be attached to old provider-question provenance;
+any corrective drive-box project requires a newly compatible source
+observation/freeze and evidence.
+
+The residual preview and identity transitively bind the catalog and tenant;
+parent `ledgerId`, planned `ledgerSha256`, and full immutable
+`ledgerSnapshotSha256`; original preview and authorization identity; exact,
+disjoint and complete consumed/remaining job and scenario manifests; a durable
+parent-fence record; exact inherited scenario and provenance digests; and the
+residual project count and maximum concurrency. They also bind a
+content-addressed drift packet naming the affected job, scenario, catalog entry
+and fixture digest, expected code, official full-parcel City/CAGIS evidence
+digest, and provider terminal/read-back digest, plus a content-addressed
+adjudication record. Adjudication may remain pending, but pending adjudication
+blocks full-wave completion. Snapshot mismatch, unavailable ancestry, an
+unfenced source, provenance mismatch, catalog or tenant drift, a partition
+mismatch, or provider-effect ambiguity fails closed.
+
+Changed work requires new requester authorization. Its authorization ID must
+be distinct, `maximumProviderProjects` must equal the residual count (14 in the
+current partition), and it must bind the exact new `previewSha256`; the original
+approval does not authorize the residual. Residual completion requires every
+residual job to be completed, same-project authoritative read-back verified,
+no incomplete, failed, indeterminate, or `needs_input` state, and no zoning
+drift among the residual jobs. That is only residual completion:
+`scenario_wave_1_complete` must not be emitted while the consumed SF-2/SF-20
+mismatch is pending. Full Wave 1 requires one valid verified disposition for
+each of the 20 logical scenarios and explicit adjudication or a separately
+authorized corrective replacement for the drifted scenario. Even then, the
+claim remains first-pass provider-question-ID coverage, never
+`answer_branch_complete`.
+
+Once the residual is fully verified, the residual module can generate a
+content-addressed, zero-provider-project adjudication preview. The preview
+binds both ledger snapshots, both authorizations, the drift packet and pending
+adjudication IDs, official City evidence, and the provider terminal/read-back
+digests. Its proposed disposition accepts the drive-box result only in the
+officially verified SF-20 context and explicitly states that it supplies no
+SF-2 drive-box disposition. Generating the preview does not resolve the drift:
+requester approval must bind its exact `previewSha256` before any full-wave
+completion record can be issued.
+
+`src/discovery-scenario-wave.mjs` supplies the relevant inheritance boundary by
+binding each scenario to its source snapshot and fixture, exact site-fact
+evidence, and preview-bound authorization.
+`src/discovery-observation-portfolio.mjs` binds ledger identity and the full
+snapshot, and `src/discovery-zoning-context.mjs` fences new starts on a verified
+zoning mismatch. A residual implementation must preserve those bindings rather
+than weakening them.
+
 The strongest defensible later empirical status is
 `branch_frontier_stable_for_manifest(M)` as of a fixed observation epoch. `M`
 is a private, content-addressed, requester-approved manifest that finitely
@@ -234,14 +362,25 @@ that exact `previewSha256` and volume.
 
 `src/discovery-master-questionnaire.mjs` derives a private,
 content-addressed questionnaire from an exact observation freeze and every
-retained source-ledger snapshot. Schema v3 groups normalized signatures into
-provider-question families, marks family coverage as observed universal or
-observed conditional, and preserves prompt/options, use and zoning
-applicability, incoming conditions, outgoing answer transitions, terminal
-classifications, evidence epochs, observation counts, and tenant/catalog
-identity. Every transition carries the exact catalog entries, zones, overlays,
-fixtures, and scenarios that produced it. Missing transitions remain unknown;
-the artifact status is `first_pass_observed_non_exhaustive`.
+retained source-ledger snapshot. Schema v3 preserves the original one-per-use
+baseline. Schema v5 can additionally bind verified scenario and adaptive
+zoning ledgers, the finite-manifest stability assessment, and the deterministic
+site-issue snapshot without changing the baseline freeze. It reports baseline,
+supplemental, and total observation counts separately and remains explicitly
+non-exhaustive.
+
+Normalized signatures are grouped into provider-question families and marked
+observed universal or observed conditional. The library preserves
+prompt/options, use and zoning applicability, incoming conditions, outgoing
+answer transitions, terminal classifications, evidence epochs, observation
+counts, and tenant/catalog identity. Schema v5 also preserves context evidence
+for every transition as exact use, zone, overlay, fixture, and scenario tuples;
+terminal classifications therefore cannot leak across unrelated uses or zoning
+contexts. Repeated sweeps receive evidence identities derived from the immutable
+ledger snapshot and source job identity, so repeated provider projects count as
+independent observations without rewriting their source records. Missing
+transitions remain unknown; the extended artifact status is
+`observed_branch_and_zoning_stability_verified_non_exhaustive`.
 
 `src/preliminary-guidance.mjs` is a pure, provider-free service-agent decision
 boundary. It accepts the project idea and address, separately resolved
@@ -249,35 +388,51 @@ parcel/zoning evidence, requester-confirmed catalog-use candidates, and
 provenance-bearing answers. It stages unresolved work locally, asks only
 observed questions reachable for the selected use, and returns a preliminary
 classification only when an exact use-scoped answer transition matches the
-resolved zoning context. A missing branch, conflicting outcome, unobserved
-zone/overlay, unclassified terminal, or stale catalog/questionnaire binding
-fails to `insufficient_information`. Its OpenCounter confirmation field is a
-recommendation only and always says `authorizationGranted: false`; the module
-has no provider or City-staff call capability.
+resolved zoning context. For a context-granular address-only terminal path, the
+already-resolved local site evidence can satisfy the provider address transition
+without asking the requester to repeat the address. A missing branch,
+conflicting outcome, unobserved zone/overlay, unclassified terminal, or stale
+catalog/questionnaire binding fails to `insufficient_information`. Its
+OpenCounter confirmation field is a recommendation only and always says
+`authorizationGranted: false`; the module has no provider or City-staff call
+capability.
 
-The flow deliberately does not perform NLP, geocoding, parcel resolution,
-normative zoning-code evaluation, or physical-feasibility analysis. Those are
-separate evidence producers and later phases. A preliminary result must not be
-presented as a City determination.
+The preliminary evaluator deliberately does not perform NLP, geocoding, parcel
+resolution, normative zoning-code evaluation, or physical-feasibility
+analysis. The public project-assessment wrapper adds only bounded lexical
+catalog candidates and validated orchestration. Dwellow/site-engine remains
+the parcel, zoning, frontage, envelope, and physical-evidence producer. A
+preliminary result must not be presented as a City determination.
 
 `src/combined-project-assessment.mjs` defines the next boundary without copying
 a site engine into this stack. A physical assessment must cover exactly five
 evidence domains: development envelope; parking/access/loading/circulation;
 utilities/infrastructure; topography/flood/environment; and existing-building
-constraints. Findings cite content-addressed evidence and may include measured
-values. Missing domain evidence yields `insufficient_information`; a different
-parcel or rollup is rejected. The combined artifact always retains the legal
-and physical classifications separately, then derives only a bounded
+constraints. Schema v2 requires every domain—including a clean pass—to cite at
+least one content-addressed evidence artifact that explicitly declares support
+for that domain. Findings may include measured values and cannot cite evidence
+outside their domain binding. Legacy schema-v1 artifacts remain readable, but
+new assessments cannot derive feasibility from an unbound generic assertion.
+Missing or unknown domain evidence yields `insufficient_information`; a
+different parcel or rollup is rejected. The combined artifact always retains
+the legal and physical classifications separately, then derives only a bounded
 “potentially viable,” conditional, conflict, or insufficient conclusion.
 
 `src/guidance-validation-maintenance.mjs` closes the provider-free maintenance
 loop. Known-project cases bind exact provider read-back evidence to one
 preliminary decision and report question true/false positives/negatives,
-precision, recall, and classification accuracy with raw denominators. The same
-module compares two validated questionnaire versions, reports added, removed,
-and changed canonical questions, and derives the exact affected catalog-entry
-set. Tenant or catalog drift recommends a full 126-entry refresh; evidence
-changes may recommend a targeted rerun. Every drift report says
+precision, recall, and classification accuracy with raw denominators. The
+decision artifact retains every traversed question, including a locally
+resolved provider-address step. When address and project questions were
+co-observed in one provider checkpoint, the project questions remain in the
+predicted path; address-only evidence cannot suppress them. Validation reports
+can be retained privately as content-addressed mode-`0600` artifacts with exact
+read-back verification.
+
+The same module compares two validated questionnaire versions, reports added,
+removed, and changed canonical questions, and derives the exact affected
+catalog-entry set. Tenant or catalog drift recommends a full 126-entry refresh;
+evidence changes may recommend a targeted rerun. Every drift report says
 `authorizationGranted: false` and cannot dispatch those reruns.
 
 `src/discovery-adaptive-zoning.mjs` derives a separate, address-free sampling
@@ -345,9 +500,13 @@ src/discovery-ledger.mjs         # lease and enforce legal job transitions
 src/discovery-controller.mjs     # enforce dispatch, read-back and stop sequencing
 src/discovery-dispatch.mjs       # map persisted intent to one exact stack tool
 src/discovery-ledger-store.mjs   # restrictive atomic JSON persistence and locking
+src/discovery-site-issue-journal.mjs # immutable classified incident events and snapshots
 src/discovery-question-graph.mjs # derive normalized question nodes and answer edges
 src/discovery-master-questionnaire.mjs # derive versioned observed-only intake library
 src/preliminary-guidance.mjs    # evaluate a provider-free preliminary decision flow
+src/project-assessment.mjs      # validate and coordinate the public address-plus-idea assessment
+src/project-assessment-policy.mjs # derive deterministic mappings, issues, actions, and escalation previews
+src/project-assessment-store.mjs # persist private content-addressed and idempotency-bound assessments
 src/combined-project-assessment.mjs # combine separate legal and physical evidence
 src/guidance-validation-maintenance.mjs # score known cases and plan drift reruns
 src/discovery-adaptive-zoning.mjs # prioritize bounded cross-zone observations
@@ -365,6 +524,34 @@ The durable job states are:
 | `completed` | A terminal provider result was observed | None |
 | `indeterminate` | A provider effect may have occurred | Queue same-project reconciliation only when a provider reference exists; one fenced retry is allowed only after read-only proof that provider HTML access recovered |
 | `failed` | A known no-effect failure was observed | Operator review; one explicitly fenced pre-effect retry is allowed only after the matching provider-contract fix is verified |
+
+### Deterministic site-issue journal
+
+`src/discovery-site-issue-journal.mjs` records provider and portal problems as
+immutable, content-addressed detection, recovery, or adjudication events. The
+incident identity binds the closed category and code, ledger/job identity,
+persisted source-event key, and stage. Replaying the same persisted error is
+idempotent; separate attempts remain separate incidents. A snapshot sorts and
+folds the event set deterministically and reports counts by category, code, and
+open/recovered/adjudicated status.
+
+The taxonomy and stages are closed in source. Categories distinguish address,
+catalog, dispatch timeout or unusable response, HTTP, read-back, provider
+state, UI, unknown, and zoning-context failures. Detection and resolution are
+separate records, and a resolution must refer to exactly one prior detection
+at an equal or later timestamp. Configured controller failures use the
+persisted ledger-error identity; terminal read-back verification derives the
+matching recovery event. Issue logging never authorizes a retry or provider
+project.
+
+Journal directories are private (`0700`) and artifact files are `0600`.
+Events contain bounded classifications, identities, digests, and timestamps;
+they intentionally exclude raw provider response bodies and error messages,
+credentials, and decrypted session state. Historical
+`provider_dispatch_unusable` entries remain classified as
+`provider_dispatch_timeout_or_unusable`: the immutable ledger does not prove
+whether each old response was specifically a timeout, so later processing must
+not narrow that history by inference.
 
 Before any provider call, the worker must persist `beginDiscoveryDispatch` for
 the leased job. If its lease expires before that intent, the job can return to

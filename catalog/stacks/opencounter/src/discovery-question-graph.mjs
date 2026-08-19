@@ -135,11 +135,11 @@ export function buildObservedQuestionGraph(ledger) {
 
 function addJobEdges(edgesByKey, job, usesZoningPortfolio) {
   for (let index = 1; index < job.observations.length; index += 1) {
-    const previous = job.observations[index - 1];
     const current = job.observations[index];
     if (!Array.isArray(current.answers)) {
       throw new Error("opencounter_discovery_observation_answers_invalid");
     }
+    const previous = findAnswerSourceObservation(job, index, current);
     for (const answer of current.answers) {
       const sourceQuestion = previous.questions.find(
         (question) => question.id === answer.questionId
@@ -201,6 +201,24 @@ function addJobEdges(edgesByKey, job, usesZoningPortfolio) {
       }
     }
   }
+}
+
+function findAnswerSourceObservation(job, index, current) {
+  if (current.answers.length === 0) return job.observations[index - 1];
+  const answerPath = [
+    ...(Array.isArray(job.answerPath) ? job.answerPath : [])
+  ].reverse().find((record) =>
+    record.observedAt === current.observedAt
+    && JSON.stringify(record.answers) === JSON.stringify(current.answers));
+  if (answerPath === undefined) return job.observations[index - 1];
+  const source = job.observations.slice(0, index).findLast((observation) =>
+    observation.checkpointSha256 === answerPath.checkpointSha256
+    && Array.isArray(observation.questions)
+    && observation.questions.length > 0);
+  if (source === undefined) {
+    throw new Error("opencounter_discovery_answer_path_invalid");
+  }
+  return source;
 }
 
 function validateObservedAnswer(question, value) {
