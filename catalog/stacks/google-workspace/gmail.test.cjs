@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 const assert = require("node:assert/strict");
-const { mkdtempSync, rmSync } = require("node:fs");
+const { mkdtempSync, readFileSync, rmSync } = require("node:fs");
 const { tmpdir } = require("node:os");
 const path = require("node:path");
 const { Client } = require("@modelcontextprotocol/sdk/client/index.js");
@@ -20,9 +20,14 @@ function normalizeMimeLineEndings(value) {
 }
 
 async function main() {
+  const manifest = JSON.parse(readFileSync("manifest.json", "utf8"));
+  assert.equal(manifest.mcp.command, "node");
+  assert.deepEqual(manifest.mcp.args, ["--import", "tsx", "src/index.ts"]);
+
   const {
     buildGmailDraftMessage,
     buildGmailRawMessage,
+    normalizeGmailHeaderSearchPage,
     normalizeGmailHistoryPage,
     normalizeGmailRawMessage,
     normalizeGmailSendResult,
@@ -241,6 +246,40 @@ async function main() {
   );
 
   assert.deepEqual(
+    normalizeGmailHeaderSearchPage({
+      messages: [{
+        id: "gmail-message-header",
+        threadId: "gmail-thread-header",
+        internalDate: "1785372000000",
+        snippet: "must not cross the header-only boundary",
+        payload: {
+          body: { data: "must-not-be-returned" },
+          headers: [
+            { name: "From", value: "Client Person <client@example.com>" },
+            { name: "To", value: "Me <me@example.com>" },
+            { name: "Cc", value: "Ops <ops@example.com>" },
+            { name: "Bcc", value: "Archive <archive@example.com>" },
+            { name: "Subject", value: "must not be returned" },
+          ],
+        },
+      }],
+      nextPageToken: "next-header-page",
+    }),
+    {
+      messages: [{
+        messageId: "gmail-message-header",
+        threadId: "gmail-thread-header",
+        observedAt: "2026-07-30T00:40:00.000Z",
+        from: "Client Person <client@example.com>",
+        to: "Me <me@example.com>",
+        cc: "Ops <ops@example.com>",
+        bcc: "Archive <archive@example.com>",
+      }],
+      nextPageToken: "next-header-page",
+    }
+  );
+
+  assert.deepEqual(
     normalizeGmailRawMessage({
       id: "gmail-message-raw",
       threadId: "gmail-thread-raw",
@@ -295,8 +334,8 @@ async function testGmailToolSchemas() {
     { capabilities: {} }
   );
   const transport = new StdioClientTransport({
-    command: "npx",
-    args: ["tsx", "src/index.ts"],
+    command: process.execPath,
+    args: ["--import", "tsx", "src/index.ts"],
     cwd: process.cwd(),
     env: { RUDI_STACK_STATE_DIR: stateDir },
     stderr: "pipe",
@@ -310,6 +349,7 @@ async function testGmailToolSchemas() {
     for (const name of [
       "gmail_profile",
       "gmail_history_list",
+      "gmail_search_headers",
       "gmail_get_raw",
       "gmail_draft_get",
       "gmail_message_trash",
@@ -339,6 +379,7 @@ async function testGmailToolSchemas() {
 
     assert.deepEqual(byName.gmail_draft_get.inputSchema.required, ["draft_id"]);
     assert.deepEqual(byName.gmail_history_list.inputSchema.required, ["start_history_id"]);
+    assert.deepEqual(byName.gmail_search_headers.inputSchema.required, ["query"]);
     assert.deepEqual(byName.gmail_get_raw.inputSchema.required, ["message_id"]);
     assert(byName.gmail_history_list.inputSchema.properties.next_page_token, "gmail_history_list must support pagination");
     assert(byName.gmail_history_list.inputSchema.properties.label_id, "gmail_history_list must support label filtering");
@@ -354,6 +395,7 @@ async function testGmailToolSchemas() {
     assert(byName.gmail_draft.inputSchema.properties.attachments, "gmail_draft must support attachments");
     assert(byName.gmail_draft_list.inputSchema.properties.next_page_token, "gmail_draft_list must support pagination");
     assert(byName.gmail_search.inputSchema.properties.next_page_token, "gmail_search must support pagination");
+    assert(byName.gmail_search_headers.inputSchema.properties.next_page_token, "gmail_search_headers must support pagination");
     assert(byName.gmail_reply.inputSchema.properties.attachments, "gmail_reply must support attachments");
   } finally {
     await client.close();

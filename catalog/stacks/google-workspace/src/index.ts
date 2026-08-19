@@ -25,6 +25,7 @@ import {
   encodeMimeBody,
   encodeMimeHeaderValue,
   inferGmailContentType,
+  normalizeGmailHeaderSearchPage,
   normalizeGmailHistoryPage,
   normalizeGmailRawMessage,
   normalizeGmailSendResult,
@@ -638,6 +639,25 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           max_results: { type: "number", description: "Max results (default 10)" },
           next_page_token: { type: "string", description: "Pagination token from a previous Gmail search response" },
           output: { type: "string", description: "Optional file path to save results" },
+          account: ACCOUNT_INPUT,
+        },
+        required: ["query"],
+      },
+    },
+    {
+      name: "gmail_search_headers",
+      description: "Search Gmail and return only contact-discovery headers; message bodies, snippets, and subjects are never returned",
+      inputSchema: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Gmail search query" },
+          max_results: {
+            type: "integer",
+            minimum: 1,
+            maximum: 500,
+            description: "Maximum messages in this page (default 100, maximum 500)",
+          },
+          next_page_token: { type: "string", description: "Pagination token from a previous header search response" },
           account: ACCOUNT_INPUT,
         },
         required: ["query"],
@@ -1673,6 +1693,36 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           return { content: [{ type: "text", text: `Saved to ${filePath}` }] };
         }
         return { content: [{ type: "text", text }] };
+      }
+
+      case "gmail_search_headers": {
+        const auth = getAuthForArgs(args);
+        const gmail = google.gmail({ version: "v1", auth });
+        const query = requireString(args?.query, "query").trim();
+        const maxResults = boundedInteger(args?.max_results, "max_results", 100, 1, 500);
+        const listed = await gmail.users.messages.list({
+          userId: "me",
+          q: query,
+          maxResults,
+          pageToken: args?.next_page_token as string | undefined,
+        });
+        const messages = await Promise.all(
+          (listed.data.messages || []).map(async (message) => {
+            if (!message.id) throw new Error("Gmail search returned a message without an ID");
+            const response = await gmail.users.messages.get({
+              userId: "me",
+              id: message.id,
+              format: "metadata",
+              metadataHeaders: ["From", "To", "Cc", "Bcc"],
+            });
+            return response.data;
+          })
+        );
+        const page = normalizeGmailHeaderSearchPage({
+          messages,
+          nextPageToken: listed.data.nextPageToken,
+        });
+        return { content: [{ type: "text", text: JSON.stringify(page, null, 2) }] };
       }
 
       case "gmail_draft": {

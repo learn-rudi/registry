@@ -7,7 +7,7 @@ This stack owns Google Workspace OAuth, account selection, and direct Workspace 
 ## Tools
 
 - Account tools: `account_list`, `account_switch`, `account_current`
-- Gmail tools: profile, ordered history/cursor reads, search, get, send, draft, reply, forward, labels, archive, trash, batch operations, and attachments
+- Gmail tools: profile, ordered history/cursor reads, search, header-only contact discovery, get, send, draft, reply, forward, labels, archive, trash, batch operations, and attachments
 - Sheets tools: read, write, append, create
 - Docs tools: read, create, insert image
 - Slides tools: get presentation, get slide, get thumbnail, raw batch update

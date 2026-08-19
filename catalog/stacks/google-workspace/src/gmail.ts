@@ -76,6 +76,13 @@ type GmailHistoryPageLike = {
   historyId?: unknown;
 };
 
+type GmailHeaderSearchPageLike = {
+  messages?: Array<GmailMessageLike & {
+    internalDate?: unknown;
+  }> | null;
+  nextPageToken?: unknown;
+};
+
 export type NormalizedGmailSendResult = {
   messageId: string;
   threadId: string;
@@ -100,6 +107,19 @@ export type NormalizedGmailHistoryPage = {
   }>;
   nextPageToken?: string;
   historyId: string;
+};
+
+export type NormalizedGmailHeaderSearchPage = {
+  messages: Array<{
+    messageId: string;
+    threadId: string;
+    observedAt: string;
+    from: string;
+    to: string;
+    cc: string;
+    bcc: string;
+  }>;
+  nextPageToken?: string;
 };
 
 export const DEFAULT_GMAIL_CONTENT_TYPE = 'text/plain; charset="UTF-8"';
@@ -228,6 +248,50 @@ export function normalizeGmailHistoryPage(
     records,
     ...(nextPageToken ? { nextPageToken } : {}),
     historyId: pageHistoryId,
+  };
+}
+
+export function normalizeGmailHeaderSearchPage(
+  input: GmailHeaderSearchPageLike
+): NormalizedGmailHeaderSearchPage {
+  const rawMessages = input.messages ?? [];
+  if (!Array.isArray(rawMessages)) {
+    throw new Error("messages must be an array");
+  }
+
+  const messages = rawMessages.map((message, index) => {
+    if (!message || typeof message !== "object" || Array.isArray(message)) {
+      throw new Error(`messages[${index}] must be an object`);
+    }
+    const internalDate = requireDecimalHistoryId(
+      message.internalDate,
+      `messages[${index}].internalDate`
+    );
+    const internalDateNumber = Number(internalDate);
+    const observedDate = new Date(internalDateNumber);
+    if (!Number.isSafeInteger(internalDateNumber) || Number.isNaN(observedDate.getTime())) {
+      throw new Error(`messages[${index}].internalDate must be a valid timestamp`);
+    }
+    const observedAt = observedDate.toISOString();
+    const headers = message.payload?.headers ?? [];
+    if (!Array.isArray(headers)) {
+      throw new Error(`messages[${index}].payload.headers must be an array`);
+    }
+    return {
+      messageId: requireOpaqueProviderId(message.id, `messages[${index}].id`),
+      threadId: requireOpaqueProviderId(message.threadId, `messages[${index}].threadId`),
+      observedAt,
+      from: getHeader(headers, "From"),
+      to: getHeader(headers, "To"),
+      cc: getHeader(headers, "Cc"),
+      bcc: getHeader(headers, "Bcc"),
+    };
+  });
+
+  const nextPageToken = optionalProviderString(input.nextPageToken, "nextPageToken");
+  return {
+    messages,
+    ...(nextPageToken ? { nextPageToken } : {}),
   };
 }
 
