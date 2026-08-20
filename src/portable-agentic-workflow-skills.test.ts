@@ -209,6 +209,43 @@ describe("RUDI Decision Canvas", () => {
 });
 
 describe("portable skill contracts", () => {
+  it("publishes the accepted cross-host skill baseline", async () => {
+    const index = JSON.parse(
+      await fs.readFile(path.join(repoRoot, "index.json"), "utf8")
+    );
+
+    expect(index.packages["skill:map-change-impact"]).toMatchObject({
+      version: "1.0.0",
+      install: {
+        source: "catalog",
+        path: "catalog/skills/map-change-impact",
+      },
+    });
+    expect(index.packages["skill:grill-with-docs-loop"]).toMatchObject({
+      version: "2.1.0",
+      install: {
+        source: "catalog",
+        path: "catalog/skills/grill-with-docs-loop.md",
+      },
+    });
+    expect(index.packages["skill:swe-compliance-checklist"]).toMatchObject({
+      version: "1.1.0",
+      install: {
+        source: "catalog",
+        path: "catalog/skills/swe-compliance-checklist.md",
+      },
+    });
+
+    await expect(
+      fs.access(
+        path.join(
+          repoRoot,
+          "catalog/skills/map-change-impact/agents/openai.yaml"
+        )
+      )
+    ).resolves.toBeUndefined();
+  });
+
   it.each(["rudi-context-gardener", "rudi-decision-canvas"])(
     "%s keeps its core workflow host-neutral",
     async (skillName) => {
