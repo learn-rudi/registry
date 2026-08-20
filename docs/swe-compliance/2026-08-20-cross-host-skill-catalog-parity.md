@@ -118,14 +118,27 @@
 - Docs or API contracts to update: this execution checklist only; no ADR is
   warranted because the existing registry source-of-truth contract is applied,
   not changed.
-- Final files touched: record after generation and review.
-- Commands run and results: record after each gate.
+- Final files touched:
+  - `catalog/skills/grill-with-docs-loop.md`
+  - `catalog/skills/map-change-impact/SKILL.md`
+  - `catalog/skills/map-change-impact/agents/openai.yaml`
+  - `src/portable-agentic-workflow-skills.test.ts`
+  - generated `index.json`
+  - this checklist
+- Commands run and results: recorded in the execution record below.
 - Evidence artifacts: Git commit/revision, test output, package dry-run, and
   source/install hashes from both Macs.
-- Independent-review result: pending.
-- Final verdict: pending.
-- Accepted debt: none planned.
-- Proof gaps: none accepted in advance.
+- Independent-review result: pass with no blocking findings.
+- Final verdict: ready; the registry and both canonical installs satisfy the
+  accepted version, shape, and hash contract.
+- Accepted debt:
+  - one pre-existing ignored `catalog/stacks/rudi-share/dist` artifact;
+  - eight pre-existing findings in the locked npm dependency tree;
+  - anonymous GitHub Raw access currently returns HTTP 404 for this registry,
+    so the documented local-registry mode is required unless authenticated or
+    public registry transport is configured separately.
+- Proof gaps: none for the three accepted skill packages or their cross-host
+  installs.
 - Definition of Done: GitHub main contains the accepted packages; both source
   checkouts are at that revision; both canonical RUDI installs contain map
   1.0.0, grill 2.1.0, and SWE 1.1.0 with matching payload hashes; native skills
@@ -170,3 +183,34 @@
 - Dependency audit note: `npm ci` reported eight findings in the existing locked
   dependency tree (one moderate, six high, one critical). No dependency file
   changed in this task; remediation is separate dependency-maintenance scope.
+- Publication: commit `0bb897c1feb45711fb368f486019bc8fe3f320a7`
+  (`feat(registry): publish cross-host skill baseline`) was pushed to GitHub
+  `main`, and `git ls-remote origin refs/heads/main` returned the same revision.
+- Admin source synchronization: the clean admin checkout fast-forwarded from
+  `f60b46e` to publication commit `0bb897c` with `git pull --ff-only`; both
+  checkouts were clean and matched `origin/main` before installation.
+- Registry transport: the normal anonymous GitHub Raw lookup returned HTTP 404
+  on both Macs. Installation therefore used the CLI's documented development
+  mode with `USE_LOCAL_REGISTRY=true` and each Mac's exact
+  `RUDI_REGISTRY_ROOT`, pointing to clean synchronized checkouts of the same
+  GitHub revision.
+- Canonical installation results on both Macs:
+  - `skill:map-change-impact` 1.0.0, directory package;
+  - `skill:grill-with-docs-loop` 2.1.0, flat package;
+  - `skill:swe-compliance-checklist` 1.1.0, flat package.
+- Canonical payload SHA-256 parity across catalog, primary install, and admin
+  install:
+  - map `SKILL.md`:
+    `0b56ccf730f01b65157d1e1bdc925ee6d7adc9019bbb71494854cb1eafd24e4b`;
+  - map `agents/openai.yaml`:
+    `7a02a136d81b814547871760abf7ec61df1b68bb4050088350fee2da7ed5f9c8`;
+  - grill:
+    `0635b7fbe4cc138977fa8f855712d5a39c59bca543e083e5382ec8e3d3bcf99a`;
+  - SWE:
+    `347772deda221ef53b901f03e43aef0fa4791ea600a514de1a1ced20cbbeab99`.
+- Bundle shape: catalog and both canonical map installs contain exactly
+  `SKILL.md` and `agents/openai.yaml`.
+- Native synchronization: the primary Mac refreshed Codex, Claude, Gemini, and
+  Antigravity wrappers with `--force`; the admin Mac refreshed Codex and Claude
+  wrappers with `--force`. All three named wrappers were then present with the
+  accepted names and descriptions on every installed host.
