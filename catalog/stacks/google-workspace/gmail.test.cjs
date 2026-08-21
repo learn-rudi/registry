@@ -21,12 +21,18 @@ function normalizeMimeLineEndings(value) {
 
 async function main() {
   const manifest = JSON.parse(readFileSync("manifest.json", "utf8"));
+  const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
+  assert.equal(manifest.version, "1.1.0");
+  assert.equal(packageJson.version, manifest.version);
+  assert(manifest.provides.tools.includes("gmail_discovery_page"));
+  assert(manifest.provides.tools.includes("calendar_discovery_page"));
   assert.equal(manifest.mcp.command, "node");
   assert.deepEqual(manifest.mcp.args, ["--import", "tsx", "src/index.ts"]);
 
   const {
     buildGmailDraftMessage,
     buildGmailRawMessage,
+    normalizeGmailDiscoveryPage,
     normalizeGmailHeaderSearchPage,
     normalizeGmailHistoryPage,
     normalizeGmailRawMessage,
@@ -279,6 +285,319 @@ async function main() {
     }
   );
 
+  const discoveryProviderPage = {
+    messages: [{
+      id: "gmail-provider-message",
+      threadId: "gmail-provider-thread",
+      internalDate: "1785372000000",
+      snippet: "must not cross the discovery boundary",
+      payload: {
+        body: { data: "must-not-be-returned" },
+        headers: [
+          { name: "From", value: "Client Person <CLIENT@example.com>" },
+          { name: "To", value: "Me <me@example.com>, Teammate <teammate@example.com>, Teammate <TEAMMATE@example.com>" },
+          { name: "Cc", value: "Ops <ops@example.com>" },
+          { name: "Bcc", value: "Hidden <hidden@example.com>" },
+          { name: "Subject", value: "must not be returned" },
+        ],
+      },
+    }],
+    nextPageToken: "next-provider-page",
+  };
+  const discoveryScope = {
+    account: "owner@example.com",
+    window_start: "2026-01-01T00:00:00Z",
+    window_end: "2026-08-01T00:00:00Z",
+    max_records: 500,
+  };
+  const discoveryPage = normalizeGmailDiscoveryPage(
+    discoveryProviderPage,
+    discoveryScope
+  );
+
+  assert.deepEqual(
+    {
+      ...discoveryPage,
+      observations: discoveryPage.observations.map(({ resource_key, ...observation }) => ({
+        resource_key: /^[0-9a-f]{64}$/.test(resource_key),
+        ...observation,
+      })),
+    },
+    {
+      source: "gmail",
+      account: "owner@example.com",
+      window_start: "2026-01-01T00:00:00.000Z",
+      window_end: "2026-08-01T00:00:00.000Z",
+      observations: [
+        {
+          resource_key: true,
+          observed_at: "2026-07-30T00:40:00.000Z",
+          address_role: "cc",
+          address: "ops@example.com",
+          display_name: "Ops",
+        },
+        {
+          resource_key: true,
+          observed_at: "2026-07-30T00:40:00.000Z",
+          address_role: "from",
+          address: "client@example.com",
+          display_name: "Client Person",
+        },
+        {
+          resource_key: true,
+          observed_at: "2026-07-30T00:40:00.000Z",
+          address_role: "to",
+          address: "me@example.com",
+          display_name: "Me",
+        },
+        {
+          resource_key: true,
+          observed_at: "2026-07-30T00:40:00.000Z",
+          address_role: "to",
+          address: "teammate@example.com",
+          display_name: "Teammate",
+        },
+      ],
+      next_page_token: "next-provider-page",
+    }
+  );
+  assert.deepEqual(
+    normalizeGmailDiscoveryPage(discoveryProviderPage, discoveryScope),
+    discoveryPage,
+    "the same scoped provider page must normalize deterministically"
+  );
+  assert.notEqual(
+    normalizeGmailDiscoveryPage(discoveryProviderPage, {
+      ...discoveryScope,
+      account: "other@example.com",
+    }).observations[0].resource_key,
+    discoveryPage.observations[0].resource_key,
+    "resource identity must be account scoped"
+  );
+  assert.doesNotMatch(
+    JSON.stringify(discoveryPage),
+    /gmail-provider-message|gmail-provider-thread|hidden@example\.com|snippet|subject|body/i
+  );
+  const roundedBoundaryPage = normalizeGmailDiscoveryPage(
+    {
+      messages: [
+        {
+          id: "rounded-out-provider-id",
+          internalDate: "1767225599999",
+          payload: { headers: [{ name: "From", value: "Old <old@example.com>" }] },
+        },
+        {
+          id: "inclusive-start-provider-id",
+          internalDate: "1767225600000",
+          payload: { headers: [{ name: "From", value: "Current <current@example.com>" }] },
+        },
+        {
+          id: "exclusive-end-provider-id",
+          internalDate: "1767312000000",
+          payload: { headers: [{ name: "From", value: "Future <future@example.com>" }] },
+        },
+      ],
+      nextPageToken: "rounded-next-page",
+    },
+    {
+      account: "owner@example.com",
+      window_start: "2026-01-01T00:00:00Z",
+      window_end: "2026-01-02T00:00:00Z",
+      max_records: 500,
+    }
+  );
+  assert.deepEqual(
+    roundedBoundaryPage.observations.map(({ address, observed_at }) => ({
+      address,
+      observed_at,
+    })),
+    [{ address: "current@example.com", observed_at: "2026-01-01T00:00:00.000Z" }]
+  );
+  assert.equal(roundedBoundaryPage.next_page_token, "rounded-next-page");
+
+  const quotedDisplayNamePage = normalizeGmailDiscoveryPage(
+    {
+      messages: [{
+        id: "quoted-display-name-provider-id",
+        internalDate: "1767225600000",
+        payload: {
+          headers: [{
+            name: "To",
+            value: '"Doe, Jane" <jane@example.com>, Operations <ops@example.com>',
+          }],
+        },
+      }],
+    },
+    {
+      account: "owner@example.com",
+      window_start: "2026-01-01T00:00:00Z",
+      window_end: "2026-01-02T00:00:00Z",
+      max_records: 500,
+    }
+  );
+  assert.deepEqual(
+    quotedDisplayNamePage.observations.map(({ address, display_name }) => ({
+      address,
+      display_name,
+    })),
+    [
+      { address: "jane@example.com", display_name: "Doe, Jane" },
+      { address: "ops@example.com", display_name: "Operations" },
+    ]
+  );
+  const angleBracketCommaPage = normalizeGmailDiscoveryPage(
+    {
+      messages: [{
+        id: "angle-comma-provider-id",
+        internalDate: "1767225600000",
+        payload: {
+          headers: [{
+            name: "From",
+            value: 'Quoted Local <"local,part"@example.com>',
+          }],
+        },
+      }],
+    },
+    {
+      account: "owner@example.com",
+      window_start: "2026-01-01T00:00:00Z",
+      window_end: "2026-01-02T00:00:00Z",
+      max_records: 500,
+    }
+  );
+  assert.deepEqual(
+    angleBracketCommaPage.observations.map(({ address, display_name }) => ({
+      address,
+      display_name,
+    })),
+    [{ address: '"local,part"@example.com', display_name: "Quoted Local" }]
+  );
+  assert.throws(
+    () => normalizeGmailDiscoveryPage(
+      {
+        messages: [{
+          id: "unterminated-quote-provider-id",
+          internalDate: "1767225600000",
+          payload: {
+            headers: [{ name: "From", value: '"Unclosed <person@example.com>' }],
+          },
+        }],
+      },
+      {
+        account: "owner@example.com",
+        window_start: "2026-01-01T00:00:00Z",
+        window_end: "2026-01-02T00:00:00Z",
+        max_records: 500,
+      }
+    ),
+    /unterminated quote/
+  );
+  for (const malformedList of [
+    ", Person <person@example.com>",
+    "Person <person@example.com>,, Other <other@example.com>",
+    "Person <person@example.com>,",
+  ]) {
+    assert.throws(
+      () => normalizeGmailDiscoveryPage(
+        {
+          messages: [{
+            id: "empty-component-provider-id",
+            internalDate: "1767225600000",
+            payload: { headers: [{ name: "From", value: malformedList }] },
+          }],
+        },
+        {
+          account: "owner@example.com",
+          window_start: "2026-01-01T00:00:00Z",
+          window_end: "2026-01-02T00:00:00Z",
+          max_records: 500,
+        }
+      ),
+      /empty address/
+    );
+  }
+  for (const malformedAngles of [
+    "Nested <<person@example.com>>",
+    "Unmatched person@example.com>",
+  ]) {
+    assert.throws(
+      () => normalizeGmailDiscoveryPage(
+        {
+          messages: [{
+            id: "malformed-angle-provider-id",
+            internalDate: "1767225600000",
+            payload: { headers: [{ name: "From", value: malformedAngles }] },
+          }],
+        },
+        {
+          account: "owner@example.com",
+          window_start: "2026-01-01T00:00:00Z",
+          window_end: "2026-01-02T00:00:00Z",
+          max_records: 500,
+        }
+      ),
+      /angle brackets/
+    );
+  }
+  const boundedAddressList = (count) => Array.from(
+    { length: count },
+    (_, index) => `Person ${index} <person-${index}@example.com>`
+  ).join(", ");
+  assert.equal(
+    normalizeGmailDiscoveryPage(
+      {
+        messages: [{
+          id: "hundred-address-provider-id",
+          internalDate: "1767225600000",
+          payload: { headers: [{ name: "To", value: boundedAddressList(100) }] },
+        }],
+      },
+      {
+        account: "owner@example.com",
+        window_start: "2026-01-01T00:00:00Z",
+        window_end: "2026-01-02T00:00:00Z",
+        max_records: 500,
+      }
+    ).observations.length,
+    100
+  );
+  assert.throws(
+    () => normalizeGmailDiscoveryPage(
+      {
+        messages: [{
+          id: "too-many-address-provider-id",
+          internalDate: "1767225600000",
+          payload: { headers: [{ name: "To", value: boundedAddressList(101) }] },
+        }],
+      },
+      {
+        account: "owner@example.com",
+        window_start: "2026-01-01T00:00:00Z",
+        window_end: "2026-01-02T00:00:00Z",
+        max_records: 500,
+      }
+    ),
+    /too many addresses/
+  );
+  assert.throws(
+    () => normalizeGmailDiscoveryPage(
+      {
+        messages: [{
+          id: "oversized-address-provider-id",
+          internalDate: "1767225600000",
+          payload: { headers: [{ name: "From", value: "x".repeat(20_001) }] },
+        }],
+      },
+      {
+        account: "owner@example.com",
+        window_start: "2026-01-01T00:00:00Z",
+        window_end: "2026-01-02T00:00:00Z",
+        max_records: 500,
+      }
+    ),
+    /too large/
+  );
+
   assert.deepEqual(
     normalizeGmailRawMessage({
       id: "gmail-message-raw",
@@ -324,7 +643,97 @@ async function main() {
     /raw/
   );
 
+  await testGmailDiscoveryAdapter();
   await testGmailToolSchemas();
+}
+
+async function testGmailDiscoveryAdapter() {
+  const { runGmailDiscoveryPage } = await import("./src/gmail-search.ts");
+  const calls = [];
+  const gmail = {
+    users: {
+      getProfile: async (args) => {
+        calls.push(["profile", args]);
+        return { data: { emailAddress: "owner@example.com" } };
+      },
+      messages: {
+        list: async (args) => {
+          calls.push(["list", args]);
+          return { data: { messages: [{ id: "provider-id" }], nextPageToken: "next" } };
+        },
+        get: async (args) => {
+          calls.push(["get", args]);
+          return {
+            data: {
+              id: "provider-id",
+              internalDate: "1767225600000",
+              payload: { headers: [{ name: "From", value: "Person <person@example.com>" }] },
+            },
+          };
+        },
+      },
+    },
+  };
+  const response = await runGmailDiscoveryPage(gmail, {
+    account: "owner@example.com",
+    window_start: "2026-01-01T00:00:00Z",
+    window_end: "2026-01-02T00:00:00.500Z",
+    max_results: 500,
+    max_records: 500,
+    next_page_token: "prior",
+  });
+  const page = JSON.parse(response.content[0].text);
+  assert.equal(page.observations[0].address, "person@example.com");
+  assert.equal(page.observations[0].observed_at, "2026-01-01T00:00:00.000Z");
+  assert.deepEqual(calls[1][1], {
+    userId: "me",
+    q: "after:1767225599 before:1767312001 -in:spam -in:trash",
+    maxResults: 500,
+    pageToken: "prior",
+    fields: "messages/id,nextPageToken",
+  });
+  assert.deepEqual(calls[2][1].metadataHeaders, ["From", "To", "Cc"]);
+  assert.equal(calls[2][1].format, "metadata");
+  assert.doesNotMatch(JSON.stringify(calls[2][1]), /Bcc|Subject|snippet|body/i);
+  let epochQuery;
+  await runGmailDiscoveryPage(
+    {
+      users: {
+        getProfile: async () => ({ data: { emailAddress: "owner@example.com" } }),
+        messages: {
+          list: async (args) => {
+            epochQuery = args.q;
+            return { data: { messages: [] } };
+          },
+          get: async () => {
+            throw new Error("epoch boundary returned an unexpected provider message");
+          },
+        },
+      },
+    },
+    {
+      account: "owner@example.com",
+      window_start: "1970-01-01T00:00:00Z",
+      window_end: "1970-01-01T00:00:00.500Z",
+    }
+  );
+  assert.equal(epochQuery, "after:0 before:1 -in:spam -in:trash");
+  await assert.rejects(
+    runGmailDiscoveryPage(
+      {
+        users: {
+          getProfile: async () => ({ data: { emailAddress: "other@example.com" } }),
+          messages: gmail.users.messages,
+        },
+      },
+      {
+        account: "owner@example.com",
+        window_start: "2026-01-01T00:00:00Z",
+        window_end: "2026-01-02T00:00:00Z",
+      }
+    ),
+    /profile does not match account/
+  );
 }
 
 async function testGmailToolSchemas() {
@@ -349,6 +758,7 @@ async function testGmailToolSchemas() {
     for (const name of [
       "gmail_profile",
       "gmail_history_list",
+      "gmail_discovery_page",
       "gmail_search_headers",
       "gmail_get_raw",
       "gmail_draft_get",
@@ -379,6 +789,14 @@ async function testGmailToolSchemas() {
 
     assert.deepEqual(byName.gmail_draft_get.inputSchema.required, ["draft_id"]);
     assert.deepEqual(byName.gmail_history_list.inputSchema.required, ["start_history_id"]);
+    assert.deepEqual(byName.gmail_discovery_page.inputSchema.required, [
+      "account",
+      "window_start",
+      "window_end",
+    ]);
+    assert.equal(byName.gmail_discovery_page.inputSchema.properties.max_results.maximum, 500);
+    assert.equal(byName.gmail_discovery_page.inputSchema.properties.max_records.maximum, 500);
+    assert.equal(byName.gmail_discovery_page.inputSchema.properties.query, undefined);
     assert.deepEqual(byName.gmail_search_headers.inputSchema.required, ["query"]);
     assert.deepEqual(byName.gmail_get_raw.inputSchema.required, ["message_id"]);
     assert(byName.gmail_history_list.inputSchema.properties.next_page_token, "gmail_history_list must support pagination");

@@ -2,7 +2,7 @@
   "id": "stack:rudi-crm",
   "kind": "stack",
   "name": "RUDI CRM",
-  "version": "0.4.0",
+  "version": "0.5.0",
 
   "delivery": "remote",
   "install": {
@@ -25,6 +25,8 @@
     "tools": [
       "rudi_crm_config_status",
       "rudi_crm_setup_status",
+      "rudi_crm_record_discovery_page",
+      "rudi_crm_finalize_discovery_run",
       "rudi_crm_record_discovery_observations",
       "rudi_crm_apply_discovery_heuristics",
       "rudi_crm_list_contact_candidates",
@@ -67,7 +69,7 @@
       "audit"
     ],
     "icon": "rudi-crm",
-    "boundary": "RUDI CRM exposes a controlled write/read contract over existing Postgres functions and views. It does not expose raw table writes or generic SQL execution.",
+    "boundary": "RUDI CRM exposes a controlled write/read contract over PostgreSQL functions and views without raw table writes or generic SQL. The discovery capability profile exposes only status plus idempotent page/finalize tools and cannot list, classify, or promote contacts.",
     "secretGuidance": "Use a scoped server-side PostgreSQL connection URL in RUDI_CRM_DATABASE_URL. Local and hosted PostgreSQL are supported; keep provider-specific settings outside the core stack. Never expose this value to clients or agents."
   },
   "related": {
