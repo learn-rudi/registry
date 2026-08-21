@@ -3,7 +3,7 @@
 Task: expand `stack:google-workspace` Drive tools so authenticated callers can
 safely target Google Shared Drives while preserving existing My Drive behavior.
 
-Status: active
+Status: rollout complete; post-restart Codex desktop invocation remains pending
 
 Risk tier: high. The change affects authenticated, agent-facing API contracts
 and third-party write operations. Provider writes and destructive operations
@@ -319,7 +319,7 @@ rules.
   code-level suggestion was applied (operation-specific rejection for implicit
   Shared Drive IDs passed to My-Drive-only public/delete tools), then the
   reviewer reconfirmed APPROVE after focused tests, typecheck, and diff check.
-- Final verdict: pending.
+- Final verdict: rollout approved; Codex desktop reload proof remains open.
 - Accepted debt: the unchanged production dependency graph currently reports
   five moderate advisories under `npm audit --omit=dev` (direct
   `googleapis@^140` plus transitive `googleapis-common`, `gaxios`, `uuid`, and
@@ -331,7 +331,8 @@ rules.
   explicitly staged as 14 task-only paths and committed on
   `codex/google-workspace-shared-drives` as `27e4bf8`
   (`feat(google-workspace): support shared drives safely`); the worktree was
-  clean immediately after commit and nothing was pushed.
+  clean immediately after commit. Primary rollout evidence was committed as
+  `1321e93`, and the branch was pushed without creating or merging a PR.
 - CLI Git/verification evidence:
   - six narrow local commits preserve source/test and generated-bundle
     separation on `codex/codex-portable-rudi-tool-names`: `0dc7c50`,
@@ -341,7 +342,7 @@ rules.
     passed
   - the full CLI suite passed 634 tests; the repository debt runner reported
     zero findings; build and `npm pack --dry-run --json` passed; the branch is
-    clean and unpushed
+    clean and was pushed without creating or merging a PR
 - Primary installed-state evidence:
   - state-preserving local-registry update installed `stack:google-workspace`
     2.0.0 from the clean task commit
@@ -384,13 +385,35 @@ rules.
   - this already-running desktop task cannot hot-add MCP names; official Codex
     MCP setup requires a client restart, so desktop-host invocation is not
     claimed without an actual restart and new-task smoke
-- Proof gaps: accepted Git publication, admin-Mac task-revision source/install
-  synchronization, and post-restart Codex desktop tool exposure remain pending.
+- Admin-Mac synchronization evidence:
+  - both exact remote task revisions were fetched into clean, separately
+    tracked worktrees without modifying either admin `main` checkout
+  - the active admin CLI is newer at 1.10.18, so it was not downgraded; the
+    synchronized branch was installed only under an isolated temporary prefix
+    to generate the corrected Codex block, then the temporary prefix was moved
+    to Trash
+  - the active packaged and generated admin routers have the same SHA-256;
+    Codex config selects portable names and `writes` approval mode
+  - state-preserving Registry update installed Google Workspace 2.0.0; the
+    admin's legacy launch contract still targeted `dist/index.js`, so the
+    package's declared `npm run build` generated that derived artifact before
+    reindexing
+  - Google Workspace then indexed all 68 tools; the admin-wide index returned
+    to 49 stacks, 447 tools, and the same nine unrelated pre-existing failures
+  - bounded Shared Drive list exposed the complete current schema and returned
+    one result with a continuation token and `incompleteSearch=false`
+  - bounded read-back used eight list calls, visited 20 items to depth two,
+    downloaded 21,958 bytes, matched handler/provider/independent SHA-256, and
+    retained scoped provider references; the temporary output was moved to
+    Trash and no Google write tool was called
+- Proof gap: post-restart Codex desktop tool exposure/invocation remains
+  pending; source, config, router, fresh-process discovery, direct dispatch,
+  provider behavior, and both-host installed state are otherwise proven.
 - Definition of Done:
   - all deterministic and repository gates pass
   - read-only Shared Drive smoke passes
   - fresh-context review has no blocking findings
   - docs and generated contracts match behavior
   - task-owned changes are audited and committed on the task branch
-  - primary and admin hosts report the accepted version/index, subject to the
-    explicit push/publication approval boundary
+  - primary and admin hosts report the accepted version/index; the remaining
+    desktop reload proof is tracked explicitly above
