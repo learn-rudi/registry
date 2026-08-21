@@ -1,7 +1,7 @@
 ---
 name: "Google Workspace Tools Operator"
 description: "Operate Google Workspace Tools through RUDI's stack tools when a user asks for work supported by stack:google-workspace. Workflow-focused tools for Gmail, Google Sheets, Docs, Slides, Drive, Calendar, and Tasks"
-version: 1.0.0
+version: 2.0.0
 category: "api-integrations"
 tags:
   - rudi
@@ -122,6 +122,38 @@ Use only tools that are actually available in the active RUDI router. If the
 installed stack exposes a different tool set than this catalog version, report
 the mismatch and use the live tool schema only when doing so remains within the
 user's request.
+
+## Drive And Shared Drive Safety
+
+- Pass `account` on every Drive call when the workflow names or implies a
+  specific Google identity. Treat account selection as an authorization
+  boundary, not display metadata.
+- Omitting `drive_id` means My Drive. Pass an exact opaque `drive_id` to target
+  one Shared Drive and pass the exact `account` on the same call; do not infer
+  a Drive from its display name. `corpora: allDrives` also requires an explicit
+  account.
+- Scope Shared Drive lists with `drive_id`, `corpora: drive`, an exact-parent
+  query when a parent is known, and a bounded `max_results`.
+- Continue with `page_token` while `nextPageToken` is present, including after
+  an empty page. Stop and report `incompleteSearch` rather than treating an
+  incomplete result as authoritative.
+- Drive names are not unique. Before creating or uploading, check the exact
+  parent and use the tool's explicit collision policy. Fail on multiple exact
+  matches.
+- Shared Drive uploads and folders default to collision failure. Use
+  `reuse_if_same` for an upload only when reusing one provider object with the
+  same SHA-256 is the intended behavior. Use folder `reuse` only when one exact
+  folder match is acceptable.
+- Capture the structured provider reference from every write, especially its
+  file ID, Drive ID, parents, and link. Do not parse an ID back out of a URL.
+- Treat a timed-out or transport-failed write as ambiguous. Search the exact
+  parent before retrying; never blindly replay an upload or folder create.
+- Verify stored blob uploads by downloading the captured file ID to a fresh
+  local path and comparing the returned SHA-256 with the source. Native Google
+  files require export behavior and are not blob-download verification targets.
+- A move that is already at the exact destination is a successful no-op.
+- `drive_make_public` and `drive_delete` do not support Shared Drives in this
+  release. Both require explicit user authorization; delete is permanent.
 
 ## Failure Behavior
 

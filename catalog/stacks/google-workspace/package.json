@@ -1,12 +1,12 @@
 {
   "name": "google-workspace-mcp",
-  "version": "1.0.2",
+  "version": "2.0.0",
   "description": "Google Workspace MCP Server for Claude Code",
   "type": "module",
   "scripts": {
     "build": "tsc",
     "test:auth": "node --import tsx auth.test.cjs",
-    "test:drive": "node drive.test.cjs",
+    "test:drive": "node --import tsx drive.test.cjs",
     "test:calendar": "node --import tsx calendar.test.cjs",
     "test:gmail": "node --import tsx gmail.test.cjs",
     "test:slides": "node --import tsx slides.test.cjs",

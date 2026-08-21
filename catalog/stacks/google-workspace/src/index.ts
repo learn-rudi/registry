@@ -19,6 +19,8 @@ import { execSync } from "child_process";
 import { tmpdir } from "os";
 import { homedir } from "os";
 import { buildCalendarEventInsert } from "./calendar.js";
+import { handleDriveTool } from "./drive.js";
+import { DRIVE_TOOL_DEFINITIONS } from "./driveSchemas.js";
 import {
   buildGmailDraftMessage,
   buildGmailRawMessage,
@@ -31,6 +33,7 @@ import {
   resolveRequestedAccount,
 } from "./gmail.js";
 import { resolveOAuthClientConfig } from "./oauthCredentials.js";
+import { normalizeRequestedGoogleAccount } from "./authIdentity.js";
 import {
   getWorkspacePaths,
   migrateLegacyStateIfNeeded,
@@ -97,8 +100,11 @@ type EmailAttachment = {
 function loadCurrentAccount(): string | null {
   try {
     const state = readJsonFile<AccountState>(STATE_FILE);
-    if (state?.currentAccount && existsSync(join(ACCOUNTS_DIR, state.currentAccount, "token.json"))) {
-      return state.currentAccount;
+    if (state?.currentAccount) {
+      const account = normalizeRequestedGoogleAccount(state.currentAccount);
+      if (existsSync(join(ACCOUNTS_DIR, account, "token.json"))) {
+        return account;
+      }
     }
   } catch {
     return null;
@@ -116,8 +122,12 @@ let currentAccount: string | null = loadCurrentAccount();
 function getAvailableAccounts(): string[] {
   if (!existsSync(ACCOUNTS_DIR)) return [];
   return readdirSync(ACCOUNTS_DIR).filter((name: string) => {
-    const tokenPath = join(ACCOUNTS_DIR, name, "token.json");
-    return existsSync(tokenPath);
+    try {
+      const account = normalizeRequestedGoogleAccount(name);
+      return account === name && existsSync(join(ACCOUNTS_DIR, account, "token.json"));
+    } catch {
+      return false;
+    }
   });
 }
 
@@ -160,6 +170,11 @@ function getAuth(account?: string | null) {
 function getAuthForArgs(args: Record<string, unknown> | undefined) {
   return getAuth(resolveRequestedAccount(args, currentAccount));
 }
+
+const DRIVE_DEPENDENCIES = {
+  resolveAccount: (toolArgs: Record<string, unknown>) => resolveRequestedAccount(toolArgs, currentAccount),
+  getDrive: (account: string | null) => google.drive({ version: "v3", auth: getAuth(account) }),
+};
 
 function requireString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.trim() === "") {
@@ -479,7 +494,7 @@ function escapeHtml(value: string): string {
 
 const ACCOUNT_INPUT = {
   type: "string",
-  description: "Optional configured Google account email/name. Overrides the currently active account for this call.",
+  description: "Optional configured Google account email. Overrides the currently active account for this call.",
 };
 
 const MESSAGE_ID_INPUT = { type: "string", description: "Gmail message ID" };
@@ -541,7 +556,7 @@ const SLIDES_WRITE_CONTROL_INPUT = {
 };
 
 const server = new Server(
-  { name: "google-workspace", version: "1.0.0" },
+  { name: "google-workspace", version: "2.0.0" },
   { capabilities: { tools: {} } }
 );
 
@@ -559,7 +574,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       inputSchema: {
         type: "object",
         properties: {
-          account: { type: "string", description: "Account name (e.g., 'personal', 'work')" },
+          account: { type: "string", description: "Configured Google account email" },
         },
         required: ["account"],
       },
@@ -1218,101 +1233,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     // Drive
-    {
-      name: "drive_list",
-      description: "List files in Google Drive",
-      inputSchema: {
-        type: "object",
-        properties: {
-          query: { type: "string", description: "Search query" },
-          max_results: { type: "number", description: "Max results (default 20)" },
-        },
-      },
-    },
-    {
-      name: "drive_upload",
-      description: "Upload a file to Google Drive",
-      inputSchema: {
-        type: "object",
-        properties: {
-          file_path: { type: "string", description: "Local file path" },
-          name: { type: "string", description: "Name in Drive" },
-          folder_id: { type: "string", description: "Destination folder ID" },
-        },
-        required: ["file_path"],
-      },
-    },
-    {
-      name: "drive_update",
-      description: "Replace a Drive file's content in place while preserving its file ID and shared links",
-      inputSchema: {
-        type: "object",
-        properties: {
-          file_id: { type: "string", description: "Existing Drive file ID" },
-          file_path: { type: "string", description: "Local replacement file path" },
-          name: { type: "string", description: "Optional replacement file name" },
-        },
-        required: ["file_id", "file_path"],
-      },
-    },
-    {
-      name: "drive_create_folder",
-      description: "Create a folder in Google Drive",
-      inputSchema: {
-        type: "object",
-        properties: {
-          name: { type: "string", description: "Folder name" },
-          parent_id: { type: "string", description: "Parent folder ID (optional, defaults to root)" },
-        },
-        required: ["name"],
-      },
-    },
-    {
-      name: "drive_move_file",
-      description: "Move a file to a different folder in Google Drive",
-      inputSchema: {
-        type: "object",
-        properties: {
-          file_id: { type: "string", description: "File ID to move" },
-          new_parent_id: { type: "string", description: "Destination folder ID" },
-        },
-        required: ["file_id", "new_parent_id"],
-      },
-    },
-    {
-      name: "drive_download",
-      description: "Download a Drive file's bytes to a local path",
-      inputSchema: {
-        type: "object",
-        properties: {
-          file_id: { type: "string", description: "File ID to download" },
-          output_path: { type: "string", description: "Local path to write to" },
-        },
-        required: ["file_id", "output_path"],
-      },
-    },
-    {
-      name: "drive_make_public",
-      description: "Make a Drive file publicly viewable and get a direct URL (useful for embedding images in Docs)",
-      inputSchema: {
-        type: "object",
-        properties: {
-          file_id: { type: "string", description: "The file ID to make public" },
-        },
-        required: ["file_id"],
-      },
-    },
-    {
-      name: "drive_delete",
-      description: "Delete a file from Google Drive (moves to trash)",
-      inputSchema: {
-        type: "object",
-        properties: {
-          file_id: { type: "string", description: "The file ID to delete" },
-        },
-        required: ["file_id"],
-      },
-    },
+    ...DRIVE_TOOL_DEFINITIONS,
     // Calendar
     {
       name: "calendar_list",
@@ -1490,6 +1411,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
   try {
+    const driveResult = await handleDriveTool(
+      name,
+      args as Record<string, unknown> | undefined,
+      DRIVE_DEPENDENCIES
+    );
+    if (driveResult) return driveResult;
+
     switch (name) {
       // Account Management
       case "account_list": {
@@ -1505,7 +1433,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "account_switch": {
-        const account = args?.account as string;
+        const account = normalizeRequestedGoogleAccount(args?.account);
         const accounts = getAvailableAccounts();
         if (!accounts.includes(account)) {
           return {
@@ -2768,150 +2696,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      // Drive
-      case "drive_list": {
-        const auth = getAuth();
-        const drive = google.drive({ version: "v3", auth });
-        const res = await drive.files.list({
-          q: args?.query as string,
-          pageSize: (args?.max_results as number) || 20,
-          fields: "files(id, name, mimeType, webViewLink)",
-        });
-        return { content: [{ type: "text", text: JSON.stringify(res.data.files, null, 2) }] };
-      }
-
-      case "drive_upload": {
-        const auth = getAuth();
-        const drive = google.drive({ version: "v3", auth });
-        const fs = await import("fs");
-        const path = await import("path");
-        const filePath = args?.file_path as string;
-        const fileName = (args?.name as string) || path.basename(filePath);
-        const res = await drive.files.create({
-          requestBody: {
-            name: fileName,
-            parents: args?.folder_id ? [args.folder_id as string] : undefined,
-          },
-          media: {
-            body: fs.createReadStream(filePath),
-          },
-          fields: "id, webViewLink",
-        });
-        return {
-          content: [{ type: "text", text: `Uploaded: ${res.data.webViewLink}` }],
-        };
-      }
-
-      case "drive_update": {
-        const auth = getAuth();
-        const drive = google.drive({ version: "v3", auth });
-        const fs = await import("fs");
-        const fileId = requireString(args?.file_id, "file_id");
-        const filePath = requireString(args?.file_path, "file_path");
-        const name = optionalToolString(args, "name");
-        const res = await drive.files.update({
-          fileId,
-          requestBody: name ? { name } : undefined,
-          media: {
-            body: fs.createReadStream(filePath),
-          },
-          fields: "id, name, mimeType, modifiedTime, webViewLink",
-        });
-        return {
-          content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }],
-        };
-      }
-
-      case "drive_create_folder": {
-        const auth = getAuth();
-        const drive = google.drive({ version: "v3", auth });
-        const name = requireString(args?.name, "name");
-        const parentId = args?.parent_id as string | undefined;
-        const res = await drive.files.create({
-          requestBody: {
-            name,
-            mimeType: "application/vnd.google-apps.folder",
-            parents: parentId ? [parentId] : undefined,
-          },
-          fields: "id, name, mimeType, parents",
-        });
-        return { content: [{ type: "text", text: JSON.stringify(res.data) }] };
-      }
-
-      case "drive_move_file": {
-        const auth = getAuth();
-        const drive = google.drive({ version: "v3", auth });
-        const fileId = requireString(args?.file_id, "file_id");
-        const newParentId = requireString(args?.new_parent_id, "new_parent_id");
-        const file = await drive.files.get({
-          fileId,
-          fields: "parents",
-        });
-        const previousParents = (file.data.parents || []).join(",");
-        const updateParams: {
-          fileId: string;
-          addParents: string;
-          removeParents?: string;
-          fields: string;
-        } = {
-          fileId,
-          addParents: newParentId,
-          fields: "id, name, parents",
-        };
-        if (previousParents) {
-          updateParams.removeParents = previousParents;
-        }
-        const res = await drive.files.update(updateParams);
-        return { content: [{ type: "text", text: JSON.stringify(res.data) }] };
-      }
-
-      case "drive_download": {
-        const auth = getAuth();
-        const drive = google.drive({ version: "v3", auth });
-        const fs = await import("fs");
-        const path = await import("path");
-        const { pipeline } = await import("stream/promises");
-        const fileId = requireString(args?.file_id, "file_id");
-        const outputPath = requireString(args?.output_path, "output_path");
-        fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-        const response = await drive.files.get(
-          { fileId, alt: "media" },
-          { responseType: "stream" }
-        );
-        await pipeline(response.data as NodeJS.ReadableStream, fs.createWriteStream(outputPath));
-        const stat = fs.statSync(outputPath);
-        return {
-          content: [{ type: "text", text: JSON.stringify({ path: outputPath, bytes: stat.size }) }],
-        };
-      }
-
-      case "drive_make_public": {
-        const auth = getAuth();
-        const drive = google.drive({ version: "v3", auth });
-        const fileId = args?.file_id as string;
-        await drive.permissions.create({
-          fileId,
-          requestBody: {
-            role: "reader",
-            type: "anyone",
-          },
-        });
-        const publicUrl = `https://drive.google.com/uc?id=${fileId}`;
-        return {
-          content: [{ type: "text", text: `File is now public.\nDirect URL: ${publicUrl}` }],
-        };
-      }
-
-      case "drive_delete": {
-        const auth = getAuth();
-        const drive = google.drive({ version: "v3", auth });
-        const fileId = args?.file_id as string;
-        await drive.files.delete({ fileId });
-        return {
-          content: [{ type: "text", text: `Deleted file: ${fileId}` }],
-        };
-      }
-
       // Calendar
       case "calendar_list": {
         const auth = getAuthForArgs(args);
@@ -3192,18 +2976,25 @@ export async function sheetsWrite(options: { spreadsheet_id: string; range: stri
   return { success: true };
 }
 
-export async function driveUpload(options: { file_path: string; name?: string; folder_id?: string }) {
-  const auth = getAuth();
-  const drive = google.drive({ version: "v3", auth });
-  const fs = await import("fs");
-  const path = await import("path");
-  const fileName = options.name || path.basename(options.file_path);
-  const res = await drive.files.create({
-    requestBody: { name: fileName, parents: options.folder_id ? [options.folder_id] : undefined },
-    media: { body: fs.createReadStream(options.file_path) },
-    fields: "id, webViewLink",
-  });
-  return { fileId: res.data.id, url: res.data.webViewLink };
+export async function driveUpload(options: {
+  file_path: string;
+  name?: string;
+  folder_id?: string;
+  drive_id?: string;
+  collision_policy?: "create_new" | "fail" | "reuse_if_same";
+  account?: string;
+}) {
+  const result = await handleDriveTool("drive_upload", { ...options }, DRIVE_DEPENDENCIES);
+  const providerReference = result?.structuredContent?.file;
+  if (!providerReference || typeof providerReference !== "object" || Array.isArray(providerReference)) {
+    throw new Error("drive_upload did not return a provider file reference");
+  }
+  const file = providerReference as Record<string, unknown>;
+  return {
+    fileId: requireString(file.fileId, "Drive file ID"),
+    url: typeof file.webViewLink === "string" ? file.webViewLink : undefined,
+    providerReference: file,
+  };
 }
 
 export async function calendarList(options?: { days?: number; max_results?: number }) {

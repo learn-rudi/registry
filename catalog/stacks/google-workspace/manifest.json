@@ -2,7 +2,7 @@
   "id": "stack:google-workspace",
   "kind": "stack",
   "name": "Google Workspace Tools",
-  "version": "1.0.2",
+  "version": "2.0.0",
   "delivery": "remote",
   "install": {
     "source": "catalog",

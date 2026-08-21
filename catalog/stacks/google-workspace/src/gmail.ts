@@ -1,3 +1,5 @@
+import { normalizeRequestedGoogleAccount } from "./authIdentity.js";
+
 type HeaderLike = {
   name?: string | null;
   value?: string | null;
@@ -108,11 +110,10 @@ export function resolveRequestedAccount(
   args: Record<string, unknown> | undefined,
   currentAccount: string | null
 ): string | null {
-  if (!args || args.account == null) return currentAccount;
-  if (typeof args.account !== "string" || args.account.trim() === "") {
-    throw new Error("account must be a non-empty string");
-  }
-  return sanitizeHeaderValue(args.account, "account");
+  const requestedAccount = args?.account ?? currentAccount;
+  return requestedAccount == null
+    ? null
+    : normalizeRequestedGoogleAccount(requestedAccount);
 }
 
 export function normalizeGmailSendResult(

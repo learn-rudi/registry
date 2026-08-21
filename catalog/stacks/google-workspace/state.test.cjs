@@ -122,6 +122,10 @@ async function testMcpUsesExternalState() {
     path.join(accountDir, "token.json"),
     JSON.stringify({ token: "test-token", refresh_token: "test-refresh" }, null, 2)
   );
+  writeFileSync(
+    path.join(stateDir, "state.json"),
+    JSON.stringify({ currentAccount: "../external-state@example.com" }, null, 2)
+  );
 
   const legacyStateFile = path.join(process.cwd(), "state.json");
   const legacyStateBefore = existsSync(legacyStateFile)
@@ -130,13 +134,20 @@ async function testMcpUsesExternalState() {
 
   const client = await connectMcpClient(stateDir);
   try {
+    const currentText = await callTool(client, "account_current");
+    assert.equal(
+      currentText,
+      "No account selected (using default state token)",
+      "invalid persisted account values must be ignored before resolving account paths"
+    );
+
     const listText = await callTool(client, "account_list");
     assert(
       listText.includes(account),
       "account_list must read configured accounts from RUDI_STACK_STATE_DIR"
     );
 
-    await callTool(client, "account_switch", { account });
+    await callTool(client, "account_switch", { account: account.toUpperCase() });
     const state = JSON.parse(readFileSync(path.join(stateDir, "state.json"), "utf8"));
     assert.equal(state.currentAccount, account);
 

@@ -146,12 +146,16 @@ async function main() {
     ].join("\r\n")
   );
 
-  assert.equal(resolveRequestedAccount({ account: "work@example.com" }, "personal@example.com"), "work@example.com");
+  assert.equal(resolveRequestedAccount({ account: " WORK@example.com " }, "personal@example.com"), "work@example.com");
   assert.equal(resolveRequestedAccount({}, "personal@example.com"), "personal@example.com");
   assert.equal(resolveRequestedAccount({}, null), null);
   assert.throws(
     () => resolveRequestedAccount({ account: " " }, "personal@example.com"),
-    /account must be a non-empty string/
+    /Google account must be a valid email address/
+  );
+  assert.throws(
+    () => resolveRequestedAccount({ account: "../work@example.com" }, "personal@example.com"),
+    /Google account must be a valid email address/
   );
 
   assert.deepEqual(
