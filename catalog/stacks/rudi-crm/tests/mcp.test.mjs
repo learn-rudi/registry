@@ -19,12 +19,14 @@ const EXPECTED_TOOLS = [
   "rudi_crm_list_triage_queue",
   "rudi_crm_log_ingest_batch",
   "rudi_crm_promote_contact",
+  "rudi_crm_record_discovery_page",
   "rudi_crm_record_discovery_observations",
   "rudi_crm_record_finance_event",
   "rudi_crm_run_validators",
   "rudi_crm_setup_status",
+  "rudi_crm_finalize_discovery_run",
   "rudi_crm_upsert_interaction",
-];
+].sort();
 
 test("MCP server exposes the controlled RUDI CRM contract", async () => {
   const transport = new StdioClientTransport({
@@ -34,10 +36,11 @@ test("MCP server exposes the controlled RUDI CRM contract", async () => {
     env: {
       ...process.env,
       RUDI_CRM_DATABASE_URL: "",
+      RUDI_CRM_CAPABILITY_PROFILE: "operator",
     },
   });
   const client = new Client(
-    { name: "rudi-crm-stack-test", version: "0.4.0" },
+    { name: "rudi-crm-stack-test", version: "0.5.0" },
     { capabilities: {} }
   );
 
@@ -169,6 +172,92 @@ test("MCP server exposes the controlled RUDI CRM contract", async () => {
     assert.equal(setupData.database_url_configured, false);
     assert.equal(setupData.raw_sql_enabled, false);
     assert.deepEqual(setupData.missing, ["RUDI_CRM_DATABASE_URL"]);
+  } finally {
+    await client.close();
+  }
+});
+
+test("discovery MCP profile exposes page/finalize without promotion surfaces", async () => {
+  const transport = new StdioClientTransport({
+    command: "node",
+    args: ["dist/index.js"],
+    cwd: process.cwd(),
+    env: {
+      ...process.env,
+      RUDI_CRM_DATABASE_URL: "",
+      RUDI_CRM_CAPABILITY_PROFILE: "discovery",
+    },
+  });
+  const client = new Client(
+    { name: "rudi-crm-discovery-profile-test", version: "0.5.0" },
+    { capabilities: {} }
+  );
+
+  try {
+    await client.connect(transport);
+    const { tools } = await client.listTools();
+    assert.deepEqual(
+      tools.map((tool) => tool.name).sort(),
+      [
+        "rudi_crm_config_status",
+        "rudi_crm_finalize_discovery_run",
+        "rudi_crm_record_discovery_page",
+        "rudi_crm_setup_status",
+      ]
+    );
+    const record = tools.find((tool) => tool.name === "rudi_crm_record_discovery_page");
+    assert.deepEqual(record.inputSchema.required, [
+      "schema_version",
+      "source",
+      "account_scope",
+      "run_key",
+      "page_number",
+      "page_key",
+      "cutoff",
+      "observations",
+    ]);
+    assert.equal(record.inputSchema.properties.page_number.maximum, 500);
+    assert.equal(record.inputSchema.properties.observations.maxItems, 500);
+    assert.equal(record.inputSchema.additionalProperties, false);
+    assert.equal(record.inputSchema.properties.observations.items.additionalProperties, false);
+
+    const finalize = tools.find(
+      (tool) => tool.name === "rudi_crm_finalize_discovery_run"
+    );
+    assert.deepEqual(finalize.inputSchema.required, [
+      "schema_version",
+      "source",
+      "account_scope",
+      "run_key",
+      "cutoff",
+      "expected_pages",
+      "expected_records",
+    ]);
+    assert.equal(finalize.inputSchema.additionalProperties, false);
+
+    for (const forbidden of [
+      "rudi_crm_apply_discovery_heuristics",
+      "rudi_crm_classify_contact_address",
+      "rudi_crm_list_contact_candidates",
+      "rudi_crm_promote_contact",
+      "raw_sql",
+    ]) {
+      assert.equal(tools.some((tool) => tool.name === forbidden), false);
+    }
+    const status = await client.callTool({
+      name: "rudi_crm_config_status",
+      arguments: {},
+    });
+    assert.equal(JSON.parse(status.content[0].text).capability_profile, "discovery");
+    const forbiddenCall = await client.callTool({
+      name: "rudi_crm_promote_contact",
+      arguments: {
+        email: "person@example.com",
+        full_name: "Example Person",
+      },
+    });
+    assert.equal(forbiddenCall.isError, true);
+    assert.match(forbiddenCall.content[0].text, /not available in the discovery/i);
   } finally {
     await client.close();
   }

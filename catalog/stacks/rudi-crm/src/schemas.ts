@@ -6,6 +6,7 @@ const nonEmptyString = z.string().trim().min(1);
 const optionalText = z.string().trim().optional();
 const optionalUuid = z.string().uuid().optional();
 const normalizedEmail = z.string().trim().toLowerCase().email().max(320);
+const sha256Hex = z.string().regex(/^[0-9a-f]{64}$/);
 
 export const ContactAddressCategory = z.enum([
   "person",
@@ -37,6 +38,96 @@ export const RudiCrmObservation = z.object({
 export const RecordDiscoveryObservationsInput = z.object({
   observations: z.array(RudiCrmObservation).min(1).max(500),
 });
+
+const DiscoverySource = z.enum(["gmail", "calendar"]);
+const DiscoveryObservation = z.object({
+  resource_key: sha256Hex,
+  observed_at: isoDateTime,
+  address_role: z.enum(["from", "to", "cc", "organizer", "attendee"]),
+  address: normalizedEmail,
+  display_name: z.string().trim().min(1).max(200).optional(),
+  recurrence_key: sha256Hex.optional(),
+}).strict();
+
+const DiscoveryRunScope = z.object({
+  schema_version: z.literal("1"),
+  source: DiscoverySource,
+  account_scope: normalizedEmail,
+  calendar_scope: z.string().trim().min(1).max(512).optional(),
+  run_key: sha256Hex,
+  cutoff: isoDateTime,
+}).strict();
+
+function validateDiscoveryScope(
+  value: {
+    source: "gmail" | "calendar";
+    calendar_scope?: string;
+  },
+  ctx: z.RefinementCtx
+): void {
+  if (value.source === "gmail" && value.calendar_scope !== undefined) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "calendar_scope is forbidden for Gmail discovery",
+      path: ["calendar_scope"],
+    });
+  }
+  if (value.source === "calendar" && value.calendar_scope === undefined) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "calendar_scope is required for Calendar discovery",
+      path: ["calendar_scope"],
+    });
+  }
+}
+
+export const RecordDiscoveryPageInput = DiscoveryRunScope.extend({
+  page_number: z.number().int().min(1).max(500),
+  page_key: sha256Hex,
+  observations: z.array(DiscoveryObservation).max(500),
+}).strict().superRefine((value, ctx) => {
+  validateDiscoveryScope(value, ctx);
+  const cutoff = Date.parse(value.cutoff);
+  let previousKey = "";
+  value.observations.forEach((observation, index) => {
+    const validRoles = value.source === "gmail"
+      ? ["from", "to", "cc"]
+      : ["organizer", "attendee"];
+    if (!validRoles.includes(observation.address_role)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `address_role is invalid for ${value.source}`,
+        path: ["observations", index, "address_role"],
+      });
+    }
+    if (Date.parse(observation.observed_at) > cutoff) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "observed_at must not exceed cutoff",
+        path: ["observations", index, "observed_at"],
+      });
+    }
+    const orderingKey = [
+      observation.observed_at,
+      observation.resource_key,
+      observation.address_role,
+      observation.address,
+    ].join("\0");
+    if (index > 0 && orderingKey <= previousKey) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "observations must be unique and deterministically ordered",
+        path: ["observations", index],
+      });
+    }
+    previousKey = orderingKey;
+  });
+});
+
+export const FinalizeDiscoveryRunInput = DiscoveryRunScope.extend({
+  expected_pages: z.number().int().min(1).max(500),
+  expected_records: z.number().int().min(0).max(250_000),
+}).strict().superRefine(validateDiscoveryScope);
 
 export const LogIngestBatchInput = z.object({
   source: nonEmptyString,

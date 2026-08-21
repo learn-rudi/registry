@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 type HeaderLike = {
   name?: string | null;
   value?: string | null;
@@ -120,6 +122,28 @@ export type NormalizedGmailHeaderSearchPage = {
     bcc: string;
   }>;
   nextPageToken?: string;
+};
+
+export type GmailDiscoveryScope = {
+  account: string;
+  window_start: string;
+  window_end: string;
+  max_records: number;
+};
+
+export type NormalizedGmailDiscoveryPage = {
+  source: "gmail";
+  account: string;
+  window_start: string;
+  window_end: string;
+  observations: Array<{
+    resource_key: string;
+    observed_at: string;
+    address_role: "from" | "to" | "cc";
+    address: string;
+    display_name?: string;
+  }>;
+  next_page_token?: string;
 };
 
 export const DEFAULT_GMAIL_CONTENT_TYPE = 'text/plain; charset="UTF-8"';
@@ -293,6 +317,177 @@ export function normalizeGmailHeaderSearchPage(
     messages,
     ...(nextPageToken ? { nextPageToken } : {}),
   };
+}
+
+export function normalizeGmailDiscoveryPage(
+  input: GmailHeaderSearchPageLike,
+  scope: GmailDiscoveryScope
+): NormalizedGmailDiscoveryPage {
+  const account = requireNormalizedEmail(scope.account, "account");
+  const windowStart = requireIsoTimestamp(scope.window_start, "window_start");
+  const windowEnd = requireIsoTimestamp(scope.window_end, "window_end");
+  if (windowStart >= windowEnd) {
+    throw new Error("window_start must precede window_end");
+  }
+  if (!Number.isInteger(scope.max_records) || scope.max_records < 1 || scope.max_records > 500) {
+    throw new Error("max_records must be an integer between 1 and 500");
+  }
+
+  const rawMessages = input.messages ?? [];
+  if (!Array.isArray(rawMessages)) {
+    throw new Error("messages must be an array");
+  }
+
+  const observations: NormalizedGmailDiscoveryPage["observations"] = [];
+  for (const [messageIndex, message] of rawMessages.entries()) {
+    if (!message || typeof message !== "object" || Array.isArray(message)) {
+      throw new Error(`messages[${messageIndex}] must be an object`);
+    }
+    const providerId = requireOpaqueProviderId(message.id, `messages[${messageIndex}].id`);
+    const resourceKey = scopedProviderKey("gmail", account, providerId);
+    const observedAt = gmailObservedAt(message.internalDate, messageIndex);
+    if (observedAt < windowStart || observedAt >= windowEnd) {
+      continue;
+    }
+    const headers = message.payload?.headers ?? [];
+    if (!Array.isArray(headers)) {
+      throw new Error(`messages[${messageIndex}].payload.headers must be an array`);
+    }
+
+    for (const role of ["from", "to", "cc"] as const) {
+      const value = getHeader(headers, role);
+      for (const identity of parseDiscoveryAddresses(value, role)) {
+        observations.push({
+          resource_key: resourceKey,
+          observed_at: observedAt,
+          address_role: role,
+          address: identity.address,
+          ...(identity.displayName ? { display_name: identity.displayName } : {}),
+        });
+      }
+    }
+  }
+
+  const uniqueObservations = deduplicateGmailObservations(observations);
+  uniqueObservations.sort((left, right) =>
+    left.observed_at.localeCompare(right.observed_at)
+    || left.resource_key.localeCompare(right.resource_key)
+    || left.address_role.localeCompare(right.address_role)
+    || left.address.localeCompare(right.address)
+  );
+  if (uniqueObservations.length > scope.max_records) {
+    throw new Error(`Gmail discovery page exceeds max_records (${scope.max_records})`);
+  }
+
+  const nextPageToken = optionalProviderString(input.nextPageToken, "nextPageToken");
+  return {
+    source: "gmail",
+    account,
+    window_start: windowStart,
+    window_end: windowEnd,
+    observations: uniqueObservations,
+    ...(nextPageToken ? { next_page_token: nextPageToken } : {}),
+  };
+}
+
+function deduplicateGmailObservations(
+  observations: NormalizedGmailDiscoveryPage["observations"]
+): NormalizedGmailDiscoveryPage["observations"] {
+  const unique = new Map<string, NormalizedGmailDiscoveryPage["observations"][number]>();
+  for (const observation of observations) {
+    const key = [
+      observation.observed_at,
+      observation.resource_key,
+      observation.address_role,
+      observation.address,
+    ].join("\u001f");
+    const prior = unique.get(key);
+    if (
+      !prior
+      || (!prior.display_name && observation.display_name)
+      || (
+        prior.display_name
+        && observation.display_name
+        && observation.display_name.localeCompare(prior.display_name) < 0
+      )
+    ) {
+      unique.set(key, observation);
+    }
+  }
+  return [...unique.values()];
+}
+
+function gmailObservedAt(value: unknown, messageIndex: number): string {
+  const internalDate = requireDecimalHistoryId(
+    value,
+    `messages[${messageIndex}].internalDate`
+  );
+  const numeric = Number(internalDate);
+  const observedAt = new Date(numeric);
+  if (!Number.isSafeInteger(numeric) || Number.isNaN(observedAt.getTime())) {
+    throw new Error(`messages[${messageIndex}].internalDate must be a valid timestamp`);
+  }
+  return observedAt.toISOString();
+}
+
+function parseDiscoveryAddresses(
+  value: string,
+  field: string
+): Array<{ address: string; displayName?: string }> {
+  if (!value) return [];
+  if (value.length > 20_000) {
+    throw new Error(`${field} header is too large`);
+  }
+  const parts = splitAddressList(value);
+  if (parts.length > 100) {
+    throw new Error(`${field} header contains too many addresses`);
+  }
+  return parts.map((part, index) => {
+    const angle = part.match(/^(.*?)<([^<>]+)>$/);
+    const address = requireNormalizedEmail(
+      angle?.[2] ?? part,
+      `${field}[${index}].address`
+    );
+    const rawDisplayName = angle?.[1]?.trim().replace(/^"|"$/g, "");
+    if (!rawDisplayName) return { address };
+    const displayName = sanitizeHeaderValue(rawDisplayName, `${field}[${index}].display_name`);
+    if (displayName.length > 200) {
+      throw new Error(`${field}[${index}].display_name must be at most 200 characters`);
+    }
+    return { address, displayName };
+  });
+}
+
+function requireNormalizedEmail(value: unknown, field: string): string {
+  if (typeof value !== "string") {
+    throw new Error(`${field} must be a string`);
+  }
+  const normalized = value.trim().toLowerCase();
+  if (
+    normalized.length === 0
+    || normalized.length > 320
+    || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)
+  ) {
+    throw new Error(`${field} must be a valid email address`);
+  }
+  return normalized;
+}
+
+function requireIsoTimestamp(value: unknown, field: string): string {
+  if (typeof value !== "string" || !/(?:Z|[+-]\d{2}:\d{2})$/.test(value)) {
+    throw new Error(`${field} must be an ISO-8601 timestamp with offset`);
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`${field} must be an ISO-8601 timestamp with offset`);
+  }
+  return parsed.toISOString();
+}
+
+function scopedProviderKey(source: string, scope: string, providerId: string): string {
+  return createHash("sha256")
+    .update(`${source}\0${scope}\0${providerId}`)
+    .digest("hex");
 }
 
 export function buildGmailDraftMessage(options: DraftMessageOptions): GmailDraftMessage {
@@ -479,10 +674,66 @@ function buildReplyRecipients(options: {
 }
 
 function splitAddressList(value: string): string[] {
-  return value
-    .split(",")
-    .map((part) => part.trim())
-    .filter(Boolean);
+  if (value.length > 20_000) {
+    throw new Error("address list is too large");
+  }
+  if (value.trim() === "") return [];
+
+  const parts: string[] = [];
+  let part = "";
+  let quoted = false;
+  let escaped = false;
+  let angleDepth = 0;
+
+  const appendPart = () => {
+    const normalized = part.trim();
+    part = "";
+    if (!normalized) throw new Error("address list contains an empty address");
+    if (parts.length >= 100) {
+      throw new Error("address list contains too many addresses");
+    }
+    parts.push(normalized);
+  };
+
+  for (const character of value) {
+    if (escaped) {
+      part += character;
+      escaped = false;
+      continue;
+    }
+    if (quoted && character === "\\") {
+      part += character;
+      escaped = true;
+      continue;
+    }
+    if (character === '"') {
+      quoted = !quoted;
+      part += character;
+      continue;
+    }
+    if (!quoted && character === "<") {
+      if (angleDepth !== 0) throw new Error("address list contains nested angle brackets");
+      angleDepth = 1;
+      part += character;
+      continue;
+    }
+    if (!quoted && character === ">") {
+      if (angleDepth !== 1) throw new Error("address list contains unmatched angle brackets");
+      angleDepth = 0;
+      part += character;
+      continue;
+    }
+    if (!quoted && angleDepth === 0 && character === ",") {
+      appendPart();
+      continue;
+    }
+    part += character;
+  }
+
+  if (quoted || escaped) throw new Error("address list contains an unterminated quote");
+  if (angleDepth !== 0) throw new Error("address list contains unmatched angle brackets");
+  appendPart();
+  return parts;
 }
 
 function normalizeEmailAddress(value: string): string {

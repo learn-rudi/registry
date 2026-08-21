@@ -5,9 +5,11 @@ import {
   ActivityFeedInput,
   AttentionBriefInput,
   ClassifyContactAddressInput,
+  FinalizeDiscoveryRunInput,
   ListPeopleInput,
   ListContactCandidatesInput,
   PromoteContactInput,
+  RecordDiscoveryPageInput,
   RecordFinanceEventInput,
   RudiCrmObservation,
   UpsertInteractionInput,
@@ -192,4 +194,80 @@ test("discovery observations align source, role, timestamp, and metadata boundar
     RudiCrmObservation.parse({ ...observation, display_name: "x".repeat(201) })
   );
   assert.throws(() => RudiCrmObservation.parse({ ...observation, address: "not-an-email" }));
+});
+
+test("discovery run schemas are closed, scoped, bounded, and deterministically ordered", () => {
+  const hash = (character) => character.repeat(64);
+  const base = {
+    schema_version: "1",
+    source: "gmail",
+    account_scope: "OWNER@EXAMPLE.COM",
+    run_key: hash("a"),
+    page_number: 1,
+    page_key: hash("b"),
+    cutoff: "2026-08-01T00:00:00Z",
+    observations: [
+      {
+        resource_key: hash("c"),
+        observed_at: "2026-07-01T12:00:00Z",
+        address_role: "from",
+        address: " Person@Example.COM ",
+        display_name: "Example Person",
+      },
+    ],
+  };
+  const page = RecordDiscoveryPageInput.parse(base);
+  assert.equal(page.account_scope, "owner@example.com");
+  assert.equal(page.observations[0].address, "person@example.com");
+  assert.throws(() => RecordDiscoveryPageInput.parse({ ...base, page_number: 0 }));
+  assert.throws(() => RecordDiscoveryPageInput.parse({ ...base, page_number: 501 }));
+  assert.throws(() => RecordDiscoveryPageInput.parse({ ...base, run_key: "provider-id" }));
+  assert.throws(() => RecordDiscoveryPageInput.parse({ ...base, subject: "forbidden" }));
+  assert.throws(() =>
+    RecordDiscoveryPageInput.parse({
+      ...base,
+      observations: [{ ...base.observations[0], raw: { body: "forbidden" } }],
+    })
+  );
+  assert.throws(() =>
+    RecordDiscoveryPageInput.parse({
+      ...base,
+      observations: [
+        { ...base.observations[0], resource_key: hash("d") },
+        base.observations[0],
+      ],
+    })
+  );
+  assert.throws(() =>
+    RecordDiscoveryPageInput.parse({
+      ...base,
+      source: "calendar",
+    })
+  );
+  assert.equal(
+    RecordDiscoveryPageInput.parse({
+      ...base,
+      source: "calendar",
+      calendar_scope: "team@example.com",
+      observations: [{
+        ...base.observations[0],
+        address_role: "attendee",
+        recurrence_key: hash("e"),
+      }],
+    }).calendar_scope,
+    "team@example.com"
+  );
+
+  const finalize = FinalizeDiscoveryRunInput.parse({
+    schema_version: "1",
+    source: "gmail",
+    account_scope: "owner@example.com",
+    run_key: hash("a"),
+    cutoff: "2026-08-01T00:00:00Z",
+    expected_pages: 2,
+    expected_records: 501,
+  });
+  assert.equal(finalize.expected_pages, 2);
+  assert.throws(() => FinalizeDiscoveryRunInput.parse({ ...finalize, expected_pages: 501 }));
+  assert.throws(() => FinalizeDiscoveryRunInput.parse({ ...finalize, notes: "forbidden" }));
 });

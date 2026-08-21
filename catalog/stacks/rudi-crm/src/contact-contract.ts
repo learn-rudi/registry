@@ -2,9 +2,11 @@ import type { Pool } from "pg";
 
 import {
   ClassifyContactAddressInput,
+  FinalizeDiscoveryRunInput,
   ListContactCandidatesInput,
   LogIngestBatchInput,
   PromoteContactInput,
+  RecordDiscoveryPageInput,
   RecordDiscoveryObservationsInput,
   parseToolArgs,
 } from "./schemas.js";
@@ -22,6 +24,66 @@ function pagedResult(rows: Array<Record<string, unknown>>) {
 
 export function createContactContract(getPool: PoolProvider) {
   return {
+    async recordDiscoveryPage(args: unknown) {
+      const input = parseToolArgs(RecordDiscoveryPageInput, args);
+      const result = await getPool().query(
+        `
+        select record_discovery_page(
+          p_schema_version := $1::text,
+          p_source := $2::text,
+          p_account_scope := $3::text,
+          p_calendar_scope := $4::text,
+          p_run_key := $5::text,
+          p_page_number := $6::integer,
+          p_page_key := $7::text,
+          p_cutoff := $8::timestamptz,
+          p_observations := $9::jsonb
+        ) as result
+        `,
+        [
+          input.schema_version,
+          input.source,
+          input.account_scope,
+          input.calendar_scope ?? null,
+          input.run_key,
+          input.page_number,
+          input.page_key,
+          input.cutoff,
+          JSON.stringify(input.observations),
+        ]
+      );
+      return result.rows[0]?.result ?? null;
+    },
+
+    async finalizeDiscoveryRun(args: unknown) {
+      const input = parseToolArgs(FinalizeDiscoveryRunInput, args);
+      const result = await getPool().query(
+        `
+        select finalize_discovery_run(
+          p_schema_version := $1::text,
+          p_source := $2::text,
+          p_account_scope := $3::text,
+          p_calendar_scope := $4::text,
+          p_run_key := $5::text,
+          p_cutoff := $6::timestamptz,
+          p_expected_pages := $7::integer,
+          p_expected_records := $8::integer
+        ) as result
+        `,
+        [
+          input.schema_version,
+          input.source,
+          input.account_scope,
+          input.calendar_scope ?? null,
+          input.run_key,
+          input.cutoff,
+          input.expected_pages,
+          input.expected_records,
+        ]
+      );
+      return result.rows[0]?.result ?? null;
+    },
+
     async recordDiscoveryObservations(args: unknown) {
       const input = parseToolArgs(RecordDiscoveryObservationsInput, args);
       const result = await getPool().query(

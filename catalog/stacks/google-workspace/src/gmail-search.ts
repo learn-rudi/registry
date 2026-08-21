@@ -1,7 +1,10 @@
 import { writeFileSync } from "fs";
 import type { gmail_v1 } from "googleapis";
 
-import { normalizeGmailHeaderSearchPage } from "./gmail.js";
+import {
+  normalizeGmailDiscoveryPage,
+  normalizeGmailHeaderSearchPage,
+} from "./gmail.js";
 
 type ToolArgs = Record<string, unknown> | undefined;
 
@@ -41,6 +44,45 @@ export function gmailSearchToolDefinitions(accountInput: Record<string, unknown>
           account: accountInput,
         },
         required: ["query"],
+      },
+    },
+    {
+      name: "gmail_discovery_page",
+      description:
+        "Read one bounded historical Gmail contact-discovery page for an exact account and window. Returns normalized From/To/Cc observations only; never Bcc, provider IDs, subjects, snippets, bodies, raw messages, URLs, or credentials.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          account: accountInput,
+          window_start: {
+            type: "string",
+            format: "date-time",
+            description: "Inclusive ISO-8601 observation window start with offset.",
+          },
+          window_end: {
+            type: "string",
+            format: "date-time",
+            description: "Exclusive ISO-8601 observation cutoff with offset.",
+          },
+          max_results: {
+            type: "integer",
+            minimum: 1,
+            maximum: 500,
+            description: "Maximum provider messages in this page (default 50).",
+          },
+          max_records: {
+            type: "integer",
+            minimum: 1,
+            maximum: 500,
+            description: "Maximum normalized observations in this page (default 500).",
+          },
+          next_page_token: {
+            type: "string",
+            maxLength: 512,
+            description: "Opaque pagination token returned by the prior discovery page.",
+          },
+        },
+        required: ["account", "window_start", "window_end"],
       },
     },
     {
@@ -122,4 +164,74 @@ export async function runGmailHeaderSearch(gmail: gmail_v1.Gmail, args: ToolArgs
     nextPageToken: listed.data.nextPageToken,
   });
   return { content: [{ type: "text" as const, text: JSON.stringify(page, null, 2) }] };
+}
+
+export async function runGmailDiscoveryPage(gmail: gmail_v1.Gmail, args: ToolArgs) {
+  const maxResults = boundedInteger(args?.max_results, "max_results", 50, 1, 500);
+  const maxRecords = boundedInteger(args?.max_records, "max_records", 500, 1, 500);
+  const account = requireString(args?.account, "account").toLowerCase();
+  const emptyPage = normalizeGmailDiscoveryPage(
+    { messages: [] },
+    {
+      account,
+      window_start: requireString(args?.window_start, "window_start"),
+      window_end: requireString(args?.window_end, "window_end"),
+      max_records: maxRecords,
+    }
+  );
+  const profile = await gmail.users.getProfile({ userId: "me" });
+  if (profile.data.emailAddress?.trim().toLowerCase() !== emptyPage.account) {
+    throw new Error("Authenticated Gmail profile does not match account");
+  }
+
+  const listed = await gmail.users.messages.list({
+    userId: "me",
+    q: [
+      `after:${Math.max(0, Math.floor(Date.parse(emptyPage.window_start) / 1000) - 1)}`,
+      `before:${Math.ceil(Date.parse(emptyPage.window_end) / 1000)}`,
+      "-in:spam",
+      "-in:trash",
+    ].join(" "),
+    maxResults,
+    pageToken: optionalBoundedString(args?.next_page_token, "next_page_token", 512),
+    fields: "messages/id,nextPageToken",
+  });
+  const messages = [];
+  for (const [index, message] of (listed.data.messages || []).entries()) {
+    if (!message.id) {
+      throw new Error(`Gmail discovery result ${index} has no message ID`);
+    }
+    const response = await gmail.users.messages.get({
+      userId: "me",
+      id: message.id,
+      format: "metadata",
+      metadataHeaders: ["From", "To", "Cc"],
+      fields: "id,internalDate,payload/headers",
+    });
+    messages.push(response.data);
+  }
+  const page = normalizeGmailDiscoveryPage(
+    { messages, nextPageToken: listed.data.nextPageToken },
+    {
+      account: emptyPage.account,
+      window_start: emptyPage.window_start,
+      window_end: emptyPage.window_end,
+      max_records: maxRecords,
+    }
+  );
+  return { content: [{ type: "text" as const, text: JSON.stringify(page, null, 2) }] };
+}
+
+function optionalBoundedString(
+  value: unknown,
+  field: string,
+  maximumLength: number
+): string | undefined {
+  if (value == null) return undefined;
+  if (typeof value !== "string") throw new Error(`${field} must be a string`);
+  const normalized = value.trim();
+  if (!normalized || normalized.length > maximumLength) {
+    throw new Error(`${field} must contain 1 to ${maximumLength} characters`);
+  }
+  return normalized;
 }

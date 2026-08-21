@@ -11,6 +11,9 @@ functions and reads only through stable CRM views/queries.
 
 - No raw SQL tool.
 - No direct table mutation from agents.
+- `RUDI_CRM_CAPABILITY_PROFILE=discovery` exposes only configuration/setup plus
+  idempotent discovery page recording and finalization. It cannot list
+  candidates, classify addresses, run general heuristics, or promote people.
 - Mutating tools are idempotency-keyed or batch-audited by the database layer.
 - Discovery and candidate preview never create CRM people. Contact promotion is
   a separate operation that requires explicit human approval.
@@ -41,7 +44,10 @@ rudi integrate codex
 The target database must already exist. `db:migrate` validates the URL, takes a
 PostgreSQL advisory lock, applies each migration transactionally, and records
 its SHA-256 checksum in `public.rudi_crm_schema_migrations`. Re-running it skips
-unchanged migrations and fails closed if an applied migration was edited.
+unchanged migrations and fails closed if an applied migration was edited. Two
+repository-evidenced, pre-trim checksum variants of migrations `0001` and
+`0002` are accepted without rewriting their ledger rows; every other unknown
+path or checksum fails closed.
 
 Restart the agent host after integration so the MCP router reloads the stack.
 Run `rudi_crm_setup_status` before using the CRM; every required table,
@@ -78,8 +84,52 @@ at the same domain.
 `sql/migrations/0004_contact_address_classification.sql` adds durable,
 address-level classification, conservative local-part suggestions, audited
 manual overrides, and category-filtered candidate review.
+`sql/migrations/0005_discovery_security_boundary.sql` revokes PUBLIC schema,
+table, sequence, and function access; enables RLS on additive discovery tables;
+hardens classification/promotion function execution; and adds the closed,
+account-scoped page/finalize discovery contract.
 Add future changes as new ordered migration files; never rewrite an applied
 migration.
+
+## Least-privilege discovery profile
+
+Launch the CRM subprocess with `RUDI_CRM_CAPABILITY_PROFILE=discovery` when a
+source adapter is only allowed to record pages and finalize a run. The MCP
+surface is then exactly:
+
+- `rudi_crm_config_status`
+- `rudi_crm_setup_status`
+- `rudi_crm_record_discovery_page`
+- `rudi_crm_finalize_discovery_run`
+
+`rudi_crm_record_discovery_page` accepts schema version `1`, exact source and
+account/calendar scope, lowercase SHA-256 run/page keys, a page number from 1
+through 500, an explicit cutoff, and zero through 500 deterministically ordered
+observations. Each observation contains only a scoped SHA-256 `resource_key`,
+`observed_at`, an allowlisted role, normalized address, optional bounded display
+name, and optional Calendar recurrence key. Subjects, bodies, snippets, BCC,
+event content, raw provider objects, provider IDs, URLs, responses, and
+credentials are rejected by the closed schema.
+
+`rudi_crm_finalize_discovery_run` treats `expected_records` as the total closed
+observation-row count, not a provider message/event count. It verifies every
+page from 1 through `expected_pages`, checks both page counts and physical row
+counts, validates privacy/structure/scope, applies only the built-in
+deterministic no-reply local-part test, and compares SHA-256 snapshots plus row
+counts for `people` and `person_emails`. Audit rows contain counts and
+session/application attribution only. Exact page/finalize retries remain safe,
+including a page retry after finalization; mismatched retries fail. Provider
+checkpoint advancement stays in the source adapter and occurs only after a
+successful finalize response.
+
+The migration deliberately creates no PostgreSQL roles and grants no
+capability. `rudi_crm_discovery` and `rudi_crm_promotion` are proposed stable
+group-role names. Provisioning remains a deployment-gated human choice. If
+approved, grant `rudi_crm_discovery` only `USAGE` on schema `public` and exact
+`EXECUTE` on `record_discovery_page(...)` and `finalize_discovery_run(...)`;
+grant classification/promotion separately to `rudi_crm_promotion`. Never grant
+either role table DML, candidate views, raw SQL, or membership in the other
+role.
 
 ## Approval-gated contact discovery
 
@@ -120,6 +170,8 @@ RUDI state, not this public catalog.
 
 - `rudi_crm_config_status`
 - `rudi_crm_setup_status`
+- `rudi_crm_record_discovery_page`
+- `rudi_crm_finalize_discovery_run`
 - `rudi_crm_record_discovery_observations`
 - `rudi_crm_apply_discovery_heuristics`
 - `rudi_crm_list_contact_candidates`
@@ -156,3 +208,13 @@ npm run test:live
 
 The live tests wrap classification, promotion, and finance probes in
 transactions and roll back before exit.
+
+The isolated bootstrap and least-privilege discovery tests create and remove
+throwaway databases/roles on a separately supplied PostgreSQL 17 admin URL:
+
+```bash
+RUDI_CRM_BOOTSTRAP_TESTS=1 \
+RUDI_CRM_DISCOVERY_SECURITY_TESTS=1 \
+RUDI_CRM_TEST_ADMIN_URL=postgresql://127.0.0.1:55437/postgres \
+npm test
+```

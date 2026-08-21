@@ -10,6 +10,7 @@ import {
   applyDiscoveryHeuristics,
   classifyContactAddress,
   crmErrorMessage,
+  finalizeDiscoveryRun,
   getActivityFeed,
   getAttentionBrief,
   getConfigStatus,
@@ -24,11 +25,36 @@ import {
   listTriageQueue,
   logIngestBatch,
   promoteContact,
+  recordDiscoveryPage,
   recordDiscoveryObservations,
   recordFinanceEvent,
   runValidators,
   upsertInteraction,
 } from "./contract.js";
+
+type CapabilityProfile = "operator" | "discovery";
+
+function capabilityProfile(value = process.env.RUDI_CRM_CAPABILITY_PROFILE): CapabilityProfile {
+  const normalized = value?.trim() || "operator";
+  if (normalized !== "operator" && normalized !== "discovery") {
+    throw new Error(
+      "RUDI_CRM_CAPABILITY_PROFILE must be either operator or discovery"
+    );
+  }
+  return normalized;
+}
+
+const ACTIVE_CAPABILITY_PROFILE = capabilityProfile();
+const DISCOVERY_TOOL_NAMES = new Set([
+  "rudi_crm_config_status",
+  "rudi_crm_setup_status",
+  "rudi_crm_record_discovery_page",
+  "rudi_crm_finalize_discovery_run",
+]);
+
+function isToolAllowed(name: string): boolean {
+  return ACTIVE_CAPABILITY_PROFILE === "operator" || DISCOVERY_TOOL_NAMES.has(name);
+}
 
 function asText(data: unknown) {
   return {
@@ -49,12 +75,11 @@ function asError(error: unknown) {
 }
 
 const server = new Server(
-  { name: "rudi-crm", version: "0.4.0" },
+  { name: "rudi-crm", version: "0.5.0" },
   { capabilities: { tools: {} } }
 );
 
-server.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: [
+const TOOL_DEFINITIONS = [
     {
       name: "rudi_crm_config_status",
       description:
@@ -71,6 +96,83 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       inputSchema: {
         type: "object",
         properties: {},
+      },
+    },
+    {
+      name: "rudi_crm_record_discovery_page",
+      description:
+        "Record one closed-schema, source/account-scoped discovery page. Replays with the same page key and content are idempotent; this capability cannot list, classify, or promote contacts.",
+      inputSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          schema_version: { type: "string", enum: ["1"] },
+          source: { type: "string", enum: ["gmail", "calendar"] },
+          account_scope: { type: "string", format: "email", maxLength: 320 },
+          calendar_scope: { type: "string", minLength: 1, maxLength: 512 },
+          run_key: { type: "string", pattern: "^[0-9a-f]{64}$" },
+          page_number: { type: "integer", minimum: 1, maximum: 500 },
+          page_key: { type: "string", pattern: "^[0-9a-f]{64}$" },
+          cutoff: { type: "string", format: "date-time" },
+          observations: {
+            type: "array",
+            maxItems: 500,
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                resource_key: { type: "string", pattern: "^[0-9a-f]{64}$" },
+                observed_at: { type: "string", format: "date-time" },
+                address_role: {
+                  type: "string",
+                  enum: ["from", "to", "cc", "organizer", "attendee"],
+                },
+                address: { type: "string", format: "email", maxLength: 320 },
+                display_name: { type: "string", minLength: 1, maxLength: 200 },
+                recurrence_key: { type: "string", pattern: "^[0-9a-f]{64}$" },
+              },
+              required: ["resource_key", "observed_at", "address_role", "address"],
+            },
+          },
+        },
+        required: [
+          "schema_version",
+          "source",
+          "account_scope",
+          "run_key",
+          "page_number",
+          "page_key",
+          "cutoff",
+          "observations",
+        ],
+      },
+    },
+    {
+      name: "rudi_crm_finalize_discovery_run",
+      description:
+        "Finalize an idempotent discovery run only after every expected page and record is present. Runs privacy, structure, no-promotion, and deterministic-noise checks and emits count-only audit metadata.",
+      inputSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          schema_version: { type: "string", enum: ["1"] },
+          source: { type: "string", enum: ["gmail", "calendar"] },
+          account_scope: { type: "string", format: "email", maxLength: 320 },
+          calendar_scope: { type: "string", minLength: 1, maxLength: 512 },
+          run_key: { type: "string", pattern: "^[0-9a-f]{64}$" },
+          cutoff: { type: "string", format: "date-time" },
+          expected_pages: { type: "integer", minimum: 1, maximum: 500 },
+          expected_records: { type: "integer", minimum: 0, maximum: 250000 },
+        },
+        required: [
+          "schema_version",
+          "source",
+          "account_scope",
+          "run_key",
+          "cutoff",
+          "expected_pages",
+          "expected_records",
+        ],
       },
     },
     {
@@ -561,18 +663,36 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         },
       },
     },
-  ],
+];
+
+server.setRequestHandler(ListToolsRequestSchema, async () => ({
+  tools: TOOL_DEFINITIONS.filter((tool) => isToolAllowed(tool.name)),
 }));
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const args = request.params.arguments ?? {};
 
   try {
+    if (!isToolAllowed(request.params.name)) {
+      throw new Error(
+        `Tool ${request.params.name} is not available in the ${ACTIVE_CAPABILITY_PROFILE} capability profile`
+      );
+    }
     switch (request.params.name) {
       case "rudi_crm_config_status":
-        return asText(getConfigStatus());
+        return asText({
+          ...getConfigStatus(),
+          capability_profile: ACTIVE_CAPABILITY_PROFILE,
+        });
       case "rudi_crm_setup_status":
-        return asText(await getSetupStatus());
+        return asText({
+          ...(await getSetupStatus()),
+          capability_profile: ACTIVE_CAPABILITY_PROFILE,
+        });
+      case "rudi_crm_record_discovery_page":
+        return asText(await recordDiscoveryPage(args));
+      case "rudi_crm_finalize_discovery_run":
+        return asText(await finalizeDiscoveryRun(args));
       case "rudi_crm_record_discovery_observations":
         return asText(await recordDiscoveryObservations(args));
       case "rudi_crm_apply_discovery_heuristics":

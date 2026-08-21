@@ -20,6 +20,10 @@ import { tmpdir } from "os";
 import { homedir } from "os";
 import { buildCalendarEventInsert } from "./calendar.js";
 import {
+  calendarDiscoveryToolDefinitions,
+  runCalendarDiscoveryPage,
+} from "./calendar-discovery.js";
+import {
   buildGmailDraftMessage,
   buildGmailRawMessage,
   encodeMimeBody,
@@ -30,7 +34,12 @@ import {
   normalizeGmailSendResult,
   resolveRequestedAccount,
 } from "./gmail.js";
-import { gmailSearchToolDefinitions, runGmailHeaderSearch, runGmailSearch } from "./gmail-search.js";
+import {
+  gmailSearchToolDefinitions,
+  runGmailDiscoveryPage,
+  runGmailHeaderSearch,
+  runGmailSearch,
+} from "./gmail-search.js";
 import { resolveOAuthClientConfig } from "./oauthCredentials.js";
 import {
   getWorkspacePaths,
@@ -542,7 +551,7 @@ const SLIDES_WRITE_CONTROL_INPUT = {
 };
 
 const server = new Server(
-  { name: "google-workspace", version: "1.0.0" },
+  { name: "google-workspace", version: "1.1.0" },
   { capabilities: { tools: {} } }
 );
 
@@ -630,6 +639,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     ...gmailSearchToolDefinitions(ACCOUNT_INPUT),
+    ...calendarDiscoveryToolDefinitions(ACCOUNT_INPUT),
     {
       name: "gmail_draft",
       description: "Create a Gmail draft. Pass reply_message_id to create a threaded reply draft.",
@@ -1633,6 +1643,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const auth = getAuthForArgs(args);
         const gmail = google.gmail({ version: "v1", auth });
         return runGmailSearch(gmail, args);
+      }
+
+      case "gmail_discovery_page": {
+        const auth = getAuthForArgs(args);
+        const gmail = google.gmail({ version: "v1", auth });
+        return runGmailDiscoveryPage(gmail, args);
       }
 
       case "gmail_search_headers": {
@@ -2879,6 +2895,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       // Calendar
+      case "calendar_discovery_page": {
+        const auth = getAuthForArgs(args);
+        const calendar = google.calendar({ version: "v3", auth });
+        const gmail = google.gmail({ version: "v1", auth });
+        return runCalendarDiscoveryPage(calendar, gmail, args);
+      }
+
       case "calendar_list": {
         const auth = getAuthForArgs(args);
         const calendar = google.calendar({ version: "v3", auth });

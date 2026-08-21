@@ -2513,7 +2513,7 @@
       "id": "skill:rudi-crm",
       "kind": "skill",
       "name": "RUDI CRM Operator",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -4155,7 +4155,7 @@
       "id": "stack:google-workspace",
       "kind": "stack",
       "name": "Google Workspace Tools",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -4185,6 +4185,7 @@
           "account_current",
           "gmail_profile",
           "gmail_history_list",
+          "gmail_discovery_page",
           "gmail_send",
           "gmail_search",
           "gmail_search_headers",
@@ -4240,6 +4241,7 @@
           "drive_make_public",
           "drive_delete",
           "calendar_list",
+          "calendar_discovery_page",
           "calendar_create",
           "calendar_quick_add",
           "calendar_delete",
@@ -5219,7 +5221,7 @@
       "id": "stack:rudi-crm",
       "kind": "stack",
       "name": "RUDI CRM",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -5240,6 +5242,8 @@
         "tools": [
           "rudi_crm_config_status",
           "rudi_crm_setup_status",
+          "rudi_crm_record_discovery_page",
+          "rudi_crm_finalize_discovery_run",
           "rudi_crm_record_discovery_observations",
           "rudi_crm_apply_discovery_heuristics",
           "rudi_crm_list_contact_candidates",
@@ -5281,7 +5285,7 @@
           "audit"
         ],
         "icon": "rudi-crm",
-        "boundary": "RUDI CRM exposes a controlled write/read contract over existing Postgres functions and views. It does not expose raw table writes or generic SQL execution.",
+        "boundary": "RUDI CRM exposes a controlled write/read contract over PostgreSQL functions and views without raw table writes or generic SQL. The discovery capability profile exposes only status plus idempotent page/finalize tools and cannot list, classify, or promote contacts.",
         "secretGuidance": "Use a scoped server-side PostgreSQL connection URL in RUDI_CRM_DATABASE_URL. Local and hosted PostgreSQL are supported; keep provider-specific settings outside the core stack. Never expose this value to clients or agents."
       },
       "related": {

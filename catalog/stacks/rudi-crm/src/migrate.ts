@@ -7,6 +7,30 @@ import { createPoolConfig } from "./contract.js";
 
 const MIGRATION_FILE_PATTERN = /^\d{4}_[a-z0-9_]+\.sql$/;
 const MIGRATION_LOCK = "rudi-crm-schema-migrations-v1";
+const CANONICAL_MIGRATION_CHECKSUMS = new Map<string, string>([
+  [
+    "0001_engagement_crm.sql",
+    "c14fbb3eff18f7bc1a02c65915cfe8dd593c7edb73080547bdbc5fff494edc7e",
+  ],
+  [
+    "0002_contact_discovery_promotion.sql",
+    "c50c0ed11d2142f84f291b98eae40e95e03cae9f856adb3dd2605d7fa61446b3",
+  ],
+]);
+const HISTORICAL_MIGRATION_CHECKSUMS = new Map<string, ReadonlySet<string>>([
+  [
+    "0001_engagement_crm.sql",
+    new Set([
+      "b02f4570ee6133cea7d4303cd698cc49a6f30010f87dfcd2b6331cbdfe07bc2d",
+    ]),
+  ],
+  [
+    "0002_contact_discovery_promotion.sql",
+    new Set([
+      "a80fbe135f53da9ea79f48c3f0168ea005b5f38b71f339cd6d7702776f51c624",
+    ]),
+  ],
+]);
 const DEFAULT_MIGRATION_DIRECTORY = fileURLToPath(
   new URL("../sql/migrations/", import.meta.url)
 );
@@ -72,6 +96,41 @@ export async function loadMigrations(
   );
 }
 
+export function assertCompatibleMigrationChecksum(
+  filename: string,
+  canonicalChecksum: string | undefined,
+  ledgerChecksum: string
+): void {
+  if (ledgerChecksum === canonicalChecksum) {
+    return;
+  }
+
+  const expectedCanonical = CANONICAL_MIGRATION_CHECKSUMS.get(filename);
+  const allowedHistorical = HISTORICAL_MIGRATION_CHECKSUMS.get(filename);
+  if (
+    canonicalChecksum === expectedCanonical &&
+    allowedHistorical?.has(ledgerChecksum)
+  ) {
+    return;
+  }
+
+  throw new Error(`CRM migration checksum drift detected: ${filename}`);
+}
+
+export function assertKnownMigrationLedgerEntries(
+  migrations: Migration[],
+  ledgerEntries: Array<{ filename: string; checksum_sha256: string }>
+): void {
+  const knownFilenames = new Set(migrations.map((migration) => migration.filename));
+  for (const entry of ledgerEntries) {
+    if (!knownFilenames.has(entry.filename)) {
+      throw new Error(
+        `CRM migration ledger contains unknown path: ${entry.filename}`
+      );
+    }
+  }
+}
+
 async function ensureMigrationLedger(client: PoolClient): Promise<void> {
   await client.query(`
     create table if not exists public.rudi_crm_schema_migrations (
@@ -109,6 +168,7 @@ export async function applyMigrations(args: {
     }>(
       "select filename, checksum_sha256 from public.rudi_crm_schema_migrations order by filename"
     );
+    assertKnownMigrationLedgerEntries(migrations, existingResult.rows);
     const existing = new Map(
       existingResult.rows.map((row) => [row.filename, row.checksum_sha256])
     );
@@ -116,9 +176,11 @@ export async function applyMigrations(args: {
     for (const migration of migrations) {
       const priorChecksum = existing.get(migration.filename);
       if (priorChecksum) {
-        if (priorChecksum !== migration.checksum) {
-          throw new Error(`CRM migration checksum drift detected: ${migration.filename}`);
-        }
+        assertCompatibleMigrationChecksum(
+          migration.filename,
+          migration.checksum,
+          priorChecksum
+        );
         skipped.push(migration.filename);
         continue;
       }

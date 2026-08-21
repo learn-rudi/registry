@@ -1,7 +1,7 @@
 ---
 name: "RUDI CRM Operator"
 description: "Operate RUDI CRM through RUDI's stack tools when a user asks for work supported by stack:rudi-crm. Controlled MCP interface for RUDI CRM engagement memory, discovery, triage, validators, and correspondence context."
-version: 1.0.0
+version: 1.1.0
 category: "business"
 tags:
   - rudi
@@ -47,11 +47,47 @@ unavailable.
 8. Report what was attempted, what succeeded, what failed, and any output IDs,
    URLs, or paths the user needs.
 
+## Discovery Capability Boundary
+
+When the active subprocess uses `RUDI_CRM_CAPABILITY_PROFILE=discovery`, its
+tool surface must contain only configuration/setup plus
+`rudi_crm_record_discovery_page` and `rudi_crm_finalize_discovery_run`. Stop and
+report a capability mismatch if candidate listing, classification, promotion,
+general heuristic, raw-SQL, or direct-table tools are visible in that profile.
+
+Discovery schema version `1` is closed. Record only exact source/account and
+optional calendar scope, lowercase 64-hex run/page keys, page number 1 through
+500, cutoff, and zero through 500 observations ordered by
+`(observed_at, resource_key, address_role, address)`. Observations may contain
+only `resource_key`, `observed_at`, allowlisted `address_role`, normalized
+`address`, optional bounded `display_name`, and optional `recurrence_key`.
+Never forward provider IDs, BCC, subjects, snippets, bodies, header strings,
+event summary/description/location, raw provider objects, responses, URLs, or
+credentials.
+
+Treat `expected_records` as the summed observation count, including zero-record
+pages; it is not a provider message/event count. Advance the source adapter's
+checkpoint only after `{finalized: true}`. Exact retries are safe, but stop on
+any scope, page-key, content, expected-count, privacy, structure, or
+no-promotion mismatch.
+
+PostgreSQL group-role creation and grants are deployment-gated. The catalog
+proposes `rudi_crm_discovery` for exact record/finalize function execution and
+`rudi_crm_promotion` for separately approved classification/promotion. Never
+create roles or broaden grants while operating this skill unless the user has
+explicitly authorized that deployment action.
+
 ## Stack Tools
 
 - `rudi_crm_config_status`
 - `rudi_crm_setup_status`
+- `rudi_crm_record_discovery_page`
+- `rudi_crm_finalize_discovery_run`
 - `rudi_crm_record_discovery_observations`
+- `rudi_crm_apply_discovery_heuristics`
+- `rudi_crm_list_contact_candidates`
+- `rudi_crm_classify_contact_address`
+- `rudi_crm_promote_contact`
 - `rudi_crm_log_ingest_batch`
 - `rudi_crm_upsert_interaction`
 - `rudi_crm_record_finance_event`

@@ -62,17 +62,19 @@ test("package contract preserves the controlled CRM and finance boundary", async
 
   assert.equal(manifest.id, "stack:rudi-crm");
   assert.match(manifest.meta.boundary, /controlled write\/read contract/i);
-  assert.equal(manifest.version, "0.4.0");
+  assert.equal(manifest.version, "0.5.0");
   assert.equal(manifest.mcp.command, "node");
   assert.deepEqual(manifest.mcp.args, ["dist/index.js"]);
-  assert.equal(packageJson.version, "0.4.0");
-  assert.equal(manifest.provides.tools.length, 20);
+  assert.equal(packageJson.version, "0.5.0");
+  assert.equal(manifest.provides.tools.length, 22);
   assert.equal(packageJson.scripts["test:live"].includes("RUDI_CRM_LIVE_TESTS=1"), true);
   assert.equal(serverSource.includes("pg_execute"), false);
   assert.equal(serverSource.includes("raw_sql"), false);
 
   for (const symbol of [
     "record_discovery_observations",
+    "recordDiscoveryPage",
+    "finalizeDiscoveryRun",
     "log_ingest_batch",
     "upsert_interaction",
     "listPeople",
@@ -94,6 +96,8 @@ test("package contract preserves the controlled CRM and finance boundary", async
     "ListContactCandidatesInput",
     "ClassifyContactAddressInput",
     "PromoteContactInput",
+    "RecordDiscoveryPageInput",
+    "FinalizeDiscoveryRunInput",
   ]) {
     assert.equal(schemaSource.includes(symbol), true, `missing schema symbol: ${symbol}`);
   }
@@ -191,4 +195,33 @@ test("package ships address-level candidate classification without domain-wide s
   assert.match(migrationSource, /on conflict \(email\)/i);
   assert.match(migrationSource, /set_audit_context/i);
   assert.doesNotMatch(migrationSource, /where domain = .*shared_inbox/i);
+});
+
+test("package ships additive least-privilege discovery security boundary", async () => {
+  const migrationSource = await fs.readFile(
+    path.join(stackRoot, "sql/migrations/0005_discovery_security_boundary.sql"),
+    "utf8"
+  );
+
+  for (const contract of [
+    "discovery_runs",
+    "discovery_pages",
+    "discovery_run_observations",
+    "discovery_run_audit",
+    "record_discovery_page",
+    "finalize_discovery_run",
+    "security definer",
+    "set search_path to 'pg_catalog', 'public'",
+    "session_user",
+    "application_name",
+    "enable row level security",
+    "revoke all on all tables in schema public from public",
+    "revoke all on all functions in schema public from public",
+  ]) {
+    assert.match(migrationSource, new RegExp(contract, "i"));
+  }
+  assert.doesNotMatch(migrationSource, /create\s+role/i);
+  assert.doesNotMatch(migrationSource, /grant\s+.*rudi_crm_(?:discovery|promotion)/i);
+  assert.match(migrationSource, /alter function public\.promote_contact[\s\S]*security definer/i);
+  assert.match(migrationSource, /alter function public\.classify_contact_address[\s\S]*security definer/i);
 });

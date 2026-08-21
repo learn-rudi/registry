@@ -34,6 +34,10 @@ const EXPECTED_TABLES = [
   "discovery_domains",
   "discovery_observations",
   "contact_address_classifications",
+  "discovery_runs",
+  "discovery_pages",
+  "discovery_run_observations",
+  "discovery_run_audit",
   "ingest_batches",
   "audit_events",
   "engagement_people",
@@ -54,6 +58,9 @@ const EXPECTED_FUNCTIONS = [
   "get_unknown_discovery_domains",
   "promote_contact",
   "classify_contact_address",
+  "record_discovery_page",
+  "finalize_discovery_run",
+  "discovery_address_is_noise",
 ] as const;
 
 const VALIDATOR_VIEWS = [
@@ -133,6 +140,8 @@ function getPool(): Pool {
 }
 
 export const {
+  recordDiscoveryPage,
+  finalizeDiscoveryRun,
   recordDiscoveryObservations,
   applyDiscoveryHeuristics,
   listContactCandidates,
@@ -159,6 +168,8 @@ export function getConfigStatus() {
       "log_ingest_batch",
       "record_audit_event",
       "set_audit_context",
+      "record_discovery_page",
+      "finalize_discovery_run",
       "upsert_interaction",
       "promote_contact",
       "classify_contact_address",

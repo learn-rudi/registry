@@ -7,12 +7,12 @@ This stack owns Google Workspace OAuth, account selection, and direct Workspace 
 ## Tools
 
 - Account tools: `account_list`, `account_switch`, `account_current`
-- Gmail tools: profile, ordered history/cursor reads, search, header-only contact discovery, get, send, draft, reply, forward, labels, archive, trash, batch operations, and attachments
+- Gmail tools: profile, ordered history/cursor reads, search, bounded privacy-minimized discovery pages, header search, get, send, draft, reply, forward, labels, archive, trash, batch operations, and attachments
 - Sheets tools: read, write, append, create
 - Docs tools: read, create, insert image
 - Slides tools: get presentation, get slide, get thumbnail, raw batch update
 - Drive tools: list, upload, create folder, move, download, make public, delete
-- Calendar tools: list, create, quick add, delete
+- Calendar tools: bounded historical organizer/attendee discovery pages, list, create, quick add, delete
 - Tasks tools: list task lists, list tasks, create, update, complete, delete
 
 ## Requirements
@@ -93,6 +93,27 @@ State files are written with private file permissions where the filesystem suppo
 ## Agent Guidance
 
 Use `account_current` before acting when account context matters. Use `account_switch` or pass the tool's account argument when working across multiple Google accounts.
+
+For CRM source discovery, prefer `gmail_discovery_page` and
+`calendar_discovery_page`. Both require an exact `account`, explicit inclusive
+`window_start` and exclusive `window_end`, bounded provider/page sizes, and an
+optional continuation token. The Calendar tool also requires the exact
+`calendar_id`. Each tool verifies the authenticated Gmail profile matches the
+requested account and returns only its echoed scope/window plus deterministically
+ordered observations:
+
+```text
+{resource_key, observed_at, address_role, address, display_name?, recurrence_key?}
+```
+
+Resource and recurrence keys are source/account/calendar-scoped SHA-256 values;
+raw provider IDs never cross the tool boundary. Gmail emits only From/To/Cc
+roles. Calendar emits only organizer/attendee roles. Neither discovery tool
+returns BCC, header strings, subjects, snippets, bodies, event summary,
+description, location, raw provider objects, provider responses, URLs, or
+credentials. Provider results outside the requested start-time window are
+deterministically filtered while the continuation token is preserved, so a
+valid page may contain zero observations.
 
 `gmail_send` resolves the authenticated Gmail profile and renders that primary mailbox as the RFC 2822 `From` header. It does not silently inherit a different default Send-As alias.
 
