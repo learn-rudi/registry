@@ -63,6 +63,10 @@ http://localhost:3456/callback
 
 If that port is occupied, the helper tries the next free port through `3465`. Register the callback URI your OAuth client will use in Google Cloud. For web clients, add every fallback URI you expect to allow.
 
+The account argument is an identity boundary, not just a local label. During consent, select the exact Google user passed to `rudi auth`. Before saving a token, the helper retrieves the authenticated Gmail profile and verifies that its primary email address matches the requested account. A mismatch is rejected without overwriting the account's existing token.
+
+Each account must have its own real directory beneath the stack's `accounts` state directory. Account-directory symlinks and linked token files are rejected so one mailbox cannot redirect or share another mailbox's credentials.
+
 The requested scopes are:
 
 - `https://www.googleapis.com/auth/gmail.modify`

@@ -4203,7 +4203,7 @@
       "auth": {
         "required": true,
         "command": "rudi auth google-workspace user@example.com",
-        "instructions": "Run `rudi secrets set GOOGLE_CREDENTIALS` with Google OAuth client credentials JSON or a path to credentials.json, then run `rudi auth google-workspace user@example.com`. Register the localhost OAuth callback URI used by the helper, normally http://localhost:3456/callback, and any fallback ports you expect to use. Tokens are stored under ~/.rudi/state/stacks/google-workspace/accounts/<account>/token.json."
+        "instructions": "Run `rudi secrets set GOOGLE_CREDENTIALS` with Google OAuth client credentials JSON or a path to credentials.json, then run `rudi auth google-workspace user@example.com`. Select that exact Google account in the browser: the helper verifies the authenticated Gmail identity and rejects mismatches before saving a token. Each account must use a dedicated real directory and regular, non-linked token file; symbolic or hard links are rejected. Register the localhost OAuth callback URI used by the helper, normally http://localhost:3456/callback, and any fallback ports you expect to use. Tokens are stored under ~/.rudi/state/stacks/google-workspace/accounts/<account>/token.json."
       },
       "runtime": "node",
       "requires": {
