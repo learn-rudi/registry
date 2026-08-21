@@ -398,6 +398,9 @@ rules.
     admin's legacy launch contract still targeted `dist/index.js`, so the
     package's declared `npm run build` generated that derived artifact before
     reindexing
+  - installed `package.json` and all compared implementation TypeScript files
+    are SHA-256-identical to the synchronized Registry worktree; the installed
+    manifest retains version 2.0.0 while RUDI normalizes catalog-only metadata
   - Google Workspace then indexed all 68 tools; the admin-wide index returned
     to 49 stacks, 447 tools, and the same nine unrelated pre-existing failures
   - bounded Shared Drive list exposed the complete current schema and returned
