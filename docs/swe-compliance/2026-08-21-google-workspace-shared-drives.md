@@ -301,6 +301,16 @@ rules.
   - `catalog/stacks/google-workspace/src/index.ts`
   - generated root `index.json`
   - this compliance checklist
+- Adjacent canonical CLI scope proved necessary by failed downstream exposure:
+  - repository `/Users/hoff/dev/rudi/apps/platform/cli`, isolated branch
+    `codex/codex-portable-rudi-tool-names`
+  - `src/commands/integrate.js` and its focused Codex integration test add the
+    portable router-name environment contract and the safety-preserving
+    `default_tools_approval_mode="writes"` setting
+  - `src/commands/shims.js` and a new focused test resolve the installed CLI
+    entrypoint through its global symlink before copying the packaged router
+  - tracked `dist/index.cjs` was refreshed in dedicated build commits, separate
+    from each behavior-bearing source commit
 - Commands run and results: append exact red/green/full/smoke evidence.
 - Evidence artifacts: generated index diff, package dry-run result, installed
   version/index status, primary smoke result, independent review, and admin
@@ -317,9 +327,65 @@ rules.
   dependency upgrade to `googleapis@176`; it is not required for the Shared
   Drive contract and is deferred to dependency-maintenance scope. Root
   production dependencies report zero advisories.
-- Proof gaps: live read-only Shared Drive list/download, installed-stack/index
-  activation, Codex reload exposure, accepted Git publication, and admin-Mac
-  task-revision synchronization remain pending.
+- Git evidence: implementation and its then-current compliance record were
+  explicitly staged as 14 task-only paths and committed on
+  `codex/google-workspace-shared-drives` as `27e4bf8`
+  (`feat(google-workspace): support shared drives safely`); the worktree was
+  clean immediately after commit and nothing was pushed.
+- CLI Git/verification evidence:
+  - six narrow local commits preserve source/test and generated-bundle
+    separation on `codex/codex-portable-rudi-tool-names`: `0dc7c50`,
+    `308b682`, `83709f5`, `e92e364`, `8e78fc3`, and `9bc491e`
+  - the portable-name, symlink-resolution, and read-only approval tests each
+    failed for the expected missing behavior before the smallest fix and then
+    passed
+  - the full CLI suite passed 634 tests; the repository debt runner reported
+    zero findings; build and `npm pack --dry-run --json` passed; the branch is
+    clean and unpushed
+- Primary installed-state evidence:
+  - state-preserving local-registry update installed `stack:google-workspace`
+    2.0.0 from the clean task commit
+  - `rudi index --json` indexed 28 stacks and 403 tools with zero failures;
+    Google Workspace contributed all 68 contracted tools
+  - daemon status is healthy/ready and reports the same 28-stack, 403-tool,
+    zero-failure index
+  - direct router inspection found all eight Google Workspace Drive tools and
+    the current list schema (`account`, `drive_id`, `page_token`, `corpora`, and
+    integer `max_results`)
+  - a broad post-update `rudi check` probe hung after index success and was
+    bounded with Ctrl-C; direct manifest, index, daemon, MCP, and provider
+    checks supplied stronger targeted evidence instead
+- Primary business-storage smoke evidence (read-only provider activity):
+  - exact account/Shared Drive root list returned six items with no continuation
+    token, `incompleteSearch=false`, and valid scoped provider references
+  - bounded read-back discovery used eight list calls, visited 20 items to a
+    maximum depth of four, and selected only a downloadable blob at most 10 MiB
+  - download returned 21,958 bytes; an independent local SHA-256 matched both
+    the handler result and Google's provider SHA-256, and the returned provider
+    reference remained scoped to the selected account and Drive
+  - the temporary local download directory was removed; no Google write tool
+    was called
+- Codex integration evidence and gap:
+  - the exact clean CLI package was installed locally, `rudi shims rebuild`
+    recreated the router shim, and the packaged and generated router SHA-256
+    values match
+  - `rudi integrate codex` now emits the canonical stdio router entry with
+    `RUDI_ROUTER_TOOL_NAMES="portable"` and
+    `default_tools_approval_mode="writes"`; the latter lets annotated
+    read-only tools run while preserving approval for writes
+  - direct portable-router inspection exposes
+    `stack_google-workspace_drive_list`; a bounded exact-account/Drive call
+    succeeds without provider mutation
+  - fresh Codex CLI processes now discover and attempt that portable tool,
+    proving the naming/exposure repair; Codex CLI 0.147.0 then reports
+    `user cancelled MCP tool call` in noninteractive `codex exec`, matching
+    the open upstream noninteractive MCP-approval defect rather than a RUDI
+    dispatch/provider failure
+  - this already-running desktop task cannot hot-add MCP names; official Codex
+    MCP setup requires a client restart, so desktop-host invocation is not
+    claimed without an actual restart and new-task smoke
+- Proof gaps: accepted Git publication, admin-Mac task-revision source/install
+  synchronization, and post-restart Codex desktop tool exposure remain pending.
 - Definition of Done:
   - all deterministic and repository gates pass
   - read-only Shared Drive smoke passes
