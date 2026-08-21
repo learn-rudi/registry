@@ -1,7 +1,7 @@
 ---
 name: Grill With Docs Loop
-description: Complete a repo-first, multi-agent grill-with-docs loop for a repository. Spawns isolated questioner, answerer, and skeptic subagents that grill each other over repo docs, code, tests, fixtures, migrations, and generated artifacts; resolves contract or design questions from that adversarial loop; updates CONTEXT.md and ADRs; and asks the human only for true product or domain decisions.
-version: 2.0.0
+description: Resolve repo domain questions with isolated agents, update CONTEXT.md and ADRs, and preserve reviewable audit trails
+version: 2.1.0
 category: coding
 tags: [architecture, domain-modeling, glossary, adr, documentation, multi-agent, repo-analysis]
 ---
@@ -17,8 +17,8 @@ This skill is different from `grill-with-docs`: the default mode is not an inter
 - Prefer repo evidence over asking the user.
 - Ask the user one question at a time only when human judgment is required.
 - Keep the main session as the orchestrator, responsible for final decisions, sequencing, and merge control. Never delegate orchestration.
-- Spawn a fresh subagent for each questioner, answerer, skeptic, docs-writer, and reviewer role. Never reuse an agent for another role or backlog question. Do not roleplay these roles inside the main context: a context that reviews its own reasoning will agree with itself.
-- Enforce information isolation. Spawn each role with no inherited conversation history (`fork_turns: "none"` or the runtime equivalent), then provide only the inputs listed in its role definition. Never forward one agent's reasoning or evidence trail to the agent whose job is to check it independently.
+- Spawn a fresh, non-fork subagent for every questioner, answerer, and skeptic role. Use a fresh docs writer and reviewer for every edit batch. Never reuse an agent for another role, question, or edit batch. Do not roleplay these roles inside the main context: a context that reviews its own reasoning will agree with itself.
+- Enforce information isolation through the active host's runtime adapter. Give every investigative role only the inputs listed in its role definition. Never forward one agent's reasoning or evidence trail to the agent whose job is to check it independently.
 - Do not let multiple agents edit the same files concurrently. Only the docs writer edits files.
 - Degraded mode: only if the runtime truly has no subagent capability may the roles run sequentially in one context. Label each pass in working notes and state in the final report that the loop ran degraded and why.
 - Stop only when the question backlog is exhausted, docs are updated, and verification passes or any remaining gap is explicitly blocked on a human decision.
@@ -30,6 +30,58 @@ When the user asks to run this as a goal, define the objective as:
 > Complete the repo-first grill-with-docs loop for this repository: exhaust unresolved contract and design questions, resolve repo-evident decisions from evidence, ask the human only for true product or domain choices, update `CONTEXT.md` and relevant ADRs, and verify the resulting docs.
 
 Keep the goal open until the backlog is exhausted and verification passes. Mark the goal blocked only when the same human-only decision blocks progress after repeated attempts to continue.
+
+## Runtime Adapters
+
+Determine the active host before spawning roles. Preserve the isolation contract even when host terminology or controls differ.
+
+### Codex
+
+- Spawn each role with no inherited conversation history, using `fork_turns: "none"` or the current Codex equivalent.
+- Give every role a stable task name such as `grill-q03-answerer` or `grill-q03-skeptic`.
+- Record the task name and returned agent/thread identifier in the decision ledger when available.
+- Tell the user that native agent threads can be inspected from the task's Subagents activity.
+
+### Claude Code
+
+- Use a fresh, non-fork subagent invocation for every role and omit persistent agent memory.
+- Do not use `/subtask`, a conversation fork, `context: fork`, or any equivalent that inherits the parent conversation for an independently checked role.
+- Give every role a stable name such as `grill-q03-answerer` or `grill-q03-skeptic`, and record the returned agent identifier when available.
+- Use ordinary subagents when automatic reporting to the orchestrator is the priority. If the user explicitly requests separate reviewable sessions, use Agent View or background sessions only when the orchestrator can pass the same isolated briefs and collect final reports without leaking prohibited context.
+
+### Other Hosts
+
+Use fresh isolated workers with no inherited conversation history. If the host cannot provide that isolation, use degraded mode and disclose the limitation.
+
+## Run Identity And Reviewability
+
+Create a short run ID and stable question IDs before the first role is spawned. Label workers as `grill-<run-id>-qNN-<role>` when the host permits it.
+
+Keep the normal decision ledger in memory or task notes. For every question, record:
+
+- question ID and text
+- role labels and native agent, thread, or session identifiers when available
+- answerer's bare claim and classification
+- skeptic verdict
+- accepted decision and evidence paths
+- documentation target and verification result
+
+When the user asks for a reviewable, auditable, resumable, or cross-chat run, enable **reviewable mode**. Persist a concise audit bundle under `~/.rudi/outputs/grill-with-docs-loop/<run-id>/` containing:
+
+- `audit.md` with the run summary and question index
+- one `qNN.md` per question with role reports, evidence references, verdict, and final decision
+- `diff.md` or an equivalent final documentation diff
+
+Record agent-produced reports and tool evidence, not hidden chain-of-thought. Do not write the audit bundle into the repository or commit it unless the user explicitly asks. In the final response, provide the audit path and explain how to inspect any native agent threads or sessions.
+
+## Efficiency Controls
+
+- Discover, deduplicate, and prioritize the backlog once before starting the adversarial loop. Merge questions only when they represent the same decision; do not merge merely related decisions.
+- Do not run the full Answerer/Skeptic pair for cosmetic edits or questions already resolved by an authoritative current source. Record why such an item was skipped.
+- Reuse the shallow repo map and decision-ledger summaries, but never reuse an investigative agent or give the skeptic the answerer's evidence trail.
+- Prefer faster or lower-cost models for bounded question discovery and straightforward documentation formatting when the host supports role-level model selection. Use stronger reasoning for ambiguous Answerer and Skeptic work.
+- Adjudicate every substantive question independently. After acceptance, batch only compatible documentation changes that target the same files and do not depend on unresolved decisions.
+- Run one fresh docs writer and one fresh reviewer per compatible edit batch. Use a separate batch for high-risk decisions, public-contract changes, or edits that could obscure which decision caused a problem.
 
 ## Start State
 
@@ -82,7 +134,7 @@ When sources conflict, prefer current behavior for "what is true" and ADRs or us
 
 ## Role Loop
 
-Repeat this loop until the backlog is exhausted.
+Repeat steps 1-4 for every substantive question until the backlog is exhausted. Queue accepted decisions for documentation. Run steps 5-6 after a high-risk decision or when one or more compatible accepted decisions form a safe edit batch.
 
 ### 1. Questioner (spawned subagent)
 
@@ -160,9 +212,9 @@ Ask one concise question and wait. Include the recommended default and the evide
 
 ### 5. Docs Writer (spawned subagent, fresh context)
 
-Receives: the accepted decision, its evidence, and the doc target.
+Receives: one accepted decision, or a compatible batch of accepted decisions, with their evidence and doc targets.
 
-Spawn with no inherited conversation history. Only one docs writer edits files at a time; the main session and every other role remain read-only while it works.
+Spawn with no inherited conversation history. Only one docs writer edits files at a time; the main session and every other role remain read-only while it works. Never batch decisions merely to reduce agent count when separate edits would be easier to verify.
 
 Update the smallest set of docs that records the accepted decision:
 
@@ -174,13 +226,13 @@ Update the smallest set of docs that records the accepted decision:
 
 ### 6. Reviewer (spawned subagent, fresh context)
 
-Receives: the diff, the original question, and the accepted decision.
+Receives: the diff, every original question represented in the edit batch, and the corresponding accepted decisions.
 
 The reviewer checks the diff before the next loop iteration.
 
 Verify:
 
-- docs answer the original question
+- docs answer every original question represented in the edit batch
 - terminology is consistent across touched docs
 - `CONTEXT.md` remains a glossary, not a spec
 - ADRs explain why, not just what
@@ -264,4 +316,6 @@ Before stopping, provide:
 - human questions asked, if any
 - verification commands and results
 - which roles ran as spawned subagents; if degraded sequential mode was used, say so and explain why
+- role labels and native agent, thread, or session identifiers when available
+- reviewable-mode audit path, when enabled
 - remaining blocked items, only if blocked on explicit human judgment

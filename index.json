@@ -3,12 +3,12 @@
   "schemaVersion": "2",
   "generatedAt": "2026-08-19T05:54:51.000Z",
   "stats": {
-    "total": 152,
+    "total": 153,
     "byKind": {
       "agent": 5,
       "binary": 27,
       "runtime": 5,
-      "skill": 67,
+      "skill": 68,
       "stack": 48
     }
   },
@@ -2029,14 +2029,14 @@
       "id": "skill:grill-with-docs-loop",
       "kind": "skill",
       "name": "Grill With Docs Loop",
-      "version": "2.0.0",
+      "version": "2.1.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
         "path": "catalog/skills/grill-with-docs-loop.md"
       },
       "meta": {
-        "description": "Complete a repo-first, multi-agent grill-with-docs loop for a repository. Spawns isolated questioner, answerer, and skeptic subagents that grill each other over repo docs, code, tests, fixtures, migrations, and generated artifacts; resolves contract or design questions from that adversarial loop; updates CONTEXT.md and ADRs; and asks the human only for true product or domain decisions.",
+        "description": "Resolve repo domain questions with isolated agents, update CONTEXT.md and ADRs, and preserve reviewable audit trails",
         "category": "coding",
         "tags": [
           "architecture",
@@ -2151,6 +2151,20 @@
           "operator",
           "macos-automation"
         ]
+      }
+    },
+    "skill:map-change-impact": {
+      "id": "skill:map-change-impact",
+      "kind": "skill",
+      "name": "map-change-impact",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/map-change-impact"
+      },
+      "meta": {
+        "description": "Map the exact repository paths a proposed feature, fix, refactor, migration, or remediation will affect and print the ordered actions, risks, dependencies, and verification needed before implementation. Use when a user asks what file paths will be impacted, what needs to change, what has already been implemented, what remains to do, what the blast radius is, or wants an implementation-ready change map without starting the edits."
       }
     },
     "skill:ms-office": {
@@ -4155,7 +4169,7 @@
       "id": "stack:google-workspace",
       "kind": "stack",
       "name": "Google Workspace Tools",
-      "version": "1.0.0",
+      "version": "1.0.2",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -4164,7 +4178,7 @@
       "auth": {
         "required": true,
         "command": "rudi auth google-workspace user@example.com",
-        "instructions": "Run `rudi secrets set GOOGLE_CREDENTIALS` with Google OAuth client credentials JSON or a path to credentials.json, then run `rudi auth google-workspace user@example.com`. Register the localhost OAuth callback URI used by the helper, normally http://localhost:3456/callback, and any fallback ports you expect to use. Tokens are stored under ~/.rudi/state/stacks/google-workspace/accounts/<account>/token.json."
+        "instructions": "Run `rudi secrets set GOOGLE_CREDENTIALS` with Google OAuth client credentials JSON or a path to credentials.json, then run `rudi auth google-workspace user@example.com`. Select that exact Google account in the browser: the helper verifies the authenticated Gmail identity and rejects mismatches before saving a token. Each account must use a dedicated real directory and regular, non-linked token file; symbolic or hard links are rejected. Register the localhost OAuth callback URI used by the helper, normally http://localhost:3456/callback, and any fallback ports you expect to use. Tokens are stored under ~/.rudi/state/stacks/google-workspace/accounts/<account>/token.json."
       },
       "runtime": "node",
       "requires": {
