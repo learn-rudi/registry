@@ -91,6 +91,40 @@ export type NormalizedGmailRawMessage = NormalizedGmailSendResult & {
   rawBase64Url: string;
 };
 
+export type GmailHistoryErrorEnvelope = {
+  error: {
+    code: 404;
+    category: "not_found";
+  };
+};
+
+export function gmailHistoryErrorEnvelope(error: unknown): GmailHistoryErrorEnvelope | null {
+  const code = providerStatusCode(error);
+  return code === 404 ? { error: { code: 404, category: "not_found" } } : null;
+}
+
+function providerStatusCode(error: unknown): number | undefined {
+  if (!error || typeof error !== "object" || Array.isArray(error)) return undefined;
+  const record = error as Record<string, unknown>;
+  const direct = boundedStatusCode(record.code) ?? boundedStatusCode(record.status);
+  if (direct !== undefined) return direct;
+  if (!record.response || typeof record.response !== "object" || Array.isArray(record.response)) return undefined;
+  const response = record.response as Record<string, unknown>;
+  const responseCode = boundedStatusCode(response.status);
+  if (responseCode !== undefined) return responseCode;
+  if (!response.data || typeof response.data !== "object" || Array.isArray(response.data)) return undefined;
+  const data = response.data as Record<string, unknown>;
+  if (!data.error || typeof data.error !== "object" || Array.isArray(data.error)) return undefined;
+  return boundedStatusCode((data.error as Record<string, unknown>).code);
+}
+
+function boundedStatusCode(value: unknown): number | undefined {
+  const numeric = typeof value === "string" && /^\d{3}$/.test(value) ? Number(value) : value;
+  return Number.isInteger(numeric) && Number(numeric) >= 400 && Number(numeric) <= 599
+    ? Number(numeric)
+    : undefined;
+}
+
 export type NormalizedGmailHistoryPage = {
   startHistoryId: string;
   records: Array<{

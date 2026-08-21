@@ -29,6 +29,7 @@ import {
   buildGmailRawMessage,
   encodeMimeBody,
   encodeMimeHeaderValue,
+  gmailHistoryErrorEnvelope,
   inferGmailContentType,
   normalizeGmailHistoryPage,
   normalizeGmailRawMessage,
@@ -1558,14 +1559,24 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           args?.start_history_id,
           "start_history_id"
         ).trim();
-        const response = await gmail.users.history.list({
-          userId: "me",
-          startHistoryId,
-          historyTypes: [...GMAIL_HISTORY_TYPES],
-          maxResults: boundedInteger(args?.max_results, "max_results", 100, 1, 500),
-          pageToken: optionalToolString(args, "next_page_token"),
-          labelId: optionalToolString(args, "label_id"),
-        });
+        let response;
+        try {
+          response = await gmail.users.history.list({
+            userId: "me",
+            startHistoryId,
+            historyTypes: [...GMAIL_HISTORY_TYPES],
+            maxResults: boundedInteger(args?.max_results, "max_results", 100, 1, 500),
+            pageToken: optionalToolString(args, "next_page_token"),
+            labelId: optionalToolString(args, "label_id"),
+          });
+        } catch (error) {
+          const envelope = gmailHistoryErrorEnvelope(error);
+          if (envelope === null) throw error;
+          return {
+            content: [{ type: "text", text: JSON.stringify(envelope) }],
+            isError: true,
+          };
+        }
         const page = normalizeGmailHistoryPage(response.data, startHistoryId);
         return {
           content: [{ type: "text", text: JSON.stringify(page, null, 2) }],
