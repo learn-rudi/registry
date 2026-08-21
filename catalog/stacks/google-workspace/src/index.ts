@@ -20,12 +20,19 @@ import { tmpdir } from "os";
 import { homedir } from "os";
 import { buildCalendarEventInsert } from "./calendar.js";
 import {
+  calendarDiscoveryToolDefinitions,
+  runCalendarDiscoveryPage,
+} from "./calendar-discovery.js";
+import {
+  gmailDiscoveryToolDefinitions,
+  runGmailDiscoveryTool,
+} from "./gmail-discovery.js";
+import {
   buildGmailDraftMessage,
   buildGmailRawMessage,
   encodeMimeBody,
   encodeMimeHeaderValue,
   inferGmailContentType,
-  normalizeGmailHistoryPage,
   normalizeGmailRawMessage,
   normalizeGmailSendResult,
   resolveRequestedAccount,
@@ -541,7 +548,7 @@ const SLIDES_WRITE_CONTROL_INPUT = {
 };
 
 const server = new Server(
-  { name: "google-workspace", version: "1.0.0" },
+  { name: "google-workspace", version: "1.1.0" },
   { capabilities: { tools: {} } }
 );
 
@@ -570,45 +577,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       inputSchema: { type: "object", properties: {} },
     },
     // Gmail
-    {
-      name: "gmail_profile",
-      description: "Show the authenticated Gmail profile for the selected account",
-      inputSchema: {
-        type: "object",
-        properties: {
-          account: ACCOUNT_INPUT,
-        },
-      },
-    },
-    {
-      name: "gmail_history_list",
-      description: "List ordered Gmail message-added history after a durable history cursor",
-      inputSchema: {
-        type: "object",
-        properties: {
-          start_history_id: {
-            type: "string",
-            description: "Required Gmail history ID cursor; returns records after this ID",
-          },
-          max_results: {
-            type: "integer",
-            minimum: 1,
-            maximum: 500,
-            description: "Maximum history records to return (default 100, maximum 500)",
-          },
-          next_page_token: {
-            type: "string",
-            description: "Pagination token from a previous Gmail history response",
-          },
-          label_id: {
-            type: "string",
-            description: "Optional Gmail label ID filter, such as INBOX",
-          },
-          account: ACCOUNT_INPUT,
-        },
-        required: ["start_history_id"],
-      },
-    },
+    ...gmailDiscoveryToolDefinitions(ACCOUNT_INPUT),
     {
       name: "gmail_send",
       description: "Send an email via Gmail",
@@ -1314,6 +1283,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     // Calendar
+    ...calendarDiscoveryToolDefinitions(ACCOUNT_INPUT),
     {
       name: "calendar_list",
       description: "List upcoming calendar events",
@@ -1528,42 +1498,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       // Gmail
-      case "gmail_profile": {
-        const auth = getAuthForArgs(args);
-        const gmail = google.gmail({ version: "v1", auth });
-        const profile = await gmail.users.getProfile({ userId: "me" });
-        return {
-          content: [{
-            type: "text",
-            text: JSON.stringify({
-              emailAddress: profile.data.emailAddress,
-              messagesTotal: profile.data.messagesTotal,
-              threadsTotal: profile.data.threadsTotal,
-              historyId: profile.data.historyId,
-            }, null, 2),
-          }],
-        };
-      }
-
+      case "gmail_profile":
       case "gmail_history_list": {
         const auth = getAuthForArgs(args);
         const gmail = google.gmail({ version: "v1", auth });
-        const startHistoryId = requireString(
-          args?.start_history_id,
-          "start_history_id"
-        ).trim();
-        const response = await gmail.users.history.list({
-          userId: "me",
-          startHistoryId,
-          historyTypes: ["messageAdded"],
-          maxResults: boundedInteger(args?.max_results, "max_results", 100, 1, 500),
-          pageToken: optionalToolString(args, "next_page_token"),
-          labelId: optionalToolString(args, "label_id"),
-        });
-        const page = normalizeGmailHistoryPage(response.data, startHistoryId);
-        return {
-          content: [{ type: "text", text: JSON.stringify(page, null, 2) }],
-        };
+        return runGmailDiscoveryTool(name, gmail, args);
       }
 
       case "gmail_send": {
@@ -2913,6 +2852,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       // Calendar
+      case "calendar_discovery_page": {
+        const auth = getAuthForArgs(args);
+        const calendar = google.calendar({ version: "v3", auth });
+        const gmail = google.gmail({ version: "v1", auth });
+        return runCalendarDiscoveryPage(calendar, gmail, args);
+      }
+
       case "calendar_list": {
         const auth = getAuthForArgs(args);
         const calendar = google.calendar({ version: "v3", auth });
