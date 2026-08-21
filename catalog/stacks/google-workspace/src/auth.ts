@@ -17,12 +17,16 @@ import { existsSync, readdirSync } from "fs";
 import { join } from "path";
 import * as net from "net";
 import open from "open";
+import {
+  GoogleAccountMismatchError,
+  normalizeRequestedGoogleAccount,
+} from "./authIdentity.js";
+import { persistVerifiedGoogleToken } from "./authTokenBinding.js";
+import { ensureIsolatedGoogleAccountDirectory } from "./accountStorage.js";
 import { loadGoogleCredentials } from "./oauthCredentials.js";
 import {
-  ensurePrivateDir,
   getWorkspacePaths,
   migrateLegacyStateIfNeeded,
-  writeJsonFile,
 } from "./state.js";
 
 const WORKSPACE_PATHS = getWorkspacePaths();
@@ -73,20 +77,18 @@ async function findAvailablePort(basePort = 3456): Promise<number> {
 }
 
 async function authenticate(accountEmail?: string) {
+  const requestedAccount = accountEmail == null
+    ? undefined
+    : normalizeRequestedGoogleAccount(accountEmail);
+
   // Determine account directory
   let accountDir: string;
   let credentialsPath: string;
-  let selectedAccount = accountEmail;
+  let selectedAccount = requestedAccount;
 
-  if (accountEmail) {
-    accountDir = join(ACCOUNTS_DIR, accountEmail);
+  if (requestedAccount) {
+    accountDir = ensureIsolatedGoogleAccountDirectory(ACCOUNTS_DIR, requestedAccount);
     credentialsPath = join(accountDir, "credentials.json");
-
-    // Create account folder if it doesn't exist
-    if (!existsSync(accountDir)) {
-      console.log(`Creating account folder: ${accountEmail}`);
-      ensurePrivateDir(accountDir);
-    }
 
     if (!existsSync(credentialsPath) && process.env.GOOGLE_CREDENTIALS?.trim()) {
       console.log("Using OAuth credentials from RUDI secret GOOGLE_CREDENTIALS");
@@ -102,10 +104,10 @@ async function authenticate(accountEmail?: string) {
       process.exit(1);
     }
 
-    accountDir = join(ACCOUNTS_DIR, accounts[0]);
+    selectedAccount = normalizeRequestedGoogleAccount(accounts[0]);
+    accountDir = ensureIsolatedGoogleAccountDirectory(ACCOUNTS_DIR, selectedAccount);
     credentialsPath = join(accountDir, "credentials.json");
-    selectedAccount = accounts[0];
-    console.log(`Using account: ${accounts[0]}`);
+    console.log(`Using account: ${selectedAccount}`);
   }
 
   if (!existsSync(credentialsPath) && !process.env.GOOGLE_CREDENTIALS?.trim()) {
@@ -144,12 +146,13 @@ async function authenticate(accountEmail?: string) {
     access_type: "offline",
     scope: SCOPES,
     prompt: "consent", // Force consent to get refresh token
+    login_hint: selectedAccount,
   });
 
   console.log("\n========================================");
   console.log("Google Workspace OAuth Setup");
   console.log("========================================\n");
-  console.log(`Account: ${accountEmail || "default"}`);
+  console.log(`Account: ${selectedAccount}`);
   console.log("\nOpening browser for authentication...\n");
 
   // Start local server to receive callback
@@ -162,8 +165,8 @@ async function authenticate(accountEmail?: string) {
       if (code) {
         try {
           const { tokens } = await oauth2Client.getToken(code);
+          oauth2Client.setCredentials(tokens);
 
-          // Save token
           const tokenPath = join(accountDir, "token.json");
           const tokenData = {
             token: tokens.access_token,
@@ -172,11 +175,18 @@ async function authenticate(accountEmail?: string) {
             client_id,
             scopes: SCOPES,
             universe_domain: "googleapis.com",
-            account: selectedAccount || "",
             expiry: tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : null,
           };
-
-          writeJsonFile(tokenPath, tokenData);
+          const authenticatedAccount = await persistVerifiedGoogleToken({
+            requestedAccount: selectedAccount,
+            tokenPath,
+            tokenData,
+            readAuthenticatedAccount: async () => {
+              const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+              const profile = await gmail.users.getProfile({ userId: "me" });
+              return profile.data.emailAddress;
+            },
+          });
 
           res.writeHead(200, { "Content-Type": "text/html" });
           res.end(`
@@ -184,7 +194,7 @@ async function authenticate(accountEmail?: string) {
               <body style="font-family: system-ui; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
                 <div style="text-align: center;">
                   <h1 style="color: #22c55e;">✓ Authentication Successful!</h1>
-                  <p>Account: <strong>${accountEmail || "default"}</strong></p>
+                  <p>Account: <strong>${authenticatedAccount}</strong></p>
                   <p>You can close this window.</p>
                 </div>
               </body>
@@ -192,6 +202,7 @@ async function authenticate(accountEmail?: string) {
           `);
 
           console.log("✓ Authentication successful!");
+          console.log(`  Verified account: ${authenticatedAccount}`);
           console.log(`  Token saved to: ${tokenPath}`);
 
           setTimeout(() => {
@@ -200,9 +211,19 @@ async function authenticate(accountEmail?: string) {
           }, 1000);
 
         } catch (error: any) {
-          res.writeHead(500, { "Content-Type": "text/html" });
+          const statusCode = error instanceof GoogleAccountMismatchError ? 400 : 500;
+          res.writeHead(statusCode, { "Content-Type": "text/html" });
           res.end(`<h1>Error</h1><p>${error.message}</p>`);
-          console.error("Error getting token:", error.message);
+          console.error(
+            error instanceof GoogleAccountMismatchError
+              ? "Authentication rejected:"
+              : "Error getting token:",
+            error.message
+          );
+          setTimeout(() => {
+            server.close();
+            process.exit(1);
+          }, 1000);
         }
       } else {
         res.writeHead(400, { "Content-Type": "text/html" });
