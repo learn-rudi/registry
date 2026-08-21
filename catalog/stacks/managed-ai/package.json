@@ -1,0 +1,26 @@
+{
+  "name": "@rudi/managed-ai-stack",
+  "version": "0.1.0",
+  "description": "Authenticated, tenant-scoped MCP client for the RUDI Managed AI API.",
+  "type": "module",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "test": "node --test --import tsx src/*.test.ts",
+    "verify": "npm test && npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsx": "^4.22.4",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

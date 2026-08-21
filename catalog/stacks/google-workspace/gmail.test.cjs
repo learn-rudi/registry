@@ -21,6 +21,7 @@ function normalizeMimeLineEndings(value) {
 
 async function main() {
   const {
+    GMAIL_HISTORY_TYPES,
     buildGmailDraftMessage,
     buildGmailRawMessage,
     normalizeGmailHistoryPage,
@@ -28,6 +29,8 @@ async function main() {
     normalizeGmailSendResult,
     resolveRequestedAccount,
   } = await import("./src/gmail.ts");
+
+  assert.deepEqual(GMAIL_HISTORY_TYPES, ["messageAdded", "messageDeleted"]);
 
   const originalMessage = {
     id: "msg-123",
@@ -199,6 +202,14 @@ async function main() {
               },
             },
           ],
+          messagesDeleted: [
+            {
+              message: {
+                id: "gmail-message-deleted-105",
+                threadId: "gmail-thread-deleted-105",
+              },
+            },
+          ],
         },
       ],
       nextPageToken: "next-page",
@@ -216,6 +227,7 @@ async function main() {
               labelIds: ["INBOX", "UNREAD"],
             },
           ],
+          messagesDeleted: [],
         },
         {
           historyId: "105",
@@ -224,6 +236,13 @@ async function main() {
               messageId: "gmail-message-105",
               threadId: "gmail-thread-105",
               labelIds: ["SENT"],
+            },
+          ],
+          messagesDeleted: [
+            {
+              messageId: "gmail-message-deleted-105",
+              threadId: "gmail-thread-deleted-105",
+              labelIds: [],
             },
           ],
         },

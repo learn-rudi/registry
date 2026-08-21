@@ -71,6 +71,9 @@ type GmailHistoryPageLike = {
     messagesAdded?: Array<{
       message?: GmailHistoryMessageLike | null;
     }> | null;
+    messagesDeleted?: Array<{
+      message?: GmailHistoryMessageLike | null;
+    }> | null;
   }> | null;
   nextPageToken?: unknown;
   historyId?: unknown;
@@ -97,12 +100,18 @@ export type NormalizedGmailHistoryPage = {
       threadId: string;
       labelIds: string[];
     }>;
+    messagesDeleted: Array<{
+      messageId: string;
+      threadId: string;
+      labelIds: string[];
+    }>;
   }>;
   nextPageToken?: string;
   historyId: string;
 };
 
 export const DEFAULT_GMAIL_CONTENT_TYPE = 'text/plain; charset="UTF-8"';
+export const GMAIL_HISTORY_TYPES = ["messageAdded", "messageDeleted"] as const;
 
 export function resolveRequestedAccount(
   args: Record<string, unknown> | undefined,
@@ -215,7 +224,33 @@ export function normalizeGmailHistoryPage(
         ),
       };
     });
-    return { historyId, messagesAdded };
+    const rawDeleted = record.messagesDeleted ?? [];
+    if (!Array.isArray(rawDeleted)) {
+      throw new Error(`history[${recordIndex}].messagesDeleted must be an array`);
+    }
+    const messagesDeleted = rawDeleted.map((entry, entryIndex) => {
+      const message = entry?.message;
+      if (!message || typeof message !== "object" || Array.isArray(message)) {
+        throw new Error(
+          `history[${recordIndex}].messagesDeleted[${entryIndex}].message must be an object`
+        );
+      }
+      return {
+        messageId: requireOpaqueProviderId(
+          message.id,
+          `history[${recordIndex}].messagesDeleted[${entryIndex}].message.id`
+        ),
+        threadId: requireOpaqueProviderId(
+          message.threadId,
+          `history[${recordIndex}].messagesDeleted[${entryIndex}].message.threadId`
+        ),
+        labelIds: normalizeProviderStringArray(
+          message.labelIds,
+          `history[${recordIndex}].messagesDeleted[${entryIndex}].message.labelIds`
+        ),
+      };
+    });
+    return { historyId, messagesAdded, messagesDeleted };
   });
 
   if (BigInt(pageHistoryId) < previousHistoryId) {

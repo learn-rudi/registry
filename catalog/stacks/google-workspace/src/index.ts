@@ -20,6 +20,11 @@ import { tmpdir } from "os";
 import { homedir } from "os";
 import { buildCalendarEventInsert } from "./calendar.js";
 import {
+  calendarDiscoveryToolDefinitions,
+  runCalendarDiscoveryPage,
+} from "./calendar-discovery.js";
+import {
+  GMAIL_HISTORY_TYPES,
   buildGmailDraftMessage,
   buildGmailRawMessage,
   encodeMimeBody,
@@ -541,7 +546,7 @@ const SLIDES_WRITE_CONTROL_INPUT = {
 };
 
 const server = new Server(
-  { name: "google-workspace", version: "1.0.0" },
+  { name: "google-workspace", version: "1.1.0" },
   { capabilities: { tools: {} } }
 );
 
@@ -1314,6 +1319,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     // Calendar
+    ...calendarDiscoveryToolDefinitions(ACCOUNT_INPUT),
     {
       name: "calendar_list",
       description: "List upcoming calendar events",
@@ -1555,7 +1561,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const response = await gmail.users.history.list({
           userId: "me",
           startHistoryId,
-          historyTypes: ["messageAdded"],
+          historyTypes: [...GMAIL_HISTORY_TYPES],
           maxResults: boundedInteger(args?.max_results, "max_results", 100, 1, 500),
           pageToken: optionalToolString(args, "next_page_token"),
           labelId: optionalToolString(args, "label_id"),
@@ -2913,6 +2919,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       // Calendar
+      case "calendar_discovery_page": {
+        const auth = getAuthForArgs(args);
+        const calendar = google.calendar({ version: "v3", auth });
+        const gmail = google.gmail({ version: "v1", auth });
+        return runCalendarDiscoveryPage(calendar, gmail, args);
+      }
+
       case "calendar_list": {
         const auth = getAuthForArgs(args);
         const calendar = google.calendar({ version: "v3", auth });
