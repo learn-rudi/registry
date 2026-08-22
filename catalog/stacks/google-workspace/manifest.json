@@ -2,7 +2,7 @@
   "id": "stack:google-workspace",
   "kind": "stack",
   "name": "Google Workspace Tools",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "delivery": "remote",
   "install": {
     "source": "catalog",
@@ -87,6 +87,7 @@
       "drive_make_public",
       "drive_delete",
       "calendar_list",
+      "calendar_discovery_page",
       "calendar_create",
       "calendar_quick_add",
       "calendar_delete",

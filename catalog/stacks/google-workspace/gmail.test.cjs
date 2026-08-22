@@ -25,14 +25,29 @@ async function main() {
   assert.deepEqual(manifest.mcp.args, ["--import", "tsx", "src/index.ts"]);
 
   const {
+    GMAIL_HISTORY_TYPES,
     buildGmailDraftMessage,
     buildGmailRawMessage,
+    gmailHistoryErrorEnvelope,
     normalizeGmailHeaderSearchPage,
     normalizeGmailHistoryPage,
     normalizeGmailRawMessage,
     normalizeGmailSendResult,
     resolveRequestedAccount,
   } = await import("./src/gmail.ts");
+
+  assert.deepEqual(GMAIL_HISTORY_TYPES, ["messageAdded", "messageDeleted"]);
+  assert.deepEqual(gmailHistoryErrorEnvelope({ code: 404, message: "private history detail" }), {
+    error: { code: 404, category: "not_found" },
+  });
+  assert.deepEqual(gmailHistoryErrorEnvelope({ response: { status: 404 } }), {
+    error: { code: 404, category: "not_found" },
+  });
+  assert.equal(gmailHistoryErrorEnvelope({ code: 429, message: "private quota detail" }), null);
+  assert.doesNotMatch(
+    JSON.stringify(gmailHistoryErrorEnvelope({ code: 404, message: "private history detail" })),
+    /private history detail/
+  );
 
   const originalMessage = {
     id: "msg-123",
@@ -204,6 +219,14 @@ async function main() {
               },
             },
           ],
+          messagesDeleted: [
+            {
+              message: {
+                id: "gmail-message-deleted-105",
+                threadId: "gmail-thread-deleted-105",
+              },
+            },
+          ],
         },
       ],
       nextPageToken: "next-page",
@@ -221,6 +244,7 @@ async function main() {
               labelIds: ["INBOX", "UNREAD"],
             },
           ],
+          messagesDeleted: [],
         },
         {
           historyId: "105",
@@ -229,6 +253,13 @@ async function main() {
               messageId: "gmail-message-105",
               threadId: "gmail-thread-105",
               labelIds: ["SENT"],
+            },
+          ],
+          messagesDeleted: [
+            {
+              messageId: "gmail-message-deleted-105",
+              threadId: "gmail-thread-deleted-105",
+              labelIds: [],
             },
           ],
         },

@@ -1,15 +1,15 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-08-21T19:52:48.000Z",
+  "generatedAt": "2026-08-22T03:24:21.000Z",
   "stats": {
-    "total": 153,
+    "total": 155,
     "byKind": {
       "agent": 5,
       "binary": 27,
       "runtime": 5,
-      "skill": 68,
-      "stack": 48
+      "skill": 69,
+      "stack": 49
     }
   },
   "packages": {
@@ -2153,6 +2153,31 @@
         ]
       }
     },
+    "skill:managed-ai": {
+      "id": "skill:managed-ai",
+      "kind": "skill",
+      "name": "RUDI Managed AI Operator",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/managed-ai.md"
+      },
+      "requires": {
+        "stacks": [
+          "stack:managed-ai"
+        ]
+      },
+      "meta": {
+        "description": "Operate the unified RUDI Managed AI platform through stack:managed-ai's authenticated, tenant-scoped API tools for bounded context, review candidates, approvals, and projection preparation.",
+        "category": "business",
+        "tags": [
+          "rudi",
+          "operator",
+          "managed-ai"
+        ]
+      }
+    },
     "skill:map-change-impact": {
       "id": "skill:map-change-impact",
       "kind": "skill",
@@ -4169,7 +4194,7 @@
       "id": "stack:google-workspace",
       "kind": "stack",
       "name": "Google Workspace Tools",
-      "version": "1.0.2",
+      "version": "1.1.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -4254,6 +4279,7 @@
           "drive_make_public",
           "drive_delete",
           "calendar_list",
+          "calendar_discovery_page",
           "calendar_create",
           "calendar_quick_add",
           "calendar_delete",
@@ -4524,6 +4550,82 @@
         "operatorSkill": "skill:macos-automation",
         "skills": [
           "skill:macos-automation"
+        ]
+      }
+    },
+    "stack:managed-ai": {
+      "id": "stack:managed-ai",
+      "kind": "stack",
+      "name": "RUDI Managed AI",
+      "version": "0.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/managed-ai"
+      },
+      "runtime": "node",
+      "requires": {
+        "binaries": [],
+        "secrets": [
+          {
+            "key": "RUDI_MANAGED_AI_API_URL",
+            "label": "Managed AI API origin",
+            "required": true
+          },
+          {
+            "key": "RUDI_MANAGED_AI_API_TOKEN",
+            "label": "Managed AI scoped bearer token",
+            "required": true
+          },
+          {
+            "key": "RUDI_MANAGED_AI_TENANT_ID",
+            "label": "Managed AI tenant ID",
+            "required": true
+          }
+        ]
+      },
+      "provides": {
+        "tools": [
+          "managed_ai_config_status",
+          "managed_ai_get_client_context",
+          "managed_ai_get_organization_context",
+          "managed_ai_list_interactions",
+          "managed_ai_list_observations",
+          "managed_ai_list_candidates",
+          "managed_ai_review_candidate",
+          "managed_ai_prepare_projection",
+          "managed_ai_get_projection_bundle"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "tsx",
+          "src/index.ts"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Authenticated, tenant-scoped API client for bounded Managed AI context, review candidates, approvals, and projection preparation.",
+        "author": "RUDI",
+        "license": "MIT",
+        "category": "business",
+        "tags": [
+          "managed-ai",
+          "context",
+          "approvals",
+          "projections",
+          "mcp"
+        ],
+        "icon": "brain-circuit",
+        "boundary": "This stack is an API client only. It uses one configured tenant and fixed Managed AI v1 routes. It cannot open PostgreSQL connections or tunnels, poll providers, run business matching logic, write client files, apply patches, record publication evidence, or run Git commands.",
+        "secretGuidance": "Bind RUDI_MANAGED_AI_API_TOKEN to a distinct agent/service principal with only the tenant roles required for the selected tools. Use an HTTPS API origin, keep tokens out of URLs and logs, and rotate or revoke them through the Managed AI authentication authority."
+      },
+      "related": {
+        "operatorSkill": "skill:managed-ai",
+        "skills": [
+          "skill:managed-ai"
         ]
       }
     },

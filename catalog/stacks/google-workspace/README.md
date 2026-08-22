@@ -12,7 +12,7 @@ This stack owns Google Workspace OAuth, account selection, and direct Workspace 
 - Docs tools: read, create, insert image
 - Slides tools: get presentation, get slide, get thumbnail, raw batch update
 - Drive tools: list, upload, create folder, move, download, make public, delete
-- Calendar tools: list, create, quick add, delete
+- Calendar tools: bounded historical organizer/attendee discovery pages, list, create, quick add, delete
 - Tasks tools: list task lists, list tasks, create, update, complete, delete
 
 ## Requirements
@@ -97,6 +97,16 @@ State files are written with private file permissions where the filesystem suppo
 ## Agent Guidance
 
 Use `account_current` before acting when account context matters. Use `account_switch` or pass the tool's account argument when working across multiple Google accounts.
+
+For privacy-minimized relationship discovery, `calendar_discovery_page`
+requires an exact `account`, exact `calendar_id`, inclusive `window_start`,
+exclusive `window_end`, bounded page/observation sizes, and an optional
+continuation token. It verifies the authenticated Gmail profile matches the
+requested account and returns only the echoed scope/window plus ordered
+organizer/attendee observations. Provider event IDs and recurrence IDs become
+source/account/calendar-scoped SHA-256 keys; event titles, descriptions,
+locations, URLs, response statuses, raw provider objects, and credentials never
+cross the discovery boundary.
 
 `gmail_send` resolves the authenticated Gmail profile and renders that primary mailbox as the RFC 2822 `From` header. It does not silently inherit a different default Send-As alias.
 
