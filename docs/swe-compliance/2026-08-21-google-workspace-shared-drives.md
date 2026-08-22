@@ -3,7 +3,7 @@
 Task: expand `stack:google-workspace` Drive tools so authenticated callers can
 safely target Google Shared Drives while preserving existing My Drive behavior.
 
-Status: rollout complete; post-restart Codex desktop invocation remains pending
+Status: complete
 
 Risk tier: high. The change affects authenticated, agent-facing API contracts
 and third-party write operations. Provider writes and destructive operations
@@ -319,7 +319,7 @@ rules.
   code-level suggestion was applied (operation-specific rejection for implicit
   Shared Drive IDs passed to My-Drive-only public/delete tools), then the
   reviewer reconfirmed APPROVE after focused tests, typecheck, and diff check.
-- Final verdict: rollout approved; Codex desktop reload proof remains open.
+- Final verdict: approved.
 - Accepted debt: the unchanged production dependency graph currently reports
   five moderate advisories under `npm audit --omit=dev` (direct
   `googleapis@^140` plus transitive `googleapis-common`, `gaxios`, `uuid`, and
@@ -366,7 +366,7 @@ rules.
     reference remained scoped to the selected account and Drive
   - the temporary local download directory was removed; no Google write tool
     was called
-- Codex integration evidence and gap:
+- Codex integration evidence:
   - the exact clean CLI package was installed locally, `rudi shims rebuild`
     recreated the router shim, and the packaged and generated router SHA-256
     values match
@@ -382,9 +382,11 @@ rules.
     `user cancelled MCP tool call` in noninteractive `codex exec`, matching
     the open upstream noninteractive MCP-approval defect rather than a RUDI
     dispatch/provider failure
-  - this already-running desktop task cannot hot-add MCP names; official Codex
-    MCP setup requires a client restart, so desktop-host invocation is not
-    claimed without an actual restart and new-task smoke
+  - after the desktop restart, this task directly discovered and invoked
+    `mcp__rudi__stack_google_workspace_drive_list` with the exact account,
+    Shared Drive, `corpora="drive"`, exact-parent query, and `max_results=1`;
+    the read returned one result, `incompleteSearch=false`, a continuation
+    token, and correctly scoped provider references without a Google write
 - Admin-Mac synchronization evidence:
   - both exact remote task revisions were fetched into clean, separately
     tracked worktrees without modifying either admin `main` checkout
@@ -409,14 +411,12 @@ rules.
     downloaded 21,958 bytes, matched handler/provider/independent SHA-256, and
     retained scoped provider references; the temporary output was moved to
     Trash and no Google write tool was called
-- Proof gap: post-restart Codex desktop tool exposure/invocation remains
-  pending; source, config, router, fresh-process discovery, direct dispatch,
-  provider behavior, and both-host installed state are otherwise proven.
+- Proof gaps: none.
 - Definition of Done:
   - all deterministic and repository gates pass
   - read-only Shared Drive smoke passes
   - fresh-context review has no blocking findings
   - docs and generated contracts match behavior
   - task-owned changes are audited and committed on the task branch
-  - primary and admin hosts report the accepted version/index; the remaining
-    desktop reload proof is tracked explicitly above
+  - primary and admin hosts report the accepted version/index
+  - post-restart Codex desktop exposure and read-only invocation are proven
