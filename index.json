@@ -1,7 +1,7 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-08-21T22:46:38.000Z",
+  "generatedAt": "2026-08-22T03:24:21.000Z",
   "stats": {
     "total": 155,
     "byKind": {
@@ -4226,6 +4226,7 @@
           "gmail_history_list",
           "gmail_send",
           "gmail_search",
+          "gmail_search_headers",
           "gmail_draft",
           "gmail_draft_list",
           "gmail_draft_get",
@@ -4292,8 +4293,9 @@
       },
       "mcp": {
         "transport": "stdio",
-        "command": "npx",
+        "command": "node",
         "args": [
+          "--import",
           "tsx",
           "src/index.ts"
         ],

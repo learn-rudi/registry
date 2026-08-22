@@ -34,6 +34,7 @@
       "gmail_history_list",
       "gmail_send",
       "gmail_search",
+      "gmail_search_headers",
       "gmail_draft",
       "gmail_draft_list",
       "gmail_draft_get",
@@ -100,8 +101,9 @@
   },
   "mcp": {
     "transport": "stdio",
-    "command": "npx",
+    "command": "node",
     "args": [
+      "--import",
       "tsx",
       "src/index.ts"
     ],
