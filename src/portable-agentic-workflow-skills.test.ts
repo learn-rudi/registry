@@ -229,7 +229,7 @@ describe("portable skill contracts", () => {
       },
     });
     expect(index.packages["skill:swe-compliance-checklist"]).toMatchObject({
-      version: "1.1.0",
+      version: "1.2.0",
       install: {
         source: "catalog",
         path: "catalog/skills/swe-compliance-checklist.md",
