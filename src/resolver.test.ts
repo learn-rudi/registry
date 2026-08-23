@@ -353,7 +353,7 @@ describe("assertEffectivePolicy", () => {
       expect(() => assertEffectivePolicy(resolved)).not.toThrow();
     });
 
-    it("should reject unsupported agent install sources", () => {
+    it("should require externally managed agents to use the system source", () => {
       const pkg: Package = {
         id: "agent:claude",
         kind: "agent",
@@ -368,7 +368,26 @@ describe("assertEffectivePolicy", () => {
 
       expect(() => assertEffectivePolicy(resolved)).toThrow(PolicyError);
       expect(() => assertEffectivePolicy(resolved)).toThrow(
-        "agent must use install.source=npm or system"
+        "agent must use system delivery and install.source=system"
+      );
+    });
+
+    it("should reject npm-installed agents", () => {
+      const pkg: Package = {
+        id: "agent:codex",
+        kind: "agent",
+        name: "Codex",
+        version: "latest",
+        delivery: "remote",
+        install: { source: "npm", package: "@openai/codex" },
+        bins: ["codex"],
+      };
+      const ctx: ResolveContext = { os: "darwin", arch: "arm64" };
+      const resolved = resolve(pkg, ctx);
+
+      expect(() => assertEffectivePolicy(resolved)).toThrow(PolicyError);
+      expect(() => assertEffectivePolicy(resolved)).toThrow(
+        "agent must use system delivery and install.source=system"
       );
     });
 
@@ -472,9 +491,9 @@ describe("assertEffectivePolicy", () => {
   describe("npm/pip source constraints", () => {
     it("should require package field for npm source", () => {
       const pkg: Package = {
-        id: "agent:test",
-        kind: "agent",
-        name: "Test Agent",
+        id: "binary:test",
+        kind: "binary",
+        name: "Test Binary",
         version: "1.0.0",
         delivery: "remote",
         install: { source: "npm" },
@@ -488,7 +507,7 @@ describe("assertEffectivePolicy", () => {
       );
     });
 
-    it("should pass when package field is provided", () => {
+    it("should reject npm source for agents even when package is provided", () => {
       const pkg: Package = {
         id: "agent:test",
         kind: "agent",
@@ -500,7 +519,9 @@ describe("assertEffectivePolicy", () => {
       const ctx: ResolveContext = { os: "darwin", arch: "arm64" };
       const resolved = resolve(pkg, ctx);
 
-      expect(() => assertEffectivePolicy(resolved)).not.toThrow();
+      expect(() => assertEffectivePolicy(resolved)).toThrow(
+        "agent must use system delivery and install.source=system"
+      );
     });
   });
 

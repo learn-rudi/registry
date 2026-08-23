@@ -574,20 +574,23 @@ layer.
   "id": "agent:claude",
   "kind": "agent",
   "name": "Claude Code",
-  "version": "latest",
+  "version": "system",
 
-  "delivery": "remote",
+  "delivery": "system",
   "install": {
-    "source": "npm",
-    "package": "@anthropic-ai/claude-code"
+    "source": "system"
   },
 
   "bins": ["claude"],
   "detect": { "command": "claude --version" },
 
+  "installHints": {
+    "manual": "Install or update with Anthropic's supported native installer"
+  },
+
   "auth": {
     "required": true,
-    "command": "claude login",
+    "command": "claude auth login",
     "instructions": "Authenticate with your Anthropic account"
   }
 }
@@ -719,6 +722,7 @@ Validation applies to the **effective resolved config** (after platform merge):
 6. **All packages**: `name` required (used for display)
 7. **If `lifecycle.support == "unsupported"`**: `lifecycle.deprecation` required
 8. **If `lifecycle.deprecation.replacementId` is present**: it must reference another published package
+9. **If `kind == "agent"`**: `version`, `delivery`, and `install.source` must all be `"system"`; `detect` and actionable `installHints` are required
 
 ---
 

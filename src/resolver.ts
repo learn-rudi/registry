@@ -299,8 +299,14 @@ export function assertEffectivePolicy(resolved: ResolvedPackage): void {
     throw new PolicyError(id, `runtime must use install.source=download`);
   }
 
-  if (kind === "agent" && install.source !== "npm" && install.source !== "system") {
-    throw new PolicyError(id, `agent must use install.source=npm or system`);
+  if (
+    kind === "agent" &&
+    (delivery !== "system" || install.source !== "system" || version !== "system")
+  ) {
+    throw new PolicyError(
+      id,
+      `agent must use system delivery and install.source=system with version=system`
+    );
   }
 
   if ((kind === "stack" || kind === "skill" || kind === "prompt") && install.source !== "catalog") {

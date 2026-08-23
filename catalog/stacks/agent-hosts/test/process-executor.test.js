@@ -64,6 +64,29 @@ test("minimal child environment excludes provider keys and arbitrary caller stat
   });
 });
 
+test("minimal child environment excludes RUDI runtimes and preserves provider paths", () => {
+  assert.deepEqual(createMinimalAgentHostEnvironment({
+    HOME: "/Users/example",
+    PATH: [
+      "/Users/example/.rudi/bins",
+      "/Users/example/.rudi/runtimes/node/bin",
+      "/opt/rudi-managed/runtimes/python/bin",
+      ".",
+      "..",
+      "relative/bin",
+      "/vendor/node/bin",
+      "/usr/bin",
+    ].join(":"),
+    RUDI_HOME: "/opt/rudi-managed",
+  }, {
+    binaryPath: "/Users/example/.local/bin/claude",
+  }), {
+    HOME: "/Users/example",
+    NO_COLOR: "1",
+    PATH: "/Users/example/.local/bin:/vendor/node/bin:/usr/bin",
+  });
+});
+
 test("RUDI injected secret provider exposes only the allowlisted DeepSeek key", async () => {
   const secrets = new RudiInjectedSecretProvider({
     DEEPSEEK_API_KEY: "deepseek-test-secret",

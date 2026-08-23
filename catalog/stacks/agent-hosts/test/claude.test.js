@@ -39,9 +39,10 @@ test("Claude uses tool-free plan-mode stdin and returns only the terminal result
     });
     const host = new ClaudeCodeAgentHost({
       binaryPath: "/Applications/Claude/claude",
+      capabilitiesVerified: true,
       executor,
       runtimeDirectory,
-      runtimeRef: "2.1.219 (Claude Code)",
+      runtimeRef: "2.1.226 (Claude Code)",
     });
     const prompt = "synthetic prompt supplied only over stdin";
 
@@ -63,7 +64,7 @@ test("Claude uses tool-free plan-mode stdin and returns only the terminal result
       ok: true,
       outputText: '{"status":"ok"}',
       providerSessionRef: "claude-safe-ref",
-      runtimeRef: "2.1.219 (Claude Code)",
+      runtimeRef: "2.1.226 (Claude Code)",
       usage: { inputTokens: 11, outputTokens: 5, totalTokens: 16 },
     });
     const execution = executor.requests[0];
@@ -84,11 +85,50 @@ test("Claude uses tool-free plan-mode stdin and returns only the terminal result
   }
 });
 
+test("Claude rejects an in-range runtime without verified guarded capabilities", async () => {
+  const runtimeDirectory = mkdtempSync(join(tmpdir(), "rudi-claude-capability-test-"));
+  try {
+    const executor = new RecordingProcessExecutor(successfulClaudeResult());
+    const host = new ClaudeCodeAgentHost({
+      binaryPath: "/Applications/Claude/claude",
+      capabilitiesVerified: false,
+      executor,
+      runtimeDirectory,
+      runtimeRef: "2.1.226 (Claude Code)",
+    });
+    const result = await host.invoke(validClaudeRequest("missing-option"));
+    assert.equal(result.failureClass, "configuration_invalid");
+    assert.equal(executor.requests.length, 0);
+  } finally {
+    rmSync(runtimeDirectory, { force: true, recursive: true });
+  }
+});
+
+test("Claude rejects the unreviewed upper version boundary before execution", async () => {
+  const runtimeDirectory = mkdtempSync(join(tmpdir(), "rudi-claude-version-test-"));
+  try {
+    const executor = new RecordingProcessExecutor(successfulClaudeResult());
+    const host = new ClaudeCodeAgentHost({
+      binaryPath: "/Applications/Claude/claude",
+      capabilitiesVerified: true,
+      executor,
+      runtimeDirectory,
+      runtimeRef: "2.2.0 (Claude Code)",
+    });
+    const result = await host.invoke(validClaudeRequest("future-version"));
+    assert.equal(result.failureClass, "configuration_invalid");
+    assert.equal(executor.requests.length, 0);
+  } finally {
+    rmSync(runtimeDirectory, { force: true, recursive: true });
+  }
+});
+
 test("Claude maps provider rejection without exposing provider text", async () => {
   const runtimeDirectory = mkdtempSync(join(tmpdir(), "rudi-claude-reject-test-"));
   try {
     const host = new ClaudeCodeAgentHost({
       binaryPath: "/Applications/Claude/claude",
+      capabilitiesVerified: true,
       executor: new RecordingProcessExecutor({
         cancelled: false,
         exitCode: 0,
@@ -125,6 +165,44 @@ test("Claude maps provider rejection without exposing provider text", async () =
   }
 });
 
+test("Claude maps a subscription limit without exposing provider text", async () => {
+  const runtimeDirectory = mkdtempSync(join(tmpdir(), "rudi-claude-limit-test-"));
+  try {
+    const host = new ClaudeCodeAgentHost({
+      binaryPath: "/Applications/Claude/claude",
+      capabilitiesVerified: true,
+      executor: new RecordingProcessExecutor({
+        cancelled: false,
+        exitCode: 1,
+        startError: false,
+        stderrHadOutput: false,
+        stdout: [
+          JSON.stringify({
+            rate_limit_info: { status: "rejected" },
+            type: "rate_limit_event",
+          }),
+          JSON.stringify({
+            api_error_status: 429,
+            result: "private provider account details",
+            type: "result",
+          }),
+        ].join("\n"),
+        stdoutOverflow: false,
+        terminationConfirmed: true,
+        timedOut: false,
+      }),
+      runtimeDirectory,
+      runtimeRef: "2.1.226 (Claude Code)",
+    });
+    const result = await host.invoke(validClaudeRequest("rate-limit"));
+    assert.equal(result.failureClass, "rate_limited");
+    assert.equal(result.retryable, true);
+    assert.equal(result.summary.includes("private"), false);
+  } finally {
+    rmSync(runtimeDirectory, { force: true, recursive: true });
+  }
+});
+
 class RecordingProcessExecutor {
   requests = [];
 
@@ -136,6 +214,37 @@ class RecordingProcessExecutor {
     this.requests.push(request);
     return this.result;
   }
+}
+
+function validClaudeRequest(suffix) {
+  return {
+    adapterId: "claude-code-cli-v1",
+    contentClass: "synthetic_nonprivate",
+    correlationId: `request:claude-${suffix}`,
+    invocationId: `invocation:claude-${suffix}`,
+    outputFormat: "json",
+    prompt: "synthetic prompt",
+    timeoutMs: 25_000,
+  };
+}
+
+function successfulClaudeResult() {
+  return {
+    cancelled: false,
+    exitCode: 0,
+    startError: false,
+    stderrHadOutput: false,
+    stdout: JSON.stringify({
+      is_error: false,
+      result: '{"status":"ok"}',
+      session_id: "claude-safe-ref",
+      subtype: "success",
+      type: "result",
+    }),
+    stdoutOverflow: false,
+    terminationConfirmed: true,
+    timedOut: false,
+  };
 }
 
 function argumentValue(arguments_, name) {

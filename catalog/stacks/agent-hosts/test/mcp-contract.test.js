@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { AGENT_HOST_TOOL_DEFINITIONS } from "../src/tool-contract.js";
@@ -34,4 +35,14 @@ test("MCP tools expose only list, explicit probe, and bounded synchronous invoke
   assert.equal("environment" in invoke.inputSchema.properties, false);
   assert.equal("model" in invoke.inputSchema.properties, false);
   assert.equal("tools" in invoke.inputSchema.properties, false);
+});
+
+test("MCP server version matches the installable stack package", () => {
+  const packageMetadata = JSON.parse(readFileSync(
+    new URL("../package.json", import.meta.url),
+    "utf8",
+  ));
+  const serverSource = readFileSync(new URL("../src/index.js", import.meta.url), "utf8");
+
+  assert.match(serverSource, new RegExp(`version: "${packageMetadata.version}"`));
 });

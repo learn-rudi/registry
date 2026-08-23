@@ -108,6 +108,22 @@
     },
 
     {
+      "if": { "properties": { "kind": { "const": "agent" } } },
+      "then": {
+        "properties": {
+          "version": { "const": "system" },
+          "delivery": { "const": "system" },
+          "install": { "properties": { "source": { "const": "system" } } },
+          "installHints": {
+            "properties": { "manual": { "type": "string", "minLength": 1 } },
+            "required": ["manual"]
+          }
+        },
+        "required": ["detect", "installHints"]
+      }
+    },
+
+    {
       "if": {
         "properties": {
           "install": {
@@ -167,7 +183,7 @@
         "source": {
           "type": "string",
           "enum": ["download", "npm", "pip", "system", "catalog"],
-          "description": "Acquisition method"
+          "description": "Acquisition method; agents are external system prerequisites and are never acquired by RUDI"
         },
         "package": {
           "type": "string",

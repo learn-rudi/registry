@@ -1,19 +1,33 @@
 import {
   accessSync,
+  closeSync,
   constants,
   existsSync,
   lstatSync,
+  mkdtempSync,
   mkdirSync,
+  openSync,
+  readFileSync,
   readdirSync,
   realpathSync,
+  rmSync,
+  statSync,
   symlinkSync,
 } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { homedir } from "node:os";
-import { delimiter, isAbsolute, join } from "node:path";
+import { homedir, tmpdir } from "node:os";
+import { delimiter, isAbsolute, join, relative, resolve, sep } from "node:path";
 
-import { ClaudeCodeAgentHost } from "./claude.js";
-import { CodexCliAgentHost } from "./codex.js";
+import {
+  ClaudeCodeAgentHost,
+  claudeHelpExposesGuardedCapabilities,
+  isCompatibleClaudeRuntime,
+} from "./claude.js";
+import {
+  CodexCliAgentHost,
+  codexHelpExposesGuardedCapabilities,
+  isCompatibleCodexRuntime,
+} from "./codex.js";
 import { DeepSeekHttpAgentHost } from "./deepseek.js";
 import { createMinimalAgentHostEnvironment } from "./process-executor.js";
 
@@ -22,10 +36,16 @@ export function createLocalAgentHostAdapters(options = {}) {
   const runtimeDirectory = options.runtimeDirectory
     ?? createEmptyRuntimeDirectory(stateRoot);
   const codexHome = options.codexHome ?? createCodexHome(stateRoot);
-  const claudeBinaryPath = options.claudeBinaryPath ?? resolveClaudeBinaryPath();
-  const codexBinaryPath = options.codexBinaryPath ?? resolveCodexBinaryPath();
+  const claudeBinaryPath = options.claudeBinaryPath
+    ?? resolveClaudeBinaryPath(runtimeDirectory);
+  const codexBinaryPath = options.codexBinaryPath
+    ?? resolveCodexBinaryPath(runtimeDirectory);
   validateAbsolutePath(claudeBinaryPath, "Claude binary");
   validateAbsolutePath(codexBinaryPath, "Codex binary");
+  validateExternalAgentBinaryPath(claudeBinaryPath, "Claude binary");
+  validateExternalAgentBinaryPath(codexBinaryPath, "Codex binary");
+  const claudeRuntimeRef = detectRuntimeRef(claudeBinaryPath, runtimeDirectory);
+  const codexRuntimeRef = detectRuntimeRef(codexBinaryPath, runtimeDirectory);
 
   return [
     new DeepSeekHttpAgentHost({
@@ -36,14 +56,26 @@ export function createLocalAgentHostAdapters(options = {}) {
     }),
     new ClaudeCodeAgentHost({
       binaryPath: claudeBinaryPath,
+      capabilitiesVerified: commandHelpMatches(
+        claudeBinaryPath,
+        ["--help"],
+        runtimeDirectory,
+        claudeHelpExposesGuardedCapabilities
+      ),
       runtimeDirectory,
-      runtimeRef: detectRuntimeRef(claudeBinaryPath, runtimeDirectory),
+      runtimeRef: claudeRuntimeRef,
     }),
     new CodexCliAgentHost({
       binaryPath: codexBinaryPath,
+      capabilitiesVerified: commandHelpMatches(
+        codexBinaryPath,
+        ["exec", "--help"],
+        runtimeDirectory,
+        codexHelpExposesGuardedCapabilities
+      ),
       codexHome,
       runtimeDirectory,
-      runtimeRef: detectRuntimeRef(codexBinaryPath, runtimeDirectory),
+      runtimeRef: codexRuntimeRef,
     }),
   ];
 }
@@ -70,23 +102,78 @@ export class RudiInjectedSecretProvider {
   }
 }
 
-export function resolveClaudeBinaryPath() {
-  return firstExecutable([
-    ...installedClaudeBundleCandidates(),
+function canonicalPath(candidate, realpathSyncImpl) {
+  const absolute = resolve(candidate);
+  try {
+    return realpathSyncImpl(absolute);
+  } catch {
+    return absolute;
+  }
+}
+
+function isInside(root, candidate) {
+  const child = relative(root, candidate);
+  return child === ""
+    || (child !== ".." && !child.startsWith(`..${sep}`) && !isAbsolute(child));
+}
+
+export function isExternalAgentBinaryPath(candidate, options = {}) {
+  if (
+    typeof candidate !== "string"
+    || !isAbsolute(candidate)
+    || candidate.length > 4_096
+    || /[\r\n\0]/u.test(candidate)
+  ) {
+    return false;
+  }
+  const home = options.home ?? homedir();
+  const realpathSyncImpl = options.realpathSyncImpl ?? realpathSync;
+  const lexicalCandidate = resolve(candidate);
+  const canonicalCandidate = canonicalPath(lexicalCandidate, realpathSyncImpl);
+  const configuredRudiHome = options.rudiHome ?? process.env.RUDI_HOME;
+  const rudiRoots = [join(home, ".rudi"), configuredRudiHome]
+    .filter((root) => (
+      typeof root === "string"
+      && isAbsolute(root)
+      && root.length <= 4_096
+      && !/[\r\n\0]/u.test(root)
+    ))
+    .flatMap((root) => [resolve(root), canonicalPath(root, realpathSyncImpl)]);
+
+  return !rudiRoots.some((root) => (
+    isInside(root, lexicalCandidate) || isInside(root, canonicalCandidate)
+  ));
+}
+
+export function resolveClaudeBinaryPath(runtimeDirectory = homedir()) {
+  const candidates = [
     "/usr/local/bin/claude",
     "/opt/homebrew/bin/claude",
     join(homedir(), ".local", "bin", "claude"),
+    ...installedClaudeBundleCandidates(),
     ...pathCandidates("claude"),
-  ]) ?? "/usr/local/bin/claude";
+  ];
+  return firstCompatibleExecutable(candidates, {
+    helpArguments: ["--help"],
+    helpMatches: claudeHelpExposesGuardedCapabilities,
+    runtimeDirectory,
+    runtimeMatches: isCompatibleClaudeRuntime,
+  }) ?? firstExecutable(candidates) ?? "/usr/local/bin/claude";
 }
 
-export function resolveCodexBinaryPath() {
-  return firstExecutable([
+export function resolveCodexBinaryPath(runtimeDirectory = homedir()) {
+  const candidates = [
     "/usr/local/bin/codex",
     "/opt/homebrew/bin/codex",
     join(homedir(), ".local", "bin", "codex"),
     ...pathCandidates("codex"),
-  ]) ?? "/usr/local/bin/codex";
+  ];
+  return firstCompatibleExecutable(candidates, {
+    helpArguments: ["exec", "--help"],
+    helpMatches: codexHelpExposesGuardedCapabilities,
+    runtimeDirectory,
+    runtimeMatches: isCompatibleCodexRuntime,
+  }) ?? firstExecutable(candidates) ?? "/usr/local/bin/codex";
 }
 
 function defaultStateRoot() {
@@ -170,14 +257,15 @@ function pathCandidates(binaryName) {
     .map((directory) => join(directory, binaryName));
 }
 
-function firstExecutable(candidates) {
+function firstExecutable(candidates, options = {}) {
   const visited = new Set();
   for (const candidate of candidates) {
-    if (visited.has(candidate)) continue;
+    if (visited.has(candidate) || !isExternalAgentBinaryPath(candidate, options)) continue;
     visited.add(candidate);
     try {
       accessSync(candidate, constants.X_OK);
-      return realpathSync(candidate);
+      const resolved = realpathSync(candidate);
+      if (isExternalAgentBinaryPath(resolved, options)) return resolved;
     } catch {
       // Continue through the fixed local candidate list.
     }
@@ -185,11 +273,64 @@ function firstExecutable(candidates) {
   return undefined;
 }
 
+function firstCompatibleExecutable(candidates, options) {
+  const visited = new Set();
+  for (const candidate of candidates) {
+    if (!isExternalAgentBinaryPath(candidate, options)) continue;
+    let resolved;
+    try {
+      accessSync(candidate, constants.X_OK);
+      resolved = realpathSync(candidate);
+    } catch {
+      continue;
+    }
+    if (!isExternalAgentBinaryPath(resolved, options)) continue;
+    if (visited.has(resolved)) continue;
+    visited.add(resolved);
+    const runtimeRef = detectRuntimeRef(resolved, options.runtimeDirectory);
+    if (!options.runtimeMatches(runtimeRef)) continue;
+    if (commandHelpMatches(
+      resolved,
+      options.helpArguments,
+      options.runtimeDirectory,
+      options.helpMatches
+    )) return resolved;
+  }
+  return undefined;
+}
+
+function commandHelpMatches(binaryPath, arguments_, runtimeDirectory, helpMatches) {
+  const captureDirectory = mkdtempSync(join(tmpdir(), "rudi-agent-host-help-"));
+  const capturePath = join(captureDirectory, "stdout.txt");
+  let outputFile;
+  try {
+    outputFile = openSync(capturePath, "w", 0o600);
+    const result = spawnSync(binaryPath, arguments_, {
+      cwd: runtimeDirectory,
+      env: { ...createMinimalAgentHostEnvironment(process.env, { binaryPath }) },
+      shell: false,
+      stdio: ["ignore", outputFile, "ignore"],
+      timeout: 5_000,
+    });
+    closeSync(outputFile);
+    outputFile = undefined;
+    if (result.status !== 0 || result.error || statSync(capturePath).size > 65_536) {
+      return false;
+    }
+    return helpMatches(readFileSync(capturePath, "utf8"));
+  } catch {
+    return false;
+  } finally {
+    if (outputFile !== undefined) closeSync(outputFile);
+    rmSync(captureDirectory, { force: true, recursive: true });
+  }
+}
+
 function detectRuntimeRef(binaryPath, runtimeDirectory) {
   const result = spawnSync(binaryPath, ["--version"], {
     cwd: runtimeDirectory,
     encoding: "utf8",
-    env: { ...createMinimalAgentHostEnvironment() },
+    env: { ...createMinimalAgentHostEnvironment(process.env, { binaryPath }) },
     maxBuffer: 16_384,
     shell: false,
     timeout: 5_000,
@@ -205,5 +346,11 @@ function detectRuntimeRef(binaryPath, runtimeDirectory) {
 function validateAbsolutePath(value, label) {
   if (!isAbsolute(value) || value.length > 4_096 || /[\r\n\0]/u.test(value)) {
     throw new Error(`${label} path is invalid.`);
+  }
+}
+
+function validateExternalAgentBinaryPath(value, label) {
+  if (!isExternalAgentBinaryPath(value)) {
+    throw new Error(`${label} must be installed outside the RUDI home.`);
   }
 }

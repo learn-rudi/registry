@@ -2,12 +2,11 @@
   "id": "agent:gemini",
   "kind": "agent",
   "name": "Gemini CLI",
-  "version": "latest",
+  "version": "system",
 
-  "delivery": "remote",
+  "delivery": "system",
   "install": {
-    "source": "npm",
-    "package": "@google/gemini-cli"
+    "source": "system"
   },
 
   "bins": ["gemini"],
@@ -15,6 +14,10 @@
   "detect": {
     "command": "gemini --version",
     "expectExitCode": 0
+  },
+
+  "installHints": {
+    "manual": "Install or update Gemini CLI using Google's supported installation instructions at https://geminicli.com/docs/"
   },
 
   "auth": {
