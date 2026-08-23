@@ -22,8 +22,9 @@ import {
 test("manual list exposes the operating manual documents", async () => {
   const result = await listManualDocuments();
 
-  assert.equal(result.documents.length, 10);
+  assert.equal(result.documents.length, 11);
   assert.equal(result.documents[0].id, "master-engineering-doctrine");
+  assert.equal(result.documents[10].id, "agent-copilot-operating-standard");
   assert.ok(result.documents.every((document) => document.bytes > 0));
 });
 

@@ -36,7 +36,11 @@ test("package contract keeps the manual and tool surface portable", async () => 
   assert.equal(files.includes("AGENTS.md"), false);
   assert.equal(files.includes("CLAUDE.md"), false);
   const manualFiles = files.filter((file) => file.startsWith("src/manual/")).sort();
-  assert.equal(manualFiles.length, 10);
+  assert.equal(manualFiles.length, 11);
+  assert.equal(
+    manualFiles.includes("src/manual/11-Agent-Copilot-Operating-Standard.md"),
+    true
+  );
   const manualContent = (await Promise.all(
     manualFiles.map((file) => fs.readFile(path.join(stackRoot, file), "utf8"))
   )).join("\n");

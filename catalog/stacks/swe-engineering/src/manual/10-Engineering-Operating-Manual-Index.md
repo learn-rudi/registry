@@ -124,6 +124,7 @@ When assigning implementation tasks to agents, include the relevant subset:
 | 8 | `08-Infrastructure-and-Deployment-Engineering-Standard.md` | Infrastructure and deployment engineering standard | Complete |
 | 9 | `09-Build-Order-and-Engineering-System.md` | Build-order and system guide | Complete |
 | 10 | `10-Engineering-Operating-Manual-Index.md` | Navigation index | Complete |
+| 11 | `11-Agent-Copilot-Operating-Standard.md` | Agent co-pilot posture, review recording, and red-green loop | Complete |
 
 ---
 

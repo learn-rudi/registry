@@ -62,6 +62,11 @@ export const MANUAL_DOCUMENTS = [
     filename: "10-Engineering-Operating-Manual-Index.md",
     title: "Engineering Operating Manual Index",
   },
+  {
+    id: "agent-copilot-operating-standard",
+    filename: "11-Agent-Copilot-Operating-Standard.md",
+    title: "Agent Co-Pilot Operating Standard",
+  },
 ];
 
 function assertPlainObject(value, label) {

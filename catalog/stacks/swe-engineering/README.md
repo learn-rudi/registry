@@ -2,7 +2,11 @@
 
 Portable RUDI stack for the SWE Operating Manual and agent debt scanning.
 
-This package exists so another computer can install the engineering doctrine
+This catalog directory is the canonical authoring home of the SWE Operating
+Manual. Edit the manual here and release through the registry; installed
+copies and any other checkouts are distribution artifacts, not sources.
+
+This package exists so any computer can install the engineering doctrine
 without relying on a local source path. It vendors only the portable manual
 documents and the debt scanner needed by agents.
 
@@ -49,6 +53,7 @@ src/
     08-Infrastructure-and-Deployment-Engineering-Standard.md
     09-Build-Order-and-Engineering-System.md
     10-Engineering-Operating-Manual-Index.md
+    11-Agent-Copilot-Operating-Standard.md
   tools/
     agent-debt-scan.cjs
 ```
