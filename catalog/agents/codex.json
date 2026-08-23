@@ -2,12 +2,11 @@
   "id": "agent:codex",
   "kind": "agent",
   "name": "OpenAI Codex",
-  "version": "latest",
+  "version": "system",
 
-  "delivery": "remote",
+  "delivery": "system",
   "install": {
-    "source": "npm",
-    "package": "@openai/codex"
+    "source": "system"
   },
 
   "bins": ["codex"],
@@ -15,6 +14,10 @@
   "detect": {
     "command": "codex --version",
     "expectExitCode": 0
+  },
+
+  "installHints": {
+    "manual": "Install or update with OpenAI's standalone installer: curl -fsSL https://chatgpt.com/codex/install.sh | sh"
   },
 
   "auth": {

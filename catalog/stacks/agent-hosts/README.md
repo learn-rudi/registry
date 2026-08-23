@@ -10,9 +10,13 @@ execution hosts:
 - `codex-cli-v1` — Codex CLI exec mode using the local ChatGPT subscription
   login.
 
-RUDI owns package installation, secret injection, indexing, and MCP routing.
-Claude Code, Codex, and DeepSeek remain the agent execution hosts. This stack
-does not own workflow state and does not make RUDI the default agent runner.
+RUDI owns installation of this MCP stack, secret injection, indexing, and MCP
+routing. Vendor tooling owns installation, updates, and authentication for the
+Claude Code and Codex CLIs. Those binaries must resolve outside the RUDI home;
+legacy paths under `~/.rudi/bins`, `~/.rudi/agents`, or `~/.rudi/runtimes` are
+rejected. Claude Code, Codex, and DeepSeek remain the agent execution hosts.
+This stack does not own workflow state and does not make RUDI the default agent
+runner.
 
 ## Tools
 
@@ -43,6 +47,14 @@ Claude and Codex processes receive a minimal environment that excludes provider
 API keys and other arbitrary parent variables. Claude runs with no tools in
 safe plan mode. Codex runs ephemeral, read-only, with user config and rules
 ignored.
+
+Local Claude and Codex discovery is compatibility-based rather than tied to one
+exact patch release. Claude Code versions from `2.1.219` through the `2.1.x`
+line and Codex CLI versions from `0.145.0` through `0.149.x` are eligible. At
+startup, the stack chooses the first eligible executable that still advertises
+every guarded option used by its tool-free or read-only invocation. Versions
+outside those reviewed ranges, or binaries missing a guarded option, fail
+closed until the policy is reviewed again.
 
 ## State and ownership
 

@@ -328,7 +328,7 @@ describe("schema validation - valid manifests", () => {
     expect(valid).toBe(true);
   });
 
-  it("should accept agent manifest with npm source", () => {
+  it("should reject agent manifests that RUDI would install through npm", () => {
     const manifest = {
       id: "agent:claude",
       kind: "agent",
@@ -343,7 +343,7 @@ describe("schema validation - valid manifests", () => {
     };
 
     const valid = validate(manifest);
-    expect(valid).toBe(true);
+    expect(valid).toBe(false);
   });
 
   it("should accept a detected system-installed agent", () => {
@@ -356,9 +356,26 @@ describe("schema validation - valid manifests", () => {
       install: { source: "system" },
       bins: ["agy"],
       detect: { command: "agy --version", expectExitCode: 0 },
+      installHints: { manual: "Install with the vendor-supported installer" },
     };
 
     expect(validate(manifest)).toBe(true);
+  });
+
+  it("should reject a system agent without actionable vendor install guidance", () => {
+    const manifest = {
+      id: "agent:test",
+      kind: "agent",
+      name: "Test Agent",
+      version: "system",
+      delivery: "system",
+      install: { source: "system" },
+      bins: ["test-agent"],
+      detect: { command: "test-agent --version" },
+      installHints: {},
+    };
+
+    expect(validate(manifest)).toBe(false);
   });
 
   it("should accept full binary manifest with all optional fields", () => {

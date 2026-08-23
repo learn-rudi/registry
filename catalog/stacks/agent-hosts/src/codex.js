@@ -9,15 +9,35 @@ import {
   validateProviderInvocation,
   validateProviderOutput,
 } from "./provider-contract.js";
+import {
+  helpTextExposesRequiredOptions,
+  isRuntimeVersionInRange,
+} from "./runtime-compatibility.js";
 
 const MAX_CLI_STDOUT_BYTES = 2_097_152;
-export const SUPPORTED_CODEX_RUNTIME_REF = "codex-cli 0.145.0";
+const CODEX_RUNTIME_PATTERN = /^codex-cli (\d+)\.(\d+)\.(\d+)$/u;
+const MINIMUM_CODEX_VERSION = Object.freeze([0, 145, 0]);
+const MAXIMUM_CODEX_VERSION_EXCLUSIVE = Object.freeze([0, 150, 0]);
+const REQUIRED_CODEX_OPTIONS = Object.freeze([
+  "--strict-config",
+  "--sandbox",
+  "--skip-git-repo-check",
+  "--ephemeral",
+  "--ignore-user-config",
+  "--ignore-rules",
+  "--color",
+  "--json",
+]);
+export const MINIMUM_CODEX_RUNTIME_REF = "codex-cli 0.145.0";
+export const MAXIMUM_CODEX_RUNTIME_REF_EXCLUSIVE = "codex-cli 0.150.0";
+export const SUPPORTED_CODEX_RUNTIME_REF = MINIMUM_CODEX_RUNTIME_REF;
 
 export class CodexCliAgentHost {
   adapterId = "codex-cli-v1";
 
   constructor({
     binaryPath,
+    capabilitiesVerified = false,
     codexHome,
     executor = new NodeProcessExecutor(),
     modelRef = "codex-subscription-default",
@@ -26,6 +46,7 @@ export class CodexCliAgentHost {
   }) {
     if (!isAbsolute(binaryPath)) throw new Error("Codex binary path must be absolute.");
     this.binaryPath = binaryPath;
+    this.capabilitiesVerified = capabilitiesVerified === true;
     this.codexHome = requireCodexHome(codexHome);
     this.executor = executor;
     this.modelRef = requireMetadata(modelRef, "Codex model reference");
@@ -48,12 +69,20 @@ export class CodexCliAgentHost {
       return { adapterId: this.adapterId, status: "unavailable" };
     }
     const observedRuntimeRef = safeMetadata(version.stdout, this.runtimeRef);
-    if (observedRuntimeRef !== SUPPORTED_CODEX_RUNTIME_REF) {
+    if (!isCompatibleCodexRuntime(observedRuntimeRef)) {
       return {
         adapterId: this.adapterId,
         runtimeRef: observedRuntimeRef,
         status: "unavailable",
-        summary: "Installed Codex runtime is outside the V0 allowlist.",
+        summary: "Installed Codex runtime is outside the supported V0 version range.",
+      };
+    }
+    if (!this.capabilitiesVerified) {
+      return {
+        adapterId: this.adapterId,
+        runtimeRef: observedRuntimeRef,
+        status: "unavailable",
+        summary: "Installed Codex runtime lacks required guarded CLI options.",
       };
     }
     const auth = await this.executor.execute({
@@ -76,17 +105,22 @@ export class CodexCliAgentHost {
   }
 
   async invoke(request, options = {}) {
-    if (this.runtimeRef !== SUPPORTED_CODEX_RUNTIME_REF) {
-      return failure(this.adapterId, request?.invocationId,
-        "configuration_invalid", false,
-        "Installed Codex runtime is outside the V0 allowlist.");
-    }
     try {
       validateProviderInvocation(request, this.adapterId);
     } catch {
       return failure(this.adapterId, request?.invocationId,
         "configuration_invalid", false,
         "Agent Host invocation did not satisfy the contract.");
+    }
+    if (!isCompatibleCodexRuntime(this.runtimeRef)) {
+      return failure(this.adapterId, request.invocationId,
+        "configuration_invalid", false,
+        "Installed Codex runtime is outside the supported V0 version range.");
+    }
+    if (!this.capabilitiesVerified) {
+      return failure(this.adapterId, request.invocationId,
+        "configuration_invalid", false,
+        "Installed Codex runtime lacks required guarded CLI options.");
     }
     const execution = await this.executor.execute({
       arguments: [
@@ -137,8 +171,21 @@ export class CodexCliAgentHost {
     return createMinimalAgentHostEnvironment({
       ...process.env,
       CODEX_HOME: this.codexHome,
-    });
+    }, { binaryPath: this.binaryPath });
   }
+}
+
+export function isCompatibleCodexRuntime(runtimeRef) {
+  return isRuntimeVersionInRange(
+    runtimeRef,
+    CODEX_RUNTIME_PATTERN,
+    MINIMUM_CODEX_VERSION,
+    MAXIMUM_CODEX_VERSION_EXCLUSIVE
+  );
+}
+
+export function codexHelpExposesGuardedCapabilities(helpText) {
+  return helpTextExposesRequiredOptions(helpText, REQUIRED_CODEX_OPTIONS);
 }
 
 function parseCodexJsonLines(stdout) {

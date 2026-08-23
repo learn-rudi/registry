@@ -1,6 +1,6 @@
 {
   "name": "@rudi/registry",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "RUDI Registry - Source of truth for stacks, runtimes, binaries, and agents",
   "type": "module",
   "scripts": {

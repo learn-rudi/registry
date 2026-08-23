@@ -1,5 +1,15 @@
 import { spawn } from "node:child_process";
-import { isAbsolute } from "node:path";
+import { realpathSync } from "node:fs";
+import { homedir } from "node:os";
+import {
+  delimiter,
+  dirname,
+  isAbsolute,
+  join,
+  relative,
+  resolve,
+  sep,
+} from "node:path";
 
 export class NodeProcessExecutor {
   execute(request) {
@@ -123,7 +133,44 @@ export class NodeProcessExecutor {
   }
 }
 
-export function createMinimalAgentHostEnvironment(source = process.env) {
+function canonicalPath(candidate) {
+  const absolute = resolve(candidate);
+  try {
+    return realpathSync(absolute);
+  } catch {
+    return absolute;
+  }
+}
+
+function isInsidePath(root, candidate) {
+  const child = relative(root, candidate);
+  return child === "" || (
+    child !== ".."
+    && !child.startsWith(`..${sep}`)
+    && !isAbsolute(child)
+  );
+}
+
+function sanitizeAgentHostPath(source, binaryPath) {
+  const home = source.HOME ?? homedir();
+  const rudiRoots = [join(home, ".rudi"), source.RUDI_HOME, process.env.RUDI_HOME]
+    .filter((root) => typeof root === "string" && isAbsolute(root))
+    .flatMap((root) => [resolve(root), canonicalPath(root)]);
+  const entries = [
+    ...(typeof binaryPath === "string" && isAbsolute(binaryPath) ? [dirname(binaryPath)] : []),
+    ...(source.PATH ?? "").split(delimiter),
+  ].filter((entry) => {
+    if (entry.length === 0 || !isAbsolute(entry)) return false;
+    const lexicalEntry = resolve(entry);
+    const canonicalEntry = canonicalPath(entry);
+    return !rudiRoots.some((root) => (
+      isInsidePath(root, lexicalEntry) || isInsidePath(root, canonicalEntry)
+    ));
+  });
+  return [...new Set(entries)].join(delimiter);
+}
+
+export function createMinimalAgentHostEnvironment(source = process.env, options = {}) {
   const allowed = [
     "CODEX_HOME",
     "HOME",
@@ -143,6 +190,9 @@ export function createMinimalAgentHostEnvironment(source = process.env) {
     if (typeof value === "string" && value.length > 0) {
       environment[name] = value;
     }
+  }
+  if (typeof source.PATH === "string") {
+    environment.PATH = sanitizeAgentHostPath(source, options.binaryPath);
   }
   return environment;
 }

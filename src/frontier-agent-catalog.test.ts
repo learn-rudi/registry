@@ -8,6 +8,20 @@ async function loadAgent(name: string): Promise<Record<string, any>> {
 }
 
 describe("frontier agent catalog", () => {
+  it("contains exactly the native Agent Hosts implemented by the CLI", async () => {
+    const directory = path.resolve(import.meta.dirname, "../catalog/agents");
+    const files = (await fs.readdir(directory))
+      .filter((file) => file.endsWith(".json"))
+      .sort();
+
+    expect(files).toEqual([
+      "antigravity.json",
+      "claude.json",
+      "codex.json",
+      "gemini.json",
+    ]);
+  });
+
   it("uses current native authentication commands", async () => {
     const [claude, codex, gemini] = await Promise.all([
       loadAgent("claude"),
@@ -49,5 +63,23 @@ describe("frontier agent catalog", () => {
       detect: { command: "agy --version" },
     });
     expect(antigravity.installHints.manual).toContain("https://antigravity.google/cli/install.sh");
+  });
+
+  it("catalogs every agent host as an externally managed system prerequisite", async () => {
+    const agents = await Promise.all(
+      ["antigravity", "claude", "codex", "gemini"].map(loadAgent)
+    );
+
+    for (const agent of agents) {
+      expect(agent).toMatchObject({
+        kind: "agent",
+        version: "system",
+        delivery: "system",
+        install: { source: "system" },
+      });
+      expect(agent.detect?.command).toBeTypeOf("string");
+      expect(agent.installHints?.manual).toBeTypeOf("string");
+      expect(agent.installHints.manual.length).toBeGreaterThan(0);
+    }
   });
 });

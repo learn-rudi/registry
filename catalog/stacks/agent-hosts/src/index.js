@@ -10,7 +10,7 @@ import { AGENT_HOST_TOOL_DEFINITIONS, callAgentHostTool } from "./tool-contract.
 
 const service = createAgentHostService({ adapters: createLocalAgentHostAdapters() });
 const server = new Server(
-  { name: "agent-hosts", version: "0.1.0" },
+  { name: "agent-hosts", version: "0.1.2" },
   { capabilities: { tools: {} } }
 );
 

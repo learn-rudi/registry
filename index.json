@@ -1,11 +1,11 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-08-22T03:40:24.000Z",
+  "generatedAt": "2026-08-23T01:26:19.000Z",
   "stats": {
-    "total": 155,
+    "total": 154,
     "byKind": {
-      "agent": 5,
+      "agent": 4,
       "binary": 27,
       "runtime": 5,
       "skill": 69,
@@ -84,11 +84,10 @@
       "id": "agent:codex",
       "kind": "agent",
       "name": "OpenAI Codex",
-      "version": "latest",
-      "delivery": "remote",
+      "version": "system",
+      "delivery": "system",
       "install": {
-        "source": "npm",
-        "package": "@openai/codex"
+        "source": "system"
       },
       "bins": [
         "codex"
@@ -96,6 +95,9 @@
       "detect": {
         "command": "codex --version",
         "expectExitCode": 0
+      },
+      "installHints": {
+        "manual": "Install or update with OpenAI's standalone installer: curl -fsSL https://chatgpt.com/codex/install.sh | sh"
       },
       "auth": {
         "required": true,
@@ -110,44 +112,14 @@
         "headlessCommand": "codex exec --json <prompt>"
       }
     },
-    "agent:copilot": {
-      "id": "agent:copilot",
-      "kind": "agent",
-      "name": "GitHub Copilot",
-      "version": "latest",
-      "delivery": "remote",
-      "install": {
-        "source": "npm",
-        "package": "@githubnext/github-copilot-cli"
-      },
-      "bins": [
-        "copilot",
-        "github-copilot-cli"
-      ],
-      "detect": {
-        "command": "github-copilot-cli --version",
-        "expectExitCode": 0
-      },
-      "auth": {
-        "required": true,
-        "command": "github-copilot-cli auth",
-        "instructions": "Run 'github-copilot-cli auth' to authenticate with GitHub"
-      },
-      "meta": {
-        "description": "GitHub Copilot CLI - AI coding assistant",
-        "category": "ai-assistant",
-        "homepage": "https://github.com/features/copilot"
-      }
-    },
     "agent:gemini": {
       "id": "agent:gemini",
       "kind": "agent",
       "name": "Gemini CLI",
-      "version": "latest",
-      "delivery": "remote",
+      "version": "system",
+      "delivery": "system",
       "install": {
-        "source": "npm",
-        "package": "@google/gemini-cli"
+        "source": "system"
       },
       "bins": [
         "gemini"
@@ -155,6 +127,9 @@
       "detect": {
         "command": "gemini --version",
         "expectExitCode": 0
+      },
+      "installHints": {
+        "manual": "Install or update Gemini CLI using Google's supported installation instructions at https://geminicli.com/docs/"
       },
       "auth": {
         "required": true,
@@ -3313,7 +3288,7 @@
       "id": "stack:agent-hosts",
       "kind": "stack",
       "name": "Agent Hosts",
-      "version": "0.1.0",
+      "version": "0.1.2",
       "delivery": "remote",
       "install": {
         "source": "catalog",

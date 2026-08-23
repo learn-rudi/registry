@@ -1,6 +1,6 @@
 {
   "name": "@rudi/agent-hosts-stack",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Governed MCP gateway for fixed local DeepSeek, Claude Code, and Codex Agent Hosts.",
   "type": "module",
   "main": "src/index.js",
