@@ -280,6 +280,6 @@ describe("portable skill contracts", () => {
     }
     expect(issueLoop).not.toContain("RUDI or Codex engineering work");
     expect(issueLoop).toContain("version: 1.1.0");
-    expect(complianceChecklist).toContain("version: 1.1.0");
+    expect(complianceChecklist).toContain("version: 1.2.0");
   });
 });
