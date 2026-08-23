@@ -419,6 +419,8 @@ Use this checklist for any non-trivial change.
 - Is rollout safe for existing callers and existing data?
 - Are privacy, access control, and data retention obligations addressed where relevant?
 - Are the right tests present for the behavior and risks introduced?
+- For multi-file or medium/high-risk work, are coherent commit boundaries planned and verified?
+- Are task-owned paths isolated, and are commit and publication permissions explicit and separate?
 - Is the design simpler than the alternatives that were available?
 
 VI. Source Map
@@ -431,7 +433,7 @@ The canonical master document. Use for:
 
 - the full statement of all 22 engineering principles
 - the extended review dimensions and scoring rubric (A-L)
-- the full 23-section PR review checklist
+- the full 24-section PR review checklist
 - engineering review questions by category
 - incident response and postmortem framework
 - Appendix A: Database Engineering Discipline

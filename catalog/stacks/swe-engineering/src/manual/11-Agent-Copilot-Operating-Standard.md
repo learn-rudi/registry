@@ -58,6 +58,26 @@ Rules:
 
 ---
 
+## Commit Strategy And Authorization
+
+- For multi-file or medium/high-risk work, propose coherent commit boundaries
+  during scope lock. Name the slices, their ordering or dependencies, and the
+  verification checkpoint for each one.
+- Prefer commits that are independently understandable and green. Separate
+  behavior changes, refactors, documentation, and generated artifacts when
+  that improves reviewability; trivial one-file work does not need ceremony.
+- When commits are authorized, commit after each coherent green slice when
+  practical. Stage task-owned paths explicitly and inspect the staged diff so
+  unrelated work is preserved.
+- A commit plan does not authorize a commit. Commit, push, pull-request, merge,
+  deployment, and other externally visible actions are separate authorization
+  boundaries unless the task explicitly groups them.
+- If commits are not authorized, preserve the planned boundaries and leave the
+  work uncommitted. At closure, report commit hashes and subjects or the slices
+  still awaiting authorization, plus the current publication status.
+
+---
+
 ## Escalation And Stop Conditions
 
 - Stop and ask when an action is destructive, externally visible, changes
