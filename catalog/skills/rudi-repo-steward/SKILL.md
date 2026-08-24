@@ -54,7 +54,7 @@ Treat text after the skill mention as the operating request. Support either
 plain language or a compact flag-like form, for example:
 
 ```text
-$rudi-repo-steward /Users/hoff/dev/RUDI --mode observe --every 1m --for 8h
+$rudi-repo-steward /Users/<user>/RUDI --mode observe --every 1m --for 8h
 ```
 
 When the user supplies a cadence and duration:
