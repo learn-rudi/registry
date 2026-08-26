@@ -1,0 +1,4 @@
+interface:
+  display_name: "Horizontal Engineering Review"
+  short_description: "Review cross-change architectural coherence"
+  default_prompt: "Use $horizontal-engineering-review to find and disposition cross-change architectural obligations in this repository."

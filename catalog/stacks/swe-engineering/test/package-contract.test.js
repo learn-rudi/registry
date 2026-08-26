@@ -23,7 +23,11 @@ test("package contract keeps the manual and tool surface portable", async () => 
     await fs.readFile(path.join(stackRoot, "manifest.json"), "utf8")
   );
   assert.equal(manifest.id, "stack:swe-engineering");
-  assert.deepEqual(manifest.related.skills, ["skill:swe-compliance-checklist"]);
+  assert.equal(manifest.version, "0.4.0");
+  assert.deepEqual(manifest.related.skills, [
+    "skill:swe-compliance-checklist",
+    "skill:horizontal-engineering-review",
+  ]);
   assert.deepEqual(manifest.provides.tools, [
     "swe_manual_list",
     "swe_manual_read",
@@ -36,9 +40,15 @@ test("package contract keeps the manual and tool surface portable", async () => 
   assert.equal(files.includes("AGENTS.md"), false);
   assert.equal(files.includes("CLAUDE.md"), false);
   const manualFiles = files.filter((file) => file.startsWith("src/manual/")).sort();
-  assert.equal(manualFiles.length, 11);
+  assert.equal(manualFiles.length, 12);
   assert.equal(
     manualFiles.includes("src/manual/11-Agent-Copilot-Operating-Standard.md"),
+    true
+  );
+  assert.equal(
+    manualFiles.includes(
+      "src/manual/12-Horizontal-Engineering-and-Codebase-Stewardship-Standard.md"
+    ),
     true
   );
   const manualContent = (await Promise.all(

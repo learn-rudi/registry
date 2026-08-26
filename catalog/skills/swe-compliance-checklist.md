@@ -1,7 +1,7 @@
 ---
 name: RUDI SWE Compliance Checklist
 description: Create and execute a RUDI phase-gated engineering checklist for software changes that must comply with the SWE Operating Manual, including scope, tests, proof commands, smoke checks, documentation gates, accepted debt, and Definition of Done
-version: 1.2.0
+version: 1.3.0
 category: coding
 icon: ✅
 tags: [rudi, swe, compliance, checklist, testing, verification, engineering]
@@ -25,6 +25,7 @@ The output is not a loose TODO list. It is a phase-gated checklist that records:
 - what build, debt, and documentation checks are required
 - what live smoke checks prove the system works
 - what accepted debt remains
+- what horizontal obligations this change opens, closes, or explicitly accepts
 - what risk tier governs review and approval
 - what independent evidence supports completion
 - what commit boundaries, authorization, and publication status make the work reviewable
@@ -60,6 +61,12 @@ Common triggers:
     during scope lock. A commit plan does not authorize committing or pushing:
     record that authority separately, stage task-owned paths explicitly, and
     defer publication unless it is authorized.
+11. For every nontrivial change, perform a bounded horizontal-pattern scan under
+    the Horizontal Engineering And Codebase Stewardship Standard. A third
+    semantic implementation or shared-contract drift requires a disposition,
+    not automatic extraction. Record an obligation rather than silently
+    widening scope unless consolidation is already required for correctness or
+    explicitly authorized.
 
 ## Plan Persistence
 
@@ -85,6 +92,7 @@ Use this structure unless the user requests a different format:
 - Files to inspect before editing:
 - Relevant SWE manual sections:
 - Current-state commands:
+- Horizontal-pattern scan:
 - Risks and invariants:
 - Initial risk tier and rationale:
 - Exit criteria:
@@ -98,6 +106,7 @@ Use this structure unless the user requests a different format:
 - Failure behavior to define:
 - Authorized external actions:
 - Commit strategy and authorization:
+- Horizontal-obligation disposition:
 - Review and approval gates:
 - Exit criteria:
 
@@ -144,6 +153,7 @@ Use this structure unless the user requests a different format:
 - Evidence artifacts:
 - Independent-review result:
 - Commit ledger and publication status:
+- Horizontal obligations opened, closed, or accepted:
 - Final verdict: ready / needs human decision / failed
 - Accepted debt:
 - Proof gaps:
@@ -155,6 +165,12 @@ Use this structure unless the user requests a different format:
 ### Phase 0: Baseline And Manual Lookup
 
 Establish the current state before making claims. Inspect repo instructions, current git state, relevant source files, existing tests, and the SWE manual sections that match the task.
+
+For a nontrivial change, search the mechanism being added or modified across
+neighboring modules, callers, tests, schemas, manifests, and recent history in
+proportion to risk. Record whether it introduces another semantic
+implementation, changes a shared contract, or embeds a portable-environment
+assumption. This is a bounded change scan, not an unbounded codebase audit.
 
 Prefer targeted commands such as:
 
@@ -183,6 +199,14 @@ Keep behavior, refactors, docs, and generated artifacts separate when that
 improves reviewability. For trivial one-file work, a single verified slice is
 usually sufficient. Record whether commits and publication are authorized;
 planning commit boundaries grants neither authority.
+
+Disposition the timing of any confirmed horizontal concern as: no obligation,
+resolve in this change, or record a consolidation obligation for
+repository-level review. Separately record the horizontal standard's five-way
+decision: no action, standardize contract, consolidate implementation, retire,
+or investigate. Use the standard to distinguish shared responsibility from
+superficial similarity. Name the concept, exact paths, evidence, risk, owner,
+trigger, and closing proof for every recorded obligation.
 
 ### Phase 2: Red Tests
 
@@ -232,6 +256,10 @@ Also record the commit ledger: commit hashes and subjects for completed slices,
 or the planned slices that remain uncommitted. State push, pull-request, merge,
 and deployment status separately; authorization for one does not imply another.
 
+Record horizontal obligations opened, closed, deferred, or accepted by the
+change. Accepted duplication needs a rationale and reassessment trigger; a
+generic "deduplicate later" note is not a complete disposition.
+
 ## Host Adaptation
 
 - Use the current host's native planning, review, worktree, and subagent
@@ -254,6 +282,8 @@ The work is not done until:
 - the required independent review has no unresolved blocking finding
 - the risk-tier approval gate is satisfied
 - docs and contracts match the verified behavior
+- horizontal concerns have an evidence-backed disposition and any remaining
+  obligation has an owner, trigger, and closing proof
 - substantial work has coherent verified commits, or its planned commit
   boundaries and missing authorization are recorded
 - final report includes the evidence bundle, verdict, and accepted debt
