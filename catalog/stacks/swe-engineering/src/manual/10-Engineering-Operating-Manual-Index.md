@@ -63,7 +63,7 @@ Database (A) · Frontend (B) · Testing (C) · Debugging (D) · API (E) · Secur
 
 | Tool | Purpose | Use When |
 |---|---|---|
-| **PR Review Template** (Doctrine Section VIII) | Structured checklist for pull request review covering all 23 review categories | Every code review, as author and reviewer |
+| **Comprehensive PR / Code Review Checklist** (Doctrine Section IV) | Structured checklist for pull request review covering all 24 review categories | Every code review, as author and reviewer |
 | **Scoring Rubric** (Doctrine Section VI) | 1–5 scoring across 14 categories for evaluating component quality | Architecture review, codebase audit, maturity assessment |
 | **Incident Response Framework** (Doctrine Section IX) | Severity levels, incident lifecycle, postmortem requirements, feedback loop | During and after production incidents |
 | **Phase Gates** (Build Order Section VI) | Checkpoints between build phases defining what "done" means | Before progressing from one build phase to the next |
@@ -124,7 +124,7 @@ When assigning implementation tasks to agents, include the relevant subset:
 | 8 | `08-Infrastructure-and-Deployment-Engineering-Standard.md` | Infrastructure and deployment engineering standard | Complete |
 | 9 | `09-Build-Order-and-Engineering-System.md` | Build-order and system guide | Complete |
 | 10 | `10-Engineering-Operating-Manual-Index.md` | Navigation index | Complete |
-| 11 | `11-Agent-Copilot-Operating-Standard.md` | Agent co-pilot posture, review recording, and red-green loop | Complete |
+| 11 | `11-Agent-Copilot-Operating-Standard.md` | Agent co-pilot posture, review recording, red-green loop, and commit authorization | Complete |
 
 ---
 

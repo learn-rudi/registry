@@ -2,7 +2,7 @@
   "id": "stack:swe-engineering",
   "kind": "stack",
   "name": "SWE Engineering",
-  "version": "0.2.0",
+  "version": "0.3.0",
 
   "delivery": "remote",
   "install": {
