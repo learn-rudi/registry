@@ -1,7 +1,7 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-08-23T01:26:19.000Z",
+  "generatedAt": "2026-08-26T18:11:07.000Z",
   "stats": {
     "total": 154,
     "byKind": {
@@ -3037,7 +3037,7 @@
       "id": "skill:swe-compliance-checklist",
       "kind": "skill",
       "name": "RUDI SWE Compliance Checklist",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -6265,7 +6265,7 @@
       "id": "stack:swe-engineering",
       "kind": "stack",
       "name": "SWE Engineering",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",

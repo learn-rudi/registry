@@ -1,7 +1,7 @@
 ---
 name: RUDI SWE Compliance Checklist
 description: Create and execute a RUDI phase-gated engineering checklist for software changes that must comply with the SWE Operating Manual, including scope, tests, proof commands, smoke checks, documentation gates, accepted debt, and Definition of Done
-version: 1.1.0
+version: 1.2.0
 category: coding
 icon: ✅
 tags: [rudi, swe, compliance, checklist, testing, verification, engineering]
@@ -27,6 +27,7 @@ The output is not a loose TODO list. It is a phase-gated checklist that records:
 - what accepted debt remains
 - what risk tier governs review and approval
 - what independent evidence supports completion
+- what commit boundaries, authorization, and publication status make the work reviewable
 
 ## When To Use
 
@@ -55,6 +56,10 @@ Common triggers:
 9. For nontrivial changes, require a read-only review in a fresh context after
    implementation. Supply the task contract, applicable instructions, diff,
    and verification evidence; do not supply private reasoning.
+10. For multi-file or medium/high-risk work, plan coherent commit boundaries
+    during scope lock. A commit plan does not authorize committing or pushing:
+    record that authority separately, stage task-owned paths explicitly, and
+    defer publication unless it is authorized.
 
 ## Plan Persistence
 
@@ -92,6 +97,7 @@ Use this structure unless the user requests a different format:
 - External inputs and trust boundaries:
 - Failure behavior to define:
 - Authorized external actions:
+- Commit strategy and authorization:
 - Review and approval gates:
 - Exit criteria:
 
@@ -116,6 +122,7 @@ Use this structure unless the user requests a different format:
 - Green command:
 - Refactor constraints:
 - Regression checks:
+- Commit checkpoint:
 - Exit criteria:
 
 ## Phase 5: Full Verification
@@ -136,6 +143,7 @@ Use this structure unless the user requests a different format:
 - Commands run and results:
 - Evidence artifacts:
 - Independent-review result:
+- Commit ledger and publication status:
 - Final verdict: ready / needs human decision / failed
 - Accepted debt:
 - Proof gaps:
@@ -169,6 +177,13 @@ Classify the change:
 
 Record required human approval and rollback expectations before implementation.
 
+For multi-file or medium/high-risk work, name the intended commit slices,
+their order or dependencies, and the verification checkpoint for each slice.
+Keep behavior, refactors, docs, and generated artifacts separate when that
+improves reviewability. For trivial one-file work, a single verified slice is
+usually sufficient. Record whether commits and publication are authorized;
+planning commit boundaries grants neither authority.
+
 ### Phase 2: Red Tests
 
 Create one behavior-level test for the next observable behavior. Run it and record the exact command plus expected failure. Avoid broad speculative test batches.
@@ -182,6 +197,13 @@ Make the smallest change that can pass the red test while preserving local patte
 ### Phase 4: Green Tests And Refactor
 
 Rerun the red command unchanged and confirm it passes. Refactor only after green, then rerun affected tests.
+
+When commits are authorized, commit after each coherent green slice when
+practical. Stage only task-owned paths and inspect the staged diff before each
+commit. Each commit should be independently understandable and preferably
+green; do not create an unexplained end-of-task mega-commit for substantial
+work. When commits are not authorized, preserve the planned boundaries in the
+checklist and leave the work uncommitted.
 
 ### Phase 5: Full Verification
 
@@ -206,6 +228,10 @@ contract, risk tier, files touched, commands and results, smoke artifacts,
 independent-review result, accepted debt, proof gaps, and one verdict:
 `ready`, `needs human decision`, or `failed`.
 
+Also record the commit ledger: commit hashes and subjects for completed slices,
+or the planned slices that remain uncommitted. State push, pull-request, merge,
+and deployment status separately; authorization for one does not imply another.
+
 ## Host Adaptation
 
 - Use the current host's native planning, review, worktree, and subagent
@@ -228,4 +254,6 @@ The work is not done until:
 - the required independent review has no unresolved blocking finding
 - the risk-tier approval gate is satisfied
 - docs and contracts match the verified behavior
+- substantial work has coherent verified commits, or its planned commit
+  boundaries and missing authorization are recorded
 - final report includes the evidence bundle, verdict, and accepted debt

@@ -652,6 +652,13 @@ This is the practical checklist version. You could use this in pull requests, ar
 	•	Are user-facing strings externalized for localization?
 	•	Are dates, numbers, and currency formatted locale-aware?
 	•	Is character encoding handled correctly at all boundaries?
+24. Change History and Commit Discipline
+	•	Is the commit strategy proportional to the change's size and risk?
+	•	For multi-file or medium/high-risk work, were coherent commit boundaries planned before implementation?
+	•	Does each commit represent an understandable, verified slice when practical?
+	•	Are behavior changes, refactors, documentation, and generated artifacts separated when that improves reviewability?
+	•	Were task-owned paths staged explicitly so unrelated work was not included?
+	•	Are commit, push, pull-request, merge, and deployment permissions treated as separate authorization boundaries?
 
 V. Engineering Review Questions by Category
 These are the strongest "engineer-language" prompts to use in live review.
