@@ -229,10 +229,20 @@ describe("portable skill contracts", () => {
       },
     });
     expect(index.packages["skill:swe-compliance-checklist"]).toMatchObject({
-      version: "1.2.0",
+      version: "1.3.0",
       install: {
         source: "catalog",
         path: "catalog/skills/swe-compliance-checklist.md",
+      },
+    });
+    expect(index.packages["skill:horizontal-engineering-review"]).toMatchObject({
+      version: "1.0.0",
+      install: {
+        source: "catalog",
+        path: "catalog/skills/horizontal-engineering-review",
+      },
+      requires: {
+        stacks: ["stack:swe-engineering"],
       },
     });
 
@@ -241,6 +251,14 @@ describe("portable skill contracts", () => {
         path.join(
           repoRoot,
           "catalog/skills/map-change-impact/agents/openai.yaml"
+        )
+      )
+    ).resolves.toBeUndefined();
+    await expect(
+      fs.access(
+        path.join(
+          repoRoot,
+          "catalog/skills/horizontal-engineering-review/agents/openai.yaml"
         )
       )
     ).resolves.toBeUndefined();
@@ -259,6 +277,24 @@ describe("portable skill contracts", () => {
       expect(skill).toContain("Host adaptation");
     }
   );
+
+  it("keeps horizontal engineering review bounded and evidence-led", async () => {
+    const skill = await fs.readFile(
+      path.join(
+        repoRoot,
+        "catalog/skills/horizontal-engineering-review/SKILL.md"
+      ),
+      "utf8"
+    );
+
+    expect(skill).not.toContain("[TODO");
+    expect(skill).not.toMatch(/mcp__rudi__|spawn_agent|\/goal|\/review/);
+    expect(skill).toContain("## Host Adaptation");
+    expect(skill).toMatch(/Default to \*\*Assess\*\*/);
+    expect(skill).toMatch(/SWE compliance checklist/);
+    expect(skill).toMatch(/Repo Steward/);
+    expect(skill).toMatch(/third semantic implementation triggers a review, not automatic extraction/i);
+  });
 
   it("keeps the delivery workflow host-neutral and evidence-gated", async () => {
     const [issueLoop, complianceChecklist] = await Promise.all([
@@ -280,6 +316,8 @@ describe("portable skill contracts", () => {
     }
     expect(issueLoop).not.toContain("RUDI or Codex engineering work");
     expect(issueLoop).toContain("version: 1.1.0");
-    expect(complianceChecklist).toContain("version: 1.2.0");
+    expect(complianceChecklist).toContain("version: 1.3.0");
+    expect(complianceChecklist).toContain("Horizontal-pattern scan:");
+    expect(complianceChecklist).toContain("Horizontal-obligation disposition:");
   });
 });

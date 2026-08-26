@@ -36,6 +36,15 @@ Database (A) · Frontend (B) · Testing (C) · Debugging (D) · API (E) · Secur
 
 ---
 
+## Operating Standards
+
+| Document | Purpose | Use When |
+|---|---|---|
+| **Agent Co-Pilot Operating Standard** | Defines agent posture, review evidence, red-green operation, and commit authorization | Any nontrivial agent-assisted engineering change |
+| **Horizontal Engineering And Codebase Stewardship Standard** | Detects and dispositions repeated mechanisms, shared-contract drift, environment coupling, and consolidation obligations | A pattern crosses changes or modules, a third semantic implementation appears, or repository-level consolidation is being planned |
+
+---
+
 ## Layer-Specific Standards (Appendices)
 
 | Appendix | Layer | Covers | Use When |
@@ -97,6 +106,7 @@ When assigning implementation tasks to agents, include the relevant subset:
 | Infrastructure change | Appendix H, Appendix F (infrastructure security, pipeline security) |
 | Full system design | Build Order (complete), all relevant appendices, Testing Doctrine, Phase Gates |
 | Codebase audit | Scoring Rubric, Review Dimensions from relevant appendices, Appendix F |
+| Horizontal engineering review | Horizontal Engineering And Codebase Stewardship Standard, relevant layer appendix, Testing Doctrine |
 
 ---
 
@@ -125,6 +135,7 @@ When assigning implementation tasks to agents, include the relevant subset:
 | 9 | `09-Build-Order-and-Engineering-System.md` | Build-order and system guide | Complete |
 | 10 | `10-Engineering-Operating-Manual-Index.md` | Navigation index | Complete |
 | 11 | `11-Agent-Copilot-Operating-Standard.md` | Agent co-pilot posture, review recording, red-green loop, and commit authorization | Complete |
+| 12 | `12-Horizontal-Engineering-and-Codebase-Stewardship-Standard.md` | Cross-change pattern detection, consolidation obligations, and remediation | Complete |
 
 ---
 
