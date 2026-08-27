@@ -14,7 +14,8 @@
           "value": "9da99e9a4d3f4dd8c99d44e950830958b567cb8a5c96549cf738d4d5b173962c"
         },
         "extract": {
-          "type": "tar.gz"
+          "type": "tar.gz",
+          "strip": 1
         }
       },
       "darwin-x64": {
@@ -24,7 +25,8 @@
           "value": "e3f39bfbe1207f71fb4b0378284f74f0b8f9543dd220b3c593746830682d822d"
         },
         "extract": {
-          "type": "tar.gz"
+          "type": "tar.gz",
+          "strip": 1
         }
       }
     }
