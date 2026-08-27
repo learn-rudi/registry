@@ -25,6 +25,8 @@ describe("RUDI Chief of Staff skill", () => {
     expect(skill).toContain("references/host-adapters.md");
     expect(skill).toMatch(/one writer per worktree/i);
     expect(skill).toMatch(/independent review/i);
+    expect(skill).toMatch(/rudi-worktree-closeout/i);
+    expect(skill).toMatch(/Repo Steward/i);
     expect(skill).toMatch(/externally visible/i);
     expect(skill).not.toMatch(/spawn_agent|mcp__rudi__|codex:\/\/threads/);
   });

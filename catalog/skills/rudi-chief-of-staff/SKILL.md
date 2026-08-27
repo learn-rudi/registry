@@ -1,6 +1,7 @@
 ---
 name: rudi-chief-of-staff
 description: Coordinate complex single- or multi-project objectives from the initiating agent through an acceptance-led task graph, exact provider/model routing, durable run lifecycle, resource and review limits, explicit handoffs, bounded workers, and evidence-backed integration with human oversight. Use when the user asks to delegate dependent work, run a crew, act as a chief of staff or first mate, coordinate multiple agents or desktop tasks, or keep a long-running project moving predictably across worktrees, projects, or hosts.
+version: 1.1.0
 ---
 
 # RUDI Chief of Staff
@@ -116,6 +117,15 @@ or sequential execution mode.
   `swe-compliance-checklist`. Treat its checklist, verification, independent
   review, and evidence bundle as node deliverables instead of copying its
   phases into this skill.
+- Use `rudi-repo-steward` for durable repository identity, worktree status,
+  leases, and lifecycle ledgers. After accepted integration and verification,
+  trigger `rudi-worktree-closeout` for every material task worktree. The
+  coordinator owns sequencing and acceptance, not Git cleanup or closeout
+  receipt persistence.
+- Keep `.rudi/orchestration/plan.json` as the acceptance DAG and Repo Steward's
+  closeout ledger as repository lifecycle evidence. Link their task, agent,
+  attempt, acceptance, and revision identifiers; do not merge the records or
+  let either silently overwrite the other's authority.
 
 ## Prepare before dispatch
 
@@ -188,6 +198,12 @@ discovered host supports reversible archive. Never archive a waiting node or
 an unreconciled or indeterminate worker. After the native archive attempt, use
 `record-archive` to preserve its success or failure in run history.
 
+Before declaring the objective complete, obtain a read-back of each required
+worktree closeout receipt. A receipt may require preservation, retention, or a
+future cleanup decision; it need not claim cleanup. Never treat archive
+eligibility or a cleanup approval reference as proof that a worktree was
+cleaned, deleted, moved, or archived.
+
 Return:
 
 - the objective and material behavior achieved;
@@ -196,7 +212,8 @@ Return:
 - review and verification evidence;
 - unresolved risks, decisions, and known proof gaps;
 - retained indeterminate attempts or locks; and
-- publication, deployment, merge, archive, and cleanup state.
+- publication, deployment, merge, archive, cleanup-approval state, and the
+  closeout receipt ID and version for each material worktree.
 
 Do not mark the objective complete while required nodes, reconciliation,
 integration, verification, or user-authorized publication work remains.

@@ -229,7 +229,7 @@ describe("portable skill contracts", () => {
       },
     });
     expect(index.packages["skill:swe-compliance-checklist"]).toMatchObject({
-      version: "1.3.0",
+      version: "1.4.0",
       install: {
         source: "catalog",
         path: "catalog/skills/swe-compliance-checklist.md",
@@ -245,12 +245,44 @@ describe("portable skill contracts", () => {
         stacks: ["stack:swe-engineering"],
       },
     });
+    expect(index.packages["skill:rudi-chief-of-staff"]).toMatchObject({
+      version: "1.1.0",
+      install: {
+        source: "catalog",
+        path: "catalog/skills/rudi-chief-of-staff",
+      },
+    });
+    expect(index.packages["skill:rudi-repo-steward"]).toMatchObject({
+      version: "0.3.0",
+      install: {
+        source: "catalog",
+        path: "catalog/skills/rudi-repo-steward",
+      },
+    });
+    expect(index.packages["skill:rudi-worktree-closeout"]).toMatchObject({
+      version: "1.0.0",
+      install: {
+        source: "catalog",
+        path: "catalog/skills/rudi-worktree-closeout",
+      },
+      requires: {
+        stacks: ["stack:repo-steward"],
+      },
+    });
 
     await expect(
       fs.access(
         path.join(
           repoRoot,
           "catalog/skills/map-change-impact/agents/openai.yaml"
+        )
+      )
+    ).resolves.toBeUndefined();
+    await expect(
+      fs.access(
+        path.join(
+          repoRoot,
+          "catalog/skills/rudi-worktree-closeout/agents/openai.yaml"
         )
       )
     ).resolves.toBeUndefined();
@@ -296,6 +328,30 @@ describe("portable skill contracts", () => {
     expect(skill).toMatch(/third semantic implementation triggers a review, not automatic extraction/i);
   });
 
+  it("keeps worktree closeout evidence-led and non-destructive", async () => {
+    const skill = await fs.readFile(
+      path.join(repoRoot, "catalog/skills/rudi-worktree-closeout/SKILL.md"),
+      "utf8"
+    );
+    const contract = await fs.readFile(
+      path.join(
+        repoRoot,
+        "catalog/skills/rudi-worktree-closeout/references/receipt-contract.md"
+      ),
+      "utf8"
+    );
+
+    expect(skill).not.toContain("[TODO");
+    expect(skill).not.toMatch(/mcp__rudi__|spawn_agent|\/goal|\/review/);
+    expect(skill).toContain("## Host Adaptation");
+    expect(skill).toMatch(/never performs.*cleanup/is);
+    expect(skill).toMatch(/explicit approval reference/i);
+    expect(contract).toMatch(/repository identity/i);
+    expect(contract).toMatch(/task and agent lineage/i);
+    expect(contract).toMatch(/cleanup_approved/);
+    expect(contract).not.toMatch(/cleanup_verified/);
+  });
+
   it("keeps the delivery workflow host-neutral and evidence-gated", async () => {
     const [issueLoop, complianceChecklist] = await Promise.all([
       fs.readFile(
@@ -316,8 +372,9 @@ describe("portable skill contracts", () => {
     }
     expect(issueLoop).not.toContain("RUDI or Codex engineering work");
     expect(issueLoop).toContain("version: 1.1.0");
-    expect(complianceChecklist).toContain("version: 1.3.0");
+    expect(complianceChecklist).toContain("version: 1.4.0");
     expect(complianceChecklist).toContain("Horizontal-pattern scan:");
     expect(complianceChecklist).toContain("Horizontal-obligation disposition:");
+    expect(complianceChecklist).toMatch(/worktree closeout receipt/i);
   });
 });
