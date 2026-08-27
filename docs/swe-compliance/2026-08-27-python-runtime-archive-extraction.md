@@ -30,6 +30,7 @@
 - Test files to add or edit: add `src/runtime-catalog-contract.test.ts`.
 - Red command: `npx vitest run src/runtime-catalog-contract.test.ts`.
 - Expected failure: both platform entries expose `extract.strip` as `undefined` instead of `1`.
+- Observed red: 1/1 test failed on the exact deep-equality delta `{ type: "tar.gz" }` versus `{ type: "tar.gz", strip: 1 }`; test setup and imports succeeded.
 - Exit criteria: the focused test fails only for the missing catalog behavior.
 
 ## Phase 3: Implementation
@@ -43,6 +44,7 @@
 ## Phase 4: Green Tests And Refactor
 
 - Green command: `npx vitest run src/runtime-catalog-contract.test.ts`.
+- Observed green: 1/1 focused test passed unchanged; the combined runtime-contract and extract-schema run passed 16/16 tests.
 - Refactor constraints: no refactor is expected; do not change generic extraction code or schema.
 - Regression checks: focused test plus `npm run indexes:sync` and `npm run indexes:check`.
 - Commit checkpoint: stage and inspect only the test, manifest, generated index, and this record before the behavior commit.
@@ -57,18 +59,23 @@
 - Live smoke checks: isolated `RUDI_HOME` install and `rudi check runtime:python` on Admin x64 and primary arm64, first against the task source and then against the merged public index.
 - Independent review: fresh read-only review against the task contract, instructions, diff, and verification evidence.
 - Risk-tier approval: medium-risk acceptance requires all local gates, independent review, and remote CI to be green before merge.
+- Observed local results: full Vitest suite passed 252/252 tests across 29 files; all 155 catalog packages validated; generated indexes were current under the committed timestamp; catalog hygiene planned zero targets; no changed stacks required verification; both debt scans reported zero findings; build passed; release verification matched seven artifact hashes; npm pack dry-run completed for 989 entries.
+- Admin x64 smoke: an isolated local-registry install reported `runtime:python` installed and ready at version 3.12.12; the extracted `bin/python3` and `bin/pip3` executables both ran successfully.
+- Primary arm64 smoke: an isolated archive of exact commit `4cc510ed50cfe88e60197675b0421ac5e072869b` installed successfully through a primary-Mac login shell; RUDI reported installed and ready Python 3.12.12, and both `bin/python3` and `bin/pip3` ran successfully.
+- Primary smoke failure record: an initial nested-quoting attempt produced no valid isolated evidence; the first literal-script retry stopped before installation on an incorrect expected full SHA; the next retry reached the exact SHA but failed before installation because a non-login shell omitted Homebrew Node. The accepted run used the required login shell, exact SHA assertion, isolated registry snapshot, and isolated RUDI home.
+- Dependency baseline: `npm audit` reports eight findings on the unchanged lockfile (one moderate, six high, one critical). No dependency file changed; this pre-existing repository debt is outside the bounded runtime-manifest fix and remains disclosed rather than silently modified.
 - Exit criteria: no unexplained blocking result or architecture-specific proof gap.
 
 ## Phase 6: Docs, Contracts, And Closure
 
 - Docs or API contracts to update: this compliance record only; existing schema documentation already defines `strip` correctly.
-- Final files touched: pending.
-- Commands run and results: pending.
-- Evidence artifacts: pending.
-- Independent-review result: pending.
-- Commit ledger and publication status: pending.
+- Final files touched: `catalog/runtimes/python.json`, `src/runtime-catalog-contract.test.ts`, generated `index.json`, and this record.
+- Commands run and results: red/green, targeted, full, validation, generation, hygiene, changed-stack, debt, build, release, packaging, Admin x64 smoke, and primary arm64 smoke checks are green; GitHub CI, merge, official-index readback, and closeout remain pending.
+- Evidence artifacts: behavior commit `4cc510ed50cfe88e60197675b0421ac5e072869b`; generated catalog root `add7807c7785b6de...`; isolated x64 and arm64 install readbacks for Python 3.12.12 and pip 25.3.
+- Independent-review result: approved immutable commit `4cc510e` with no blocking findings; URLs, checksums, version, bins, archive safety, extraction behavior, generated/source parity, and scope were independently verified.
+- Commit ledger and publication status: `4cc510e fix: correct Python runtime archive extraction`; feature branch published; evidence commit, PR, CI, and merge remain pending.
 - Horizontal obligations opened, closed, or accepted: the Python manifest drift is to be closed by the verified catalog correction; no broader obligation is expected.
-- Final verdict: pending.
-- Accepted debt: none currently.
-- Proof gaps: pending completion of implementation, review, publication, and two-host readback.
+- Final verdict: ready for the authorized PR and CI gate; broader delivery remains open until merge, official readback, and closeout.
+- Accepted debt: unchanged dependency audit findings are recorded as pre-existing repository debt; no task-introduced debt is accepted.
+- Proof gaps: pending GitHub CI, merge, official-index refresh, installed-runtime readback on both Macs, and closeout receipt.
 - Definition of Done: focused and full proof green; public index merged; official fresh installs succeed on x64 and arm64; both Macs report ready; closeout receipt recorded; unrelated dirty work preserved.
