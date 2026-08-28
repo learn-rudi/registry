@@ -1,14 +1,14 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-08-26T20:05:35.000Z",
+  "generatedAt": "2026-08-28T00:02:33.000Z",
   "stats": {
-    "total": 155,
+    "total": 156,
     "byKind": {
       "agent": 4,
       "binary": 27,
       "runtime": 5,
-      "skill": 70,
+      "skill": 71,
       "stack": 49
     }
   },
@@ -2528,7 +2528,7 @@
       "id": "skill:rudi-chief-of-staff",
       "kind": "skill",
       "name": "rudi-chief-of-staff",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -2620,7 +2620,7 @@
       "id": "skill:rudi-repo-steward",
       "kind": "skill",
       "name": "rudi-repo-steward",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -2719,6 +2719,35 @@
           "ffmpeg",
           "rendering",
           "qa"
+        ]
+      }
+    },
+    "skill:rudi-worktree-closeout": {
+      "id": "skill:rudi-worktree-closeout",
+      "kind": "skill",
+      "name": "rudi-worktree-closeout",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/rudi-worktree-closeout"
+      },
+      "requires": {
+        "stacks": [
+          "stack:repo-steward"
+        ]
+      },
+      "meta": {
+        "description": "Classify an agent-development worktree at a delivery boundary and persist a non-mutating closeout receipt through Repo Steward. Use when accepted, superseded, retained, or archive-candidate work needs explicit lineage, preservation, disposition, and cleanup-approval evidence without changing Git state.",
+        "category": "development",
+        "tags": [
+          "rudi",
+          "git",
+          "worktrees",
+          "closeout",
+          "receipts",
+          "lineage",
+          "preservation"
         ]
       }
     },
@@ -3066,7 +3095,7 @@
       "id": "skill:swe-compliance-checklist",
       "kind": "skill",
       "name": "RUDI SWE Compliance Checklist",
-      "version": "1.3.0",
+      "version": "1.4.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -5273,7 +5302,7 @@
       "id": "stack:repo-steward",
       "kind": "stack",
       "name": "Repo Steward",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -5296,7 +5325,9 @@
           "repo_steward_acquire_lease",
           "repo_steward_release_lease",
           "repo_steward_list_actions",
+          "repo_steward_list_closeouts",
           "repo_steward_record_action",
+          "repo_steward_record_closeout",
           "repo_steward_record_verification"
         ]
       },
@@ -5304,6 +5335,7 @@
         "operatorSkill": "skill:rudi-repo-steward",
         "skills": [
           "skill:rudi-repo-steward",
+          "skill:rudi-worktree-closeout",
           "skill:github",
           "skill:rudi-swe-issue-loop",
           "skill:swe-compliance-checklist"
@@ -5318,7 +5350,7 @@
         "cwd": "."
       },
       "meta": {
-        "description": "Enroll one workspace path, safely discover its nested Git worktrees, coordinate one repository worker at a time, and maintain a durable local improvement-action ledger.",
+        "description": "Enroll one workspace path, safely discover its nested Git worktrees, coordinate one repository worker at a time, and maintain durable action and worktree-closeout ledgers.",
         "author": "RUDI",
         "license": "MIT",
         "category": "development",
@@ -5330,6 +5362,7 @@
           "continuous-development",
           "leases",
           "action-ledger",
+          "closeout-receipts",
           "agents"
         ],
         "icon": "git-branch"
@@ -6294,7 +6327,7 @@
       "id": "stack:swe-engineering",
       "kind": "stack",
       "name": "SWE Engineering",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -6317,7 +6350,11 @@
         "operatorSkill": "skill:swe-compliance-checklist",
         "skills": [
           "skill:swe-compliance-checklist",
-          "skill:horizontal-engineering-review"
+          "skill:map-change-impact",
+          "skill:rudi-chief-of-staff",
+          "skill:horizontal-engineering-review",
+          "skill:rudi-repo-steward",
+          "skill:rudi-worktree-closeout"
         ]
       },
       "mcp": {

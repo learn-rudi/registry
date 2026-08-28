@@ -42,6 +42,7 @@ Database (A) · Frontend (B) · Testing (C) · Debugging (D) · API (E) · Secur
 |---|---|---|
 | **Agent Co-Pilot Operating Standard** | Defines agent posture, review evidence, red-green operation, and commit authorization | Any nontrivial agent-assisted engineering change |
 | **Horizontal Engineering And Codebase Stewardship Standard** | Detects and dispositions repeated mechanisms, shared-contract drift, environment coupling, and consolidation obligations | A pattern crosses changes or modules, a third semantic implementation appears, or repository-level consolidation is being planned |
+| **RUDI Agentic Engineering Standard** | Defines the RUDI Delivery Loop, stable capability ownership, lifecycle handoffs, and worktree closeout contract | Planning, coordinating, implementing, reviewing, integrating, or closing nontrivial agent-assisted engineering work |
 
 ---
 
@@ -107,6 +108,7 @@ When assigning implementation tasks to agents, include the relevant subset:
 | Full system design | Build Order (complete), all relevant appendices, Testing Doctrine, Phase Gates |
 | Codebase audit | Scoring Rubric, Review Dimensions from relevant appendices, Appendix F |
 | Horizontal engineering review | Horizontal Engineering And Codebase Stewardship Standard, relevant layer appendix, Testing Doctrine |
+| Agentic engineering delivery | RUDI Agentic Engineering Standard, Agent Co-Pilot Operating Standard, Testing Doctrine, relevant layer appendix |
 
 ---
 
@@ -136,6 +138,7 @@ When assigning implementation tasks to agents, include the relevant subset:
 | 10 | `10-Engineering-Operating-Manual-Index.md` | Navigation index | Complete |
 | 11 | `11-Agent-Copilot-Operating-Standard.md` | Agent co-pilot posture, review recording, red-green loop, and commit authorization | Complete |
 | 12 | `12-Horizontal-Engineering-and-Codebase-Stewardship-Standard.md` | Cross-change pattern detection, consolidation obligations, and remediation | Complete |
+| 13 | `13-RUDI-Agentic-Engineering-Standard.md` | RUDI Delivery Loop, capability ownership, handoffs, and worktree closeout | Complete |
 
 ---
 

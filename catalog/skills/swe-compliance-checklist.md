@@ -1,7 +1,7 @@
 ---
 name: RUDI SWE Compliance Checklist
 description: Create and execute a RUDI phase-gated engineering checklist for software changes that must comply with the SWE Operating Manual, including scope, tests, proof commands, smoke checks, documentation gates, accepted debt, and Definition of Done
-version: 1.3.0
+version: 1.4.0
 category: coding
 icon: ✅
 tags: [rudi, swe, compliance, checklist, testing, verification, engineering]
@@ -28,6 +28,7 @@ The output is not a loose TODO list. It is a phase-gated checklist that records:
 - what horizontal obligations this change opens, closes, or explicitly accepts
 - what risk tier governs review and approval
 - what independent evidence supports completion
+- what worktree closeout receipt preserves each material task worktree and its lineage
 - what commit boundaries, authorization, and publication status make the work reviewable
 
 ## When To Use
@@ -256,6 +257,13 @@ Also record the commit ledger: commit hashes and subjects for completed slices,
 or the planned slices that remain uncommitted. State push, pull-request, merge,
 and deployment status separately; authorization for one does not imply another.
 
+For every material task worktree, record a `rudi-worktree-closeout` receipt or
+an explicit proof gap. The receipt must identify the repository and worktree,
+Git state, task and agent lineage, validation and acceptance evidence,
+disposition, preservation requirements, cleanup eligibility, approval
+reference when present, and timestamp. The receipt is non-mutating and never
+proves cleanup occurred.
+
 Record horizontal obligations opened, closed, deferred, or accepted by the
 change. Accepted duplication needs a rationale and reassessment trigger; a
 generic "deduplicate later" note is not a complete disposition.
@@ -286,4 +294,6 @@ The work is not done until:
   obligation has an owner, trigger, and closing proof
 - substantial work has coherent verified commits, or its planned commit
   boundaries and missing authorization are recorded
+- every material task worktree has a read-back closeout receipt, or an explicit
+  owner, trigger, and closing proof for the missing receipt
 - final report includes the evidence bundle, verdict, and accepted debt

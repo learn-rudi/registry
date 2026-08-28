@@ -2,7 +2,7 @@
   "id": "stack:swe-engineering",
   "kind": "stack",
   "name": "SWE Engineering",
-  "version": "0.4.0",
+  "version": "0.5.0",
 
   "delivery": "remote",
   "install": {
@@ -30,7 +30,11 @@
     "operatorSkill": "skill:swe-compliance-checklist",
     "skills": [
       "skill:swe-compliance-checklist",
-      "skill:horizontal-engineering-review"
+      "skill:map-change-impact",
+      "skill:rudi-chief-of-staff",
+      "skill:horizontal-engineering-review",
+      "skill:rudi-repo-steward",
+      "skill:rudi-worktree-closeout"
     ]
   },
 

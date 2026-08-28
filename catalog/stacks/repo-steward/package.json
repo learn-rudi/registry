@@ -1,6 +1,6 @@
 {
   "name": "@rudi/repo-steward-stack",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "RUDI MCP stack for safe repository fleet observation, leases, and action tracking.",
   "type": "module",
   "private": true,

@@ -474,6 +474,10 @@ Agent co-pilot posture, review evidence, red-green operation, and commit authori
 
 Cross-change pattern detection, consolidation obligations, disposition, and repository-level remediation.
 
+13-RUDI-Agentic-Engineering-Standard.md
+
+RUDI Delivery Loop, capability ownership, lifecycle handoffs, compatibility, and non-destructive worktree closeout.
+
 VII. Maintenance Rule
 
 If the source files change, update this document so the quick reference remains accurate.

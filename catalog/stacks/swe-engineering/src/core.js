@@ -72,6 +72,11 @@ export const MANUAL_DOCUMENTS = [
     filename: "12-Horizontal-Engineering-and-Codebase-Stewardship-Standard.md",
     title: "Horizontal Engineering And Codebase Stewardship Standard",
   },
+  {
+    id: "rudi-agentic-engineering-standard",
+    filename: "13-RUDI-Agentic-Engineering-Standard.md",
+    title: "RUDI Agentic Engineering Standard",
+  },
 ];
 
 function assertPlainObject(value, label) {

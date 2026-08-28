@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
+import { createCloseoutOperations } from "./closeout.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -949,24 +950,24 @@ async function assertActiveLease(config, repository, owner, leaseId, options = {
   return lease;
 }
 
-async function readActionLock(file) {
+async function readRecordLock(file) {
   let lock;
   try {
     lock = JSON.parse(await fs.readFile(file, "utf8"));
   } catch (error) {
     if (error?.code === "ENOENT") return null;
-    throw new Error(`Unable to read action lock: ${redactText(error?.message)}`);
+    throw new Error(`Unable to read record lock: ${redactText(error?.message)}`);
   }
-  assertAllowedKeys(lock, "action lock", ["lease_id", "owner", "expires_at"]);
+  assertAllowedKeys(lock, "record lock", ["lease_id", "owner", "expires_at"]);
   const leaseId = requireLeaseId(lock.lease_id);
   const owner = requireOwner(lock.owner);
   if (typeof lock.expires_at !== "string" || !Number.isFinite(Date.parse(lock.expires_at))) {
-    throw new Error("action lock expires_at must be an ISO timestamp.");
+    throw new Error("record lock expires_at must be an ISO timestamp.");
   }
   return { lease_id: leaseId, owner, expires_at: lock.expires_at };
 }
 
-async function archiveActionLock(paths, nowMs) {
+async function archiveRecordLock(paths, nowMs) {
   await ensureStateDirectory(paths.lockHistory);
   const target = path.join(
     paths.lockHistory,
@@ -981,7 +982,7 @@ async function archiveActionLock(paths, nowMs) {
   }
 }
 
-async function withActionLock(paths, lease, operation, options = {}) {
+async function withRecordLock(paths, lease, operation, options = {}, label = "Action update") {
   await ensureStateDirectory(paths.actionsRoot);
   const nowMs = typeof options.now === "function" ? options.now() : Date.now();
   let acquired = false;
@@ -1004,20 +1005,20 @@ async function withActionLock(paths, lease, operation, options = {}) {
         await fs.unlink(paths.lock).catch(() => {});
       }
       if (error?.code !== "EEXIST") throw error;
-      const existing = await readActionLock(paths.lock);
+      const existing = await readRecordLock(paths.lock);
       if (!existing) continue;
       if (Date.parse(existing.expires_at) > nowMs) {
         throw new Error(
-          `Action update is already in progress: ${path.basename(paths.active, ".json")}.`
+          `${label} is already in progress: ${path.basename(paths.active, ".json")}.`
         );
       }
-      await archiveActionLock(paths, nowMs);
+      await archiveRecordLock(paths, nowMs);
     }
   }
 
   if (!acquired) {
     throw new Error(
-      `Unable to acquire action lock after concurrent updates: ${path.basename(paths.active, ".json")}.`
+      `Unable to acquire ${label.toLowerCase()} lock after concurrent updates: ${path.basename(paths.active, ".json")}.`
     );
   }
 
@@ -1352,7 +1353,7 @@ export async function recordRepositoryAction(args = {}, options = {}) {
   const lease = await assertActiveLease(config, repository, owner, leaseId, options);
   const paths = actionPaths(config.stateRoot, repository.id, actionId);
 
-  return withActionLock(paths, lease, async () => {
+  return withRecordLock(paths, lease, async () => {
     const existing = await readAction(paths.active);
     const now = new Date(
       typeof options.now === "function" ? options.now() : Date.now()
@@ -1489,7 +1490,7 @@ export async function recordRepositoryVerification(args = {}, options = {}) {
   const lease = await assertActiveLease(config, repository, owner, leaseId, options);
   const paths = actionPaths(config.stateRoot, repository.id, actionId);
 
-  return withActionLock(paths, lease, async () => {
+  return withRecordLock(paths, lease, async () => {
     const existing = await readAction(paths.active);
     if (!existing) throw new Error(`Repository action does not exist: ${actionId}.`);
     if (existing.version !== expectedVersion) {
@@ -1572,8 +1573,7 @@ export async function listRepositoryActions(args = {}, options = {}) {
   };
 }
 
-export const internal = {
-  randomUUID,
-  redactText,
-  requireRepositoryId,
-};
+export const { listRepositoryCloseouts, recordRepositoryCloseout } = createCloseoutOperations({
+  assertActiveLease, assertAllowedKeys, atomicWriteJson, boundedInteger, boundedSafeText, ensureStateDirectory, getResolvedRepositoryStatus, nonEmptyString, redactText, requireEnum, requireLeaseId, requireOwner, requireRepositoryId, resolveConfiguredRepository, runGit, withRecordLock,
+});
+export const internal = { randomUUID, redactText, requireRepositoryId };

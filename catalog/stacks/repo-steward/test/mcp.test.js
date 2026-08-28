@@ -51,7 +51,9 @@ test("MCP exposes the complete Repo Steward surface and executes preflight", asy
     "repo_steward_acquire_lease",
     "repo_steward_release_lease",
     "repo_steward_list_actions",
+    "repo_steward_list_closeouts",
     "repo_steward_record_action",
+    "repo_steward_record_closeout",
     "repo_steward_record_verification",
   ]);
 
@@ -91,4 +93,55 @@ test("MCP exposes the complete Repo Steward surface and executes preflight", asy
   assert.equal(discoveryResult.isError, undefined);
   const discovery = JSON.parse(discoveryResult.content[0].text);
   assert.equal(discovery.summary.repositories, 1);
+
+  const leaseResult = await client.callTool({
+    name: "repo_steward_acquire_lease",
+    arguments: {
+      repo_id: "fixture",
+      owner: "mcp-test",
+      ttl_seconds: 60,
+    },
+  });
+  assert.equal(leaseResult.isError, undefined);
+  const lease = JSON.parse(leaseResult.content[0].text);
+
+  const closeoutResult = await client.callTool({
+    name: "repo_steward_record_closeout",
+    arguments: {
+      repo_id: "fixture",
+      owner: "mcp-test",
+      lease_id: lease.lease_id,
+      receipt_id: "mcp-closeout-001",
+      state: "observed",
+      expected_version: 0,
+      base_ref: "HEAD",
+      task_lineage: { task_id: "mcp-task-001" },
+      agent_lineage: { agent_id: "mcp-test", host: "test-client" },
+      validation_evidence: [{
+        command: "npm test",
+        outcome: "passed",
+        exit_code: 0,
+        summary: "MCP fixture passed.",
+        at: "2026-08-27T12:00:00.000Z",
+      }],
+      preservation_requirements: ["Retain until acceptance is recorded."],
+      summary: "Record the MCP worktree closeout boundary.",
+    },
+  });
+  assert.equal(closeoutResult.isError, undefined);
+  const closeout = JSON.parse(closeoutResult.content[0].text);
+  assert.equal(closeout.state, "observed");
+  assert.equal(closeout.acceptance_reference, null);
+  assert.equal(closeout.cleanup.eligible, false);
+  assert.ok(closeout.cleanup.reasons.includes("acceptance_reference_is_missing"));
+  assert.ok(closeout.cleanup.reasons.includes("preservation_requirements_exist"));
+
+  const closeoutListResult = await client.callTool({
+    name: "repo_steward_list_closeouts",
+    arguments: { repo_id: "fixture" },
+  });
+  assert.equal(closeoutListResult.isError, undefined);
+  const closeoutList = JSON.parse(closeoutListResult.content[0].text);
+  assert.equal(closeoutList.receipts.length, 1);
+  assert.equal(closeoutList.receipts[0].receipt_id, "mcp-closeout-001");
 });

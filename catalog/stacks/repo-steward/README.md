@@ -5,10 +5,15 @@ observed fleet of nested Git worktrees. It discovers repositories again on
 every stewardship run, reports their state, optionally fetches remote metadata
 when root policy allows it, grants one bounded worker lease per repository,
 and records a durable action and verification ledger.
+It also records immutable, versioned worktree-closeout receipts with task and
+agent lineage, validation evidence, preservation requirements, disposition,
+and fail-closed cleanup eligibility.
 
 The stack never stages, commits, pushes, merges, resets, or cleans. GitHub
 issues and pull requests are also outside this stack; use `stack:github` under
 the related operator skill when those actions are authorized.
+Closeout approval states record authority only; the stack never deletes,
+archives, moves, prunes, retires, or attests cleanup of a worktree.
 
 ## One-path flow
 
@@ -88,8 +93,11 @@ without embedded credentials, and token-like text in summaries is redacted.
   repository.
 - `repo_steward_release_lease` releases the matching lease token.
 - `repo_steward_list_actions` reads the local improvement-action ledger.
+- `repo_steward_list_closeouts` reads active closeout receipt projections.
 - `repo_steward_record_action` creates or transitions a versioned action while
   the caller holds the repository lease.
+- `repo_steward_record_closeout` creates or transitions an immutable,
+  versioned closeout receipt while the caller holds the repository lease.
 - `repo_steward_record_verification` appends test or inspection evidence while
   the caller holds the repository lease.
 
@@ -106,6 +114,17 @@ operator must inspect repository instructions and diffs, protect unknown user
 changes, separate coherent work, run repository verification, and obtain any
 approval required for Git or GitHub mutations. That agent may make targeted
 commits; the stack itself never guesses what should be committed.
+
+## Worktree closeout lifecycle
+
+Closeout receipts move through evidence-backed states: `observed`,
+`classified`, `preservation_required`, `retained`, `archive_eligible`,
+`cleanup_pending_approval`, `cleanup_approved`, and `blocked`. Dirty,
+conflicted, untracked, ahead-only, unaccepted, unvalidated, or explicitly
+preserved evidence blocks archive eligibility. `cleanup_approved` requires an
+exact approval reference but records no cleanup side effect. Each version is
+immutable and the active projection advances only with the current version and
+repository lease.
 
 ## Verification
 
