@@ -1,7 +1,7 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-08-26T20:05:35.000Z",
+  "generatedAt": "2026-08-28T00:02:33.000Z",
   "stats": {
     "total": 155,
     "byKind": {
@@ -1908,7 +1908,7 @@
       "id": "skill:github",
       "kind": "skill",
       "name": "GitHub Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -4023,7 +4023,7 @@
       "id": "stack:github",
       "kind": "stack",
       "name": "GitHub",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -4036,13 +4036,14 @@
           {
             "key": "GITHUB_TOKEN",
             "label": "GitHub Personal Access Token",
-            "required": true,
+            "required": false,
             "helpUrl": "https://github.com/settings/tokens"
           }
         ]
       },
       "provides": {
         "tools": [
+          "github_auth_status",
           "github_rest_request",
           "github_list_repos",
           "github_get_repo",

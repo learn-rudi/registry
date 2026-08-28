@@ -2,7 +2,7 @@
   "id": "stack:github",
   "kind": "stack",
   "name": "GitHub",
-  "version": "1.0.0",
+  "version": "1.0.1",
 
   "delivery": "remote",
   "install": {
@@ -17,13 +17,14 @@
       {
         "key": "GITHUB_TOKEN",
         "label": "GitHub Personal Access Token",
-        "required": true,
+        "required": false,
         "helpUrl": "https://github.com/settings/tokens"
       }
     ]
   },
   "provides": {
     "tools": [
+      "github_auth_status",
       "github_rest_request",
       "github_list_repos",
       "github_get_repo",

@@ -1,47 +1,29 @@
-export interface EnvLike {
-  [key: string]: string | undefined;
-}
+import {
+  MAX_PER_PAGE,
+  githubApiRequest,
+  type GitHubDependencies,
+  type PaginationLinks,
+} from "./github-api.js";
+
+export {
+  DEFAULT_API_BASE_URL,
+  DEFAULT_API_VERSION,
+  DEFAULT_TIMEOUT_MS,
+  MAX_PER_PAGE,
+  MAX_TIMEOUT_MS,
+  getApiBaseUrl,
+  getConfigStatus,
+  getEnv,
+  githubAuthStatus,
+  type ConfigStatus,
+  type EnvLike,
+  type FetchLike,
+  type FetchResponseLike,
+  type GitHubDependencies,
+  type PaginationLinks,
+} from "./github-api.js";
 
 export type ToolArgs = Record<string, unknown> | undefined;
-
-export interface FetchResponseLike {
-  ok: boolean;
-  status: number;
-  statusText?: string;
-  headers?: {
-    get(name: string): string | null;
-  };
-  text(): Promise<string>;
-}
-
-export type FetchLike = (
-  url: string | URL,
-  init?: RequestInit
-) => Promise<FetchResponseLike>;
-
-export interface GitHubDependencies {
-  env?: EnvLike;
-  fetchImpl?: FetchLike;
-}
-
-export interface ConfigStatus {
-  token_configured: boolean;
-  api_base_url: string;
-  can_authenticate: boolean;
-  blocker?: string;
-}
-
-export interface PaginationLinks {
-  first?: string;
-  previous?: string;
-  next?: string;
-  last?: string;
-}
-
-interface ApiResult<T> {
-  data: T;
-  pagination: PaginationLinks;
-}
 
 interface RepoLocator {
   owner: string;
@@ -51,11 +33,6 @@ interface RepoLocator {
 type OwnerType = "authenticated" | "user" | "org";
 type Direction = "asc" | "desc";
 
-export const DEFAULT_API_BASE_URL = "https://api.github.com";
-export const DEFAULT_API_VERSION = "2022-11-28";
-export const DEFAULT_TIMEOUT_MS = 30_000;
-export const MAX_TIMEOUT_MS = 120_000;
-export const MAX_PER_PAGE = 100;
 export const MAX_BODY_LENGTH = 65_536;
 export const MAX_TITLE_LENGTH = 256;
 
@@ -82,25 +59,6 @@ const PULL_STATES = ["open", "closed", "all"] as const;
 const PULL_SORTS = ["created", "updated", "popularity", "long-running"] as const;
 const REST_METHODS = ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"] as const;
 const MERGE_METHODS = ["merge", "squash", "rebase"] as const;
-
-export function getEnv(name: string, env: EnvLike = process.env): string | undefined {
-  const value = env[name]?.trim();
-  return value ? value : undefined;
-}
-
-export function getApiBaseUrl(env: EnvLike = process.env): string {
-  return getEnv("GITHUB_API_BASE_URL", env) || DEFAULT_API_BASE_URL;
-}
-
-export function getConfigStatus(env: EnvLike = process.env): ConfigStatus {
-  const token = getEnv("GITHUB_TOKEN", env);
-  return {
-    token_configured: Boolean(token),
-    api_base_url: getApiBaseUrl(env),
-    can_authenticate: Boolean(token),
-    blocker: token ? undefined : "Set GITHUB_TOKEN in RUDI secrets.",
-  };
-}
 
 function asRecord(args: ToolArgs): Record<string, unknown> {
   if (args === undefined || args === null) {
@@ -290,175 +248,6 @@ function requireTitle(value: unknown): string {
 
 function requireRef(value: unknown, name: string): string {
   return requireString(value, name, 255);
-}
-
-function appendQuery(url: URL, query: Record<string, unknown>): void {
-  for (const [key, value] of Object.entries(query)) {
-    if (value === undefined || value === null || value === "") {
-      continue;
-    }
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        url.searchParams.append(key, String(item));
-      }
-      continue;
-    }
-    url.searchParams.set(key, String(value));
-  }
-}
-
-function normalizeApiBaseUrl(env: EnvLike = process.env): URL {
-  const base = getApiBaseUrl(env).replace(/\/+$/, "");
-  const url = new URL(`${base}/`);
-  if (url.protocol !== "https:") {
-    throw new Error("GITHUB_API_BASE_URL must use https");
-  }
-  return url;
-}
-
-function getToken(env: EnvLike = process.env): string {
-  const token = getEnv("GITHUB_TOKEN", env);
-  if (!token) {
-    throw new Error("GITHUB_TOKEN is not configured");
-  }
-  return token;
-}
-
-function getTimeoutMs(env: EnvLike = process.env): number {
-  const raw = getEnv("GITHUB_API_TIMEOUT_MS", env);
-  if (!raw) {
-    return DEFAULT_TIMEOUT_MS;
-  }
-  const timeout = Number(raw);
-  if (!Number.isInteger(timeout) || timeout < 1_000 || timeout > MAX_TIMEOUT_MS) {
-    throw new Error(`GITHUB_API_TIMEOUT_MS must be an integer between 1000 and ${MAX_TIMEOUT_MS}`);
-  }
-  return timeout;
-}
-
-function getFetch(fetchImpl?: FetchLike): FetchLike {
-  if (fetchImpl) {
-    return fetchImpl;
-  }
-  if (typeof fetch !== "function") {
-    throw new Error("global fetch is not available; use Node.js 20+");
-  }
-  return fetch as unknown as FetchLike;
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function redactText(text: string, secrets: string[]): string {
-  let redacted = text;
-  for (const secret of secrets) {
-    if (secret) {
-      redacted = redacted.replace(new RegExp(escapeRegExp(secret), "g"), "[REDACTED_TOKEN]");
-    }
-  }
-  return redacted.replace(
-    /\b(Bearer|token)\s+[A-Za-z0-9_./:+\-]{8,}/gi,
-    "$1 [REDACTED_TOKEN]"
-  );
-}
-
-function parseJson(raw: string): unknown {
-  if (!raw.trim()) {
-    return {};
-  }
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return raw.slice(0, 2_000);
-  }
-}
-
-function redactedErrorBody(raw: string, token: string): unknown {
-  return parseJson(redactText(raw.slice(0, 5_000), [token]));
-}
-
-function parseLinkHeader(linkHeader: string | null | undefined): PaginationLinks {
-  if (!linkHeader) {
-    return {};
-  }
-  const links: PaginationLinks = {};
-  for (const part of linkHeader.split(",")) {
-    const match = /<([^>]+)>;\s*rel="([^"]+)"/.exec(part.trim());
-    if (!match) {
-      continue;
-    }
-    const [, url, rel] = match;
-    if (rel === "first" || rel === "prev" || rel === "next" || rel === "last") {
-      const key = rel === "prev" ? "previous" : rel;
-      links[key] = url;
-    }
-  }
-  return links;
-}
-
-async function githubApiRequest<T>(
-  path: string,
-  options: {
-    method?: string;
-    query?: Record<string, unknown>;
-    body?: Record<string, unknown>;
-  } = {},
-  deps: GitHubDependencies = {}
-): Promise<ApiResult<T>> {
-  const env = deps.env ?? process.env;
-  const token = getToken(env);
-  const base = normalizeApiBaseUrl(env);
-  const url = new URL(path.replace(/^\//, ""), base);
-  appendQuery(url, options.query ?? {});
-
-  const headers: Record<string, string> = {
-    Accept: "application/vnd.github+json",
-    Authorization: `Bearer ${token}`,
-    "User-Agent": "rudi-github-stack/1.0",
-    "X-GitHub-Api-Version": DEFAULT_API_VERSION,
-  };
-
-  const init: RequestInit = {
-    method: options.method ?? "GET",
-    headers,
-  };
-
-  if (options.body) {
-    headers["Content-Type"] = "application/json";
-    init.body = JSON.stringify(options.body);
-  }
-
-  const timeoutMs = getTimeoutMs(env);
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  init.signal = controller.signal;
-
-  let response: FetchResponseLike;
-  try {
-    response = await getFetch(deps.fetchImpl)(url.toString(), init);
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (error instanceof Error && error.name === "AbortError") {
-      throw new Error(`GitHub API request timed out after ${timeoutMs}ms`);
-    }
-    throw new Error(`GitHub API request failed: ${redactText(message, [token])}`);
-  } finally {
-    clearTimeout(timeout);
-  }
-
-  const raw = await response.text();
-  if (!response.ok) {
-    const body = redactedErrorBody(raw, token);
-    throw new Error(
-      `GitHub API error ${response.status}: ${JSON.stringify(body, null, 2)}`
-    );
-  }
-
-  return {
-    data: parseJson(raw) as T,
-    pagination: parseLinkHeader(response.headers?.get("link")),
-  };
 }
 
 function encodePathPart(value: string): string {

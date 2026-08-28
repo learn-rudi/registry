@@ -9,6 +9,7 @@ import {
   createPullRequest,
   createRepo,
   getConfigStatus,
+  githubAuthStatus,
   githubRestRequest,
   listRepos,
   mergePullRequest,
@@ -38,13 +39,130 @@ function makeFetch(responseBody = {}, responseInit = {}) {
   return { calls, fetchImpl };
 }
 
-test("config status reports GitHub token readiness without values", () => {
+test("config status does not equate GitHub token presence with authentication", () => {
   const status = getConfigStatus({
     GITHUB_TOKEN: "test-token-redacted",
   });
 
   assert.equal(status.token_configured, true);
+  assert.equal(status.can_authenticate, false);
+  assert.equal(JSON.stringify(status).includes("test-token-redacted"), false);
+});
+
+test("auth status verifies the configured GitHub identity without exposing credentials", async () => {
+  const { calls, fetchImpl } = makeFetch({
+    login: "rudijetson",
+    id: 123,
+  });
+
+  const status = await githubAuthStatus(
+    {},
+    {
+      env: { GITHUB_TOKEN: "test-token-redacted" },
+      fetchImpl,
+    }
+  );
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, "https://api.github.com/user");
+  assert.equal(status.credential_present, true);
+  assert.equal(status.provider_verified, true);
   assert.equal(status.can_authenticate, true);
+  assert.equal(status.authenticated_login, "rudijetson");
+  assert.equal(JSON.stringify(status).includes("test-token-redacted"), false);
+});
+
+test("auth status accepts a provider-issued Enterprise Managed User login", async () => {
+  const { fetchImpl } = makeFetch({ login: "alice_acme" });
+
+  const status = await githubAuthStatus(
+    {},
+    {
+      env: { GITHUB_TOKEN: "test-token-redacted" },
+      fetchImpl,
+    }
+  );
+
+  assert.equal(status.provider_verified, true);
+  assert.equal(status.authenticated_login, "alice_acme");
+});
+
+test("auth status never reflects the configured token as the provider login", async () => {
+  const token = "github_pat_REFLECTED_TOKEN";
+  const { fetchImpl } = makeFetch({ login: token });
+
+  const status = await githubAuthStatus(
+    {},
+    {
+      env: { GITHUB_TOKEN: token },
+      fetchImpl,
+    }
+  );
+
+  assert.equal(status.provider_verified, false);
+  assert.equal(status.can_authenticate, false);
+  assert.equal(JSON.stringify(status).includes(token), false);
+  assert.match(status.blocker, /invalid authenticated user login/);
+});
+
+test("auth status never echoes credentials embedded in a custom API base URL", async () => {
+  const status = await githubAuthStatus(
+    {},
+    {
+      env: {
+        GITHUB_TOKEN: "test-token-redacted",
+        GITHUB_API_BASE_URL: "https://reader:supersecret@ghe.example.com/api/v3",
+      },
+    }
+  );
+
+  assert.equal(status.provider_verified, false);
+  assert.equal(JSON.stringify(status).includes("reader"), false);
+  assert.equal(JSON.stringify(status).includes("supersecret"), false);
+  assert.match(status.blocker, /must not include credentials/);
+});
+
+test("auth status safely reports a missing GitHub token without calling the provider", async () => {
+  const { calls, fetchImpl } = makeFetch({ login: "should-not-be-called" });
+
+  const status = await githubAuthStatus(
+    {},
+    {
+      env: {},
+      fetchImpl,
+    }
+  );
+
+  assert.equal(calls.length, 0);
+  assert.deepEqual(status, {
+    credential_present: false,
+    token_configured: false,
+    provider_verified: false,
+    can_authenticate: false,
+    api_base_url: "https://api.github.com",
+    blocker: "Set GITHUB_TOKEN in RUDI secrets.",
+  });
+});
+
+test("auth status safely reports a GitHub-rejected token", async () => {
+  const { fetchImpl } = makeFetch(
+    { message: "Bad credentials: test-token-redacted" },
+    { ok: false, status: 401, statusText: "Unauthorized" }
+  );
+
+  const status = await githubAuthStatus(
+    {},
+    {
+      env: { GITHUB_TOKEN: "test-token-redacted" },
+      fetchImpl,
+    }
+  );
+
+  assert.equal(status.credential_present, true);
+  assert.equal(status.provider_verified, false);
+  assert.equal(status.can_authenticate, false);
+  assert.equal(status.provider_status, 401);
+  assert.match(status.blocker, /GitHub identity verification failed/);
   assert.equal(JSON.stringify(status).includes("test-token-redacted"), false);
 });
 
@@ -207,6 +325,92 @@ test("GitHub API errors are structured and redact configured tokens", async () =
       assert.match(error.message, /\[REDACTED_TOKEN\]/);
       return true;
     }
+  );
+});
+
+test("permission guidance reports provider-accepted permissions without exposing credentials", async () => {
+  const { fetchImpl } = makeFetch(
+    {
+      message: "Resource not accessible by personal access token",
+      documentation_url: "https://docs.github.com/rest/pulls/pulls#create-a-pull-request",
+    },
+    {
+      ok: false,
+      status: 403,
+      statusText: "Forbidden",
+      headers: { "x-accepted-github-permissions": "pull_requests=write" },
+    }
+  );
+
+  await assert.rejects(
+    () =>
+      createPullRequest(
+        {
+          owner: "learnrudi",
+          repo: "registry",
+          title: "Verify permission guidance",
+          head: "fix/github-auth-readiness",
+          base: "main",
+          confirm_create: true,
+        },
+        {
+          env: { GITHUB_TOKEN: "test-token-redacted" },
+          fetchImpl,
+        }
+      ),
+    (error) => {
+      assert.match(error.message, /GitHub API error 403/);
+      assert.match(error.message, /Accepted GitHub permissions: pull_requests=write/);
+      assert.equal(error.message.includes("test-token-redacted"), false);
+      return true;
+    }
+  );
+});
+
+test("permission guidance never reflects a credential-shaped provider header", async () => {
+  const { fetchImpl } = makeFetch(
+    { message: "Forbidden" },
+    {
+      ok: false,
+      status: 403,
+      statusText: "Forbidden",
+      headers: { "x-accepted-github-permissions": "test-token-redacted" },
+    }
+  );
+
+  await assert.rejects(
+    () => listRepos({}, { env: { GITHUB_TOKEN: "test-token-redacted" }, fetchImpl }),
+    (error) => {
+      assert.equal(error.message.includes("test-token-redacted"), false);
+      assert.equal(error.message.includes("Accepted GitHub permissions"), false);
+      return true;
+    }
+  );
+});
+
+test("permission guidance names pull-request write access when GitHub omits permission headers", async () => {
+  const { fetchImpl } = makeFetch(
+    { message: "Resource not accessible by personal access token" },
+    { ok: false, status: 403, statusText: "Forbidden" }
+  );
+
+  await assert.rejects(
+    () =>
+      createPullRequest(
+        {
+          owner: "learnrudi",
+          repo: "registry",
+          title: "Verify permission fallback",
+          head: "fix/github-auth-readiness",
+          base: "main",
+          confirm_create: true,
+        },
+        {
+          env: { GITHUB_TOKEN: "test-token-redacted" },
+          fetchImpl,
+        }
+      ),
+    /Required repository permission: Pull requests \(write\)/
   );
 });
 

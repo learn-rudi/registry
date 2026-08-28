@@ -38,6 +38,7 @@ import {
   getRelease,
   getRepo,
   getWorkflowRun,
+  githubAuthStatus,
   githubRestRequest,
   listArtifacts,
   listBranches,
@@ -150,6 +151,7 @@ function tool(
 }
 
 const tools: ToolDefinition[] = [
+  tool("github_auth_status", "Verify GITHUB_TOKEN with GitHub and return the authenticated login without exposing credentials.", {}),
   tool("github_rest_request", "Call any GitHub REST API path relative to the configured API base. Mutating methods dry-run unless confirm_write is true; DELETE also requires confirm_delete.", {
     method: en(["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"]),
     path: s("GitHub REST API path starting with /, e.g. /repos/OWNER/REPO/actions/runs."),
@@ -335,6 +337,7 @@ const tools: ToolDefinition[] = [
 ];
 
 const handlers: Record<string, Handler> = {
+  github_auth_status: githubAuthStatus,
   github_rest_request: githubRestRequest,
   github_list_repos: listRepos,
   github_get_repo: getRepo,
@@ -416,7 +419,7 @@ function asError(error: unknown) {
 }
 
 const server = new Server(
-  { name: "github", version: "1.0.0" },
+  { name: "github", version: "1.0.1" },
   { capabilities: { tools: {} } }
 );
 

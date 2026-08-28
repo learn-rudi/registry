@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFile } from "node:fs/promises";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+
+test("manifest keeps the auth-status tool reachable before a token is configured", async () => {
+  const manifest = JSON.parse(await readFile("manifest.json", "utf8"));
+  const token = manifest.requires.secrets.find((secret) => secret.key === "GITHUB_TOKEN");
+
+  assert.equal(token.required, false);
+  assert.ok(manifest.provides.tools.includes("github_auth_status"));
+});
 
 test("MCP server exposes GitHub stack tools", async () => {
   const transport = new StdioClientTransport({
@@ -27,6 +36,7 @@ test("MCP server exposes GitHub stack tools", async () => {
       "github_add_collaborator",
       "github_add_comment",
       "github_add_issue_labels",
+      "github_auth_status",
       "github_cancel_workflow_run",
       "github_create_branch",
       "github_create_issue",
@@ -92,6 +102,16 @@ test("MCP server exposes GitHub stack tools", async () => {
     });
     assert.equal(missingToken.isError, true);
     assert.match(missingToken.content[0].text, /GITHUB_TOKEN/);
+
+    const authStatus = await client.callTool({
+      name: "github_auth_status",
+      arguments: {},
+    });
+    assert.equal(authStatus.isError, undefined);
+    const parsedStatus = JSON.parse(authStatus.content[0].text);
+    assert.equal(parsedStatus.credential_present, false);
+    assert.equal(parsedStatus.provider_verified, false);
+    assert.match(parsedStatus.blocker, /GITHUB_TOKEN/);
   } finally {
     await client.close();
   }

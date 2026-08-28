@@ -1,7 +1,7 @@
 ---
 name: "GitHub Operator"
 description: "Operate GitHub through RUDI's stack tools when a user asks for work supported by stack:github. Manage GitHub repositories, branches, contents, collaborators, issues, pull requests, releases, Actions, artifacts, and direct REST API calls"
-version: 1.0.0
+version: 1.0.1
 category: "development"
 tags:
   - rudi
@@ -32,23 +32,27 @@ unavailable.
    action changes external state.
 2. Inspect the active MCP tool schema before calling a tool. The runtime schema
    is authoritative for parameter names, required fields, and enums.
-3. Start with discovery, inspection, validation, preview, or dry-run tools when
-   the stack provides them.
-4. Use the fewest tool calls that can complete the request. Reuse returned IDs
+3. Start with `github_auth_status` for authenticated work. Treat its verified
+   login as identity proof only; endpoint-specific authorization still requires
+   the requested operation or provider permission evidence.
+4. Start other work with discovery, inspection, validation, preview, or dry-run
+   tools when the stack provides them.
+5. Use the fewest tool calls that can complete the request. Reuse returned IDs
    and paths instead of guessing them.
-5. Before a destructive, irreversible, public, paid, or externally visible
+6. Before a destructive, irreversible, public, paid, or externally visible
    action, obtain the user's confirmation unless they already authorized that
    exact action.
-6. Validate tool results before using them as inputs to another call. Stop on
+7. Validate tool results before using them as inputs to another call. Stop on
    malformed results, explicit errors, missing required data, or partial
    completion that makes the next action unsafe.
-7. Verify mutations with a read-back, status, inspection, or artifact check
+8. Verify mutations with a read-back, status, inspection, or artifact check
    when the stack supports one.
-8. Report what was attempted, what succeeded, what failed, and any output IDs,
+9. Report what was attempted, what succeeded, what failed, and any output IDs,
    URLs, or paths the user needs.
 
 ## Stack Tools
 
+- `github_auth_status`
 - `github_rest_request`
 - `github_list_repos`
 - `github_get_repo`
@@ -119,8 +123,9 @@ user's request.
 
 - Missing stack or tools: stop and ask the user to install, index, or integrate
   `stack:github`; do not simulate a successful tool call.
-- Missing credentials or authorization: name the required setup without
-  printing secret values.
+- Missing credentials or authorization: call `github_auth_status`, name the
+  required setup or provider-reported permission without printing secret values,
+  and do not describe a verified login as proof of write access.
 - Invalid input: explain the rejected field or constraint and request only the
   information needed to continue.
 - Tool or dependency failure: preserve successful prior work, avoid blind

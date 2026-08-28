@@ -1,6 +1,6 @@
 {
   "name": "@rudi/github-stack",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "RUDI MCP stack for GitHub repositories, pull requests, issues, comments, and code search.",
   "type": "module",
   "private": true,
