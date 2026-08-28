@@ -1,0 +1,19 @@
+{
+  "name": "@rudi/stack-brave-search",
+  "version": "0.1.0",
+  "description": "Read-only Brave Search API access through RUDI's secret-mediated MCP router.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test test/*.test.js",
+    "verify": "npm test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0"
+  },
+  "engines": {
+    "node": ">=20.10"
+  },
+  "license": "MIT"
+}
