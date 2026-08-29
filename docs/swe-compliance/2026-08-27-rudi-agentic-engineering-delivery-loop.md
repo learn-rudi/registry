@@ -154,8 +154,9 @@ unpublished
   traversal, catalog path, and host-neutrality tests remain green.
 - Green results after refactor: Repo Steward 21/21, SWE Engineering 6/6,
   focused Registry suite 16/16, and full Registry 252/252. The closeout engine
-  was extracted into 725-line behavior and 109-line persistence modules;
-  pre-existing `core.js` remains exactly 1,579 lines at both base and current.
+  was extracted into 725-line behavior and 109-line persistence modules. Gate 1
+  modifies `core.js` for closeout wiring and generalized record-lock behavior,
+  but its line count remains exactly 1,579 at both base and feature head.
 - `git diff --check` passes.
 - Commit checkpoint: all slices remain uncommitted.
 - Exit criteria: focused suites pass and `git diff --check` is clean.
@@ -197,9 +198,11 @@ unpublished
 - Prescribed proof gap: selected `npm run stacks:verify -- --stack
   stack:repo-steward --stack stack:swe-engineering` reports that Repo Steward
   `src/core.js` has 1,579 lines and is missing from the no-growth baseline.
-  The file is exactly 1,579 lines at `origin/main` and in this worktree, and
+  The file has the same 1,579-line count at `origin/main` and the feature head,
+  despite the scoped wiring and shared-lock edits described in Phase 4;
   `.stack-debt-baseline.json` predates Repo Steward. Gate 1 neither changes the
-  baseline nor performs an unrelated legacy-core refactor.
+  baseline nor performs a legacy-core split. A later CI repair gate records the
+  exact existing size so future growth still fails closed.
 - Exit criteria: all gates pass or the final verdict records the exact gap.
 
 ## Phase 6: Docs, Contracts, And Closure
@@ -315,9 +318,9 @@ unpublished
 - Additional proof: source-scoped and root debt scans reported zero findings,
   `npm run release:verify` verified seven hashes, and `git diff --check`
   passed. The targeted stack verifier retains the already documented
-  pre-existing failure because unchanged Repo Steward `src/core.js` has 1,579
-  lines and is absent from the no-growth baseline; reconciliation neither
-  changes that file relative to `87e523e` nor widens this gate to legacy debt.
+  pre-existing failure because Repo Steward `src/core.js` has 1,579 lines and
+  is absent from the no-growth baseline; reconciliation does not change that
+  file relative to `87e523e` or widen this gate to legacy debt.
 - Independent fresh-context read-only review: PASS with no blocking findings.
   It confirmed both parent hashes, no unresolved conflicts, exact 156-package
   and 821-file generator reconstruction, byte-identical preservation of the
@@ -389,3 +392,79 @@ unpublished
 - Final verdict: PASS for this refresh source-edit gate. The conflict-free
   reconciliation remains uncommitted and unpublished pending a separately
   approved commit gate.
+
+## Registry CI Repair Source-Edit Gate
+
+- Authority received: repair the required CI failure in the existing
+  reconciliation worktree by recording Repo Steward's exact pre-existing
+  no-growth allowance, correcting this checklist, adding focused policy
+  coverage where required, and running local verification. Commit, push, PR
+  merge, release, publication, product or skill installation, Mac
+  synchronization, and worktree cleanup remain prohibited.
+- Baseline: `origin/main` and PR #51 still resolve to
+  `e7a84e2bd006d27db6d9db29e0e23684ab65613d` and
+  `8e12b012239f920e46056df71ff4a97aaaa53f78`, respectively. The worktree was
+  clean before this repair. Both base and PR head contain a 1,579-line Repo
+  Steward `src/core.js`; the feature head modifies that file for closeout wiring
+  and generalized record-lock behavior without increasing its line count.
+- Risk and invariant: low-risk, reversible policy-data and test repair. The
+  800-line limit for new source modules remains unchanged. The new baseline
+  entry is exactly 1,579, so any future line-count growth fails closed.
+- Red proof: `npm test -- --run src/stack-debt.test.ts` failed one of two tests
+  because the expected Repo Steward baseline value was `undefined`. The test
+  harness and the existing generic no-growth behavior test both executed
+  normally.
+- Implementation: add
+  `catalog/stacks/repo-steward/src/core.js: 1579` to the canonical sorted
+  `.stack-debt-baseline.json` map; add a focused repository-bound regression;
+  and correct the historical checklist wording that had implied no semantic
+  `core.js` change.
+- Green proof: the unchanged focused command passed 2/2. The exact failed CI
+  command, `npm run stacks:verify -- --changed-from e7a84e2bd006d27db6d9db29e0e23684ab65613d --prepare`, then passed both
+  selected stacks: Repo Steward 21/21 and SWE Engineering 6/6.
+- Registry proof: root `npm test` passed 29 files and 254/254 tests;
+  `npm run validate` and `npm run build` passed 158/158 packages;
+  `npm run indexes:sync` and `npm run indexes:check` passed with 158 packages,
+  831 catalog files, and generated root `3b65e4cfa3bf4a3c...`;
+  `npm run catalog:clean:check` planned zero targets; `npm run release:verify`
+  verified seven hashes; and `npm pack --dry-run --json` passed with 1,005
+  entries.
+- Generator custody: the first local index sync changed only `generatedAt`
+  because it defaulted to the current HEAD time. Registry CI derives
+  `SOURCE_DATE_EPOCH` from the tracked index, so the Registry generator was
+  rerun with the tracked epoch `1787883805`; `index.json` then returned
+  byte-for-byte to HEAD and the canonical index check passed. It was never
+  edited manually.
+- Debt and formatting: the RUDI SWE debt scanner reported zero findings for
+  `src/stack-debt.test.ts`; root `npm run debt:scan` reported zero findings;
+  `git diff --check` passed; and the baseline entry read back as exactly 1,579
+  against an exact 1,579-line file.
+- Dependency custody: verification reused the preserved feature-worktree root
+  dependencies through a temporary symlink and restored the pre-existing local
+  `.vite` cache afterward. The explicitly approved CI `--prepare` command
+  prepared ignored test dependencies inside the two selected stack directories;
+  those directories are preserved. No RUDI package, stack, or skill was
+  installed or activated.
+- Horizontal disposition: existing oversized OpenCounter modules and RUDI CRM
+  baseline growth were observed during the bounded inventory scan. They are
+  unrelated to PR #51 and remain a separate Registry architecture-debt
+  obligation. Owner: Registry maintainers. Trigger: a separately approved
+  baseline-reconciliation or affected-stack source gate. Closing proof:
+  `npm run stacks:verify -- --all` passes without weakening `maxLines`.
+- Commit and publication state: these repair paths remain unstaged and
+  uncommitted. PR #51 still points to `8e12b012...`; no push, CI rerun, merge,
+  release, publication, installation, synchronization, or worktree cleanup has
+  occurred in this gate.
+- Independent fresh-context read-only review: PASS with no blocking defect. It
+  confirmed exact lineage and three-file scope, the 1,579-line count at base,
+  head, and worktree, 17 additions and 17 deletions in the feature's semantic
+  `core.js` edit, unchanged `maxLines: 800`, and coverage for both the exact
+  allowance and future growth. Its only tidy-up finding was lexical key order;
+  that ordering was corrected and the focused 2/2 test plus exact changed-stack
+  verification were rerun successfully without weakening policy.
+- Worktree-closeout receipt: the existing Phase 6 proof gap remains. This gate
+  prohibits installing or activating the new Repo Steward surface needed to
+  persist and read back a receipt. Owner: Repo Steward integration gate.
+  Trigger and closing proof remain accepted source integration followed by an
+  authorized local installation and non-mutating receipt readback.
+- Final verdict: PASS and ready for a separately approved local commit gate.

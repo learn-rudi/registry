@@ -8,6 +8,7 @@
     "catalog/stacks/macos-automation/src/core.ts": 2399,
     "catalog/stacks/municode/src/core.js": 1485,
     "catalog/stacks/notion-workspace/src/index.ts": 1150,
+    "catalog/stacks/repo-steward/src/core.js": 1579,
     "catalog/stacks/rudi-crm/src/contract.ts": 1179,
     "catalog/stacks/site-planner/src/core.js": 941,
     "catalog/stacks/social-media-publisher/src/adapters/youtube-channel.js": 807,
