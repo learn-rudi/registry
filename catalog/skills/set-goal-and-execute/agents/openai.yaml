@@ -1,0 +1,4 @@
+interface:
+  display_name: "Set Goal and Execute"
+  short_description: "Turn an approved brief into verified execution"
+  default_prompt: "Use $set-goal-and-execute to turn the preceding approved brief into a durable goal and carry it through verified completion."

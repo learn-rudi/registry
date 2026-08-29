@@ -269,6 +269,13 @@ describe("portable skill contracts", () => {
         stacks: ["stack:repo-steward"],
       },
     });
+    expect(index.packages["skill:set-goal-and-execute"]).toMatchObject({
+      version: "1.0.0",
+      install: {
+        source: "catalog",
+        path: "catalog/skills/set-goal-and-execute",
+      },
+    });
 
     await expect(
       fs.access(
@@ -294,6 +301,35 @@ describe("portable skill contracts", () => {
         )
       )
     ).resolves.toBeUndefined();
+  });
+
+  it("keeps set-goal-and-execute durable, portable, and authority bounded", async () => {
+    const [skill, openai] = await Promise.all([
+      fs.readFile(
+        path.join(repoRoot, "catalog/skills/set-goal-and-execute/SKILL.md"),
+        "utf8"
+      ),
+      fs.readFile(
+        path.join(
+          repoRoot,
+          "catalog/skills/set-goal-and-execute/agents/openai.yaml"
+        ),
+        "utf8"
+      ),
+    ]);
+
+    expect(skill).not.toContain("[TODO");
+    expect(skill).not.toMatch(/mcp__rudi__|spawn_agent|\/goal|\/review/);
+    expect(skill).not.toMatch(/\/Users\/|[A-Z]:\\/);
+    expect(skill).toContain("## Establish The Goal");
+    expect(skill).toContain("## Keep Authority Gates Separate");
+    expect(skill).toContain("## Host Adaptation");
+    expect(skill).toMatch(/matching active goal.*continue/is);
+    expect(skill).toMatch(/different unfinished goal.*preserv/is);
+    expect(skill).toMatch(/does not itself authorize/is);
+    expect(skill).toMatch(/RUDI Delivery Loop/i);
+    expect(openai).toContain('display_name: "Set Goal and Execute"');
+    expect(openai).toContain("$set-goal-and-execute");
   });
 
   it.each(["rudi-context-gardener", "rudi-decision-canvas"])(
