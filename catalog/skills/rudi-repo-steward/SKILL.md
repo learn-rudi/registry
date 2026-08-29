@@ -1,7 +1,7 @@
 ---
 name: rudi-repo-steward
 description: Enroll a user-provided folder, discover all nested Git worktrees, and coordinate continuous improvement across that dynamic repository fleet using safe status scans, bounded leases, targeted commits, and an evidence-backed action ledger. Use when a user asks to steward every repo below a path, catch repositories up, review agent work, plan targeted commits, monitor divergence, or maintain repositories continuously without blindly mutating them.
-version: 0.2.0
+version: 0.3.0
 category: development
 tags: [git, github, repositories, continuous-improvement, maintenance]
 requires:
@@ -45,6 +45,8 @@ stack for authorized issue and pull-request work.
   repository's engineering instructions, and verify it.
 - **Publish**: push or create GitHub artifacts only when the user has authorized
   that externally visible step.
+- **Closeout**: classify one exact worktree and record its immutable lifecycle
+  receipt without changing Git state.
 
 Default to Observe when the requested authority is ambiguous.
 
@@ -132,6 +134,26 @@ requests.
     stewardship candidates; they are not automatically authorized for commit
     or publication.
 
+## Close out a worktree
+
+Use `rudi-worktree-closeout` for the portable decision contract. Repo Steward
+owns the durable evidence engine:
+
+1. Resolve the exact configured repository and current status, then acquire its
+   lease.
+2. Call `repo_steward_record_closeout` to create the `observed` receipt with
+   task, agent, acceptance, validation, disposition, and preservation evidence.
+3. Transition the receipt with its current version. Dirty or unaccepted work
+   must be preserved; archive eligibility fails closed.
+4. Use `repo_steward_list_closeouts` to read the stored projection back before
+   reporting completion.
+5. Release the matching lease.
+
+The stack records `cleanup_pending_approval` and `cleanup_approved` decisions,
+but never performs or verifies cleanup. An approval reference is evidence of
+authority only. Deletion, pruning, moving, archive side effects, or branch
+retirement require a separately authorized mutating workflow.
+
 ## Selection rules
 
 Prefer, in order:
@@ -152,4 +174,6 @@ decision needed.
 Report the fleet state observed, repositories changed, exact commits or GitHub
 artifacts created, verification evidence, deferred work, and current
 ahead/behind state. Never claim a repository is synchronized from stale local
-metadata; state whether fetch occurred and whether push was authorized.
+metadata; state whether fetch occurred and whether push was authorized. For
+closeout work, also report the receipt ID, version, state, disposition,
+preservation requirements, eligibility blockers, and approval reference.

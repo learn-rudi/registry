@@ -1,12 +1,14 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { auditStackModuleSizes } from "./stack-debt.js";
+import { auditStackModuleSizes, loadStackDebtBaseline } from "./stack-debt.js";
 
 let tmpDir: string;
+const registryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 beforeEach(async () => {
   tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "rudi-stack-debt-"));
@@ -17,6 +19,16 @@ afterEach(async () => {
 });
 
 describe("auditStackModuleSizes", () => {
+  it("keeps Repo Steward's legacy oversized module on an exact no-growth baseline", async () => {
+    const source = "catalog/stacks/repo-steward/src/core.js";
+    const baseline = await loadStackDebtBaseline(registryRoot);
+
+    expect(baseline.oversized[source]).toBe(1579);
+    await expect(
+      auditStackModuleSizes(registryRoot, ["stack:repo-steward"], baseline)
+    ).resolves.toEqual([]);
+  });
+
   it("allows recorded debt without allowing new oversized modules or growth", async () => {
     const source = "catalog/stacks/demo/src/index.ts";
     const sourceFile = path.join(tmpDir, source);

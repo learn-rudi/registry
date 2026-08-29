@@ -23,10 +23,14 @@ test("package contract keeps the manual and tool surface portable", async () => 
     await fs.readFile(path.join(stackRoot, "manifest.json"), "utf8")
   );
   assert.equal(manifest.id, "stack:swe-engineering");
-  assert.equal(manifest.version, "0.4.0");
+  assert.equal(manifest.version, "0.5.0");
   assert.deepEqual(manifest.related.skills, [
     "skill:swe-compliance-checklist",
+    "skill:map-change-impact",
+    "skill:rudi-chief-of-staff",
     "skill:horizontal-engineering-review",
+    "skill:rudi-repo-steward",
+    "skill:rudi-worktree-closeout",
   ]);
   assert.deepEqual(manifest.provides.tools, [
     "swe_manual_list",
@@ -40,7 +44,7 @@ test("package contract keeps the manual and tool surface portable", async () => 
   assert.equal(files.includes("AGENTS.md"), false);
   assert.equal(files.includes("CLAUDE.md"), false);
   const manualFiles = files.filter((file) => file.startsWith("src/manual/")).sort();
-  assert.equal(manualFiles.length, 12);
+  assert.equal(manualFiles.length, 13);
   assert.equal(
     manualFiles.includes("src/manual/11-Agent-Copilot-Operating-Standard.md"),
     true
@@ -49,6 +53,10 @@ test("package contract keeps the manual and tool surface portable", async () => 
     manualFiles.includes(
       "src/manual/12-Horizontal-Engineering-and-Codebase-Stewardship-Standard.md"
     ),
+    true
+  );
+  assert.equal(
+    manualFiles.includes("src/manual/13-RUDI-Agentic-Engineering-Standard.md"),
     true
   );
   const manualContent = (await Promise.all(

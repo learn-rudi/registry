@@ -1,0 +1,4 @@
+interface:
+  display_name: "RUDI Worktree Closeout"
+  short_description: "Classify and preserve worktree closeout evidence"
+  default_prompt: "Use $rudi-worktree-closeout to classify this exact worktree and record a non-mutating closeout receipt."
