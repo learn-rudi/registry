@@ -1,14 +1,14 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-08-28T02:23:25.000Z",
+  "generatedAt": "2026-08-29T22:17:01.000Z",
   "stats": {
-    "total": 158,
+    "total": 159,
     "byKind": {
       "agent": 4,
       "binary": 27,
       "runtime": 5,
-      "skill": 72,
+      "skill": 73,
       "stack": 50
     }
   },
@@ -2775,6 +2775,29 @@
           "receipts",
           "lineage",
           "preservation"
+        ]
+      }
+    },
+    "skill:set-goal-and-execute": {
+      "id": "skill:set-goal-and-execute",
+      "kind": "skill",
+      "name": "set-goal-and-execute",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/set-goal-and-execute"
+      },
+      "meta": {
+        "description": "Turn an explicitly approved brief into a durable active goal and execute it end to end through implementation and verification. Use when the user says \"set the goal and execute,\" invokes $set-goal-and-execute, or unmistakably requests this exact goal-driven execution mode; do not use for planning-only, review-only, or ordinary task requests.",
+        "category": "development",
+        "tags": [
+          "rudi",
+          "goals",
+          "execution",
+          "verification",
+          "authority",
+          "workflow"
         ]
       }
     },
