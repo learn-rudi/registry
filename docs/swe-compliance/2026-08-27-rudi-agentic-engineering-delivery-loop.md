@@ -1,6 +1,6 @@
 # RUDI Agentic Engineering Standard And Delivery Loop
 
-Status: Registry reconciliation source-edit gate complete; uncommitted and
+Status: Registry refresh source-edit gate complete; uncommitted and
 unpublished
 
 ## Phase 0: Baseline And Manual Lookup
@@ -326,3 +326,66 @@ unpublished
 - Reconciliation verdict: PASS within the source-edit gate. The staged merge
   is ready for a separately approved local commit gate; no commit or external
   action has occurred.
+
+## Registry Refresh Source-Edit Gate
+
+- Authority received: preserve local reconciliation commit
+  `9c35b66a8fb3f728972575db772059be8577e1f2` and reconcile it without history
+  rewriting against the then-current `origin/main`. Commit, push, pull request,
+  completed merge into `main`, publication, installation, Mac synchronization,
+  and worktree cleanup remain prohibited.
+- Refreshed mainline: `origin/main`
+  `e7a84e2bd006d27db6d9db29e0e23684ab65613d`, two commits beyond the prior
+  base. Its canonical source addition is the governed Brave Search skill and
+  stack plus its compliance evidence; generated `index.json` is the only path
+  shared with the RUDI Delivery Loop reconciliation.
+- Reconciliation method: local `git merge --no-commit --no-ff origin/main`.
+  `HEAD` remains `9c35b66...` and `MERGE_HEAD` is `e7a84e2...`; this is an
+  uncommitted reconciliation state, not a completed or published merge.
+- Conflict result: generated `index.json` was the sole conflict. No canonical
+  skill, stack, test, manual, or documentation source conflicted. The index was
+  regenerated with `npm run indexes:sync`, not edited by hand, and now contains
+  all 158 packages including `runtime:python`, `skill:rudi-worktree-closeout`,
+  `skill:brave-search`, and `stack:brave-search`.
+- Generator evidence: 831 catalog files, 72 skills, 50 stacks, and generated
+  catalog root `3b65e4cfa3bf4a3c...`. The first dependency projection placed a
+  symlink beneath an existing ignored `node_modules` cache and therefore could
+  not resolve `tsx`; the conflicted bytes were never accepted as final. The
+  cache was preserved outside the worktree, the existing dependency directory
+  was projected at the correct root, and the exact Registry generator then
+  succeeded without installation or package mutation.
+- Red-green note: this refresh adds no behavior beyond two already tested
+  histories. A new red test would not drive an implementation, so proof is
+  coexistence smoke, focused regression, full Registry verification, and an
+  independent read-only reconciliation review.
+- Horizontal disposition: no new semantic implementation. Preserve the
+  independent Brave Search stack and RUDI Delivery Loop capabilities as their
+  accepted owners; only the generated catalog projection is combined.
+- Focused proof: RUDI portable workflow and Chief of Staff passed 16/16, Repo
+  Steward passed 21/21, SWE Engineering passed 6/6, and Brave Search passed
+  16/16 when run alone. Brave Search's MCP test initially exceeded its
+  one-second response deadline while four suites ran concurrently after 15
+  other passing behaviors; the unchanged isolated rerun passed in 724 ms.
+- Full-suite proof: the first root run passed 251/253 but the compiler
+  determinism test exceeded its fixed five-second timeout under load, after
+  which a sibling assertion observed the interrupted generated file. The
+  compiler suite then passed 22/22 in isolation, and the unchanged complete
+  root rerun passed all 29 files and 253/253 tests.
+- Registry-prescribed proof: `npm run validate` passed 158/158 packages;
+  `npm run indexes:sync` and `npm run indexes:check` passed with 831 catalog
+  files and root `3b65e4cfa3bf4a3c...`; `npm run catalog:clean:check` planned
+  zero targets; `npm run build` passed; and `npm pack --dry-run --json` passed
+  with 1,005 entries.
+- Additional proof: the Brave Search source-scoped debt scan and root debt scan
+  reported zero findings, `npm run release:verify` verified seven hashes, and
+  staged and unstaged `git diff --check` passed. The previously accepted Repo
+  Steward no-growth-baseline gap is unchanged and outside this refresh.
+- Independent fresh-context read-only review: PASS with no blocking finding.
+  It confirmed `HEAD=9c35b66...`, `MERGE_HEAD=e7a84e2...`, exactly 13 staged
+  paths, all 28 Delivery Loop implementation paths byte-identical to `HEAD`,
+  all 10 Brave Search catalog paths byte-identical to `MERGE_HEAD`, and
+  byte-identical root and distribution indexes with SHA-256 prefix
+  `2252d915...`.
+- Final verdict: PASS for this refresh source-edit gate. The conflict-free
+  reconciliation remains uncommitted and unpublished pending a separately
+  approved commit gate.

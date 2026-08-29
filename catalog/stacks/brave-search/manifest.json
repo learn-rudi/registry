@@ -1,0 +1,57 @@
+{
+  "id": "stack:brave-search",
+  "kind": "stack",
+  "name": "Brave Search",
+  "version": "0.1.0",
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/brave-search"
+  },
+  "runtime": "node",
+  "requires": {
+    "binaries": [],
+    "secrets": [
+      {
+        "key": "BRAVE_SEARCH_API_KEY",
+        "label": "Brave Search API key",
+        "required": true,
+        "helpUrl": "https://api-dashboard.search.brave.com/app/keys"
+      }
+    ]
+  },
+  "provides": {
+    "tools": [
+      "brave_web_search"
+    ]
+  },
+  "mcp": {
+    "transport": "stdio",
+    "command": "node",
+    "args": [
+      "src/index.js"
+    ],
+    "cwd": "."
+  },
+  "meta": {
+    "description": "Read-only Brave web search with bounded input validation, retries, safe provider errors, and normalized result rows.",
+    "author": "RUDI",
+    "license": "MIT",
+    "category": "search",
+    "tags": [
+      "brave",
+      "search",
+      "web",
+      "discovery",
+      "research"
+    ],
+    "boundary": "Provider transport only. The stack does not own query plans, persistence, editorial provenance, annotations, clustering, promotion, or publication. Callers are responsible for confirming that their Brave plan permits any storage of API results.",
+    "secretGuidance": "Keep BRAVE_SEARCH_API_KEY in RUDI secret state. The router injects it only into this stack process; never expose it in agent prompts, logs, artifacts, or tool output."
+  },
+  "related": {
+    "operatorSkill": "skill:brave-search",
+    "skills": [
+      "skill:brave-search"
+    ]
+  }
+}
