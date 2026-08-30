@@ -4,10 +4,12 @@ Objective: extend `stack:rudi-share` with a backward-compatible,
 tailnet-private static preview access mode while preserving the existing
 Anyone-with-the-link provider and the four existing MCP tool names.
 
-Current verdict: **PR-READY — the implementation is tracked by public issue
-#52, refreshed onto current `origin/main`, independently reviewed with no open
-blocker/high/medium finding, and verified locally. Publication, CI, merge, and
-worktree closeout remain phase-gated.**
+Current verdict: **PR OPEN — PR #54 is linked to public issue #52. Initial
+platform validation passed; the combined job exposed the repository's 800-line
+new-module gate. The exact failure is reproduced and the responsibility-based
+module/test split is locally green and independently approved with no open
+blocker/high/medium finding. CI retry, merge, and worktree closeout remain
+phase-gated.**
 
 ## Phase 0: Baseline And Manual Lookup — Complete
 
@@ -142,7 +144,9 @@ red evidence.
 - [x] Coherent issue-referenced commit slices:
   1. `99cc05e` — artifact/host boundary;
   2. `4bf71c7` — private lifecycle plus workflow/MCP compatibility;
-  3. docs/contracts/index/compliance evidence in the following commit.
+  3. `7bde632` — docs/contracts/index/compliance evidence;
+  4. PR CI architecture remediation and updated evidence in the following
+     commit.
 
 ## Phase 5: Full Verification — Complete
 
@@ -213,18 +217,27 @@ Exact changed paths:
 - `catalog/stacks/rudi-share/src/package-contract.test.ts`
 - `catalog/stacks/rudi-share/src/preview-host.test.ts` (new)
 - `catalog/stacks/rudi-share/src/preview-host.ts` (new)
-- `catalog/stacks/rudi-share/src/private-preview.test.ts` (new)
+- `catalog/stacks/rudi-share/src/private-preview-cleanup.test.ts` (new)
+- `catalog/stacks/rudi-share/src/private-preview-contract.ts` (new)
+- `catalog/stacks/rudi-share/src/private-preview-host.test.ts` (new)
+- `catalog/stacks/rudi-share/src/private-preview-host.ts` (new)
+- `catalog/stacks/rudi-share/src/private-preview-publish.test.ts` (new)
+- `catalog/stacks/rudi-share/src/private-preview-service.ts` (new)
+- `catalog/stacks/rudi-share/src/private-preview-state.test.ts` (new)
 - `catalog/stacks/rudi-share/src/private-preview.ts` (new)
+- `catalog/stacks/rudi-share/src/tailscale-serve.test.ts` (new)
+- `catalog/stacks/rudi-share/src/tailscale-serve.ts` (new)
 - `catalog/stacks/rudi-share/src/workflow.test.ts`
 - `catalog/stacks/rudi-share/src/workflow.ts`
 - `docs/adr/0011-rudi-share-private-preview-provider.md` (new)
 - `docs/swe-compliance/2026-08-29-rudi-share-tailnet-private-preview.md` (new)
 - `index.json` (generated only through `npm run indexes:sync`)
 
-Publication status at this proof freeze: source changes are committed in the
-two issue-referenced commits above; documentation/index evidence is staged only
-after regeneration. No push, PR, merge, registry release, package publication,
-admin-Mac deployment, or unrelated-repo mutation has been performed yet.
+Publication status: three issue-referenced commits are pushed and public PR
+[#54](https://github.com/learnrudi/registry/pull/54) is open. The CI-driven
+architecture split and refreshed evidence remain uncommitted at this proof
+point. No merge, registry release, package publication, admin-Mac deployment,
+or unrelated-repo mutation has been performed.
 
 Accepted debt and proof gaps:
 
@@ -383,18 +396,38 @@ merge, and closeout are still pending.**
   for that harness correction.
 - [x] Exact smoke cleanup proof: harness absent, temporary roots zero, matching
   preview-host processes zero, and Serve ports exactly `[443]`.
+- [x] Opened public PR
+  [#54](https://github.com/learnrudi/registry/pull/54) with `Fixes #52`, this
+  ledger, local proof, accepted debt, and exact closeout plan.
+- [x] Initial PR CI: Ubuntu, macOS, and Windows validation passed. The combined
+  `Test, Build & Verify` job failed only at `stacks:verify` because the new
+  `private-preview.ts` (2,030 lines) and `private-preview.test.ts` (2,175 lines)
+  exceeded the repository's 800-line new-module limit.
+- [x] Reproduced the CI failure locally with
+  `npm run stacks:verify -- --changed-from origin/main --prepare`, then split by
+  responsibility into contract/state, managed-host, Tailscale-adapter, and
+  lifecycle-service modules plus five focused test modules. Final implementation
+  modules are 23–759 lines and test modules are 299–565 lines.
+- [x] Unchanged behavior after the split: **46/46 tests passed** on Node 25 and
+  Node 20.10; TypeScript passed; the exact changed-stack verifier passed; the
+  refreshed 19-path JS/TS debt scan reported zero findings.
 - [x] Latest current-main repository gates after PR #53 integration:
   - `npm test` — **29 files, 255 tests passed**;
   - `npm run validate` — **159 packages passed**;
-  - `npm run indexes:sync` and `npm run indexes:check` — **159 packages, 837
+  - `npm run indexes:sync` and `npm run indexes:check` — **159 packages, 845
     files**, current generated index; pre-ledger-refresh catalog root began
-    `e5635f17135fafdc`;
+    `cc1cf1588302d988`;
   - `npm run catalog:clean:check` — zero targets;
   - `npm run build` — passed;
-  - `npm pack --dry-run --json` — exit 0, 1,010 entries, 2,397,202 packed
-    bytes, 10,951,468 unpacked bytes;
+  - `npm pack --dry-run --json` — exit 0, 1,018 entries, 2,400,203 packed
+    bytes, 10,957,028 unpacked bytes before this evidence-line refresh;
   - `git diff --check` — clean.
 - [x] Fresh independent review recorded: no blocker/high/medium finding remains.
+  Post-split review confirmed the public barrel preserves every prior export,
+  all 64 top-level declarations and 31 former monolith tests remain exactly
+  once, the import graph is acyclic, and child-host path resolution remains
+  portable. Its non-blocking broad-import/duplicate-helper suggestion was
+  applied before the CI retry.
 - [ ] Record linked PR CI evidence.
 - [ ] Create coherent issue-referenced commits, push, open/merge the linked PR,
   close the issue, and remove only the finished isolated worktree/local branch.
