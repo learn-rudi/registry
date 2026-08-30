@@ -41,10 +41,20 @@ test('package contract preserves the portable Share surface and companion workfl
     manifest.requires.secrets.map((secret: { key: string }) => secret.key),
     ['RUDI_SHARE_API_URL', 'RUDI_SHARE_TOKEN']
   )
+  assert.equal(
+    manifest.requires.secrets.every(
+      (secret: { required?: boolean }) => secret.required === false
+    ),
+    true
+  )
+  assert.match(manifest.meta.description, /tailnet-private/i)
+  assert.match(manifest.meta.description, /Anyone-with-the-link/i)
   assert.match(skill, /name: Share Web App/)
   assert.match(skill, /stack:rudi-share/)
   assert.match(skill, /rudi_share_publish/)
   assert.match(skill, /rudi_share_unpublish/)
+  assert.match(skill, /Tailnet private/)
+  assert.match(skill, /Anyone with the link/)
 
   const packageFiles = await collectTextFiles(stackRoot)
   const packageContent = (await Promise.all(

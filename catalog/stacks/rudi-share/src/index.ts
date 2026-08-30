@@ -12,7 +12,16 @@ import {
 import { ArtifactPackagingError } from './artifact.js'
 import { createRudiShareClient, RudiShareApiError } from './client.js'
 import { preflightProject } from './core.js'
-import { createShareWorkflow } from './workflow.js'
+import {
+  createPrivatePreviewService,
+  PrivatePreviewError,
+} from './private-preview.js'
+import {
+  createShareWorkflow,
+  ShareWorkflowError,
+  type ShareAccess,
+  type ShareProvider,
+} from './workflow.js'
 
 type JsonRecord = Record<string, unknown>
 type ShareWorkflow = ReturnType<typeof createShareWorkflow>
@@ -72,6 +81,27 @@ function optionalString(
   return requiredString(input, field, maxLength)
 }
 
+function optionalBoolean(input: JsonRecord, field: string): boolean | undefined {
+  if (input[field] === undefined) return undefined
+  return requiredBoolean(input, field)
+}
+
+function optionalEnum<T extends string>(
+  input: JsonRecord,
+  field: string,
+  values: readonly T[]
+): T | undefined {
+  if (input[field] === undefined) return undefined
+  const value = requiredString(input, field)
+  if (!values.includes(value as T)) {
+    throw new ToolInputError(
+      'INVALID_INPUT',
+      `${field} must be one of: ${values.join(', ')}.`
+    )
+  }
+  return value as T
+}
+
 function successResponse(value: unknown) {
   return {
     content: [{ type: 'text' as const, text: JSON.stringify(value, null, 2) }],
@@ -90,6 +120,15 @@ function errorResponse(error: unknown) {
       message: 'RUDI Share could not complete the request.',
       retryable: error.retryable,
     }
+  } else if (error instanceof PrivatePreviewError) {
+    body = {
+      code: error.code,
+      message: error.message,
+      retryable: error.retryable,
+      ...(error.receipt ? { details: error.receipt } : {}),
+    } as typeof body
+  } else if (error instanceof ShareWorkflowError) {
+    body = { code: error.code, message: error.message, retryable: false }
   } else {
     body = {
       code: 'TOOL_OPERATION_FAILED',
@@ -109,12 +148,22 @@ function errorResponse(error: unknown) {
 }
 
 function configuredWorkflow(): ShareWorkflow {
-  const apiUrl = process.env.RUDI_SHARE_API_URL
-  const publisherToken = process.env.RUDI_SHARE_TOKEN
-  if (!apiUrl) throw new Error('RUDI_SHARE_API_URL is required.')
-  if (!publisherToken) throw new Error('RUDI_SHARE_TOKEN is required.')
+  let publicClient: ReturnType<typeof createRudiShareClient> | undefined
   return createShareWorkflow({
-    client: createRudiShareClient({ apiUrl, publisherToken }),
+    getPublicClient() {
+      if (publicClient) return publicClient
+      const apiUrl = process.env.RUDI_SHARE_API_URL
+      const publisherToken = process.env.RUDI_SHARE_TOKEN
+      if (!apiUrl || !publisherToken) {
+        throw new ShareWorkflowError(
+          'PUBLIC_PROVIDER_NOT_CONFIGURED',
+          'Anyone-with-the-link publication requires RUDI Share cloud configuration.'
+        )
+      }
+      publicClient = createRudiShareClient({ apiUrl, publisherToken })
+      return publicClient
+    },
+    privatePreview: createPrivatePreviewService(),
   })
 }
 
@@ -122,7 +171,7 @@ export function createServer(options: CreateServerOptions = {}): Server {
   const workflow = options.workflow ?? configuredWorkflow()
   const preflight = options.preflight ?? preflightProject
   const server = new Server(
-    { name: 'rudi-share', version: '0.1.0' },
+    { name: 'rudi-share', version: '0.2.0' },
     { capabilities: { tools: {} } }
   )
 
@@ -147,7 +196,7 @@ export function createServer(options: CreateServerOptions = {}): Server {
       {
         name: 'rudi_share_publish',
         description:
-          'After explicit user approval, create an Anyone-with-the-link share. With artifact_path, package and upload it directly. Without artifact_path, return a one-time signed upload target for the caller shell.',
+          'After explicit approval, publish a static artifact either as an Anyone-with-the-link remote share or a tailnet-private managed preview. Tailnet-private mode requires artifact_path and hides loopback host and Serve lifecycle details.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -157,6 +206,23 @@ export function createServer(options: CreateServerOptions = {}): Server {
               type: 'boolean',
               description:
                 'Must be true only after the user approves creating a forwardable public URL.',
+            },
+            confirm_tailnet_access: {
+              type: 'boolean',
+              description:
+                'Must be true only after the user approves exposing the selected static artifact to devices allowed by current tailnet policy.',
+            },
+            access: {
+              type: 'string',
+              enum: ['anyone_with_link', 'tailnet_private'],
+              description:
+                'Access mode. Omit for backward-compatible Anyone-with-the-link publication.',
+            },
+            provider: {
+              type: 'string',
+              enum: ['rudi_share_service', 'tailscale_serve'],
+              description:
+                'Southbound provider. Omit for the provider implied by access.',
             },
             artifact_path: {
               type: 'string',
@@ -170,10 +236,21 @@ export function createServer(options: CreateServerOptions = {}): Server {
       },
       {
         name: 'rudi_share_get',
-        description: 'Get the owner-visible status and public URL for a RUDI Share.',
+        description:
+          'Get owner-visible provider, access, URL, health, artifact provenance, and timestamps for a public share or tailnet-private preview.',
         inputSchema: {
           type: 'object',
-          properties: { share_id: { type: 'string', maxLength: 128 } },
+          properties: {
+            share_id: { type: 'string', maxLength: 128 },
+            access: {
+              type: 'string',
+              enum: ['anyone_with_link', 'tailnet_private'],
+            },
+            provider: {
+              type: 'string',
+              enum: ['rudi_share_service', 'tailscale_serve'],
+            },
+          },
           required: ['share_id'],
           additionalProperties: false,
         },
@@ -181,7 +258,7 @@ export function createServer(options: CreateServerOptions = {}): Server {
       {
         name: 'rudi_share_unpublish',
         description:
-          'After explicit user approval, immediately revoke a RUDI Share public URL.',
+          'After explicit user approval, immediately revoke the selected public or tailnet-private RUDI Share URL.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -190,6 +267,14 @@ export function createServer(options: CreateServerOptions = {}): Server {
             confirm_unpublish: {
               type: 'boolean',
               description: 'Must be true only after the user approves immediate revocation.',
+            },
+            access: {
+              type: 'string',
+              enum: ['anyone_with_link', 'tailnet_private'],
+            },
+            provider: {
+              type: 'string',
+              enum: ['rudi_share_service', 'tailscale_serve'],
             },
           },
           required: ['share_id', 'idempotency_key', 'confirm_unpublish'],
@@ -213,12 +298,32 @@ export function createServer(options: CreateServerOptions = {}): Server {
               name: requiredString(input, 'name', 120),
               idempotencyKey: requiredString(input, 'idempotency_key'),
               confirmPublication: requiredBoolean(input, 'confirm_publication'),
+              confirmTailnetAccess:
+                optionalBoolean(input, 'confirm_tailnet_access'),
+              access: optionalEnum<ShareAccess>(input, 'access', [
+                'anyone_with_link',
+                'tailnet_private',
+              ]),
+              provider: optionalEnum<ShareProvider>(input, 'provider', [
+                'rudi_share_service',
+                'tailscale_serve',
+              ]),
               artifactPath: optionalString(input, 'artifact_path'),
             })
           )
         case 'rudi_share_get':
           return successResponse(
-            await workflow.get(requiredString(input, 'share_id'))
+            await workflow.get({
+              shareId: requiredString(input, 'share_id'),
+              access: optionalEnum<ShareAccess>(input, 'access', [
+                'anyone_with_link',
+                'tailnet_private',
+              ]),
+              provider: optionalEnum<ShareProvider>(input, 'provider', [
+                'rudi_share_service',
+                'tailscale_serve',
+              ]),
+            })
           )
         case 'rudi_share_unpublish':
           return successResponse(
@@ -226,6 +331,14 @@ export function createServer(options: CreateServerOptions = {}): Server {
               shareId: requiredString(input, 'share_id'),
               idempotencyKey: requiredString(input, 'idempotency_key'),
               confirmUnpublish: requiredBoolean(input, 'confirm_unpublish'),
+              access: optionalEnum<ShareAccess>(input, 'access', [
+                'anyone_with_link',
+                'tailnet_private',
+              ]),
+              provider: optionalEnum<ShareProvider>(input, 'provider', [
+                'rudi_share_service',
+                'tailscale_serve',
+              ]),
             })
           )
         default:

@@ -1,6 +1,16 @@
-import { createHash } from 'node:crypto'
-import { lstat, readdir, readFile, realpath } from 'node:fs/promises'
-import { isAbsolute, join, relative, sep } from 'node:path'
+import { createHash, randomUUID } from 'node:crypto'
+import { constants as fsConstants, type BigIntStats } from 'node:fs'
+import {
+  lstat,
+  mkdir,
+  open,
+  readdir,
+  realpath,
+  rename,
+  rm,
+  writeFile,
+} from 'node:fs/promises'
+import { basename, dirname, isAbsolute, join, relative, sep } from 'node:path'
 
 const TAR_BLOCK_BYTES = 512
 const MAX_TAR_BYTES = 25 * 1024 * 1024
@@ -35,9 +45,24 @@ export interface PackedStaticArtifact {
   manifest: ArtifactManifest
 }
 
+export interface MaterializedStaticArtifact {
+  root: string
+  manifest: ArtifactManifest
+}
+
 interface ArtifactFile {
   path: string
   content: Buffer
+}
+
+interface ArtifactReadOptions {
+  beforeFileOpen?: (absolutePath: string) => Promise<void>
+}
+
+interface PinnedRoot {
+  path: string
+  identity: BigIntStats
+  handle: Awaited<ReturnType<typeof open>>
 }
 
 function forbiddenPath(path: string): boolean {
@@ -126,16 +151,145 @@ function normalizeRelativePath(root: string, absolutePath: string): string {
   return path
 }
 
-async function collectFiles(root: string): Promise<ArtifactFile[]> {
+function sameIdentity(left: BigIntStats, right: BigIntStats): boolean {
+  return (
+    left.dev === right.dev &&
+    left.ino === right.ino &&
+    left.mode === right.mode &&
+    left.nlink === right.nlink &&
+    left.size === right.size &&
+    left.mtimeNs === right.mtimeNs &&
+    left.ctimeNs === right.ctimeNs
+  )
+}
+
+function changedArtifact(): ArtifactPackagingError {
+  return new ArtifactPackagingError(
+    'INVALID_ARTIFACT_PATH',
+    'Artifact changed while it was being validated.'
+  )
+}
+
+function unsupportedArtifactEntry(): ArtifactPackagingError {
+  return new ArtifactPackagingError(
+    'UNSUPPORTED_ARTIFACT_ENTRY',
+    'Artifact can contain regular non-linked files only.'
+  )
+}
+
+function noFollowFlags(directory = false): number {
+  // Windows/libuv exposes no atomic O_NOFOLLOW flag. On those platforms the
+  // opened descriptor is still compared with the pre-open identity and the
+  // post-read pathname/realpath before any bytes can enter the artifact.
+  const noFollowFlag =
+    typeof fsConstants.O_NOFOLLOW === 'number' ? fsConstants.O_NOFOLLOW : 0
+  const directoryFlag = directory && typeof fsConstants.O_DIRECTORY === 'number'
+    ? fsConstants.O_DIRECTORY
+    : 0
+  return fsConstants.O_RDONLY | noFollowFlag | directoryFlag
+}
+
+async function assertPinnedRoot(root: PinnedRoot): Promise<void> {
+  try {
+    const [opened, current, resolved] = await Promise.all([
+      root.handle.stat({ bigint: true }),
+      lstat(root.path, { bigint: true }),
+      realpath(root.path),
+    ])
+    if (
+      !opened.isDirectory() ||
+      !current.isDirectory() ||
+      resolved !== root.path ||
+      !sameIdentity(root.identity, opened) ||
+      !sameIdentity(root.identity, current)
+    ) {
+      throw changedArtifact()
+    }
+  } catch (error) {
+    if (error instanceof ArtifactPackagingError) throw error
+    throw changedArtifact()
+  }
+}
+
+async function readPinnedFile(
+  root: PinnedRoot,
+  absolutePath: string,
+  expected: BigIntStats,
+  options: ArtifactReadOptions
+): Promise<Buffer> {
+  await options.beforeFileOpen?.(absolutePath)
+  await assertPinnedRoot(root)
+
+  let handle: Awaited<ReturnType<typeof open>>
+  try {
+    const resolved = await realpath(absolutePath)
+    if (resolved !== absolutePath) throw unsupportedArtifactEntry()
+    handle = await open(absolutePath, noFollowFlags())
+  } catch (error) {
+    if (error instanceof ArtifactPackagingError) throw error
+    if (
+      error instanceof Error &&
+      'code' in error &&
+      ['ELOOP', 'EMLINK', 'EFTYPE'].includes(String(error.code))
+    ) {
+      throw unsupportedArtifactEntry()
+    }
+    throw changedArtifact()
+  }
+
+  try {
+    const opened = await handle.stat({ bigint: true })
+    if (
+      !opened.isFile() ||
+      opened.nlink !== 1n ||
+      !sameIdentity(expected, opened)
+    ) {
+      throw unsupportedArtifactEntry()
+    }
+    const content = await handle.readFile()
+    const afterRead = await handle.stat({ bigint: true })
+    if (
+      !sameIdentity(opened, afterRead) ||
+      afterRead.size !== BigInt(content.length)
+    ) {
+      throw changedArtifact()
+    }
+    const [current, resolvedAfter] = await Promise.all([
+      lstat(absolutePath, { bigint: true }),
+      realpath(absolutePath),
+    ])
+    if (
+      resolvedAfter !== absolutePath ||
+      !current.isFile() ||
+      !sameIdentity(opened, current)
+    ) {
+      throw changedArtifact()
+    }
+    await assertPinnedRoot(root)
+    return content
+  } catch (error) {
+    if (error instanceof ArtifactPackagingError) throw error
+    throw changedArtifact()
+  } finally {
+    await handle.close()
+  }
+}
+
+async function collectFiles(
+  root: PinnedRoot,
+  options: ArtifactReadOptions
+): Promise<ArtifactFile[]> {
   const files: ArtifactFile[] = []
   const collisions = new Set<string>()
+  let encodedBytes = TAR_BLOCK_BYTES * 2
 
   async function walk(directory: string): Promise<void> {
+    await assertPinnedRoot(root)
     const entries = await readdir(directory, { withFileTypes: true })
     entries.sort((left, right) => left.name.localeCompare(right.name, 'en'))
     for (const entry of entries) {
       const absolutePath = join(directory, entry.name)
-      const info = await lstat(absolutePath)
+      const info = await lstat(absolutePath, { bigint: true })
       if (info.isSymbolicLink()) {
         throw new ArtifactPackagingError(
           'UNSUPPORTED_ARTIFACT_ENTRY',
@@ -153,7 +307,7 @@ async function collectFiles(root: string): Promise<ArtifactFile[]> {
         )
       }
 
-      const path = normalizeRelativePath(root, absolutePath)
+      const path = normalizeRelativePath(root.path, absolutePath)
       if (forbiddenPath(path)) {
         throw new ArtifactPackagingError(
           'FORBIDDEN_ARTIFACT_FILE',
@@ -169,7 +323,24 @@ async function collectFiles(root: string): Promise<ArtifactFile[]> {
       }
       collisions.add(collisionKey)
 
-      const content = await readFile(absolutePath)
+      if (info.size < 0n || info.size > BigInt(Number.MAX_SAFE_INTEGER)) {
+        throw new ArtifactPackagingError(
+          'ARTIFACT_LIMIT_EXCEEDED',
+          'Artifact contains a file with an unsupported size.'
+        )
+      }
+      const fileSize = Number(info.size)
+      const padding =
+        (TAR_BLOCK_BYTES - (fileSize % TAR_BLOCK_BYTES)) % TAR_BLOCK_BYTES
+      const nextEncodedBytes =
+        encodedBytes + TAR_BLOCK_BYTES + fileSize + padding
+      if (nextEncodedBytes > MAX_TAR_BYTES) {
+        throw new ArtifactPackagingError(
+          'ARTIFACT_LIMIT_EXCEEDED',
+          'Encoded artifact exceeds 25 MiB.'
+        )
+      }
+      const content = await readPinnedFile(root, absolutePath, info, options)
       if (containsLikelySecret(path, content)) {
         throw new ArtifactPackagingError(
           'SECRET_DETECTED',
@@ -177,6 +348,7 @@ async function collectFiles(root: string): Promise<ArtifactFile[]> {
         )
       }
       files.push({ path, content })
+      encodedBytes = nextEncodedBytes
       if (files.length > MAX_FILES) {
         throw new ArtifactPackagingError(
           'ARTIFACT_LIMIT_EXCEEDED',
@@ -186,7 +358,8 @@ async function collectFiles(root: string): Promise<ArtifactFile[]> {
     }
   }
 
-  await walk(root)
+  await walk(root.path)
+  await assertPinnedRoot(root)
   files.sort((left, right) => left.path.localeCompare(right.path, 'en'))
   if (!files.some((file) => file.path === 'index.html')) {
     throw new ArtifactPackagingError(
@@ -195,6 +368,39 @@ async function collectFiles(root: string): Promise<ArtifactFile[]> {
     )
   }
   return files
+}
+
+async function readArtifactFiles(
+  inputPath: string,
+  options: ArtifactReadOptions = {}
+): Promise<ArtifactFile[]> {
+  if (!isAbsolute(inputPath)) {
+    throw new ArtifactPackagingError(
+      'INVALID_ARTIFACT_PATH',
+      'artifact_path must be absolute.'
+    )
+  }
+  const root = await realpath(inputPath)
+  const identity = await lstat(root, { bigint: true })
+  if (!identity.isDirectory()) {
+    throw new ArtifactPackagingError(
+      'INVALID_ARTIFACT_PATH',
+      'artifact_path must identify a directory.'
+    )
+  }
+  let handle: Awaited<ReturnType<typeof open>>
+  try {
+    handle = await open(root, noFollowFlags(true))
+  } catch {
+    throw unsupportedArtifactEntry()
+  }
+  const pinnedRoot = { path: root, identity, handle }
+  try {
+    await assertPinnedRoot(pinnedRoot)
+    return await collectFiles(pinnedRoot, options)
+  } finally {
+    await handle.close()
+  }
 }
 
 function writeString(buffer: Buffer, offset: number, length: number, value: string) {
@@ -245,22 +451,14 @@ function tarHeader(path: string, size: number): Buffer {
 }
 
 export async function packStaticArtifact(
-  inputPath: string
+  inputPath: string,
+  options: ArtifactReadOptions = {}
 ): Promise<PackedStaticArtifact> {
-  if (!isAbsolute(inputPath)) {
-    throw new ArtifactPackagingError(
-      'INVALID_ARTIFACT_PATH',
-      'artifact_path must be absolute.'
-    )
-  }
-  const root = await realpath(inputPath)
-  if (!(await lstat(root)).isDirectory()) {
-    throw new ArtifactPackagingError(
-      'INVALID_ARTIFACT_PATH',
-      'artifact_path must identify a directory.'
-    )
-  }
-  const files = await collectFiles(root)
+  const files = await readArtifactFiles(inputPath, options)
+  return packFiles(files)
+}
+
+function packFiles(files: ArtifactFile[]): PackedStaticArtifact {
   const chunks: Buffer[] = []
   for (const file of files) {
     chunks.push(tarHeader(file.path, file.content.length), file.content)
@@ -285,4 +483,50 @@ export async function packStaticArtifact(
       files: files.map((file) => ({ path: file.path, bytes: file.content.length })),
     },
   }
+}
+
+export async function materializeStaticArtifact(
+  inputPath: string,
+  destinationPath: string
+): Promise<MaterializedStaticArtifact> {
+  if (!isAbsolute(destinationPath)) {
+    throw new ArtifactPackagingError(
+      'INVALID_ARTIFACT_PATH',
+      'Artifact destination must be absolute.'
+    )
+  }
+
+  const files = await readArtifactFiles(inputPath)
+  const packed = packFiles(files)
+  const parent = dirname(destinationPath)
+  const staging = join(
+    parent,
+    `.${basename(destinationPath)}.${process.pid}.${randomUUID()}.tmp`
+  )
+  await mkdir(parent, { recursive: true, mode: 0o700 })
+  await mkdir(staging, { mode: 0o700 })
+
+  try {
+    for (const file of files) {
+      const target = join(staging, ...file.path.split('/'))
+      await mkdir(dirname(target), { recursive: true, mode: 0o700 })
+      await writeFile(target, file.content, { mode: 0o600, flag: 'wx' })
+    }
+    await rename(staging, destinationPath)
+  } catch (error) {
+    await rm(staging, { recursive: true, force: true })
+    if (
+      error instanceof Error &&
+      'code' in error &&
+      ['EEXIST', 'ENOTEMPTY'].includes(String(error.code))
+    ) {
+      throw new ArtifactPackagingError(
+        'INVALID_ARTIFACT_PATH',
+        'Artifact destination already exists.'
+      )
+    }
+    throw error
+  }
+
+  return { root: destinationPath, manifest: packed.manifest }
 }

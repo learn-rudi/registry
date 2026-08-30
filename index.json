@@ -1,7 +1,7 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-08-29T22:17:01.000Z",
+  "generatedAt": "2026-08-30T00:39:56.000Z",
   "stats": {
     "total": 159,
     "byKind": {
@@ -2805,7 +2805,7 @@
       "id": "skill:share-web-app",
       "kind": "skill",
       "name": "Share Web App",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -2817,7 +2817,7 @@
         ]
       },
       "meta": {
-        "description": "Publish a local vanilla, Vite, or React-Vite static app to a revocable RUDI Share URL when a user asks to share, publish, host, preview, or send an app to teammates without configuring GitHub, Vercel, Railway, or another hosting account.",
+        "description": "Publish or privately preview a local vanilla, Vite, or React-Vite static app through RUDI Share when a user asks to share, publish, host, preview, or open an app on a tailnet-connected mobile device.",
         "category": "deployment",
         "tags": [
           "sharing",
@@ -5632,7 +5632,7 @@
       "id": "stack:rudi-share",
       "kind": "stack",
       "name": "RUDI Share",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -5645,12 +5645,12 @@
           {
             "key": "RUDI_SHARE_API_URL",
             "label": "RUDI Share API URL",
-            "required": true
+            "required": false
           },
           {
             "key": "RUDI_SHARE_TOKEN",
             "label": "RUDI Share Publisher Token",
-            "required": true
+            "required": false
           }
         ]
       },
@@ -5678,7 +5678,7 @@
         "cwd": "."
       },
       "meta": {
-        "description": "Publish locally built vanilla, Vite, and React-Vite static apps to revocable Anyone-with-the-link URLs.",
+        "description": "Publish static apps through RUDI Share as revocable tailnet-private previews or Anyone-with-the-link URLs.",
         "author": "RUDI",
         "license": "MIT",
         "category": "deployment",
@@ -5688,6 +5688,8 @@
           "vite",
           "react",
           "deployment",
+          "private-preview",
+          "tailnet",
           "sharing"
         ],
         "icon": "cloud-upload"
