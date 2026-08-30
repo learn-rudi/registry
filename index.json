@@ -1,7 +1,7 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-08-30T00:26:19.000Z",
+  "generatedAt": "2026-08-30T00:39:56.000Z",
   "stats": {
     "total": 159,
     "byKind": {

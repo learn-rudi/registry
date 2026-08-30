@@ -4,12 +4,11 @@ Objective: extend `stack:rudi-share` with a backward-compatible,
 tailnet-private static preview access mode while preserving the existing
 Anyone-with-the-link provider and the four existing MCP tool names.
 
-Current verdict: **PR OPEN — PR #54 is linked to public issue #52. Initial
-platform validation passed; the combined job exposed the repository's 800-line
-new-module gate. The exact failure is reproduced and the responsibility-based
-module/test split is locally green and independently approved with no open
-blocker/high/medium finding. CI retry, merge, and worktree closeout remain
-phase-gated.**
+Current verdict: **PR GREEN AT CODE HEAD — PR #54 is linked to public issue
+#52. Code head `06141b8` passed Test/Build/Verify plus Ubuntu, macOS, and Windows
+validation after the repository-compliant module split. Independent review has
+no open blocker/high/medium finding. Final evidence-only CI, merge, and worktree
+closeout remain phase-gated.**
 
 ## Phase 0: Baseline And Manual Lookup — Complete
 
@@ -145,8 +144,8 @@ red evidence.
   1. `99cc05e` — artifact/host boundary;
   2. `4bf71c7` — private lifecycle plus workflow/MCP compatibility;
   3. `7bde632` — docs/contracts/index/compliance evidence;
-  4. PR CI architecture remediation and updated evidence in the following
-     commit.
+  4. `06141b8` — PR CI architecture remediation and refreshed proof;
+  5. linked CI evidence in the following documentation-only commit.
 
 ## Phase 5: Full Verification — Complete
 
@@ -233,11 +232,12 @@ Exact changed paths:
 - `docs/swe-compliance/2026-08-29-rudi-share-tailnet-private-preview.md` (new)
 - `index.json` (generated only through `npm run indexes:sync`)
 
-Publication status: three issue-referenced commits are pushed and public PR
+Publication status: four issue-referenced commits are pushed and public PR
 [#54](https://github.com/learnrudi/registry/pull/54) is open. The CI-driven
-architecture split and refreshed evidence remain uncommitted at this proof
-point. No merge, registry release, package publication, admin-Mac deployment,
-or unrelated-repo mutation has been performed.
+architecture split is green; only this final evidence refresh remains
+uncommitted at this proof point. No merge, registry release, package
+publication, admin-Mac deployment, or unrelated-repo mutation has been
+performed.
 
 Accepted debt and proof gaps:
 
@@ -411,6 +411,11 @@ merge, and closeout are still pending.**
 - [x] Unchanged behavior after the split: **46/46 tests passed** on Node 25 and
   Node 20.10; TypeScript passed; the exact changed-stack verifier passed; the
   refreshed 19-path JS/TS debt scan reported zero findings.
+- [x] PR #54 rerun on code head `06141b8` passed all required checks:
+  `Test, Build & Verify`, `Validate (ubuntu-latest)`,
+  `Validate (macos-latest)`, and `Validate (windows-latest)`. The release job
+  was correctly skipped for a pull request; zero checks failed or remained
+  pending.
 - [x] Latest current-main repository gates after PR #53 integration:
   - `npm test` — **29 files, 255 tests passed**;
   - `npm run validate` — **159 packages passed**;
@@ -428,6 +433,7 @@ merge, and closeout are still pending.**
   once, the import graph is acyclic, and child-host path resolution remains
   portable. Its non-blocking broad-import/duplicate-helper suggestion was
   applied before the CI retry.
-- [ ] Record linked PR CI evidence.
-- [ ] Create coherent issue-referenced commits, push, open/merge the linked PR,
-  close the issue, and remove only the finished isolated worktree/local branch.
+- [x] Linked PR CI evidence recorded for the complete code-bearing head.
+- [x] Create coherent issue-referenced commits, push, and open the linked PR.
+- [ ] Merge the green linked PR, verify issue closure, and remove only the
+  finished isolated worktree/local branch through the closeout receipt gate.
