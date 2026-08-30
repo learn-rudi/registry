@@ -2,7 +2,7 @@
   "id": "stack:rudi-share",
   "kind": "stack",
   "name": "RUDI Share",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "delivery": "remote",
   "install": {
     "source": "catalog",
@@ -15,12 +15,12 @@
       {
         "key": "RUDI_SHARE_API_URL",
         "label": "RUDI Share API URL",
-        "required": true
+        "required": false
       },
       {
         "key": "RUDI_SHARE_TOKEN",
         "label": "RUDI Share Publisher Token",
-        "required": true
+        "required": false
       }
     ]
   },
@@ -48,7 +48,7 @@
     "cwd": "."
   },
   "meta": {
-    "description": "Publish locally built vanilla, Vite, and React-Vite static apps to revocable Anyone-with-the-link URLs.",
+    "description": "Publish static apps through RUDI Share as revocable tailnet-private previews or Anyone-with-the-link URLs.",
     "author": "RUDI",
     "license": "MIT",
     "category": "deployment",
@@ -58,6 +58,8 @@
       "vite",
       "react",
       "deployment",
+      "private-preview",
+      "tailnet",
       "sharing"
     ],
     "icon": "cloud-upload"
