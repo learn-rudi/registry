@@ -9,7 +9,7 @@ const stackRoot = path.resolve(import.meta.dirname, '..');
 const wrapperPath = path.join(stackRoot, 'scripts', 'whisper-cpp-openai-wrapper.js');
 
 async function createFakeWhisper(tempDir) {
-  const fakePath = path.join(tempDir, 'fake-whisper-cli.mjs');
+  const fakePath = path.join(tempDir, 'whisper-cli');
   await writeFile(fakePath, `#!/usr/bin/env node
 import fs from 'node:fs';
 const args = process.argv.slice(2);
@@ -55,7 +55,9 @@ test('meeting mode uses VAD and glossary without DTW/full-token JSON', async () 
       encoding: 'utf8',
       env: {
         ...process.env,
-        WHISPER_CPP_BIN: fakeWhisper,
+        PATH: `${tempDir}:${process.env.PATH}`,
+        WHISPER_CPP_BIN: '',
+        AUDIO_TOOLS_WHISPER: '',
         WHISPER_CPP_MODEL: modelPath,
         WHISPER_CPP_VAD_MODEL: vadModelPath,
         WRAPPER_TEST_ARGS: argsPath

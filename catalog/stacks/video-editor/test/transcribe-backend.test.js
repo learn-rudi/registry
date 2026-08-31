@@ -72,7 +72,8 @@ fs.writeFileSync(outputBase + '.json', JSON.stringify({
     process.env.HOME = tempDir;
     process.env.PATH = `${fakeBinDir}:${priorEnv.PATH}`;
     process.env.WHISPER_ENGINE = 'whisper.cpp';
-    process.env.WHISPER_CPP_BIN = fakeWhisperCpp;
+    delete process.env.WHISPER_CPP_BIN;
+    delete process.env.AUDIO_TOOLS_WHISPER;
     process.env.WHISPER_CPP_MODEL = modelPath;
     process.env.WHISPER_CPP_VAD_MODEL = vadModelPath;
     process.env.WRAPPER_TEST_ARGS = whisperArgsPath;

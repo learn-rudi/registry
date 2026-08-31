@@ -85,11 +85,22 @@ function resolveWhisperCppModel(model) {
   return candidates.find((candidate) => existsSync(candidate)) || null;
 }
 
+function resolveOnPath(executable) {
+  const directories = String(process.env.PATH || '')
+    .split(path.delimiter)
+    .filter(Boolean);
+  return directories
+    .map((directory) => path.join(directory, executable))
+    .find((candidate) => existsSync(candidate)) || null;
+}
+
 function resolveWhisperCppBin() {
   const candidates = [
     process.env.WHISPER_CPP_BIN,
     process.env.AUDIO_TOOLS_WHISPER,
-    '/opt/homebrew/bin/whisper-cli'
+    resolveOnPath('whisper-cli'),
+    '/opt/homebrew/bin/whisper-cli',
+    '/usr/local/bin/whisper-cli'
   ].filter(Boolean);
   return candidates.find((candidate) => existsSync(candidate)) || null;
 }

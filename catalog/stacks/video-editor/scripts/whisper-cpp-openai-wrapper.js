@@ -30,10 +30,28 @@ function run(command, args) {
   }
 }
 
+function resolveOnPath(executable) {
+  const directories = String(process.env.PATH || "")
+    .split(path.delimiter)
+    .filter(Boolean);
+  return directories
+    .map((directory) => path.join(directory, executable))
+    .find((candidate) => existsSync(candidate)) || null;
+}
+
 function resolveWhisperCli() {
-  return process.env.WHISPER_CPP_BIN
-    || process.env.AUDIO_TOOLS_WHISPER
-    || "/opt/homebrew/bin/whisper-cli";
+  const candidates = [
+    process.env.WHISPER_CPP_BIN,
+    process.env.AUDIO_TOOLS_WHISPER,
+    resolveOnPath("whisper-cli"),
+    "/opt/homebrew/bin/whisper-cli",
+    "/usr/local/bin/whisper-cli"
+  ].filter(Boolean);
+  const whisperPath = candidates.find((candidate) => existsSync(candidate));
+  if (!whisperPath) {
+    throw new Error("whisper-cli was not found. Install whisper.cpp or set WHISPER_CPP_BIN.");
+  }
+  return whisperPath;
 }
 
 function resolveModel(modelArg) {

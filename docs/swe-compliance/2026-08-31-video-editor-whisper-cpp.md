@@ -16,8 +16,8 @@
 - Expected files touched: `catalog/stacks/video-editor/scripts/whisper-cpp-openai-wrapper.js`, structured transcription operation/config/schema/CLI/MCP adapters as required, focused tests, README/CHANGELOG, and this checklist.
 - External inputs and trust boundaries: media paths, model names/paths, glossary prompt, environment overrides, whisper.cpp JSON, and subprocess exit/output are untrusted and validated before use.
 - Failure behavior to define: explicit engine requests fail closed with actionable missing-binary/model/VAD errors; `auto` may fall back to Python with visible provenance; malformed whisper.cpp JSON fails before writing a transcript artifact.
-- Authorized external actions: download official model files to machine-local RUDI cache and benchmark locally. No commit, push, PR, merge, or deployment authorization is inferred.
-- Commit strategy and authorization: planned slice 1 is backend/contract/tests; slice 2 is docs/benchmark evidence. Both remain uncommitted unless separately authorized.
+- Authorized external actions: the initial authorization covered official model downloads and local benchmarks. The user subsequently authorized staging, committing, pushing, opening a draft PR, and bringing the Admin Mac to the same accepted source/runtime state. Merge remains outside scope.
+- Commit strategy and authorization: slice 1 committed the backend/contract/tests/docs; slice 2 adds the portability regression discovered during Admin deployment. Both remain reviewable on `codex/video-editor-whisper-cpp` and draft PR #56.
 - Horizontal-obligation disposition: standardize the structured-run contract now; investigate later consolidation of direct audio tools and the compatibility wrapper behind one owned adapter.
 - Review and approval gates: focused red/green tests, package suite/build, registry gates, debt scan, live benchmark, diff review, and documented independent-review gap if a fresh reviewer cannot be invoked.
 - Exit criteria: behavior, file boundary, failure semantics, and publication boundary are explicit.
@@ -43,7 +43,7 @@
 - Green command: rerun each focused red command unchanged.
 - Refactor constraints: only consolidate helpers needed to prevent wrapper/structured-run drift; do not absorb direct-tool redesign.
 - Regression checks: project schema defaults, CLI/MCP tool contract, downstream transcript consumers, and wrapper conversion fixtures.
-- Commit checkpoint: no commit authorized; keep task paths isolated in this worktree.
+- Commit checkpoint: keep task paths isolated in this worktree and stage only the explicit video-editor/index/compliance paths after authorization.
 - Exit criteria: focused tests remain green after any refactor.
 
 ## Phase 5: Full Verification
@@ -52,8 +52,8 @@
 - Full suite: `npm test` in `catalog/stacks/video-editor`.
 - Build/typecheck/lint: `npm run build`; registry-prescribed validation/index/package gates when catalog metadata changes.
 - JS/TS debt scan: scan only edited JS/TS files with the RUDI SWE debt scanner; errors block closure.
-- Live smoke checks: transcribe a representative five-minute section with `large-v3-turbo` + Metal + VAD + glossary; run meeting mode without DTW and editing mode with DTW/full JSON; validate schema and timing invariants.
-- Independent review: required read-only fresh-context review; if unavailable under the current no-delegation constraint, record as a proof gap and do not publish.
+- Live smoke checks: transcribe a representative five-minute section with `large-v3-turbo` + Metal + VAD + glossary; run meeting mode without DTW and editing mode with DTW/full JSON; validate schema and timing invariants; then run a synthetic Admin Mac smoke test through PATH discovery.
+- Independent review: a read-only fresh-context review was unavailable under the current no-delegation constraint. Record this as a proof gap; the user explicitly approved the draft-PR publication and Admin alignment with that gap disclosed.
 - Risk-tier approval: user reviews benchmark and diff before any publication/default rollout.
 - Exit criteria: tests/build/gates pass, benchmark evidence is reproducible, and no blocking review finding remains.
 
@@ -63,13 +63,13 @@
 - Final files touched: record after implementation.
 - Commands run and results: record exact red, green, build, debt, benchmark, and schema validation commands.
 - Evidence artifacts: completed baseline transcript; five-minute benchmark transcript/log/timing; model checksums; source video checksum.
-- Independent-review result: no independent fresh-context reviewer was invoked because delegation is disabled for this task; no registry publication was performed.
-- Commit ledger and publication status: the user subsequently authorized staging and one local commit on `codex/video-editor-whisper-cpp`; this record and the task-owned paths are included in that commit. No registry push, PR, or merge was authorized or performed. The validated files were deployed narrowly to the local installed stack, its TypeScript build passed, `rudi check stack:video-editor --json` reported ready, and `rudi index --json` completed with 39 video-editor tools.
+- Independent-review result: no independent fresh-context reviewer was invoked because delegation is disabled for this task. The proof gap is disclosed in draft PR #56; no merge was performed.
+- Commit ledger and publication status: commit `02167984401f3e15ec62c9d8291d98cb54f81f3e` contains the backend migration and was pushed to `codex/video-editor-whisper-cpp`; draft PR #56 is open. A follow-up portability commit records PATH-aware Homebrew discovery after Admin validation. The validated files were deployed narrowly to both installed stacks; builds passed, `rudi check stack:video-editor --json` reported ready on both Macs, and the stack indexed 39 tools. The full Admin `rudi index --json` also reported 13 unrelated pre-existing stack/secret failures.
 - Horizontal obligations opened, closed, or accepted: direct transcription-tool consolidation remains an explicit investigate obligation.
-- Final verdict: accepted for local use; registry publication remains a separate review/authorization boundary.
+- Final verdict: accepted on both local installations and published for review in draft PR #56; merge remains a separate authorization boundary.
 - Accepted debt: the direct `src/transcription-tools.ts` surface retains its separate backend path; dependency audits reported pre-existing findings (stack install: 12 vulnerabilities; registry install: 8 vulnerabilities), and no out-of-scope automatic dependency upgrades were applied.
 - Proof gaps: no independent reviewer; benchmark quality was spot-checked against the completed Python baseline but not scored against a human reference transcript.
-- Definition of Done: current client transcript delivered; structured stack proven faster without schema regression; docs available on both client Macs; registry source committed on its isolated branch and unpublished pending separate push/PR authorization.
+- Definition of Done: current client transcript delivered; structured stack proven faster without schema regression; docs available on both client Macs; registry source committed and pushed from its isolated branch; draft PR open; both installed stacks validated at the accepted revision.
 
 ## Completed Evidence
 
@@ -81,6 +81,9 @@
   - Red: `node --test test/transcribe-backend.test.js` failed because the project schema rejected engine/VAD/glossary settings.
   - Green: explicit whisper.cpp structured runs preserved transcript schema version 1 and engine provenance.
   - MCP red/green: `node --test test/mcp-tools.test.mjs` failed on missing `engine`; it passed unchanged after CLI/MCP controls were wired.
+- Admin portability red/green loop:
+  - Red: `node --test test/whisper-cpp-wrapper.test.js` selected the hard-coded Apple Silicon `/opt/homebrew/bin/whisper-cli` instead of the fake PATH binary, proving Intel Homebrew discovery was missing.
+  - Green: wrapper/backend tests passed with `WHISPER_CPP_BIN` and `AUDIO_TOOLS_WHISPER` unset and a fake `whisper-cli` supplied only through PATH; runtime resolution now checks PATH plus both Homebrew prefixes.
 - Focused verification: five focused tests passed across wrapper, backend, project schema, and MCP surface.
 - Stack verification: `npm test` passed 20 JS/MJS and 12 TS tests; `npm run build` passed.
 - Registry verification: `npm test` passed 256 tests; validation passed 160 catalog packages; indexes synchronized and checked current; catalog-clean check passed after removing the task-created reproducible stack `node_modules`; root build and `npm pack --dry-run --json` passed.
@@ -92,6 +95,10 @@
   - Five-minute meeting mode, Metal + VAD + glossary + no word timestamps: 13.88 seconds.
   - Five-minute editing mode, Metal + DTW/full JSON + source-aligned words: 18.85 seconds.
   - Full 27:18 meeting transcript: 53.80 seconds, compared with approximately 69 minutes for the completed Python Whisper `medium` baseline (about 77× observed speedup).
+- Admin Mac validation:
+  - Intel MacBook Pro (`MacBookPro15,1`) resolved `/usr/local/bin/whisper-cli` 1.9.2 through PATH with no binary override; the runtime loaded BLAS/CPU backends, not Metal.
+  - A 20.99-second synthetic meeting recording completed in 16.99 seconds with full `large-v3-turbo`, VAD, glossary prompting, and no word timestamps; normalized output was English with one segment and zero word records as requested.
+  - Admin model checksums match the primary Mac, the installed stack builds, and `rudi check stack:video-editor --json` reports healthy/ready.
 - Source preservation: original and RUDI-run copy both SHA-256 `349c29393261e584adf6a807f755f054e94288f9d51a0ac3b6c18ae8bd2fad0e`.
 - Client delivery: commit `88e9d08` added the transcript and extraction record; Admin Mac fast-forwarded to the same revision, and both document checksums matched the primary Mac. Admin's unrelated untracked `worktrees/` directory was preserved.
 
