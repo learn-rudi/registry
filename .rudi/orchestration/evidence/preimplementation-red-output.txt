@@ -1,0 +1,122 @@
+✖ publishes the rudi-code-review skill bundle (3.325667ms)
+✖ publishes the rudi-decision-frontier skill bundle (1.684417ms)
+✖ publishes the rudi-diagnose skill bundle (1.663958ms)
+✖ publishes the rudi-human-runbook skill bundle (0.480083ms)
+✖ publishes the rudi-prototype skill bundle (0.345ms)
+✖ publishes the rudi-stakeholder-questionnaire skill bundle (0.300333ms)
+✖ validates an explicit schema-v2 Decision Frontier (64.640916ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 0
+ℹ fail 7
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 159.485958
+
+✖ failing tests:
+
+test at .rudi/orchestration/evidence/preimplementation-contract.test.mjs:25:3
+✖ publishes the rudi-code-review skill bundle (3.325667ms)
+  Error: ENOENT: no such file or directory, open '/Users/hoff/RUDI/worktrees/registry/rudi-engineering-skills-baseline-proof-20260831/catalog/skills/rudi-code-review/SKILL.md'
+      at async open (node:internal/fs/promises:641:25)
+      at async Object.readFile (node:internal/fs/promises:1279:14)
+      at async TestContext.<anonymous> (file:///Users/hoff/RUDI/worktrees/registry/rudi-engineering-skills-20260831/.rudi/orchestration/evidence/preimplementation-contract.test.mjs:32:19)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: '/Users/hoff/RUDI/worktrees/registry/rudi-engineering-skills-baseline-proof-20260831/catalog/skills/rudi-code-review/SKILL.md'
+  }
+
+test at .rudi/orchestration/evidence/preimplementation-contract.test.mjs:25:3
+✖ publishes the rudi-decision-frontier skill bundle (1.684417ms)
+  Error: ENOENT: no such file or directory, open '/Users/hoff/RUDI/worktrees/registry/rudi-engineering-skills-baseline-proof-20260831/catalog/skills/rudi-decision-frontier/SKILL.md'
+      at async open (node:internal/fs/promises:641:25)
+      at async Object.readFile (node:internal/fs/promises:1279:14)
+      at async TestContext.<anonymous> (file:///Users/hoff/RUDI/worktrees/registry/rudi-engineering-skills-20260831/.rudi/orchestration/evidence/preimplementation-contract.test.mjs:32:19)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: '/Users/hoff/RUDI/worktrees/registry/rudi-engineering-skills-baseline-proof-20260831/catalog/skills/rudi-decision-frontier/SKILL.md'
+  }
+
+test at .rudi/orchestration/evidence/preimplementation-contract.test.mjs:25:3
+✖ publishes the rudi-diagnose skill bundle (1.663958ms)
+  Error: ENOENT: no such file or directory, open '/Users/hoff/RUDI/worktrees/registry/rudi-engineering-skills-baseline-proof-20260831/catalog/skills/rudi-diagnose/SKILL.md'
+      at async open (node:internal/fs/promises:641:25)
+      at async Object.readFile (node:internal/fs/promises:1279:14)
+      at async TestContext.<anonymous> (file:///Users/hoff/RUDI/worktrees/registry/rudi-engineering-skills-20260831/.rudi/orchestration/evidence/preimplementation-contract.test.mjs:32:19)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: '/Users/hoff/RUDI/worktrees/registry/rudi-engineering-skills-baseline-proof-20260831/catalog/skills/rudi-diagnose/SKILL.md'
+  }
+
+test at .rudi/orchestration/evidence/preimplementation-contract.test.mjs:25:3
+✖ publishes the rudi-human-runbook skill bundle (0.480083ms)
+  Error: ENOENT: no such file or directory, open '/Users/hoff/RUDI/worktrees/registry/rudi-engineering-skills-baseline-proof-20260831/catalog/skills/rudi-human-runbook/SKILL.md'
+      at async open (node:internal/fs/promises:641:25)
+      at async Object.readFile (node:internal/fs/promises:1279:14)
+      at async TestContext.<anonymous> (file:///Users/hoff/RUDI/worktrees/registry/rudi-engineering-skills-20260831/.rudi/orchestration/evidence/preimplementation-contract.test.mjs:32:19)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: '/Users/hoff/RUDI/worktrees/registry/rudi-engineering-skills-baseline-proof-20260831/catalog/skills/rudi-human-runbook/SKILL.md'
+  }
+
+test at .rudi/orchestration/evidence/preimplementation-contract.test.mjs:25:3
+✖ publishes the rudi-prototype skill bundle (0.345ms)
+  Error: ENOENT: no such file or directory, open '/Users/hoff/RUDI/worktrees/registry/rudi-engineering-skills-baseline-proof-20260831/catalog/skills/rudi-prototype/SKILL.md'
+      at async open (node:internal/fs/promises:641:25)
+      at async Object.readFile (node:internal/fs/promises:1279:14)
+      at async TestContext.<anonymous> (file:///Users/hoff/RUDI/worktrees/registry/rudi-engineering-skills-20260831/.rudi/orchestration/evidence/preimplementation-contract.test.mjs:32:19)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: '/Users/hoff/RUDI/worktrees/registry/rudi-engineering-skills-baseline-proof-20260831/catalog/skills/rudi-prototype/SKILL.md'
+  }
+
+test at .rudi/orchestration/evidence/preimplementation-contract.test.mjs:25:3
+✖ publishes the rudi-stakeholder-questionnaire skill bundle (0.300333ms)
+  Error: ENOENT: no such file or directory, open '/Users/hoff/RUDI/worktrees/registry/rudi-engineering-skills-baseline-proof-20260831/catalog/skills/rudi-stakeholder-questionnaire/SKILL.md'
+      at async open (node:internal/fs/promises:641:25)
+      at async Object.readFile (node:internal/fs/promises:1279:14)
+      at async TestContext.<anonymous> (file:///Users/hoff/RUDI/worktrees/registry/rudi-engineering-skills-20260831/.rudi/orchestration/evidence/preimplementation-contract.test.mjs:32:19)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: '/Users/hoff/RUDI/worktrees/registry/rudi-engineering-skills-baseline-proof-20260831/catalog/skills/rudi-stakeholder-questionnaire/SKILL.md'
+  }
+
+test at .rudi/orchestration/evidence/preimplementation-contract.test.mjs:38:1
+✖ validates an explicit schema-v2 Decision Frontier (64.640916ms)
+  Error: Command failed: node /Users/hoff/RUDI/worktrees/registry/rudi-engineering-skills-baseline-proof-20260831/catalog/skills/rudi-chief-of-staff/scripts/project-plan.mjs validate --plan /var/folders/5n/_fz5tl6d1v5d7y82wq56z3v40000gn/T/rudi-preimplementation-proof-iaz617/.rudi/orchestration/plan.json
+  ERROR: Unknown plan field: decisionFrontier
+
+      at genericNodeError (node:internal/errors:998:15)
+      at wrappedFn (node:internal/errors:543:14)
+      at ChildProcess.exithandler (node:child_process:417:12)
+      at ChildProcess.emit (node:events:508:28)
+      at maybeClose (node:internal/child_process:1085:16)
+      at Socket.<anonymous> (node:internal/child_process:456:11)
+      at Socket.emit (node:events:508:28)
+      at Pipe.<anonymous> (node:net:346:12) {
+    code: 1,
+    killed: false,
+    signal: null,
+    cmd: 'node /Users/hoff/RUDI/worktrees/registry/rudi-engineering-skills-baseline-proof-20260831/catalog/skills/rudi-chief-of-staff/scripts/project-plan.mjs validate --plan /var/folders/5n/_fz5tl6d1v5d7y82wq56z3v40000gn/T/rudi-preimplementation-proof-iaz617/.rudi/orchestration/plan.json',
+    stdout: '',
+    stderr: 'ERROR: Unknown plan field: decisionFrontier\n'
+  }

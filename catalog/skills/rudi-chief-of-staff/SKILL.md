@@ -1,7 +1,7 @@
 ---
 name: rudi-chief-of-staff
 description: Coordinate complex single- or multi-project objectives from the initiating agent through an acceptance-led task graph, exact provider/model routing, durable run lifecycle, resource and review limits, explicit handoffs, bounded workers, and evidence-backed integration with human oversight. Use when the user asks to delegate dependent work, run a crew, act as a chief of staff or first mate, coordinate multiple agents or desktop tasks, or keep a long-running project moving predictably across worktrees, projects, or hosts.
-version: 1.1.0
+version: 1.2.0
 ---
 
 # RUDI Chief of Staff
@@ -30,13 +30,31 @@ The durable layout is:
 .rudi/orchestration/
 ├── plan.json          # portable canonical DAG and acceptance ledger
 ├── graph.mmd          # deterministic generated view
-├── decisions.json     # durable accepted decisions, only when needed
+├── decisions.json     # optional derived accepted-decision index
 └── runs/*.json        # noncanonical host and attempt transport state
 ```
 
 Ignore `runs/*.json` in Git by default, but retain the records while reconciling
 an attempt or recovering an indeterminate dispatch. Keep native project, host,
 task, thread, checkout, and worktree IDs only in run transport.
+
+## Resolve discovery before execution
+
+When the objective is not stable enough to decompose responsibly, compose
+`rudi-decision-frontier` before creating executable nodes. Schema-v1 plans
+remain the ordinary execution contract. A schema-v2 plan may also carry the
+authoritative decision frontier: unresolved areas, proposed or approved
+decision records, frontier revision, and append-only promotion receipts.
+
+Do not dispatch discovery artifacts as if they were accepted tasks. A
+recommendation, Decision Canvas selection, stakeholder response, prototype
+verdict, or Grill result becomes execution scope only after the manager has
+validated it, recorded the required human approval, and confirmed separate
+implementation authorization. Use the portable `promote` operation to bind the
+exact plan/frontier revisions, complete area/decision snapshot digests, and
+created nodes. The manager serializes plan mutations, so a concurrent stale
+promotion fails without state loss. Promotion creates only `proposed` nodes; it
+does not activate them. Promotion is not readiness or dispatch.
 
 ## Establish the operating contract
 
@@ -109,6 +127,9 @@ or sequential execution mode.
 
 ## Compose specialized workflows
 
+- For ambiguous initiatives, compose `rudi-decision-frontier`. It may use
+  questionnaires, canvases, prototypes, diagnosis, and Grill results as
+  evidence, but this plan remains the only durable execution authority.
 - For unresolved repository contract, terminology, or architecture questions,
   compose `grill-with-docs-loop` repo-first. Let that workflow run its isolated
   questioner, answerer, skeptic, writer, and reviewer roles; consume its

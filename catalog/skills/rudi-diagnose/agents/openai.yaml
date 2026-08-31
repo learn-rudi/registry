@@ -1,0 +1,4 @@
+interface:
+  display_name: "RUDI Diagnose"
+  short_description: "Locate the first incorrect state before fixing"
+  default_prompt: "Use $rudi-diagnose to reproduce this behavior, test ranked hypotheses, locate the first incorrect state, and propose the smallest evidence-backed correction."

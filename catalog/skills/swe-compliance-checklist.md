@@ -1,7 +1,7 @@
 ---
 name: RUDI SWE Compliance Checklist
 description: Create and execute a RUDI phase-gated engineering checklist for software changes that must comply with the SWE Operating Manual, including scope, tests, proof commands, smoke checks, documentation gates, accepted debt, and Definition of Done
-version: 1.4.0
+version: 1.5.0
 category: coding
 icon: ✅
 tags: [rudi, swe, compliance, checklist, testing, verification, engineering]
@@ -68,6 +68,15 @@ Common triggers:
     not automatic extraction. Record an obligation rather than silently
     widening scope unless consolidation is already required for correctness or
     explicitly authorized.
+12. When the cause of a failure is unknown, compose `rudi-diagnose` before
+    implementation. Its reproduction, first incorrect state, and regression
+    case become checklist evidence; random edits do not satisfy Phase 2.
+13. Use `rudi-code-review` for the required fresh-context review. Require
+    separate Standards, Spec, and Proof verdicts so green commands cannot hide
+    a requirement miss or unsupported completion claim.
+14. Prototype output is discovery evidence, not production proof. If a
+    prototype concept is adopted, map the production blast radius and restart
+    red-green verification against the production contract.
 
 ## Plan Persistence
 

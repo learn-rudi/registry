@@ -1,0 +1,4 @@
+interface:
+  display_name: "RUDI Human Runbook"
+  short_description: "Write safe checkpointed human-only procedures"
+  default_prompt: "Use $rudi-human-runbook to create a copyable, secret-safe procedure with exact preflight, checkpoints, retry rules, rollback, and real outcome verification."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Publish Task Changes"
+  short_description: "Commit and optionally publish only task-owned changes"
+  default_prompt: "Use $publish-task-changes to identify this task’s exact verified paths, stage and audit only those changes, and stop at the publication endpoint I explicitly requested."
