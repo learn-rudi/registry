@@ -424,6 +424,37 @@ the accepted exact-plan contract: `cut-audit` runs before `plan`, the planner
 may substitute a different surface, and source/output transcript evidence uses
 singleton files without required revision identity.
 
+### Transcription engine
+
+Structured runs default to the logical `large-v3-turbo` model. With `engine:
+"auto"`, the stack uses `whisper.cpp` when both `whisper-cli` and
+`~/.rudi/models/whisper/ggml-large-v3-turbo.bin` are available; otherwise it
+falls back to Python Whisper and records that engine in transcript metadata.
+Use `--engine whisper.cpp` to fail closed when the accelerated prerequisites
+are missing.
+
+Meeting transcripts should use VAD and omit word timestamps. Editing
+transcripts should request DTW/full JSON for word timing. `whisper.cpp` 1.8.x
+reports DTW token offsets against the VAD-compressed timeline, so the wrapper
+automatically suppresses VAD when word timestamps are enabled. Segment
+timestamps and ordinary meeting transcripts remain VAD-enabled.
+
+```bash
+# Fast meeting transcript with glossary guidance.
+npm run cli -- transcribe my-run source large-v3-turbo \
+  --engine whisper.cpp --word-timestamps false --vad true \
+  --initial-prompt "Client Name, participant names, product names"
+
+# Editing transcript with source-aligned word timestamps.
+npm run cli -- transcribe my-run source large-v3-turbo \
+  --engine whisper.cpp --word-timestamps true --vad true
+```
+
+On an M3 Pro, a 27:18 H.264/AAC screen recording completed in 53.8 seconds in
+meeting mode. A representative five-minute WAV completed in 13.9 seconds with
+VAD and 18.9 seconds with source-aligned DTW word timestamps. Treat these as
+local benchmark evidence, not a cross-machine performance guarantee.
+
 ```bash
 npm run cli -- init "/path/to/source.mov" movie-2026-05-08-1229
 npm run cli -- init movie-2026-05-08-1229 --refresh

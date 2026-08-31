@@ -6,6 +6,10 @@ Format: `YYYY-MM-DD — <agent> — <what changed> [— <why, if non-obvious>]`
 
 ---
 
+## 2026-08-31
+
+- 2026-08-31 — Codex — Added a structured-run `whisper.cpp` backend with logical `large-v3-turbo` model resolution, Metal-friendly defaults, VAD meeting mode, glossary prompting, optional DTW word timestamps, CLI/MCP controls, engine provenance, schema-v1 compatibility, and focused red/green tests. Editing mode suppresses VAD on whisper.cpp 1.8.x because its full-JSON token offsets otherwise use the compressed VAD timeline; five-minute M3 Pro benchmarks completed in 13.9s (meeting) and 18.9s (editing), and the 27:18 recording completed in 53.8s.
+
 ## 2026-07-10
 
 - 2026-07-10 — Codex (docs) — Standardized **Final Render Approval** as the canonical prose term for the generic Approval record with machine scope `final-render`. It accepts one exact hash-identified creative final and its Final Render Plan after render-specific QA; Baseline and Sequence Optimization Approvals remain immutable upstream lineage, Mechanical Derivatives rely on their approved parent under the derivative contract and are not freshly approved, and Posting Approval remains separate.

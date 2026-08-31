@@ -12,6 +12,14 @@ function readOption(args, name, fallback = null) {
   return args[index + 1];
 }
 
+function readBooleanOption(args, name, fallback) {
+  const raw = readOption(args, name);
+  if (raw === null) return fallback;
+  if (/^(true|1|yes)$/i.test(raw)) return true;
+  if (/^(false|0|no)$/i.test(raw)) return false;
+  throw new Error(`${name} must be True or False`);
+}
+
 function run(command, args) {
   const result = spawnSync(command, args, { stdio: "inherit" });
   if (result.error) {
@@ -29,12 +37,15 @@ function resolveWhisperCli() {
 }
 
 function resolveModel(modelArg) {
+  const modelFilename = modelArg.endsWith(".bin")
+    ? modelArg
+    : `ggml-${modelArg}.bin`;
   const candidates = [
     process.env.WHISPER_CPP_MODEL,
     process.env.AUDIO_TOOLS_WHISPER_MODEL,
     modelArg && modelArg.includes(path.sep) ? modelArg : null,
-    path.join(process.env.HOME || "", ".rudi/models/whisper/ggml-base.en.bin"),
-    "/opt/homebrew/share/whisper-cpp/models/ggml-base.en.bin"
+    path.join(process.env.HOME || "", ".rudi/models/whisper", modelFilename),
+    path.join("/opt/homebrew/share/whisper-cpp/models", modelFilename)
   ].filter(Boolean);
 
   const modelPath = candidates.find((candidate) => existsSync(candidate));
@@ -42,6 +53,36 @@ function resolveModel(modelArg) {
     throw new Error("No whisper.cpp model found. Set WHISPER_CPP_MODEL or AUDIO_TOOLS_WHISPER_MODEL.");
   }
   return modelPath;
+}
+
+function resolveVadModel() {
+  const candidates = [
+    process.env.WHISPER_CPP_VAD_MODEL,
+    process.env.AUDIO_TOOLS_WHISPER_VAD_MODEL,
+    path.join(process.env.HOME || "", ".rudi/models/whisper/ggml-silero-v6.2.0.bin"),
+    "/opt/homebrew/share/whisper-cpp/models/ggml-silero-v6.2.0.bin"
+  ].filter(Boolean);
+
+  const modelPath = candidates.find((candidate) => existsSync(candidate));
+  if (!modelPath) {
+    throw new Error("VAD was requested but no whisper.cpp VAD model was found. Set WHISPER_CPP_VAD_MODEL.");
+  }
+  return modelPath;
+}
+
+function resolveDtwModel(modelArg) {
+  const logicalName = path.basename(modelArg, path.extname(modelArg))
+    .replace(/^ggml-/, "")
+    .replace(/^large-v([123])$/, "large.v$1")
+    .replace(/^large-v3-turbo$/, "large.v3.turbo");
+  const supported = new Set([
+    "tiny", "tiny.en", "base", "base.en", "small", "small.en",
+    "medium", "medium.en", "large.v1", "large.v2", "large.v3", "large.v3.turbo"
+  ]);
+  if (!supported.has(logicalName)) {
+    throw new Error(`Word timestamps require a supported whisper.cpp DTW model; received ${modelArg}`);
+  }
+  return logicalName;
 }
 
 function ensureAudio(mediaPath, tempDir) {
@@ -190,6 +231,9 @@ function main() {
 
   const language = readOption(args, "--language", "en");
   const modelArg = readOption(args, "--model", "base");
+  const wordTimestamps = readBooleanOption(args, "--word_timestamps", true);
+  const vad = readBooleanOption(args, "--vad", false);
+  const initialPrompt = readOption(args, "--initial_prompt", "").trim();
   const whisper = resolveWhisperCli();
   const model = resolveModel(modelArg);
   const tempDir = mkdtempSync(path.join(tmpdir(), "video-editor-whisper-cpp-"));
@@ -197,15 +241,26 @@ function main() {
   try {
     const audioPath = ensureAudio(mediaPath, tempDir);
     const outputBase = path.join(tempDir, "whisper-output");
-    run(whisper, [
+    const whisperArgs = [
       "-m", model,
       "-f", audioPath,
       "-l", language,
-      "-oj",
-      "-ojf",
+      wordTimestamps ? "-ojf" : "-oj",
       "-of", outputBase,
       "-np"
-    ]);
+    ];
+    if (wordTimestamps) {
+      whisperArgs.push("--dtw", resolveDtwModel(modelArg));
+    }
+    // whisper.cpp 1.8.x reports DTW token offsets on the VAD-compressed timeline.
+    // Keep VAD for fast meeting transcripts, but preserve the source timeline for editing.
+    if (vad && !wordTimestamps) {
+      whisperArgs.push("--vad", "--vad-model", resolveVadModel());
+    }
+    if (initialPrompt) {
+      whisperArgs.push("--prompt", initialPrompt);
+    }
+    run(whisper, whisperArgs);
 
     const raw = JSON.parse(readFileSync(`${outputBase}.json`, "utf8"));
     const converted = convertJson(raw, { language });
