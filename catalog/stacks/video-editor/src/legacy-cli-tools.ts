@@ -238,7 +238,7 @@ const legacyTools: LegacyTool[] = [
         run: runProp,
         target: stringProp("source or output"),
         render_name: stringProp("Rendered video name when target is output"),
-        model: stringProp("Whisper model name"),
+        model: stringProp("Portable Whisper model ID such as large-v3-turbo; use environment variables for physical model paths"),
         engine: stringProp("Inference engine: auto, whisper.cpp, or python"),
         language: stringProp("Whisper language code, for example en"),
         word_timestamps: booleanProp("Preserve word timestamps; enable for editing and disable for faster meeting transcripts"),

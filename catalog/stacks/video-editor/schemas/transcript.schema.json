@@ -23,12 +23,9 @@
       "additionalProperties": false,
       "properties": {
         "command": { "type": "string", "minLength": 1 },
-        "engine": { "type": "string", "enum": ["custom", "python", "whisper.cpp"] },
         "model": { "type": "string", "minLength": 1 },
         "language": { "type": "string", "minLength": 1 },
-        "wordTimestamps": { "type": "boolean" },
-        "vad": { "type": "boolean" },
-        "initialPrompt": { "type": "boolean" }
+        "wordTimestamps": { "type": "boolean" }
       }
     },
     "language": { "type": "string" },

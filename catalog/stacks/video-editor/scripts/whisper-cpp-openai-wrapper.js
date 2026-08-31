@@ -1,8 +1,16 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { validateWhisperCppOutput } from "../src/lib/transcript-validation.js";
+import {
+  assertLogicalModelId,
+  resolveWhisperCppBin,
+  resolveWhisperCppDtwModel,
+  resolveWhisperCppModel,
+  resolveWhisperCppVadModel
+} from "../src/lib/whisper-cpp.js";
 
 const SUPPORTED_AUDIO_EXTENSIONS = new Set([".flac", ".mp3", ".ogg", ".wav"]);
 
@@ -30,24 +38,8 @@ function run(command, args) {
   }
 }
 
-function resolveOnPath(executable) {
-  const directories = String(process.env.PATH || "")
-    .split(path.delimiter)
-    .filter(Boolean);
-  return directories
-    .map((directory) => path.join(directory, executable))
-    .find((candidate) => existsSync(candidate)) || null;
-}
-
 function resolveWhisperCli() {
-  const candidates = [
-    process.env.WHISPER_CPP_BIN,
-    process.env.AUDIO_TOOLS_WHISPER,
-    resolveOnPath("whisper-cli"),
-    "/opt/homebrew/bin/whisper-cli",
-    "/usr/local/bin/whisper-cli"
-  ].filter(Boolean);
-  const whisperPath = candidates.find((candidate) => existsSync(candidate));
+  const whisperPath = resolveWhisperCppBin();
   if (!whisperPath) {
     throw new Error("whisper-cli was not found. Install whisper.cpp or set WHISPER_CPP_BIN.");
   }
@@ -55,18 +47,7 @@ function resolveWhisperCli() {
 }
 
 function resolveModel(modelArg) {
-  const modelFilename = modelArg.endsWith(".bin")
-    ? modelArg
-    : `ggml-${modelArg}.bin`;
-  const candidates = [
-    process.env.WHISPER_CPP_MODEL,
-    process.env.AUDIO_TOOLS_WHISPER_MODEL,
-    modelArg && modelArg.includes(path.sep) ? modelArg : null,
-    path.join(process.env.HOME || "", ".rudi/models/whisper", modelFilename),
-    path.join("/opt/homebrew/share/whisper-cpp/models", modelFilename)
-  ].filter(Boolean);
-
-  const modelPath = candidates.find((candidate) => existsSync(candidate));
+  const modelPath = resolveWhisperCppModel(modelArg);
   if (!modelPath) {
     throw new Error("No whisper.cpp model found. Set WHISPER_CPP_MODEL or AUDIO_TOOLS_WHISPER_MODEL.");
   }
@@ -74,33 +55,11 @@ function resolveModel(modelArg) {
 }
 
 function resolveVadModel() {
-  const candidates = [
-    process.env.WHISPER_CPP_VAD_MODEL,
-    process.env.AUDIO_TOOLS_WHISPER_VAD_MODEL,
-    path.join(process.env.HOME || "", ".rudi/models/whisper/ggml-silero-v6.2.0.bin"),
-    "/opt/homebrew/share/whisper-cpp/models/ggml-silero-v6.2.0.bin"
-  ].filter(Boolean);
-
-  const modelPath = candidates.find((candidate) => existsSync(candidate));
+  const modelPath = resolveWhisperCppVadModel();
   if (!modelPath) {
     throw new Error("VAD was requested but no whisper.cpp VAD model was found. Set WHISPER_CPP_VAD_MODEL.");
   }
   return modelPath;
-}
-
-function resolveDtwModel(modelArg) {
-  const logicalName = path.basename(modelArg, path.extname(modelArg))
-    .replace(/^ggml-/, "")
-    .replace(/^large-v([123])$/, "large.v$1")
-    .replace(/^large-v3-turbo$/, "large.v3.turbo");
-  const supported = new Set([
-    "tiny", "tiny.en", "base", "base.en", "small", "small.en",
-    "medium", "medium.en", "large.v1", "large.v2", "large.v3", "large.v3.turbo"
-  ]);
-  if (!supported.has(logicalName)) {
-    throw new Error(`Word timestamps require a supported whisper.cpp DTW model; received ${modelArg}`);
-  }
-  return logicalName;
 }
 
 function ensureAudio(mediaPath, tempDir) {
@@ -248,7 +207,7 @@ function main() {
   }
 
   const language = readOption(args, "--language", "en");
-  const modelArg = readOption(args, "--model", "base");
+  const modelArg = assertLogicalModelId(readOption(args, "--model", "base"));
   const wordTimestamps = readBooleanOption(args, "--word_timestamps", true);
   const vad = readBooleanOption(args, "--vad", false);
   const initialPrompt = readOption(args, "--initial_prompt", "").trim();
@@ -268,7 +227,7 @@ function main() {
       "-np"
     ];
     if (wordTimestamps) {
-      whisperArgs.push("--dtw", resolveDtwModel(modelArg));
+      whisperArgs.push("--dtw", resolveWhisperCppDtwModel(modelArg));
     }
     // whisper.cpp 1.8.x reports DTW token offsets on the VAD-compressed timeline.
     // Keep VAD for fast meeting transcripts, but preserve the source timeline for editing.
@@ -281,6 +240,7 @@ function main() {
     run(whisper, whisperArgs);
 
     const raw = JSON.parse(readFileSync(`${outputBase}.json`, "utf8"));
+    validateWhisperCppOutput(raw, { wordTimestamps });
     const converted = convertJson(raw, { language });
     const finalPath = path.join(
       outputDir,

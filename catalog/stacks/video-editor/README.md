@@ -427,17 +427,36 @@ singleton files without required revision identity.
 ### Transcription engine
 
 Structured runs default to the logical `large-v3-turbo` model. With `engine:
-"auto"`, the stack uses `whisper.cpp` when both `whisper-cli` and
-`~/.rudi/models/whisper/ggml-large-v3-turbo.bin` are available; otherwise it
-falls back to Python Whisper and records that engine in transcript metadata.
-Use `--engine whisper.cpp` to fail closed when the accelerated prerequisites
-are missing.
+"auto"`, the stack uses `whisper.cpp` when `whisper-cli`, the full-precision
+`~/.rudi/models/whisper/ggml-large-v3-turbo.bin`, and any requested VAD model
+are readable and executable as appropriate. Otherwise it falls back to Python
+Whisper. Use `--engine whisper.cpp` to fail closed when an accelerated
+prerequisite is missing or unusable.
+
+The CLI/project `model` value is a portable logical ID such as
+`large-v3-turbo`, never a filesystem path. Machine-local model paths belong in
+`WHISPER_CPP_MODEL` or `AUDIO_TOOLS_WHISPER_MODEL`; the configured filename
+must remain `ggml-<logical-model>.bin` so a quantized artifact cannot be
+silently presented as the requested full-precision model.
 
 Meeting transcripts should use VAD and omit word timestamps. Editing
 transcripts should request DTW/full JSON for word timing. `whisper.cpp` 1.8.x
 reports DTW token offsets against the VAD-compressed timeline, so the wrapper
 automatically suppresses VAD when word timestamps are enabled. Segment
 timestamps and ordinary meeting transcripts remain VAD-enabled.
+
+VAD meeting mode also requires
+`~/.rudi/models/whisper/ggml-silero-v6.2.0.bin`. Override that machine-local
+location with `WHISPER_CPP_VAD_MODEL` or
+`AUDIO_TOOLS_WHISPER_VAD_MODEL`. Under `engine: "auto"`, a missing or unusable
+VAD model causes a Python fallback; an explicit `whisper.cpp` request fails
+with an actionable prerequisite error.
+
+The transcript itself retains the original strict schema-v1 shape. Backend,
+VAD, glossary-presence, and effective-model details are written separately to
+`transcript-source.provenance.json` or
+`transcript-output.provenance.json`, so existing schema-v1 consumers remain
+compatible and machine-local model paths are never persisted.
 
 ```bash
 # Fast meeting transcript with glossary guidance.
@@ -506,7 +525,9 @@ runs/<slug>/
   working.mp4
   silence.json
   transcript-source.json   # current singleton; retranscription can overwrite
+  transcript-source.provenance.json
   transcript-output.json   # current singleton; not guaranteed render-bound
+  transcript-output.provenance.json
   transcript-corrections.json
   transcript-clusters.json
   captions.json

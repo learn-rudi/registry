@@ -96,4 +96,18 @@ await assert.rejects(
   /minDuration.*must be > 0/s
 );
 
+await assert.rejects(
+  () => validateProject({
+    ...minimalProject,
+    settings: {
+      ...minimalProject.settings,
+      transcription: {
+        ...minimalProject.settings.transcription,
+        model: '/tmp/ggml-large-v3-turbo.bin'
+      }
+    }
+  }, 'pathModelProject'),
+  /model.*must match/s
+);
+
 console.log('project schema tests passed');

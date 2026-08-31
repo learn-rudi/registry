@@ -53,7 +53,7 @@
 - Build/typecheck/lint: `npm run build`; registry-prescribed validation/index/package gates when catalog metadata changes.
 - JS/TS debt scan: scan only edited JS/TS files with the RUDI SWE debt scanner; errors block closure.
 - Live smoke checks: transcribe a representative five-minute section with `large-v3-turbo` + Metal + VAD + glossary; run meeting mode without DTW and editing mode with DTW/full JSON; validate schema and timing invariants; then run a synthetic Admin Mac smoke test through PATH discovery.
-- Independent review: a read-only fresh-context review was unavailable under the current no-delegation constraint. Record this as a proof gap; the user explicitly approved the draft-PR publication and Admin alignment with that gap disclosed.
+- Independent review: issue-loop fresh-context review is required before merge. The first review found three blocking contract violations plus two P2 findings. Focused red-green remediation closed all five; independent re-review returned `ready to commit` with no blocking correctness, schema, portability, or contract findings.
 - Risk-tier approval: user reviews benchmark and diff before any publication/default rollout.
 - Exit criteria: tests/build/gates pass, benchmark evidence is reproducible, and no blocking review finding remains.
 
@@ -63,13 +63,13 @@
 - Final files touched: record after implementation.
 - Commands run and results: record exact red, green, build, debt, benchmark, and schema validation commands.
 - Evidence artifacts: completed baseline transcript; five-minute benchmark transcript/log/timing; model checksums; source video checksum.
-- Independent-review result: no independent fresh-context reviewer was invoked because delegation is disabled for this task. The proof gap is disclosed in draft PR #56; no merge was performed.
+- Independent-review result: a fresh-context read-only reviewer initially returned `needs fixes before merge` and recorded three P1 plus two P2 findings on issue #57. After remediation, the same independent reviewer confirmed every finding closed and returned `ready to commit`; merge remains conditioned on green branch CI and peer runtime verification.
 - Commit ledger and publication status: commit `02167984401f3e15ec62c9d8291d98cb54f81f3e` contains the backend migration; commit `95cb1a77467c7fa2dd50598a921b0afcb2d8e616` records PATH-aware Homebrew discovery after Admin validation; commit `4b1338e40e70a0b4a3925f9c4043381b602804ad` extracts the transcription parser from debt-baselined `src/cli.js`. All were pushed to `codex/video-editor-whisper-cpp`, and draft PR #56 is open. PR verification also exposed two pre-existing init tests that generated fixtures with a host `ffmpeg`; their fixture boundary is made hermetic before closure. The validated runtime files were deployed narrowly to both installed stacks; builds passed, `rudi check stack:video-editor --json` reported ready on both Macs, and the stack indexed 39 tools. The full Admin `rudi index --json` also reported 13 unrelated pre-existing stack/secret failures.
 - Horizontal obligations opened, closed, or accepted: direct transcription-tool consolidation remains an explicit investigate obligation.
-- Final verdict: accepted on both local installations and published for review in draft PR #56; merge remains a separate authorization boundary.
-- Accepted debt: the direct `src/transcription-tools.ts` surface retains its separate backend path; dependency audits reported pre-existing findings (stack install: 12 vulnerabilities; registry install: 8 vulnerabilities), and no out-of-scope automatic dependency upgrades were applied.
-- Proof gaps: no independent reviewer; benchmark quality was spot-checked against the completed Python baseline but not scored against a human reference transcript.
-- Definition of Done: current client transcript delivered; structured stack proven faster without schema regression; docs available on both client Macs; registry source committed and pushed from its isolated branch; draft PR open; both installed stacks validated at the accepted revision.
+- Final verdict: ready to commit and publish to PR #56; merge is gated on green branch CI and peer runtime verification.
+- Accepted debt: the direct `src/transcription-tools.ts` surface retains its separate backend path; transcript and provenance writes are sequential, so an exceptional second-write failure can leave a transcript without matching provenance while run state remains unadvanced; full-precision identity is enforced by canonical filename rather than content hash; raw unified validation intentionally accepts numeric coercion before strict normalized validation; dependency audits reported pre-existing findings (stack install: 12 vulnerabilities; registry install: 8 vulnerabilities), and no out-of-scope automatic dependency upgrades were applied.
+- Proof gaps: benchmark quality was spot-checked against the completed Python baseline but not scored against a human reference transcript.
+- Definition of Done: current client transcript delivered; hardened branch re-reviewed with no blocking findings; CI green; both installed stacks validated at the accepted revision; PR merged; issue and branch cleanup complete; both repository peers synchronized to `main`.
 
 ## Completed Evidence
 
@@ -90,10 +90,13 @@
 - Registry test-hermeticity red/green loop:
   - Red: the next Linux PR run reached the full stack suite but two init tests failed with `spawn ffmpeg ENOENT` because fixture creation depended on a host binary.
   - Green: `test/init.test.js` now prepends bounded fake `ffmpeg`/`ffprobe` executables and uses a synthetic source fixture; the focused init tests and the exact changed-stack verification command pass without using a host media binary.
-- Focused verification: five focused tests passed across wrapper, backend, project schema, and MCP surface.
-- Stack verification: `npm test` passed 20 JS/MJS and 12 TS tests; `npm run build` passed.
+- Independent-review remediation loop:
+  - Red: `{}` from a successful Whisper process was normalized and written; malformed native offsets/probabilities were accepted; schema-v1 transcripts emitted new strict-object fields; and path-like model options reached the subprocess boundary.
+  - Green: native whisper.cpp JSON, unified Whisper JSON, normalized transcript schema, relational timing, flat-word identity, and stats are validated before artifact write/state advancement; backend details moved to `transcript-*.provenance.json`; path-like models fail before execution; unusable auto prerequisites fall back to Python.
+- Focused verification: 19 focused tests passed across wrapper, backend, transcript validation, and project schema surfaces.
+- Stack verification: `npm test` passed 36 JS/MJS tests and 12 TS tests; `npm run build` passed.
 - Registry verification: `npm test` passed 256 tests; validation passed 160 catalog packages; indexes synchronized and checked current; catalog-clean check passed after removing the task-created reproducible stack `node_modules`; root build and `npm pack --dry-run --json` passed.
-- Debt scan: zero findings for the eight edited JS/TS files when the CLI, MCP server, and wrapper were supplied as explicit entrypoints.
+- Debt scan: zero findings for the ten edited JS/TS files when the CLI, wrapper, legacy MCP adapter, and focused tests were supplied as explicit entrypoints.
 - Model evidence:
   - `ggml-large-v3-turbo.bin` SHA-256 `1fc70f774d38eb169993ac391eea357ef47c88757ef72ee5943879b7e8e2bc69`.
   - `ggml-silero-v6.2.0.bin` SHA-256 `2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987`.
@@ -101,6 +104,7 @@
   - Five-minute meeting mode, Metal + VAD + glossary + no word timestamps: 13.88 seconds.
   - Five-minute editing mode, Metal + DTW/full JSON + source-aligned words: 18.85 seconds.
   - Full 27:18 meeting transcript: 53.80 seconds, compared with approximately 69 minutes for the completed Python Whisper `medium` baseline (about 77× observed speedup).
+  - Hardened native-output smoke: a 5.86-second meeting fixture completed in 3.80 seconds; a 3.94-second editing fixture completed in 3.86 seconds with nine validated word records.
 - Admin Mac validation:
   - Intel MacBook Pro (`MacBookPro15,1`) resolved `/usr/local/bin/whisper-cli` 1.9.2 through PATH with no binary override; the runtime loaded BLAS/CPU backends, not Metal.
   - A 20.99-second synthetic meeting recording completed in 16.99 seconds with full `large-v3-turbo`, VAD, glossary prompting, and no word timestamps; normalized output was English with one segment and zero word records as requested.
@@ -112,14 +116,19 @@
 
 - `catalog/stacks/video-editor/scripts/whisper-cpp-openai-wrapper.js`
 - `catalog/stacks/video-editor/src/operations/transcribe.js`
+- `catalog/stacks/video-editor/src/lib/json-schema.js`
+- `catalog/stacks/video-editor/src/lib/transcript-validation.js`
+- `catalog/stacks/video-editor/src/lib/whisper-cpp.js`
 - `catalog/stacks/video-editor/src/cli.js`
 - `catalog/stacks/video-editor/src/transcribe-cli-args.js`
 - `catalog/stacks/video-editor/src/legacy-cli-tools.ts`
 - `catalog/stacks/video-editor/src/config/defaults.js`
 - `catalog/stacks/video-editor/schemas/project.schema.json`
 - `catalog/stacks/video-editor/schemas/transcript.schema.json`
+- `catalog/stacks/video-editor/schemas/transcript-provenance.schema.json`
 - `catalog/stacks/video-editor/test/whisper-cpp-wrapper.test.js`
 - `catalog/stacks/video-editor/test/transcribe-backend.test.js`
+- `catalog/stacks/video-editor/test/transcript-validation.test.js`
 - `catalog/stacks/video-editor/test/mcp-tools.test.mjs`
 - `catalog/stacks/video-editor/test/init.test.js`
 - `catalog/stacks/video-editor/README.md`
