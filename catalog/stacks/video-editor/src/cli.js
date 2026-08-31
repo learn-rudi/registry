@@ -38,6 +38,7 @@ import { detectSilenceRun } from './operations/silence.js';
 import { listSilencePresets } from './operations/silence-options.js';
 import { extractSlides } from './operations/slides.js';
 import { transcribeRun } from './operations/transcribe.js';
+import { parseTranscribeArgs } from './transcribe-cli-args.js';
 
 function parseCommandArgs(rawArgs) {
   const positionals = [];
@@ -111,70 +112,6 @@ function parseInitArgs(rawArgs) {
     sourceArg: positionals[0],
     slugArg: positionals[1],
     options
-  };
-}
-
-function parseBooleanOption(flag, value) {
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  throw new Error(`${flag} must be true or false`);
-}
-
-function parseTranscribeArgs(rawArgs) {
-  const positionals = [];
-  const options = {};
-  const optionNames = new Map([
-    ['--engine', 'engine'],
-    ['--language', 'language'],
-    ['--initial-prompt', 'initialPrompt']
-  ]);
-  const booleanOptions = new Map([
-    ['--word-timestamps', 'wordTimestamps'],
-    ['--vad', 'vad']
-  ]);
-
-  for (let index = 0; index < rawArgs.length; index += 1) {
-    const arg = rawArgs[index];
-    if (!arg.startsWith('-')) {
-      positionals.push(arg);
-      continue;
-    }
-
-    const next = rawArgs[index + 1];
-    if (next === undefined) {
-      throw new Error(`Missing value for ${arg}`);
-    }
-
-    if (booleanOptions.has(arg)) {
-      options[booleanOptions.get(arg)] = parseBooleanOption(arg, next);
-    } else if (optionNames.has(arg)) {
-      options[optionNames.get(arg)] = next;
-    } else {
-      throw new Error(`Unknown transcribe option: ${arg}`);
-    }
-    index += 1;
-  }
-
-  const [runArg, target = 'source', third, fourth] = positionals;
-  if (!runArg || !['source', 'output'].includes(target)) {
-    throw new Error('Usage: transcribe <run> source [model] [options], or transcribe <run> output <render> [model] [options]');
-  }
-
-  if (target === 'source' && positionals.length > 3) {
-    throw new Error('Usage: transcribe <run> source [model] [options]');
-  }
-  if (target === 'output' && (!third || positionals.length > 4)) {
-    throw new Error('Usage: transcribe <run> output <render> [model] [options]');
-  }
-
-  return {
-    runArg,
-    target,
-    options: {
-      ...options,
-      renderName: target === 'output' ? third : null,
-      model: target === 'output' ? fourth : third
-    }
   };
 }
 
@@ -325,9 +262,7 @@ Pipeline commands:
                                   Whisper source/working media to transcript-source.json
   transcribe <run> output <render> [model]
                                   Whisper rendered media to transcript-output.json
-                                  options: --engine auto|whisper.cpp|python
-                                           --language en --word-timestamps true|false
-                                           --vad true|false --initial-prompt "glossary"
+                                  options: --engine, --language, --word-timestamps, --vad, --initial-prompt
   cluster <run>                    Build transcript phrase clusters for planning
   silence <run>                   Detect silences and write silence.json
   cut-audit <run>                 Audit cut safety and write cut-audit.json

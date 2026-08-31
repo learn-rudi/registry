@@ -64,7 +64,7 @@
 - Commands run and results: record exact red, green, build, debt, benchmark, and schema validation commands.
 - Evidence artifacts: completed baseline transcript; five-minute benchmark transcript/log/timing; model checksums; source video checksum.
 - Independent-review result: no independent fresh-context reviewer was invoked because delegation is disabled for this task. The proof gap is disclosed in draft PR #56; no merge was performed.
-- Commit ledger and publication status: commit `02167984401f3e15ec62c9d8291d98cb54f81f3e` contains the backend migration and was pushed to `codex/video-editor-whisper-cpp`; draft PR #56 is open. A follow-up portability commit records PATH-aware Homebrew discovery after Admin validation. The validated files were deployed narrowly to both installed stacks; builds passed, `rudi check stack:video-editor --json` reported ready on both Macs, and the stack indexed 39 tools. The full Admin `rudi index --json` also reported 13 unrelated pre-existing stack/secret failures.
+- Commit ledger and publication status: commit `02167984401f3e15ec62c9d8291d98cb54f81f3e` contains the backend migration; commit `95cb1a77467c7fa2dd50598a921b0afcb2d8e616` records PATH-aware Homebrew discovery after Admin validation. Both were pushed to `codex/video-editor-whisper-cpp`, and draft PR #56 is open. The PR architecture gate then required the transcription option parser to be extracted from debt-baselined `src/cli.js`; that follow-up is included before closure. The validated files were deployed narrowly to both installed stacks; builds passed, `rudi check stack:video-editor --json` reported ready on both Macs, and the stack indexed 39 tools. The full Admin `rudi index --json` also reported 13 unrelated pre-existing stack/secret failures.
 - Horizontal obligations opened, closed, or accepted: direct transcription-tool consolidation remains an explicit investigate obligation.
 - Final verdict: accepted on both local installations and published for review in draft PR #56; merge remains a separate authorization boundary.
 - Accepted debt: the direct `src/transcription-tools.ts` surface retains its separate backend path; dependency audits reported pre-existing findings (stack install: 12 vulnerabilities; registry install: 8 vulnerabilities), and no out-of-scope automatic dependency upgrades were applied.
@@ -84,6 +84,9 @@
 - Admin portability red/green loop:
   - Red: `node --test test/whisper-cpp-wrapper.test.js` selected the hard-coded Apple Silicon `/opt/homebrew/bin/whisper-cli` instead of the fake PATH binary, proving Intel Homebrew discovery was missing.
   - Green: wrapper/backend tests passed with `WHISPER_CPP_BIN` and `AUDIO_TOOLS_WHISPER` unset and a fake `whisper-cli` supplied only through PATH; runtime resolution now checks PATH plus both Homebrew prefixes.
+- Registry architecture red/green loop:
+  - Red: PR check `Test, Build & Verify` failed because `src/cli.js` grew from its 824-line debt baseline to 889 lines.
+  - Green: the transcription option parser moved to `src/transcribe-cli-args.js`, `src/cli.js` returned to exactly 824 lines, and `npm run stacks:verify -- --changed-from fd9816b9b45b73a9b43520d48146aa6c782cf5b2 --prepare` passed the full video-editor suite.
 - Focused verification: five focused tests passed across wrapper, backend, project schema, and MCP surface.
 - Stack verification: `npm test` passed 20 JS/MJS and 12 TS tests; `npm run build` passed.
 - Registry verification: `npm test` passed 256 tests; validation passed 160 catalog packages; indexes synchronized and checked current; catalog-clean check passed after removing the task-created reproducible stack `node_modules`; root build and `npm pack --dry-run --json` passed.
@@ -107,6 +110,7 @@
 - `catalog/stacks/video-editor/scripts/whisper-cpp-openai-wrapper.js`
 - `catalog/stacks/video-editor/src/operations/transcribe.js`
 - `catalog/stacks/video-editor/src/cli.js`
+- `catalog/stacks/video-editor/src/transcribe-cli-args.js`
 - `catalog/stacks/video-editor/src/legacy-cli-tools.ts`
 - `catalog/stacks/video-editor/src/config/defaults.js`
 - `catalog/stacks/video-editor/schemas/project.schema.json`
