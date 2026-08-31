@@ -63,6 +63,15 @@ test('MCP server exposes quick tools and comprehensive workflow tools', async ()
       assert.ok(names.includes(tool), `missing MCP tool: ${tool}`);
     }
 
+    const transcribeRun = tools.tools.find((tool) => tool.name === 'video_transcribe_run');
+    assert.ok(transcribeRun, 'expected video_transcribe_run tool');
+    const transcribeProperties = transcribeRun.inputSchema.properties;
+    assert.equal(transcribeProperties.engine.type, 'string');
+    assert.equal(transcribeProperties.word_timestamps.type, 'boolean');
+    assert.equal(transcribeProperties.vad.type, 'boolean');
+    assert.equal(transcribeProperties.initial_prompt.type, 'string');
+    assert.equal(transcribeProperties.language.type, 'string');
+
     const presets = await client.callTool({
       name: 'video_silence_presets',
       arguments: {}

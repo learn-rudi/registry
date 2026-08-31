@@ -35,6 +35,14 @@ function validateString(value, schema, pathParts, errors) {
     errors.push(`${formatPath(pathParts)} must have length >= ${schema.minLength}`);
   }
 
+  if (schema.maxLength !== undefined && value.length > schema.maxLength) {
+    errors.push(`${formatPath(pathParts)} must have length <= ${schema.maxLength}`);
+  }
+
+  if (schema.pattern !== undefined && !(new RegExp(schema.pattern).test(value))) {
+    errors.push(`${formatPath(pathParts)} must match ${schema.pattern}`);
+  }
+
   if (schema.format === 'date-time' && Number.isNaN(Date.parse(value))) {
     errors.push(`${formatPath(pathParts)} must be a valid date-time string`);
   }
@@ -48,9 +56,17 @@ function validateNumber(value, schema, pathParts, errors) {
   if (schema.exclusiveMinimum !== undefined && value <= schema.exclusiveMinimum) {
     errors.push(`${formatPath(pathParts)} must be > ${schema.exclusiveMinimum}`);
   }
+
+  if (schema.maximum !== undefined && value > schema.maximum) {
+    errors.push(`${formatPath(pathParts)} must be <= ${schema.maximum}`);
+  }
+
+  if (schema.exclusiveMaximum !== undefined && value >= schema.exclusiveMaximum) {
+    errors.push(`${formatPath(pathParts)} must be < ${schema.exclusiveMaximum}`);
+  }
 }
 
-function validateArray(value, schema, pathParts, errors) {
+function validateArray(value, schema, pathParts, errors, rootSchema) {
   if (schema.minItems !== undefined && value.length < schema.minItems) {
     errors.push(`${formatPath(pathParts)} must contain at least ${schema.minItems} items`);
   }
@@ -62,7 +78,7 @@ function validateArray(value, schema, pathParts, errors) {
   if (Array.isArray(schema.prefixItems)) {
     schema.prefixItems.forEach((itemSchema, index) => {
       if (index < value.length) {
-        validateNode(value[index], itemSchema, [...pathParts, index], errors);
+        validateNode(value[index], itemSchema, [...pathParts, index], errors, rootSchema);
       }
     });
   }
@@ -70,13 +86,13 @@ function validateArray(value, schema, pathParts, errors) {
   if (schema.items && !Array.isArray(schema.items)) {
     value.forEach((item, index) => {
       if (!schema.prefixItems || index >= schema.prefixItems.length) {
-        validateNode(item, schema.items, [...pathParts, index], errors);
+        validateNode(item, schema.items, [...pathParts, index], errors, rootSchema);
       }
     });
   }
 }
 
-function validateObject(value, schema, pathParts, errors) {
+function validateObject(value, schema, pathParts, errors, rootSchema) {
   const properties = schema.properties || {};
   const required = schema.required || [];
 
@@ -88,7 +104,7 @@ function validateObject(value, schema, pathParts, errors) {
 
   for (const [key, child] of Object.entries(properties)) {
     if (value[key] !== undefined) {
-      validateNode(value[key], child, [...pathParts, key], errors);
+      validateNode(value[key], child, [...pathParts, key], errors, rootSchema);
     }
   }
 
@@ -101,7 +117,27 @@ function validateObject(value, schema, pathParts, errors) {
   }
 }
 
-function validateNode(value, schema, pathParts, errors) {
+function resolveLocalRef(rootSchema, reference) {
+  if (!reference.startsWith('#/')) {
+    return null;
+  }
+  return reference.slice(2).split('/').reduce((node, rawPart) => {
+    const part = rawPart.replace(/~1/g, '/').replace(/~0/g, '~');
+    return node && Object.hasOwn(node, part) ? node[part] : null;
+  }, rootSchema);
+}
+
+function validateNode(value, schema, pathParts, errors, rootSchema) {
+  if (schema.$ref) {
+    const referencedSchema = resolveLocalRef(rootSchema, schema.$ref);
+    if (!referencedSchema) {
+      errors.push(`${formatPath(pathParts)} uses unsupported schema reference ${schema.$ref}`);
+      return;
+    }
+    validateNode(value, referencedSchema, pathParts, errors, rootSchema);
+    return;
+  }
+
   if (schema.const !== undefined && value !== schema.const) {
     errors.push(`${formatPath(pathParts)} must equal ${JSON.stringify(schema.const)}`);
     return;
@@ -127,17 +163,17 @@ function validateNode(value, schema, pathParts, errors) {
   }
 
   if (Array.isArray(value)) {
-    validateArray(value, schema, pathParts, errors);
+    validateArray(value, schema, pathParts, errors, rootSchema);
   }
 
   if (isObject(value)) {
-    validateObject(value, schema, pathParts, errors);
+    validateObject(value, schema, pathParts, errors, rootSchema);
   }
 }
 
 export function validateJsonSchema(value, schema, label = 'value') {
   const errors = [];
-  validateNode(value, schema, [], errors);
+  validateNode(value, schema, [], errors, schema);
 
   if (errors.length === 0) {
     return;

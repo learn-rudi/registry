@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.video-agent/schemas/transcript-provenance.schema.json",
+  "title": "VideoAgentTranscriptProvenance",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "transcript",
+    "command",
+    "engine",
+    "model",
+    "backendModel",
+    "language",
+    "wordTimestamps",
+    "vad",
+    "initialPrompt"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "transcript": { "type": "string", "minLength": 1 },
+    "command": { "type": "string", "minLength": 1 },
+    "engine": { "type": "string", "enum": ["custom", "python", "whisper.cpp"] },
+    "model": { "type": "string", "pattern": "^(?!.*\\.bin$)[A-Za-z0-9][A-Za-z0-9._-]*$" },
+    "backendModel": { "type": "string", "pattern": "^(?!.*\\.bin$)[A-Za-z0-9][A-Za-z0-9._-]*$" },
+    "language": { "type": "string", "minLength": 1 },
+    "wordTimestamps": { "type": "boolean" },
+    "vad": { "type": "boolean" },
+    "initialPrompt": { "type": "boolean" }
+  }
+}

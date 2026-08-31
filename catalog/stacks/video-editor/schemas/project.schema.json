@@ -111,12 +111,18 @@
         },
         "transcription": {
           "type": "object",
-          "required": ["model", "language", "wordTimestamps", "autoTranscribeRenders"],
+          "required": ["engine", "model", "language", "wordTimestamps", "vad", "initialPrompt", "autoTranscribeRenders"],
           "additionalProperties": false,
           "properties": {
-            "model": { "type": "string", "minLength": 1 },
+            "engine": { "type": "string", "enum": ["auto", "python", "whisper.cpp"] },
+            "model": {
+              "type": "string",
+              "pattern": "^(?!.*\\.bin$)[A-Za-z0-9][A-Za-z0-9._-]*$"
+            },
             "language": { "type": "string", "minLength": 1 },
             "wordTimestamps": { "type": "boolean" },
+            "vad": { "type": "boolean" },
+            "initialPrompt": { "type": "string", "maxLength": 2000 },
             "autoTranscribeRenders": { "type": "boolean" }
           }
         },

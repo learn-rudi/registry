@@ -32,11 +32,12 @@ export const DEFAULT_SETTINGS = {
     speedupMinSec: 5
   },
   transcription: {
-    // base is the sweet spot for "fast enough to iterate, accurate enough not to lie."
-    // tiny mangles proper nouns (Claude → clock); small is 3× slower for marginal gain.
-    model: 'base',
+    engine: 'auto',
+    model: 'large-v3-turbo',
     language: 'en',
     wordTimestamps: true,
+    vad: true,
+    initialPrompt: '',
     autoTranscribeRenders: true
   },
   cluster: {

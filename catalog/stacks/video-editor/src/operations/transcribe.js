@@ -1,6 +1,8 @@
 import fs from 'fs/promises';
+import { existsSync } from 'fs';
 import os from 'os';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import {
   artifactPath,
   loadProject,
@@ -13,6 +15,18 @@ import { DEFAULT_SETTINGS } from '../config/defaults.js';
 import { advanceRunState, RunState } from '../lib/states.js';
 import { normalizeWord as normalizeWordShared } from '../lib/transcript.js';
 import { roundTime } from '../lib/format.js';
+import {
+  transcriptProvenancePath,
+  validateTranscript,
+  validateTranscriptProvenance,
+  validateWhisperOutput
+} from '../lib/transcript-validation.js';
+import {
+  assertLogicalModelId,
+  resolveWhisperCppBin,
+  resolveWhisperCppModel,
+  resolveWhisperCppVadModel
+} from '../lib/whisper-cpp.js';
 
 function normalizeWord(rawWord) {
   return normalizeWordShared(rawWord, { round: true, includeProbability: true });
@@ -68,7 +82,10 @@ function normalizeWhisperOutput(raw, metadata) {
   };
 }
 
-async function resolveWhisperCommand() {
+const stackRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const whisperCppWrapper = path.join(stackRoot, 'scripts', 'whisper-cpp-openai-wrapper.js');
+
+function resolvePythonWhisperCommand() {
   const envCommand = process.env.WHISPER_CMD;
   if (envCommand) {
     return envCommand;
@@ -76,11 +93,50 @@ async function resolveWhisperCommand() {
 
   // Fallback: check for whisper in the user's Python bin; the actual path varies by username/version
   const userBin = path.join(os.homedir(), 'Library', 'Python', '3.9', 'bin', 'whisper');
-  if (await pathExists(userBin)) {
+  if (existsSync(userBin)) {
     return userBin;
   }
 
   return 'whisper';
+}
+
+function resolveWhisperBackend(settings) {
+  const requestedEngine = process.env.WHISPER_ENGINE || settings.engine || 'auto';
+  if (!['auto', 'python', 'whisper.cpp'].includes(requestedEngine)) {
+    throw new Error(`Unsupported Whisper engine: ${requestedEngine}`);
+  }
+
+  const cppBin = resolveWhisperCppBin();
+  const cppModel = resolveWhisperCppModel(settings.model);
+  const cppVadModel = settings.vad ? resolveWhisperCppVadModel() : null;
+  const cppReady = cppBin && cppModel && (!settings.vad || cppVadModel);
+  const useWhisperCpp = requestedEngine === 'whisper.cpp'
+    || (requestedEngine === 'auto' && cppReady);
+
+  if (useWhisperCpp) {
+    if (!cppBin) {
+      throw new Error('whisper.cpp was requested but whisper-cli was not found. Set WHISPER_CPP_BIN.');
+    }
+    if (!cppModel) {
+      throw new Error(`whisper.cpp model not found for ${settings.model}. Set WHISPER_CPP_MODEL.`);
+    }
+    if (settings.vad && !cppVadModel) {
+      throw new Error('whisper.cpp VAD was requested but its model was not found. Set WHISPER_CPP_VAD_MODEL.');
+    }
+    return {
+      command: process.execPath,
+      prefixArgs: [whisperCppWrapper],
+      engine: 'whisper.cpp',
+      model: settings.model
+    };
+  }
+
+  return {
+    command: resolvePythonWhisperCommand(),
+    prefixArgs: [],
+    engine: process.env.WHISPER_CMD ? 'custom' : 'python',
+    model: settings.model === 'large-v3-turbo' ? 'turbo' : settings.model
+  };
 }
 
 async function resolveMedia(runDir, project, target, renderName) {
@@ -143,45 +199,89 @@ export async function transcribeRun(runDir, target = 'source', options = {}) {
     ...DEFAULT_SETTINGS.transcription,
     ...(project.settings.transcription || {})
   };
-  const model = options.model || settings.model;
+  const model = assertLogicalModelId(options.model || settings.model);
   const language = options.language || settings.language;
+  const wordTimestamps = options.wordTimestamps ?? settings.wordTimestamps;
+  const vad = options.vad ?? settings.vad;
+  const effectiveVad = vad && !wordTimestamps;
+  const initialPrompt = options.initialPrompt ?? settings.initialPrompt;
+  if (typeof initialPrompt !== 'string' || initialPrompt.length > 2000) {
+    throw new Error('initialPrompt must be a string of at most 2000 characters');
+  }
   const media = await resolveMedia(runDir, project, target, options.renderName);
   const outputPath = artifactPath(runDir, project, media.artifactName);
-  const whisperCommand = await resolveWhisperCommand();
+  const backend = resolveWhisperBackend({
+    ...settings,
+    engine: options.engine ?? settings.engine,
+    model,
+    vad: effectiveVad
+  });
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'video-agent-whisper-'));
 
   try {
-    await runCommand(whisperCommand, [
+    const commandArgs = [
+      ...backend.prefixArgs,
       media.path,
-      '--model', model,
+      '--model', backend.model,
       '--output_format', 'json',
       '--output_dir', tempDir,
       '--language', language,
       '--task', 'transcribe',
-      '--word_timestamps', settings.wordTimestamps ? 'True' : 'False',
-      '--fp16', 'False',
-      '--verbose', 'False'
-    ]);
+      '--word_timestamps', wordTimestamps ? 'True' : 'False'
+    ];
+    if (backend.engine === 'whisper.cpp') {
+      commandArgs.push('--vad', effectiveVad ? 'True' : 'False');
+    } else {
+      commandArgs.push('--fp16', 'False', '--verbose', 'False');
+    }
+    if (initialPrompt.trim()) {
+      commandArgs.push('--initial_prompt', initialPrompt.trim());
+    }
+    await runCommand(backend.command, commandArgs);
 
     const raw = await readWhisperJson(tempDir, media.path);
+    validateWhisperOutput(raw, {
+      label: 'Whisper JSON',
+      wordTimestamps
+    });
     const transcript = normalizeWhisperOutput(raw, {
       kind: target,
       media: media.media,
       model: {
-        command: whisperCommand,
+        command: backend.command,
         model,
         language,
-        wordTimestamps: settings.wordTimestamps
+        wordTimestamps
       }
     });
+    const provenancePath = transcriptProvenancePath(outputPath);
+    const provenance = {
+      schemaVersion: 1,
+      transcript: path.relative(runDir, outputPath),
+      command: backend.engine === 'whisper.cpp'
+        ? 'scripts/whisper-cpp-openai-wrapper.js'
+        : path.basename(backend.command),
+      engine: backend.engine,
+      model,
+      backendModel: backend.model,
+      language,
+      wordTimestamps,
+      vad: backend.engine === 'whisper.cpp' && effectiveVad,
+      initialPrompt: Boolean(initialPrompt.trim())
+    };
 
+    await validateTranscript(transcript, 'normalized transcript');
+    await validateTranscriptProvenance(provenance);
     await writeJson(outputPath, transcript);
+    await writeJson(provenancePath, provenance);
     if (target === 'source') {
       await advanceRunState(runDir, RunState.TRANSCRIBED);
     }
     return {
       outputPath,
-      transcript
+      transcript,
+      provenancePath,
+      provenance
     };
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });

@@ -38,6 +38,7 @@ import { detectSilenceRun } from './operations/silence.js';
 import { listSilencePresets } from './operations/silence-options.js';
 import { extractSlides } from './operations/slides.js';
 import { transcribeRun } from './operations/transcribe.js';
+import { parseTranscribeArgs } from './transcribe-cli-args.js';
 
 function parseCommandArgs(rawArgs) {
   const positionals = [];
@@ -257,9 +258,11 @@ Pipeline commands:
                                   Create, refresh, or replace a run folder
   probe <run>                     Save ffprobe metadata to probe.json
   normalize <run>                 Create working.mp4 with stable fps/audio
-  transcribe <run> source [model]  Whisper source/working media to transcript-source.json
+  transcribe <run> source [model] [options]
+                                  Whisper source/working media to transcript-source.json
   transcribe <run> output <render> [model]
                                   Whisper rendered media to transcript-output.json
+                                  options: --engine, --language, --word-timestamps, --vad, --initial-prompt
   cluster <run>                    Build transcript phrase clusters for planning
   silence <run>                   Detect silences and write silence.json
   cut-audit <run>                 Audit cut safety and write cut-audit.json
@@ -574,12 +577,9 @@ async function main() {
   }
 
   if (command === 'transcribe') {
-    const runDir = await requireRun(args[0]);
-    const target = args[1] || 'source';
-    const result = await transcribeRun(runDir, target, {
-      renderName: target === 'output' ? args[2] : null,
-      model: target === 'output' ? args[3] : args[2]
-    });
+    const parsed = parseTranscribeArgs(args);
+    const runDir = await requireRun(parsed.runArg);
+    const result = await transcribeRun(runDir, parsed.target, parsed.options);
     console.log(`Wrote ${path.relative(process.cwd(), result.outputPath)}`);
     console.log(JSON.stringify({
       kind: result.transcript.kind,

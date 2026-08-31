@@ -1,8 +1,16 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { validateWhisperCppOutput } from "../src/lib/transcript-validation.js";
+import {
+  assertLogicalModelId,
+  resolveWhisperCppBin,
+  resolveWhisperCppDtwModel,
+  resolveWhisperCppModel,
+  resolveWhisperCppVadModel
+} from "../src/lib/whisper-cpp.js";
 
 const SUPPORTED_AUDIO_EXTENSIONS = new Set([".flac", ".mp3", ".ogg", ".wav"]);
 
@@ -10,6 +18,14 @@ function readOption(args, name, fallback = null) {
   const index = args.indexOf(name);
   if (index === -1 || index + 1 >= args.length) return fallback;
   return args[index + 1];
+}
+
+function readBooleanOption(args, name, fallback) {
+  const raw = readOption(args, name);
+  if (raw === null) return fallback;
+  if (/^(true|1|yes)$/i.test(raw)) return true;
+  if (/^(false|0|no)$/i.test(raw)) return false;
+  throw new Error(`${name} must be True or False`);
 }
 
 function run(command, args) {
@@ -23,23 +39,25 @@ function run(command, args) {
 }
 
 function resolveWhisperCli() {
-  return process.env.WHISPER_CPP_BIN
-    || process.env.AUDIO_TOOLS_WHISPER
-    || "/opt/homebrew/bin/whisper-cli";
+  const whisperPath = resolveWhisperCppBin();
+  if (!whisperPath) {
+    throw new Error("whisper-cli was not found. Install whisper.cpp or set WHISPER_CPP_BIN.");
+  }
+  return whisperPath;
 }
 
 function resolveModel(modelArg) {
-  const candidates = [
-    process.env.WHISPER_CPP_MODEL,
-    process.env.AUDIO_TOOLS_WHISPER_MODEL,
-    modelArg && modelArg.includes(path.sep) ? modelArg : null,
-    path.join(process.env.HOME || "", ".rudi/models/whisper/ggml-base.en.bin"),
-    "/opt/homebrew/share/whisper-cpp/models/ggml-base.en.bin"
-  ].filter(Boolean);
-
-  const modelPath = candidates.find((candidate) => existsSync(candidate));
+  const modelPath = resolveWhisperCppModel(modelArg);
   if (!modelPath) {
     throw new Error("No whisper.cpp model found. Set WHISPER_CPP_MODEL or AUDIO_TOOLS_WHISPER_MODEL.");
+  }
+  return modelPath;
+}
+
+function resolveVadModel() {
+  const modelPath = resolveWhisperCppVadModel();
+  if (!modelPath) {
+    throw new Error("VAD was requested but no whisper.cpp VAD model was found. Set WHISPER_CPP_VAD_MODEL.");
   }
   return modelPath;
 }
@@ -189,7 +207,10 @@ function main() {
   }
 
   const language = readOption(args, "--language", "en");
-  const modelArg = readOption(args, "--model", "base");
+  const modelArg = assertLogicalModelId(readOption(args, "--model", "base"));
+  const wordTimestamps = readBooleanOption(args, "--word_timestamps", true);
+  const vad = readBooleanOption(args, "--vad", false);
+  const initialPrompt = readOption(args, "--initial_prompt", "").trim();
   const whisper = resolveWhisperCli();
   const model = resolveModel(modelArg);
   const tempDir = mkdtempSync(path.join(tmpdir(), "video-editor-whisper-cpp-"));
@@ -197,17 +218,29 @@ function main() {
   try {
     const audioPath = ensureAudio(mediaPath, tempDir);
     const outputBase = path.join(tempDir, "whisper-output");
-    run(whisper, [
+    const whisperArgs = [
       "-m", model,
       "-f", audioPath,
       "-l", language,
-      "-oj",
-      "-ojf",
+      wordTimestamps ? "-ojf" : "-oj",
       "-of", outputBase,
       "-np"
-    ]);
+    ];
+    if (wordTimestamps) {
+      whisperArgs.push("--dtw", resolveWhisperCppDtwModel(modelArg));
+    }
+    // whisper.cpp 1.8.x reports DTW token offsets on the VAD-compressed timeline.
+    // Keep VAD for fast meeting transcripts, but preserve the source timeline for editing.
+    if (vad && !wordTimestamps) {
+      whisperArgs.push("--vad", "--vad-model", resolveVadModel());
+    }
+    if (initialPrompt) {
+      whisperArgs.push("--prompt", initialPrompt);
+    }
+    run(whisper, whisperArgs);
 
     const raw = JSON.parse(readFileSync(`${outputBase}.json`, "utf8"));
+    validateWhisperCppOutput(raw, { wordTimestamps });
     const converted = convertJson(raw, { language });
     const finalPath = path.join(
       outputDir,

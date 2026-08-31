@@ -238,7 +238,12 @@ const legacyTools: LegacyTool[] = [
         run: runProp,
         target: stringProp("source or output"),
         render_name: stringProp("Rendered video name when target is output"),
-        model: stringProp("Whisper model name")
+        model: stringProp("Portable Whisper model ID such as large-v3-turbo; use environment variables for physical model paths"),
+        engine: stringProp("Inference engine: auto, whisper.cpp, or python"),
+        language: stringProp("Whisper language code, for example en"),
+        word_timestamps: booleanProp("Preserve word timestamps; enable for editing and disable for faster meeting transcripts"),
+        vad: booleanProp("Enable whisper.cpp voice activity detection"),
+        initial_prompt: stringProp("Meeting glossary or initial transcription prompt")
       },
       required: ["run"]
     },
@@ -253,6 +258,11 @@ const legacyTools: LegacyTool[] = [
         const model = optionalStringArg(args, "model");
         if (model) cliArgs.push(model);
       }
+      addOptional(cliArgs, "--engine", args.engine);
+      addOptional(cliArgs, "--language", args.language);
+      addOptional(cliArgs, "--word-timestamps", args.word_timestamps);
+      addOptional(cliArgs, "--vad", args.vad);
+      addOptional(cliArgs, "--initial-prompt", args.initial_prompt);
       return cliArgs;
     }
   },
