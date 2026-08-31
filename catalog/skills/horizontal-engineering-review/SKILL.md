@@ -1,7 +1,7 @@
 ---
 name: horizontal-engineering-review
 description: Assess repository-wide architectural coherence across multiple changes, assign evidence-backed dispositions to semantic duplication and shared-contract drift, and plan or execute authorized consolidation. Use for horizontal architecture reviews, repeated mechanisms, consolidation obligations, or cross-module drift; do not use for ordinary single-change code review or Git worktree cleanup.
-version: 1.0.0
+version: 1.1.0
 category: development
 tags: [architecture, consolidation, codebase-stewardship, technical-debt, engineering]
 requires:
@@ -79,6 +79,24 @@ be established, classify the candidate as unconfirmed.
 The third semantic implementation triggers a review, not automatic extraction.
 Review earlier when divergence threatens security, correctness, compatibility,
 data integrity, or operability.
+
+## Module And Seam Quality
+
+For confirmed architectural candidates, assess more than duplicate code:
+
+- **Deep module:** does a small stable interface hide meaningful complexity, or
+  does the abstraction merely rename its implementation?
+- **Seam:** do callers cross one explicit contract, or reach through internal
+  state and couple unrelated lifecycles?
+- **Leverage:** will one correction improve several consumers that must evolve
+  together, or create a dependency between concepts that change separately?
+- **Locality:** can a maintainer understand and change one behavior in a bounded
+  neighborhood?
+- **Deletion test:** after consolidation, can superseded implementations and
+  compatibility shadows actually be removed?
+
+Use these as evidence for the existing disposition; they do not create another
+scoring system or justify an unrequested refactor.
 
 ## Disposition
 

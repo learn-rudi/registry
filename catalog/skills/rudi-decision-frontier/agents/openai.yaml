@@ -1,0 +1,4 @@
+interface:
+  display_name: "RUDI Decision Frontier"
+  short_description: "Resolve ambiguity and promote approved task contracts"
+  default_prompt: "Use $rudi-decision-frontier to resolve the decisions blocking this initiative, preserve approval boundaries, and promote only an accepted snapshot into proposed execution nodes."

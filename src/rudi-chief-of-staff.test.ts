@@ -26,6 +26,8 @@ describe("RUDI Chief of Staff skill", () => {
     expect(skill).toMatch(/one writer per worktree/i);
     expect(skill).toMatch(/independent review/i);
     expect(skill).toMatch(/rudi-worktree-closeout/i);
+    expect(skill).toMatch(/rudi-decision-frontier/i);
+    expect(skill).toMatch(/promotion is not readiness or dispatch/i);
     expect(skill).toMatch(/Repo Steward/i);
     expect(skill).toMatch(/externally visible/i);
     expect(skill).not.toMatch(/spawn_agent|mcp__rudi__|codex:\/\/threads/);
@@ -157,5 +159,20 @@ describe("RUDI Chief of Staff skill", () => {
     ]) {
       expect(contract).toContain(`\`${command}\``);
     }
+  });
+
+  it("keeps decision promotion inside the authoritative plan contract", async () => {
+    const [skill, contract] = await Promise.all([
+      readSkillFile("SKILL.md"),
+      readSkillFile("references/project-plan-contract.md"),
+    ]);
+
+    expect(skill).toMatch(/schema-v2 plan.*authoritative decision frontier/is);
+    expect(contract).toMatch(/schema-v1 plans remain valid/i);
+    expect(contract).toContain("`decisionFrontier`");
+    expect(contract).toContain("`promote`");
+    expect(contract).toMatch(/exact replay is idempotent/i);
+    expect(contract).toMatch(/promotion is not readiness or dispatch/i);
+    expect(contract).toMatch(/distinct implementation authorization/i);
   });
 });

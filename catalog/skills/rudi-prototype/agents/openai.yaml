@@ -1,0 +1,4 @@
+interface:
+  display_name: "RUDI Prototype"
+  short_description: "Answer one uncertainty with disposable code"
+  default_prompt: "Use $rudi-prototype to define one uncertainty, build the smallest safe throwaway experiment, and return an evidence-backed verdict without treating it as production code."

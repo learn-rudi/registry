@@ -1,0 +1,15 @@
+✔ publishes the rudi-code-review skill bundle (3.656666ms)
+✔ publishes the rudi-decision-frontier skill bundle (0.758959ms)
+✔ publishes the rudi-diagnose skill bundle (1.367375ms)
+✔ publishes the rudi-human-runbook skill bundle (0.577125ms)
+✔ publishes the rudi-prototype skill bundle (0.504208ms)
+✔ publishes the rudi-stakeholder-questionnaire skill bundle (0.361625ms)
+✔ validates an explicit schema-v2 Decision Frontier (53.5705ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 125.493916

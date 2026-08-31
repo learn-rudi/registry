@@ -1,4 +1,4 @@
 interface:
   display_name: "RUDI Delivery Coordinator"
-  short_description: "Govern resource-aware project DAGs and agent crews"
-  default_prompt: "Use $rudi-chief-of-staff to coordinate this objective with exact model routing, bounded resources and reviews, durable lifecycle records, and evidence-backed integration."
+  short_description: "Govern decision promotion, project DAGs, and agent crews"
+  default_prompt: "Use $rudi-chief-of-staff to coordinate this objective from any required decision-frontier promotion through exact model routing, bounded resources and reviews, durable lifecycle records, and evidence-backed integration."

@@ -1,6 +1,9 @@
 ---
 name: map-change-impact
 description: Map the exact repository paths a proposed feature, fix, refactor, migration, or remediation will affect and print the ordered actions, risks, dependencies, and verification needed before implementation. Use when a user asks what file paths will be impacted, what needs to change, what has already been implemented, what remains to do, what the blast radius is, or wants an implementation-ready change map without starting the edits.
+version: 1.1.0
+category: development
+tags: [rudi, impact-analysis, scope, repository, planning, verification]
 ---
 
 # Map Change Impact
@@ -59,6 +62,15 @@ Never present Likely or Conditional paths as committed scope.
    - Derive verification commands from repository scripts and instructions rather than guessing.
    - Include focused tests, full relevant tests, validation, build or type checks, generated-index checks, debt scans, and smoke checks in proportion to risk.
    - State what each command proves and any gap that remains unverified.
+
+## Decision-bound mapping
+
+When composed with `rudi-decision-frontier`, bind the map to the accepted
+decision IDs and frontier revision it represents. Do not merge mutually
+exclusive options into one committed blast radius. Map unresolved alternatives
+as Conditional paths, explain which decision activates each path, and rerun the
+map after the frontier closes. The final map becomes promotion evidence; it
+does not itself authorize implementation.
 
 ## Optional composition
 
