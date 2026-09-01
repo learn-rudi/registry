@@ -1,6 +1,6 @@
 {
   "name": "@rudi/dwellow-mcp-stack",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "verify": "node --check src/index.js && node --test test/*.test.mjs"

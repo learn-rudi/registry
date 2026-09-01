@@ -1,7 +1,7 @@
 ---
 name: "Dwellow MCP Operator"
-description: "Operate Dwellow MCP through RUDI's stack tools when a user asks for work supported by stack:dwellow-mcp. Bridge to the hosted Dwellow / Co-Llab real-estate development feasibility MCP server."
-version: 1.0.0
+description: "Operate Dwellow MCP through RUDI's stack tools when a user asks for work supported by stack:dwellow-mcp. Bridge to the hosted Dwellow real-estate development feasibility MCP server."
+version: 1.1.0
 category: "real-estate"
 tags:
   - rudi
@@ -20,7 +20,7 @@ then verify and report the result.
 
 ## When To Use
 
-Bridge to the hosted Dwellow / Co-Llab real-estate development feasibility MCP server.
+Bridge to the hosted Dwellow real-estate development feasibility MCP server.
 
 Use the stack when the request needs these capabilities. Do not substitute
 invented results when the stack, a required secret, or a supporting service is
@@ -51,12 +51,15 @@ unavailable.
 
 - `lookup_location`
 - `search_locations`
+- `list_concept_archetypes`
+- `get_concept_archetype`
 - `get_zoning_rules`
 - `find_candidate_sites`
 - `run_legal_fit`
 - `run_dimensional_fit`
 - `run_community_fit`
 - `run_financial_fit`
+- `run_development_feasibility`
 - `get_site_boundary`
 - `build_frontage_workspace`
 - `get_site_conditions`
@@ -65,7 +68,6 @@ unavailable.
 - `run_building_fit`
 - `generate_site_plan`
 - `get_site_visual_context`
-- `start_feasibility_study`
 - `get_feasibility_status`
 - `build_feasibility_package`
 
@@ -73,6 +75,15 @@ Use only tools that are actually available in the active RUDI router. If the
 installed stack exposes a different tool set than this catalog version, report
 the mismatch and use the live tool schema only when doing so remains within the
 user's request.
+
+`list_concept_archetypes` and `get_concept_archetype` are read-only Concept
+surfaces. They expose only archetype ID/label, use class, unit/story counts,
+massing form, typology, tags, and `plausible_for_exploration` authority. Treat
+unit/story counts as reusable archetype identity, not verified site yield. Stop
+on any unexpected private catalog, area/dimension, approval, zoning-fit,
+financial-fit, or source-provenance field; do not use a private plan-catalog API
+as a substitute. These two tools support early exploration only and do not
+authorize any legal, dimensional, building, site-plan, or financial-fit tool.
 
 ## Failure Behavior
 
