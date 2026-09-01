@@ -1,7 +1,7 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-09-01T01:52:40.000Z",
+  "generatedAt": "2026-09-01T02:17:17.000Z",
   "stats": {
     "total": 167,
     "byKind": {
@@ -1985,7 +1985,7 @@
       "id": "skill:dwellow-mcp",
       "kind": "skill",
       "name": "Dwellow MCP Operator",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -1997,7 +1997,7 @@
         ]
       },
       "meta": {
-        "description": "Operate Dwellow MCP through RUDI's stack tools when a user asks for work supported by stack:dwellow-mcp. Bridge to the hosted Dwellow / Co-Llab real-estate development feasibility MCP server.",
+        "description": "Operate Dwellow MCP through RUDI's stack tools when a user asks for work supported by stack:dwellow-mcp. Bridge to the hosted Dwellow real-estate development feasibility MCP server.",
         "category": "real-estate",
         "tags": [
           "rudi",
@@ -4226,7 +4226,7 @@
       "id": "stack:dwellow-mcp",
       "kind": "stack",
       "name": "Dwellow MCP",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -4241,12 +4241,15 @@
         "tools": [
           "lookup_location",
           "search_locations",
+          "list_concept_archetypes",
+          "get_concept_archetype",
           "get_zoning_rules",
           "find_candidate_sites",
           "run_legal_fit",
           "run_dimensional_fit",
           "run_community_fit",
           "run_financial_fit",
+          "run_development_feasibility",
           "get_site_boundary",
           "build_frontage_workspace",
           "get_site_conditions",
@@ -4255,7 +4258,6 @@
           "run_building_fit",
           "generate_site_plan",
           "get_site_visual_context",
-          "start_feasibility_study",
           "get_feasibility_status",
           "build_feasibility_package"
         ]
@@ -4269,13 +4271,12 @@
         "cwd": "."
       },
       "meta": {
-        "description": "Bridge to the hosted Dwellow / Co-Llab real-estate development feasibility MCP server.",
-        "author": "CO-LLAB",
+        "description": "Bridge to the hosted Dwellow real-estate development feasibility MCP server.",
+        "author": "RUDI",
         "license": "MIT",
         "category": "real-estate",
         "tags": [
           "dwellow",
-          "co-llab",
           "real-estate",
           "zoning",
           "site-engine",

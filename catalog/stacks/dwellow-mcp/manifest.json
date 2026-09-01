@@ -2,7 +2,7 @@
   "id": "stack:dwellow-mcp",
   "kind": "stack",
   "name": "Dwellow MCP",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "delivery": "remote",
   "install": {
     "source": "catalog",
@@ -17,12 +17,15 @@
     "tools": [
       "lookup_location",
       "search_locations",
+      "list_concept_archetypes",
+      "get_concept_archetype",
       "get_zoning_rules",
       "find_candidate_sites",
       "run_legal_fit",
       "run_dimensional_fit",
       "run_community_fit",
       "run_financial_fit",
+      "run_development_feasibility",
       "get_site_boundary",
       "build_frontage_workspace",
       "get_site_conditions",
@@ -31,7 +34,6 @@
       "run_building_fit",
       "generate_site_plan",
       "get_site_visual_context",
-      "start_feasibility_study",
       "get_feasibility_status",
       "build_feasibility_package"
     ]
@@ -39,19 +41,16 @@
   "mcp": {
     "transport": "stdio",
     "command": "node",
-    "args": [
-      "src/index.js"
-    ],
+    "args": ["src/index.js"],
     "cwd": "."
   },
   "meta": {
-    "description": "Bridge to the hosted Dwellow / Co-Llab real-estate development feasibility MCP server.",
-    "author": "CO-LLAB",
+    "description": "Bridge to the hosted Dwellow real-estate development feasibility MCP server.",
+    "author": "RUDI",
     "license": "MIT",
     "category": "real-estate",
     "tags": [
       "dwellow",
-      "co-llab",
       "real-estate",
       "zoning",
       "site-engine",
@@ -63,8 +62,6 @@
   },
   "related": {
     "operatorSkill": "skill:dwellow-mcp",
-    "skills": [
-      "skill:dwellow-mcp"
-    ]
+    "skills": ["skill:dwellow-mcp"]
   }
 }
