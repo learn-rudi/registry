@@ -36,7 +36,7 @@ test("pins the offline Dwellow hosted-MCP bridge contract", async () => {
     "utf8",
   );
 
-  assert.equal(manifest.version, "0.2.0");
+  assert.equal(manifest.version, "0.2.1");
   assert.deepEqual(manifest.provides.tools, [
     "lookup_location",
     "search_locations",
@@ -67,6 +67,6 @@ test("pins the offline Dwellow hosted-MCP bridge contract", async () => {
     cwd: ".",
   });
   assert.match(wrapper, /mcp-remote@0\.1\.38/);
-  assert.match(wrapper, /mcp-production-5c11\.up\.railway\.app\/mcp/);
+  assert.match(wrapper, /dwellow-mcp\.learnrudi\.com\/mcp/);
   assert.match(wrapper, /process\.execPath/);
 });
