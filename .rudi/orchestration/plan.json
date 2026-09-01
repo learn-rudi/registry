@@ -1,0 +1,737 @@
+{
+  "schemaVersion": 1,
+  "projectId": "rudi-engineering-skills",
+  "runId": "run-20260831",
+  "revision": 21,
+  "objective": "Implement and verify the RUDI-native engineering skill lifecycle, including six new skills, additive Decision Frontier promotion semantics, lifecycle integrations, package reconciliation, and evidence-backed closure.",
+  "requestedMaxParallel": 3,
+  "resourceEnvelope": {
+    "maxElapsedSeconds": null,
+    "maxTokens": null,
+    "softCheckpointElapsedSeconds": 1800,
+    "softCheckpointTokens": 100000
+  },
+  "reviewPolicy": {
+    "maxIndependentReviews": 1,
+    "maxFocusedConfirmations": 1,
+    "additionalReviewRule": "unresolved_blocker_or_explicit_authorization"
+  },
+  "nodes": [
+    {
+      "id": "architecture-and-red",
+      "title": "Freeze lifecycle architecture and failing contracts",
+      "objective": "Record the Decision Frontier authority boundary, lock the skill lifecycle, and add focused tests that fail only because the approved packages and promotion behavior are absent.",
+      "dependencies": [],
+      "owner": "root-manager",
+      "allowedScope": [
+        ".rudi/orchestration/plan.json",
+        "docs/adr/0012-decision-frontier-promotion-boundary.md",
+        "docs/swe-compliance/2026-08-31-rudi-engineering-skill-suite.md",
+        "src/portable-agentic-workflow-skills.test.ts",
+        "src/project-orchestration-decision-frontier.test.ts",
+        "src/rudi-chief-of-staff.test.ts"
+      ],
+      "acceptanceCriteria": [
+        {
+          "id": "authority-boundary",
+          "statement": "The ADR establishes plan.json as the sole orchestration authority and distinguishes recommendation, approval, implementation authorization, promotion, readiness, and dispatch."
+        },
+        {
+          "id": "behavioral-red",
+          "statement": "Focused tests fail for the missing skill packages and missing promotion contract rather than setup or environment errors."
+        }
+      ],
+      "verification": [
+        {
+          "id": "red-tests",
+          "method": "command",
+          "instruction": "npx vitest run src/portable-agentic-workflow-skills.test.ts src/project-orchestration-decision-frontier.test.ts"
+        }
+      ],
+      "deliverables": [
+        {
+          "id": "architecture-contract",
+          "description": "Accepted ADR, phase-gated checklist, and focused failing tests.",
+          "mediaTypes": [
+            "text/markdown",
+            "text/typescript"
+          ]
+        }
+      ],
+      "risk": "high",
+      "blockingReason": null,
+      "status": "done",
+      "executionSurface": "inline",
+      "resourceLocks": [
+        "repo:rudi-registry"
+      ],
+      "target": {
+        "project": {
+          "projectId": "rudi-registry",
+          "repository": "https://github.com/learnrudi/registry.git"
+        },
+        "host": {
+          "selector": "local",
+          "requiredCapabilities": [
+            "git_worktrees"
+          ]
+        },
+        "workspaceMode": "isolated_worktree",
+        "startingState": {
+          "policy": "ref",
+          "ref": "fd9816b9b45b73a9b43520d48146aa6c782cf5b2"
+        },
+        "modelSelection": {
+          "provider": "openai",
+          "model": "gpt-5.6-sol",
+          "reasoningProfile": "high",
+          "selectionSource": "manager",
+          "fallbackAuthorized": false,
+          "fallbackAuthorizationRef": null,
+          "fallbackUnresolvedBlockerRef": null
+        }
+      },
+      "review": null,
+      "reconciliations": [
+        {
+          "resultId": "result-architecture-and-red-1",
+          "cancellationId": null,
+          "attemptId": "attempt-architecture-and-red-1",
+          "inputDigest": "d75516f15be65fd3255aad624fdd200c7b1149c19440d29c6f690eb918360b1d",
+          "outcome": "complete",
+          "fromStatus": "running",
+          "toStatus": "review",
+          "acceptedAt": "2026-08-31T23:18:52.000Z",
+          "acceptedPlanRevision": 4,
+          "managerReason": "Architecture boundary and behavioral red proof are complete and match the frozen node contract.",
+          "evidenceContract": {
+            "criteria": [
+              "authority-boundary",
+              "behavioral-red"
+            ],
+            "verifications": [
+              "red-tests"
+            ],
+            "deliverables": [
+              {
+                "id": "architecture-contract",
+                "mediaTypes": [
+                  "text/markdown",
+                  "text/typescript"
+                ]
+              }
+            ],
+            "handoffs": []
+          },
+          "evidence": [
+            {
+              "subjectType": "criterion",
+              "subjectId": "authority-boundary",
+              "uri": "artifact://rudi-engineering-skills/docs/adr/0012-decision-frontier-promotion-boundary.md",
+              "digest": "sha256:8f5db8eb72e1cbb23a0af0ceb329320b80bbf779f8771fecba58ce36eea6b496",
+              "mediaType": "text/markdown"
+            },
+            {
+              "subjectType": "criterion",
+              "subjectId": "behavioral-red",
+              "uri": "artifact://rudi-engineering-skills/.rudi/orchestration/evidence/initial-red.md",
+              "digest": "sha256:61a53ba464ed58f5db32cc8b3c1e5424fd77ab41c19628346e1f296393d3bec5",
+              "mediaType": "text/markdown"
+            },
+            {
+              "subjectType": "verification",
+              "subjectId": "red-tests",
+              "uri": "artifact://rudi-engineering-skills/.rudi/orchestration/evidence/preimplementation-contract.test.mjs",
+              "digest": "sha256:9bcf2909716befc609ff2acf7b27cacf4c13c71fb2233b09eb668c6c95de18e6",
+              "mediaType": "text/javascript"
+            },
+            {
+              "subjectType": "deliverable",
+              "subjectId": "architecture-contract",
+              "uri": "artifact://rudi-engineering-skills/docs/adr/0012-decision-frontier-promotion-boundary.md",
+              "digest": "sha256:8f5db8eb72e1cbb23a0af0ceb329320b80bbf779f8771fecba58ce36eea6b496",
+              "mediaType": "text/markdown"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "implementation",
+      "title": "Implement the RUDI engineering skill suite",
+      "objective": "Add the six approved skill packages, implement backward-compatible Decision Frontier promotion semantics, and give every existing engineering skill one non-overlapping lifecycle role.",
+      "dependencies": [
+        "architecture-and-red"
+      ],
+      "owner": "root-manager",
+      "allowedScope": [
+        "catalog/skills/**",
+        "docs/adr/0012-decision-frontier-promotion-boundary.md",
+        "docs/rudi-engineering-skills.md",
+        "src/project-orchestration.test.helpers.ts",
+        "src/project-orchestration-decision-frontier.test.ts",
+        "src/portable-agentic-workflow-skills.test.ts",
+        "src/rudi-chief-of-staff.test.ts"
+      ],
+      "acceptanceCriteria": [
+        {
+          "id": "six-packages",
+          "statement": "All six new portable skills have discriminating trigger descriptions, bounded workflows, explicit authority limits, and reusable package metadata."
+        },
+        {
+          "id": "promotion-semantics",
+          "statement": "Decision promotion is validated, revision-bound, duplicate-safe, and never grants implementation, publication, deployment, or external-system authority."
+        },
+        {
+          "id": "single-authority",
+          "statement": "Chief of Staff remains the only durable orchestrator; issue, canvas, grill, review, impact, compliance, publish, and closeout skills are projections or bounded phases."
+        }
+      ],
+      "verification": [
+        {
+          "id": "focused-green",
+          "method": "command",
+          "instruction": "npx vitest run src/portable-agentic-workflow-skills.test.ts src/project-orchestration-decision-frontier.test.ts src/rudi-chief-of-staff.test.ts"
+        }
+      ],
+      "deliverables": [
+        {
+          "id": "skill-suite",
+          "description": "Portable RUDI engineering skill packages, promotion implementation, and lifecycle catalog.",
+          "mediaTypes": [
+            "text/markdown",
+            "text/javascript",
+            "text/yaml"
+          ]
+        }
+      ],
+      "risk": "high",
+      "blockingReason": null,
+      "status": "done",
+      "executionSurface": "inline",
+      "resourceLocks": [
+        "repo:rudi-registry"
+      ],
+      "target": {
+        "project": {
+          "projectId": "rudi-registry",
+          "repository": "https://github.com/learnrudi/registry.git"
+        },
+        "host": {
+          "selector": "local",
+          "requiredCapabilities": [
+            "git_worktrees"
+          ]
+        },
+        "workspaceMode": "isolated_worktree",
+        "startingState": {
+          "policy": "ref",
+          "ref": "fd9816b9b45b73a9b43520d48146aa6c782cf5b2"
+        },
+        "modelSelection": {
+          "provider": "openai",
+          "model": "gpt-5.6-sol",
+          "reasoningProfile": "high",
+          "selectionSource": "manager",
+          "fallbackAuthorized": false,
+          "fallbackAuthorizationRef": null,
+          "fallbackUnresolvedBlockerRef": null
+        }
+      },
+      "review": null,
+      "reconciliations": [
+        {
+          "resultId": "result-implementation-1",
+          "cancellationId": null,
+          "attemptId": "attempt-implementation-1",
+          "inputDigest": "33994c60068fe15936a9b9c97a20ef6a42dcc69d2f27f65499efbcd6523c34e7",
+          "outcome": "complete",
+          "fromStatus": "running",
+          "toStatus": "review",
+          "acceptedAt": "2026-08-31T23:20:05.000Z",
+          "acceptedPlanRevision": 8,
+          "managerReason": "The package suite, promotion behavior, lifecycle integrations, and focused verification satisfy the implementation contract.",
+          "evidenceContract": {
+            "criteria": [
+              "promotion-semantics",
+              "single-authority",
+              "six-packages"
+            ],
+            "verifications": [
+              "focused-green"
+            ],
+            "deliverables": [
+              {
+                "id": "skill-suite",
+                "mediaTypes": [
+                  "text/javascript",
+                  "text/markdown",
+                  "text/yaml"
+                ]
+              }
+            ],
+            "handoffs": []
+          },
+          "evidence": [
+            {
+              "subjectType": "criterion",
+              "subjectId": "six-packages",
+              "uri": "artifact://rudi-engineering-skills/docs/rudi-engineering-skills.md",
+              "digest": "sha256:8828811fdc5adde943cfbd4ac05020b3f9aeafaf87b28b6f0a71e4eddd396fc3",
+              "mediaType": "text/markdown"
+            },
+            {
+              "subjectType": "criterion",
+              "subjectId": "promotion-semantics",
+              "uri": "artifact://rudi-engineering-skills/catalog/skills/rudi-chief-of-staff/scripts/project-plan.mjs",
+              "digest": "sha256:54c1ea918bf29b5fbcd74a39f8cd9e1c94a0a9666bc3fed5e4d3cb7813827d43",
+              "mediaType": "text/javascript"
+            },
+            {
+              "subjectType": "criterion",
+              "subjectId": "single-authority",
+              "uri": "artifact://rudi-engineering-skills/docs/adr/0012-decision-frontier-promotion-boundary.md",
+              "digest": "sha256:8f5db8eb72e1cbb23a0af0ceb329320b80bbf779f8771fecba58ce36eea6b496",
+              "mediaType": "text/markdown"
+            },
+            {
+              "subjectType": "verification",
+              "subjectId": "focused-green",
+              "uri": "artifact://rudi-engineering-skills/src/portable-agentic-workflow-skills.test.ts",
+              "digest": "sha256:b99bef78f581520a58dbacf2f6ff54af33df6552157c55b0508ea678849bd157",
+              "mediaType": "text/typescript"
+            },
+            {
+              "subjectType": "deliverable",
+              "subjectId": "skill-suite",
+              "uri": "artifact://rudi-engineering-skills/docs/rudi-engineering-skills.md",
+              "digest": "sha256:8828811fdc5adde943cfbd4ac05020b3f9aeafaf87b28b6f0a71e4eddd396fc3",
+              "mediaType": "text/markdown"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "verification",
+      "title": "Reconcile packages and prove the registry",
+      "objective": "Validate every edited skill, regenerate the registry index, run focused and full repository gates, scan edited JavaScript and TypeScript for debt, and record exact evidence.",
+      "dependencies": [
+        "implementation"
+      ],
+      "owner": "root-manager",
+      "allowedScope": [
+        "docs/swe-compliance/2026-08-31-rudi-engineering-skill-suite.md",
+        "index.json"
+      ],
+      "acceptanceCriteria": [
+        {
+          "id": "package-validity",
+          "statement": "All new and edited skill packages pass package validation and are present in the generated registry index."
+        },
+        {
+          "id": "repository-gates",
+          "statement": "Focused tests, full tests, validate, index checks, catalog hygiene, build, pack dry-run, and debt scan are green or any external blocker is recorded exactly."
+        }
+      ],
+      "verification": [
+        {
+          "id": "registry-gates",
+          "method": "command",
+          "instruction": "npm test && npm run validate && npm run indexes:sync && npm run indexes:check && npm run catalog:clean:check && npm run build && npm pack --dry-run --json"
+        },
+        {
+          "id": "debt-scan",
+          "method": "external_check",
+          "instruction": "Run the SWE engineering debt scanner against the edited JavaScript and TypeScript paths."
+        }
+      ],
+      "deliverables": [
+        {
+          "id": "proof-record",
+          "description": "Generated registry artifact and complete verification evidence.",
+          "mediaTypes": [
+            "application/json",
+            "text/markdown"
+          ]
+        }
+      ],
+      "risk": "medium",
+      "blockingReason": null,
+      "status": "done",
+      "executionSurface": "inline",
+      "resourceLocks": [
+        "repo:rudi-registry"
+      ],
+      "target": {
+        "project": {
+          "projectId": "rudi-registry",
+          "repository": "https://github.com/learnrudi/registry.git"
+        },
+        "host": {
+          "selector": "local",
+          "requiredCapabilities": [
+            "git_worktrees"
+          ]
+        },
+        "workspaceMode": "isolated_worktree",
+        "startingState": {
+          "policy": "ref",
+          "ref": "fd9816b9b45b73a9b43520d48146aa6c782cf5b2"
+        },
+        "modelSelection": {
+          "provider": "openai",
+          "model": "gpt-5.6-sol",
+          "reasoningProfile": "high",
+          "selectionSource": "manager",
+          "fallbackAuthorized": false,
+          "fallbackAuthorizationRef": null,
+          "fallbackUnresolvedBlockerRef": null
+        }
+      },
+      "review": null,
+      "reconciliations": [
+        {
+          "resultId": "result-verification-1",
+          "cancellationId": null,
+          "attemptId": "attempt-verification-1",
+          "inputDigest": "86a76eedd4e7440730f3988c597acae763ba49ea3b1a54e67a17353b72b2b61a",
+          "outcome": "complete",
+          "fromStatus": "running",
+          "toStatus": "review",
+          "acceptedAt": "2026-08-31T23:22:28.000Z",
+          "acceptedPlanRevision": 12,
+          "managerReason": "The registry gates and debt evidence are complete, rerunnable, and disclose the remaining baseline warnings.",
+          "evidenceContract": {
+            "criteria": [
+              "package-validity",
+              "repository-gates"
+            ],
+            "verifications": [
+              "debt-scan",
+              "registry-gates"
+            ],
+            "deliverables": [
+              {
+                "id": "proof-record",
+                "mediaTypes": [
+                  "application/json",
+                  "text/markdown"
+                ]
+              }
+            ],
+            "handoffs": []
+          },
+          "evidence": [
+            {
+              "subjectType": "criterion",
+              "subjectId": "package-validity",
+              "uri": "artifact://rudi-engineering-skills/index.json",
+              "digest": "sha256:a0757970a5f53b62e6823d3665147b19fd504d2ecf63f86f54309b2776316f33",
+              "mediaType": "application/json"
+            },
+            {
+              "subjectType": "criterion",
+              "subjectId": "repository-gates",
+              "uri": "artifact://rudi-engineering-skills/docs/swe-compliance/2026-08-31-rudi-engineering-skill-suite.md",
+              "digest": "sha256:d801348f33c455a46e93cc18941ec2289033e44404c903e57172cda6bf4be037",
+              "mediaType": "text/markdown"
+            },
+            {
+              "subjectType": "verification",
+              "subjectId": "registry-gates",
+              "uri": "artifact://rudi-engineering-skills/.rudi/orchestration/evidence/registry-gates.md",
+              "digest": "sha256:1b037ccb6122c2346ec4311429c804ee3d37b861cfb783cb55fce7bf561c73c4",
+              "mediaType": "text/markdown"
+            },
+            {
+              "subjectType": "verification",
+              "subjectId": "debt-scan",
+              "uri": "artifact://rudi-engineering-skills/.rudi/orchestration/evidence/debt-scan.md",
+              "digest": "sha256:d5574fafaf44a89567abcf4db7c6dbea0774ea2b6d6973bf8b7e74a67214cf69",
+              "mediaType": "text/markdown"
+            },
+            {
+              "subjectType": "deliverable",
+              "subjectId": "proof-record",
+              "uri": "artifact://rudi-engineering-skills/docs/swe-compliance/2026-08-31-rudi-engineering-skill-suite.md",
+              "digest": "sha256:d801348f33c455a46e93cc18941ec2289033e44404c903e57172cda6bf4be037",
+              "mediaType": "text/markdown"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "independent-review",
+      "title": "Review standards, specification, and proof independently",
+      "objective": "Review the complete diff without editing it, separately assessing engineering standards, the user-approved lifecycle specification, and whether the recorded proof supports the claims.",
+      "dependencies": [
+        "verification"
+      ],
+      "owner": "fresh-context-reviewer",
+      "allowedScope": [
+        ".rudi/orchestration/plan.json",
+        "catalog/skills/**",
+        "docs/**",
+        "index.json",
+        "src/**"
+      ],
+      "acceptanceCriteria": [
+        {
+          "id": "three-axis-review",
+          "statement": "The reviewer returns independent Standards, Spec, and Proof verdicts with exact evidence and actionable findings."
+        }
+      ],
+      "verification": [
+        {
+          "id": "review-report",
+          "method": "inspection",
+          "instruction": "Inspect the fresh-context review report and reconcile every blocking finding before closure."
+        }
+      ],
+      "deliverables": [
+        {
+          "id": "review",
+          "description": "Independent read-only review report.",
+          "mediaTypes": [
+            "text/markdown"
+          ]
+        }
+      ],
+      "risk": "medium",
+      "blockingReason": null,
+      "status": "done",
+      "executionSurface": "subagent",
+      "resourceLocks": [
+        "review:rudi-engineering-skills"
+      ],
+      "target": {
+        "project": {
+          "projectId": "rudi-registry",
+          "repository": "https://github.com/learnrudi/registry.git"
+        },
+        "host": {
+          "selector": "local",
+          "requiredCapabilities": [
+            "git_worktrees",
+            "subagents"
+          ]
+        },
+        "workspaceMode": "isolated_worktree",
+        "startingState": {
+          "policy": "ref",
+          "ref": "fd9816b9b45b73a9b43520d48146aa6c782cf5b2"
+        },
+        "modelSelection": {
+          "provider": "openai",
+          "model": "gpt-5.6-sol",
+          "reasoningProfile": "high",
+          "selectionSource": "manager",
+          "fallbackAuthorized": false,
+          "fallbackAuthorizationRef": null,
+          "fallbackUnresolvedBlockerRef": null
+        }
+      },
+      "review": {
+        "kind": "independent",
+        "sequence": 1,
+        "authorizationRef": null,
+        "unresolvedBlockerRef": null
+      },
+      "reconciliations": [
+        {
+          "resultId": "result-independent-review-1",
+          "cancellationId": null,
+          "attemptId": "attempt-independent-review-1",
+          "inputDigest": "94bd83d059102e9b0a6a51b589c697c76464faa7826ebcfb21da2fd3492cea18",
+          "outcome": "complete",
+          "fromStatus": "running",
+          "toStatus": "review",
+          "acceptedAt": "2026-08-31T23:51:00.000Z",
+          "acceptedPlanRevision": 16,
+          "managerReason": "All material review findings were corrected and reverified; the remaining proof pointer mismatch was resolved with exact tracked artifacts.",
+          "evidenceContract": {
+            "criteria": [
+              "three-axis-review"
+            ],
+            "verifications": [
+              "review-report"
+            ],
+            "deliverables": [
+              {
+                "id": "review",
+                "mediaTypes": [
+                  "text/markdown"
+                ]
+              }
+            ],
+            "handoffs": []
+          },
+          "evidence": [
+            {
+              "subjectType": "criterion",
+              "subjectId": "three-axis-review",
+              "uri": "artifact://rudi-engineering-skills/.rudi/orchestration/evidence/independent-review.md",
+              "digest": "sha256:efd06f0ebceb09d2820118418e74f4644f97ef08484d096611c09b00cdde2b55",
+              "mediaType": "text/markdown"
+            },
+            {
+              "subjectType": "verification",
+              "subjectId": "review-report",
+              "uri": "artifact://rudi-engineering-skills/.rudi/orchestration/evidence/independent-review.md",
+              "digest": "sha256:efd06f0ebceb09d2820118418e74f4644f97ef08484d096611c09b00cdde2b55",
+              "mediaType": "text/markdown"
+            },
+            {
+              "subjectType": "deliverable",
+              "subjectId": "review",
+              "uri": "artifact://rudi-engineering-skills/.rudi/orchestration/evidence/independent-review.md",
+              "digest": "sha256:efd06f0ebceb09d2820118418e74f4644f97ef08484d096611c09b00cdde2b55",
+              "mediaType": "text/markdown"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "closure",
+      "title": "Close the local implementation boundary",
+      "objective": "Reconcile review findings, record final paths and evidence, report publication and admin-peer status honestly, and leave the accepted local implementation in a reviewable state.",
+      "dependencies": [
+        "independent-review"
+      ],
+      "owner": "root-manager",
+      "allowedScope": [
+        ".rudi/orchestration/**",
+        "catalog/skills/**",
+        "docs/**",
+        "index.json",
+        "src/**"
+      ],
+      "acceptanceCriteria": [
+        {
+          "id": "findings-reconciled",
+          "statement": "All blocking independent-review findings are fixed and reverified or explicitly accepted by the user."
+        },
+        {
+          "id": "honest-handoff",
+          "statement": "The final handoff states exact proof, known gaps, uncommitted slices, publication status, and admin-peer synchronization status."
+        }
+      ],
+      "verification": [
+        {
+          "id": "final-diff",
+          "method": "inspection",
+          "instruction": "Inspect git status and diff against fd9816b and confirm only task-owned paths changed."
+        }
+      ],
+      "deliverables": [
+        {
+          "id": "closure-record",
+          "description": "Completed compliance record and final user handoff.",
+          "mediaTypes": [
+            "text/markdown"
+          ]
+        }
+      ],
+      "risk": "medium",
+      "blockingReason": null,
+      "status": "done",
+      "executionSurface": "inline",
+      "resourceLocks": [
+        "repo:rudi-registry"
+      ],
+      "target": {
+        "project": {
+          "projectId": "rudi-registry",
+          "repository": "https://github.com/learnrudi/registry.git"
+        },
+        "host": {
+          "selector": "local",
+          "requiredCapabilities": [
+            "git_worktrees"
+          ]
+        },
+        "workspaceMode": "isolated_worktree",
+        "startingState": {
+          "policy": "ref",
+          "ref": "fd9816b9b45b73a9b43520d48146aa6c782cf5b2"
+        },
+        "modelSelection": {
+          "provider": "openai",
+          "model": "gpt-5.6-sol",
+          "reasoningProfile": "high",
+          "selectionSource": "manager",
+          "fallbackAuthorized": false,
+          "fallbackAuthorizationRef": null,
+          "fallbackUnresolvedBlockerRef": null
+        }
+      },
+      "review": null,
+      "reconciliations": [
+        {
+          "resultId": "result-closure-1",
+          "cancellationId": null,
+          "attemptId": "attempt-closure-1",
+          "inputDigest": "9ba8944ee9249850b15f1f2f36906e10588f96f667708845d2c7477002325e9b",
+          "outcome": "complete",
+          "fromStatus": "running",
+          "toStatus": "review",
+          "acceptedAt": "2026-08-31T23:55:01.000Z",
+          "acceptedPlanRevision": 20,
+          "managerReason": "All blocking review findings are fixed, all accepted evidence resolves with matching digests, and the authorized local implementation boundary is complete.",
+          "evidenceContract": {
+            "criteria": [
+              "findings-reconciled",
+              "honest-handoff"
+            ],
+            "verifications": [
+              "final-diff"
+            ],
+            "deliverables": [
+              {
+                "id": "closure-record",
+                "mediaTypes": [
+                  "text/markdown"
+                ]
+              }
+            ],
+            "handoffs": []
+          },
+          "evidence": [
+            {
+              "subjectType": "criterion",
+              "subjectId": "findings-reconciled",
+              "uri": "artifact://rudi-engineering-skills/docs/swe-compliance/2026-08-31-rudi-engineering-skill-suite.md",
+              "digest": "sha256:d801348f33c455a46e93cc18941ec2289033e44404c903e57172cda6bf4be037",
+              "mediaType": "text/markdown"
+            },
+            {
+              "subjectType": "criterion",
+              "subjectId": "honest-handoff",
+              "uri": "artifact://rudi-engineering-skills/docs/swe-compliance/2026-08-31-rudi-engineering-skill-suite.md",
+              "digest": "sha256:d801348f33c455a46e93cc18941ec2289033e44404c903e57172cda6bf4be037",
+              "mediaType": "text/markdown"
+            },
+            {
+              "subjectType": "verification",
+              "subjectId": "final-diff",
+              "uri": "artifact://rudi-engineering-skills/docs/swe-compliance/2026-08-31-rudi-engineering-skill-suite.md",
+              "digest": "sha256:d801348f33c455a46e93cc18941ec2289033e44404c903e57172cda6bf4be037",
+              "mediaType": "text/markdown"
+            },
+            {
+              "subjectType": "deliverable",
+              "subjectId": "closure-record",
+              "uri": "artifact://rudi-engineering-skills/docs/swe-compliance/2026-08-31-rudi-engineering-skill-suite.md",
+              "digest": "sha256:d801348f33c455a46e93cc18941ec2289033e44404c903e57172cda6bf4be037",
+              "mediaType": "text/markdown"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "handoffs": []
+}

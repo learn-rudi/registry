@@ -1,0 +1,4 @@
+interface:
+  display_name: "RUDI Stakeholder Questionnaire"
+  short_description: "Collect missing stakeholder knowledge without leading"
+  default_prompt: "Use $rudi-stakeholder-questionnaire to research what is already known, ask only the named stakeholder’s missing questions, and preserve partial or unknown answers as explicit evidence."

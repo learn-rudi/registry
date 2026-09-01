@@ -1,13 +1,15 @@
 # Project Plan Contract
 
-This reference defines schema version 1 for durable chief-of-staff work. The
-manager owns `.rudi/orchestration/plan.json` as the canonical DAG and acceptance
+This reference defines schema version 1 for ordinary durable execution and the
+additive schema-v2 Decision Frontier extension. The manager owns
+`.rudi/orchestration/plan.json` as the canonical decision, DAG, and acceptance
 ledger. Hosts execute work; they do not own or infer plan state.
 
 ## Contents
 
 - [Files and authority](#files-and-authority)
 - [Closed plan schema](#closed-plan-schema)
+- [Decision frontier and promotion](#decision-frontier-and-promotion)
 - [Targets and routing](#targets-and-routing)
 - [Handoffs and evidence](#handoffs-and-evidence)
 - [Run transport](#run-transport)
@@ -35,8 +37,10 @@ suffix and a run only at `.rudi/orchestration/runs/<runId>.json`. The run and
 plan must share the same manager-project orchestration root, and the run
 filename must equal its portable `runId`; a similarly shaped file in another
 project is not a substitute.
-`decisions.json` may explain accepted product or architecture decisions but
-cannot override `plan.json`. Native task lists, thread graphs, worktrees, and
+`decisions.json` may be a derived human-readable index of accepted product or
+architecture decisions but cannot override `plan.json`. Schema-v2 frontier
+state and promotion receipts live only in `plan.json`. Native task lists,
+thread graphs, worktrees, and
 adapter metadata are cockpit or transport views, not competing ledgers.
 
 ## Closed plan schema
@@ -45,7 +49,7 @@ The top-level object has exactly these fields, in this canonical write order:
 
 | Field | Contract |
 |---|---|
-| `schemaVersion` | Integer literal `1`. |
+| `schemaVersion` | Integer literal `1`, or `2` when `decisionFrontier` is present. |
 | `projectId` | Stable portable ID of the manager project. |
 | `runId` | Stable portable ID of this orchestration run. |
 | `revision` | Positive integer, incremented once per accepted mutation. |
@@ -53,6 +57,7 @@ The top-level object has exactly these fields, in this canonical write order:
 | `requestedMaxParallel` | Positive integer manager-requested ceiling. |
 | `resourceEnvelope` | Closed elapsed-time/token limits and soft checkpoints defined below. |
 | `reviewPolicy` | Closed review-pass limits and exception rule defined below. |
+| `decisionFrontier` | Forbidden in v1; required closed discovery and promotion state in v2. |
 | `nodes` | Array of closed node objects. |
 | `handoffs` | Array of closed handoff objects. |
 
@@ -105,6 +110,73 @@ kind. Review declarations above the corresponding policy limit require either
 an authorization reference or unresolved-blocker reference. Runtime preparation
 also counts prior accepted review attempts, so retrying the same review node
 cannot create an unbounded review loop.
+
+## Decision frontier and promotion
+
+Schema-v1 plans remain valid and `init` continues to create them. Schema v2 is
+additive: it requires exactly one `decisionFrontier` object and otherwise uses
+the same node, handoff, routing, run, evidence, and transition contracts.
+
+`decisionFrontier` has exactly `initiativeObjective`, `revision`, `areas`,
+`decisions`, and `promotions`:
+
+- `initiativeObjective` is a non-empty bounded string.
+- `revision` is a positive safe integer incremented for each accepted frontier
+  mutation.
+- `areas` is a non-empty array of closed unresolved-area records with exactly
+  `id`, optional `introducedAtFrontierRevision`, `question`, `status`,
+  `resolution`, `decisionIds`, `approvalRef`, and `decidedAt`. Omission of the
+  introduction revision means revision 1 for backward compatibility. Status is
+  `open`, `resolved`, `accepted_deferral`, or
+  `out_of_scope`. Open areas claim no resolution, decisions, approval, or
+  timestamp. Resolved areas cite one or more accepted decision records.
+  Deferrals and out-of-scope decisions require their own approval reference and
+  canonical UTC timestamp.
+- `decisions` is a non-empty array of closed records with exactly `id`, optional
+  `introducedAtFrontierRevision`, `question`, `recommendation`, `resolution`,
+  `status`, `approvalRef`, and `decidedAt`. Omission of the introduction
+  revision means revision 1 for backward compatibility. Status is `proposed`,
+  `accepted`, `rejected`, or `superseded`.
+  Proposed recommendations claim no resolution or approval. Terminal decisions
+  require a resolution, approval reference, and canonical UTC timestamp.
+- `promotions` is an append-only array of closed receipts. Each receipt binds a
+  unique `promotionId`, SHA-256 input digest, source plan/frontier revisions,
+  a digest of the complete accepted source snapshot, exact area-outcome and
+  terminal-decision IDs and digests, promotion approval, distinct implementation
+  authorization, timestamp, created node IDs, and accepted plan revision.
+
+Only the manager authors frontier state. Every authored revision must pass
+whole-plan `validate`; workers and discovery artifacts propose evidence but do
+not mutate the plan. Once a decision is bound into a promotion receipt, preserve
+that exact record. The same rule applies to resolved, deferred, and out-of-scope
+area outcomes. Introduce a new ID for later change rather than rewriting
+digest-bound history. Records introduced after revision 1 must state their exact
+`introducedAtFrontierRevision`; stored promotion receipts must cover exactly the
+records whose introduction revision is at or before their source frontier
+revision.
+
+`promote --plan <path> --input <path>` is the only portable operation that
+converts a frontier snapshot into execution nodes. Promotion input is closed,
+untrusted schema v1 and must contain exact project/run identity, unique
+promotion ID, current expected plan/frontier revisions, all accepted decisions
+and all terminal area outcomes in the frontier with exact SHA-256 digests,
+promotion approval, distinct implementation authorization, canonical UTC time,
+and one or more complete nodes.
+
+Promotion rejects open areas, proposed decisions, stale revisions, incomplete
+decision bindings, invalid or duplicate nodes, missing or conflated authority,
+promotion timestamps preceding bound approvals, and conflicting ID reuse before
+mutation. New nodes must begin `proposed` with empty reconciliation history.
+Plan-mutating commands serialize on the plan lock, re-read after acquiring it,
+and validate the complete candidate before atomic replacement. Concurrent stale
+writers fail without state loss. Accepted plan revisions are unique across
+promotion and reconciliation history. Exact replay is idempotent. Rejected or
+conflicting input leaves plan bytes unchanged.
+
+Promotion is not readiness or dispatch. It grants no issue creation, commit,
+publication, deployment, destructive, secret, human-gate, or external-system
+authority. Existing transition, placement, dependency, resource, review, and
+prepare-before-dispatch rules still govern every promoted node.
 
 ## Targets and routing
 
@@ -525,6 +597,7 @@ be retried and remains auditable in `archiveHistory`.
 |---|---|
 | `init` | Create a validated v1 plan/layout and establish default Git ignore for `runs/*.json`. |
 | `validate` | Perform closed-schema and graph-wide static validation without mutation. |
+| `promote` | Validate one accepted schema-v2 frontier snapshot and atomically append proposed nodes plus an idempotent, revision- and decision-bound receipt; never dispatch. |
 | `run-init` | Create the canonical run exactly once from closed project/host/model discovery input, with empty attempts and usage history. |
 | `validate-run` | Validate exact plan/run identity, revision, routes, histories, usage policy, and lineage without mutation. |
 | `ready` | Run `ready --plan <path> [--run <path>]` for static eligibility or run-aware safe concurrency and route calculation; never bind or reserve. |
@@ -559,7 +632,10 @@ retained transport instead of treating it as disposable.
 
 Mutation validates the in-memory object, serializes it deterministically, then
 uses a same-directory temporary regular file, complete write and flush, and
-atomic rename. Increment
+atomic rename. Plan mutations first acquire the adjacent exclusive mutation
+lock and re-read the authoritative plan while holding it, so concurrent writers
+cannot both accept the same source revision. A bounded lock wait fails closed;
+the tool does not break or guess that an existing lock is stale. Increment
 `revision` exactly once only after a successful accepted mutation. A rejected
 or idempotent duplicate leaves owned bytes and revision unchanged. Run-only
 lifecycle mutations never increment plan revision and require exact current

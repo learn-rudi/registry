@@ -1,6 +1,9 @@
 ---
 name: rudi-context-gardener
 description: Audit and right-size durable agent instructions across AGENTS.md, CLAUDE.md, and other repository guidance. Use when instructions feel bloated, duplicated, contradictory, stale, host-specific, or poorly divided between global guidance, repository guidance, nested guidance, skills, configuration, and executable stacks.
+version: 1.1.0
+category: development
+tags: [rudi, agent-context, instructions, progressive-disclosure, maintenance]
 ---
 
 # RUDI Context Gardener
@@ -51,6 +54,23 @@ or dependency directories, and reads no secret files.
   standards into always-loaded context.
 - Keep public registry skills portable. Put personal paths, client state, and
   machine-specific defaults in private or local overlays.
+
+## Agent-readable instruction design
+
+- Lead with the invariant or required outcome, then the minimum procedure.
+- Prefer positive, executable instructions with checkable completion criteria;
+  use prohibitions where the failure would be unsafe or authority-expanding.
+- Put always-needed rules in the entry file and move examples, variants,
+  templates, and detailed schemas behind direct references.
+- Point to one canonical source instead of copying a standard into multiple
+  contexts. State precedence when a narrower rule intentionally differs.
+- Remove no-op prose that merely tells a capable agent to be careful,
+  thoughtful, or high quality without defining observable behavior.
+- Name triggers and non-triggers so a conditional skill is invoked for the
+  right work and stays out of unrelated turns.
+- Test instructions against a realistic fresh-context task. If the agent cannot
+  find the rule, interpret it consistently, or prove completion, revise the
+  placement or wording rather than adding more ambient prose.
 
 ## Host adaptation
 

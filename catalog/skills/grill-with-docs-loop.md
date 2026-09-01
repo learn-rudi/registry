@@ -1,7 +1,7 @@
 ---
 name: Grill With Docs Loop
 description: Resolve repo domain questions with isolated agents, update CONTEXT.md and ADRs, and preserve reviewable audit trails
-version: 2.1.0
+version: 2.2.0
 category: coding
 tags: [architecture, domain-modeling, glossary, adr, documentation, multi-agent, repo-analysis]
 ---
@@ -297,6 +297,22 @@ Use this minimal shape:
 ```
 
 Optional sections such as `Status`, `Considered Options`, and `Consequences` are allowed only when they add durable value.
+
+## Decision Frontier Handoff
+
+When this loop is composed inside a broader ambiguous initiative:
+
+- return accepted decisions with stable question IDs, exact evidence paths,
+  skeptic verdicts, and documentation revisions;
+- identify remaining human-only or evidence-missing questions as unresolved
+  areas rather than inventing closure;
+- let `rudi-decision-frontier` decide whether the broader initiative is ready
+  for promotion; and
+- never mutate Chief-of-Staff plan state or treat an accepted documentation
+  answer as implementation authorization.
+
+The Grill ledger is investigation evidence. The manager owns durable decision
+acceptance, promotion, and execution sequencing.
 
 ## Verification
 

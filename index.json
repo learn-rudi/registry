@@ -1,14 +1,14 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-08-31T21:47:22.000Z",
+  "generatedAt": "2026-09-01T01:52:40.000Z",
   "stats": {
-    "total": 160,
+    "total": 167,
     "byKind": {
       "agent": 4,
       "binary": 27,
       "runtime": 6,
-      "skill": 73,
+      "skill": 80,
       "stack": 50
     }
   },
@@ -2108,7 +2108,7 @@
       "id": "skill:grill-with-docs-loop",
       "kind": "skill",
       "name": "Grill With Docs Loop",
-      "version": "2.1.0",
+      "version": "2.2.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -2157,7 +2157,7 @@
       "id": "skill:horizontal-engineering-review",
       "kind": "skill",
       "name": "horizontal-engineering-review",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -2288,14 +2288,23 @@
       "id": "skill:map-change-impact",
       "kind": "skill",
       "name": "map-change-impact",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
         "path": "catalog/skills/map-change-impact"
       },
       "meta": {
-        "description": "Map the exact repository paths a proposed feature, fix, refactor, migration, or remediation will affect and print the ordered actions, risks, dependencies, and verification needed before implementation. Use when a user asks what file paths will be impacted, what needs to change, what has already been implemented, what remains to do, what the blast radius is, or wants an implementation-ready change map without starting the edits."
+        "description": "Map the exact repository paths a proposed feature, fix, refactor, migration, or remediation will affect and print the ordered actions, risks, dependencies, and verification needed before implementation. Use when a user asks what file paths will be impacted, what needs to change, what has already been implemented, what remains to do, what the blast radius is, or wants an implementation-ready change map without starting the edits.",
+        "category": "development",
+        "tags": [
+          "rudi",
+          "impact-analysis",
+          "scope",
+          "repository",
+          "planning",
+          "verification"
+        ]
       }
     },
     "skill:ms-office": {
@@ -2548,6 +2557,20 @@
         ]
       }
     },
+    "skill:publish-task-changes": {
+      "id": "skill:publish-task-changes",
+      "kind": "skill",
+      "name": "publish-task-changes",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/publish-task-changes"
+      },
+      "meta": {
+        "description": "Safely stage and commit only the current task's verified changes, with push and draft pull-request steps only when each endpoint is explicitly requested. Use when the user asks to commit, push, open a PR, or publish the current task from a cleanly attributable diff; do not use merely because implementation finished or when task-owned paths cannot be separated from unrelated work."
+      }
+    },
     "skill:reddit-saved-link-enrichment": {
       "id": "skill:reddit-saved-link-enrichment",
       "kind": "skill",
@@ -2630,7 +2653,7 @@
       "id": "skill:rudi-chief-of-staff",
       "kind": "skill",
       "name": "rudi-chief-of-staff",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -2640,18 +2663,40 @@
         "description": "Coordinate complex single- or multi-project objectives from the initiating agent through an acceptance-led task graph, exact provider/model routing, durable run lifecycle, resource and review limits, explicit handoffs, bounded workers, and evidence-backed integration with human oversight. Use when the user asks to delegate dependent work, run a crew, act as a chief of staff or first mate, coordinate multiple agents or desktop tasks, or keep a long-running project moving predictably across worktrees, projects, or hosts."
       }
     },
+    "skill:rudi-code-review": {
+      "id": "skill:rudi-code-review",
+      "kind": "skill",
+      "name": "rudi-code-review",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/rudi-code-review"
+      },
+      "meta": {
+        "description": "Review a completed software change independently against three separate axes—engineering Standards, the approved Spec, and the claimed Proof—and return prioritized, evidence-backed findings without editing by default. Use for pre-merge, pre-release, or high-risk change review when a diff and task contract exist; do not use for initial implementation, generic architecture consolidation, or debugging an unknown cause."
+      }
+    },
     "skill:rudi-context-gardener": {
       "id": "skill:rudi-context-gardener",
       "kind": "skill",
       "name": "rudi-context-gardener",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
         "path": "catalog/skills/rudi-context-gardener"
       },
       "meta": {
-        "description": "Audit and right-size durable agent instructions across AGENTS.md, CLAUDE.md, and other repository guidance. Use when instructions feel bloated, duplicated, contradictory, stale, host-specific, or poorly divided between global guidance, repository guidance, nested guidance, skills, configuration, and executable stacks."
+        "description": "Audit and right-size durable agent instructions across AGENTS.md, CLAUDE.md, and other repository guidance. Use when instructions feel bloated, duplicated, contradictory, stale, host-specific, or poorly divided between global guidance, repository guidance, nested guidance, skills, configuration, and executable stacks.",
+        "category": "development",
+        "tags": [
+          "rudi",
+          "agent-context",
+          "instructions",
+          "progressive-disclosure",
+          "maintenance"
+        ]
       }
     },
     "skill:rudi-crm": {
@@ -2683,7 +2728,7 @@
       "id": "skill:rudi-decision-canvas",
       "kind": "skill",
       "name": "rudi-decision-canvas",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -2691,6 +2736,48 @@
       },
       "meta": {
         "description": "Turn an ambiguous product, architecture, workflow, or design question into a self-contained visual options artifact, collect structured feedback, and convert approved choices into a written task contract. Use when prose alone makes alternatives hard to compare or when stakeholders need to annotate and decide before implementation."
+      }
+    },
+    "skill:rudi-decision-frontier": {
+      "id": "skill:rudi-decision-frontier",
+      "kind": "skill",
+      "name": "rudi-decision-frontier",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/rudi-decision-frontier"
+      },
+      "meta": {
+        "description": "Resolve the exact product, architecture, workflow, or delivery decisions that separate an ambiguous initiative from execution-ready work, then promote an approved decision snapshot into proposed Chief-of-Staff plan nodes. Use when important choices, stakeholder knowledge, feasibility evidence, or scope boundaries are still unresolved; do not use for a small task whose contract is already stable or to dispatch implementation."
+      }
+    },
+    "skill:rudi-diagnose": {
+      "id": "skill:rudi-diagnose",
+      "kind": "skill",
+      "name": "rudi-diagnose",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/rudi-diagnose"
+      },
+      "meta": {
+        "description": "Investigate a reproducible defect, failed check, degraded workflow, or unexplained system behavior by locating the first incorrect state through falsifiable hypotheses and tight feedback loops. Use when the cause is unknown and evidence must precede a fix; do not use for implementing a known change, broad architecture review, or speculative cleanup."
+      }
+    },
+    "skill:rudi-human-runbook": {
+      "id": "skill:rudi-human-runbook",
+      "kind": "skill",
+      "name": "rudi-human-runbook",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/rudi-human-runbook"
+      },
+      "meta": {
+        "description": "Produce a safe, copyable, checkpointed runbook for setup or recovery work that a person must perform because it depends on interactive consent, physical access, account ownership, hardware, or an unavailable automation boundary. Use for human-only OAuth, vendor-console, device, release, or recovery steps; do not use to disguise an automatable agent workflow or embed secret values."
       }
     },
     "skill:rudi-processor": {
@@ -2716,6 +2803,20 @@
           "operator",
           "rudi-processor"
         ]
+      }
+    },
+    "skill:rudi-prototype": {
+      "id": "skill:rudi-prototype",
+      "kind": "skill",
+      "name": "rudi-prototype",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/rudi-prototype"
+      },
+      "meta": {
+        "description": "Build a deliberately disposable logic, interaction, or integration prototype to answer one named uncertainty before committing to production architecture. Use when feasibility, workflow shape, UX behavior, or a provider boundary cannot be decided cheaply from existing evidence; do not use for production-ready implementation, migrations, or general feature delivery."
       }
     },
     "skill:rudi-repo-steward": {
@@ -2770,11 +2871,25 @@
         ]
       }
     },
+    "skill:rudi-stakeholder-questionnaire": {
+      "id": "skill:rudi-stakeholder-questionnaire",
+      "kind": "skill",
+      "name": "rudi-stakeholder-questionnaire",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/rudi-stakeholder-questionnaire"
+      },
+      "meta": {
+        "description": "Create a concise, neutral questionnaire that obtains missing product, policy, workflow, domain, or acceptance knowledge from a named stakeholder and turns partial responses into explicit decision evidence. Use when another person holds information required to proceed; do not use to ask the stakeholder questions the agent can answer from available evidence or to fabricate answers."
+      }
+    },
     "skill:rudi-swe-issue-loop": {
       "id": "skill:rudi-swe-issue-loop",
       "kind": "skill",
       "name": "RUDI SWE Issue Loop",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -3220,7 +3335,7 @@
       "id": "skill:swe-compliance-checklist",
       "kind": "skill",
       "name": "RUDI SWE Compliance Checklist",
-      "version": "1.4.0",
+      "version": "1.5.0",
       "delivery": "remote",
       "install": {
         "source": "catalog",

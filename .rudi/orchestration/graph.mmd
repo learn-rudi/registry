@@ -1,0 +1,10 @@
+flowchart TD
+  n0["architecture-and-red: Freeze lifecycle architecture and failing contracts (done · inline)"]
+  n1["closure: Close the local implementation boundary (done · inline)"]
+  n2["implementation: Implement the RUDI engineering skill suite (done · inline)"]
+  n3["independent-review: Review standards, specification, and proof independently (done · subagent)"]
+  n4["verification: Reconcile packages and prove the registry (done · inline)"]
+  n0 --> n2
+  n2 --> n4
+  n3 --> n1
+  n4 --> n3

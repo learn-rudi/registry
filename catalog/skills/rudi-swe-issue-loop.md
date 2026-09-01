@@ -1,7 +1,7 @@
 ---
 name: RUDI SWE Issue Loop
 description: Create and execute an evidence-backed GitHub issue and PR ledger for engineering work across supported agent hosts using the SWE checklist skill, including task contracts, risk tiers, phase-gated tests, independent review, branches, commits, pull requests, CI verification, merges, and branch cleanup.
-version: 1.1.0
+version: 1.2.0
 category: coding
 icon: 🔁
 tags: [rudi, github, swe, issues, pull-requests, ci, checklist]
@@ -16,7 +16,24 @@ issue gets an explicit task contract, SWE checklist, risk tier, scoped branch,
 proof commands, independent review, linked PR, and closure notes that survive
 outside the current agent thread.
 
-Use this skill as the orchestration layer. Delegate SWE phase content to `swe-compliance-checklist`; do not copy the SWE Operating Manual into this skill.
+Delegate SWE phase content to `swe-compliance-checklist`; do not copy the SWE
+Operating Manual into this skill.
+
+## Operating Modes And Authority
+
+- **Standalone mode:** for a small, single-repository objective with no parent
+  Chief-of-Staff plan, the issue/PR ledger may coordinate the local delivery
+  loop.
+- **Composed mode:** under `rudi-chief-of-staff`, every issue is a node-local
+  projection and evidence link. The Chief plan owns dependencies, readiness,
+  accepted completion, and cross-project sequencing. Issue or PR state never
+  satisfies a plan dependency.
+- Decision Frontier promotion creates proposed plan nodes, not GitHub issues.
+  Create or update issues only after the owning node is accepted into the plan
+  and the user has authorized the externally visible GitHub action.
+- Do not duplicate plan acceptance, frontier decisions, or worktree-closeout
+  receipts into issue state as a competing authority. Link exact IDs and
+  revisions instead.
 
 ## Task Contract And Risk
 
