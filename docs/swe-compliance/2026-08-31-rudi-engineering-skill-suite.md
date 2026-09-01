@@ -120,7 +120,10 @@ No commit is authorized by this plan.
 - `npm run indexes:check`: passed; indexes are current.
 - `npm run catalog:clean:check`: passed with 0 planned targets and 0 preserved targets.
 - `npm run build`: passed validation and compilation.
-- `npm pack --dry-run --json`: passed for `@rudi/registry@2.0.1`; 1,039 files, 2,436,645 packed bytes, and 11,100,786 unpacked bytes. NPM emitted the repository's existing `.npmignore` fallback warnings.
+- Original pre-integration `npm pack --dry-run --json`: passed for
+  `@rudi/registry@2.0.1`; 1,039 files, 2,436,645 packed bytes, and 11,100,786
+  unpacked bytes. The integrated rerun is recorded below. NPM emitted the
+  repository's existing `.npmignore` fallback warnings.
 - Edited JS/TS debt scan: exited 0 with 0 errors and one warning. The scanner marks `catalog/skills/rudi-chief-of-staff/scripts/project-plan.mjs` unreachable from registry compiler entrypoints; it is intentionally a standalone skill executable invoked by the documented command surface and directly covered by project-orchestration tests. No fake import or task-local global-config exception was added.
 - Dependency audit context: `npm ci` reported the locked repository baseline of 8 audit findings (1 moderate, 6 high, 1 critical). No dependency manifest or lockfile changed; automated audit mutation is outside scope.
 - Independent Standards/Spec/Proof review: the broad pass returned revise for
@@ -129,9 +132,10 @@ No commit is authorized by this plan.
   exact tracked baseline red/green, review-fix red/green, registry-gate, and
   debt artifacts now back the authoritative evidence pointers.
 - Plan/evidence integrity: `node .rudi/orchestration/evidence/verify-plan-evidence.mjs`
-  passed after review reconciliation, resolving and SHA-256-verifying all 17
-  accepted evidence records. Whole-plan validation and `git diff --check` also
-  passed.
+  passed after the original review reconciliation, resolving and
+  SHA-256-verifying all 17 then-accepted evidence records. Whole-plan validation
+  and `git diff --check` also passed. The integrated rerun passed and
+  SHA-256-verified all 21 current evidence records.
 
 ## Phase 7 — Closure
 
@@ -167,18 +171,37 @@ No commit is authorized by this plan.
 - Current integration base: `origin/main` at
   `ec7f53968e6d2ee69155b438e29cbba7e7dc8c0d`. The accepted implementation was
   replayed onto that base on branch `chore/58-rudi-engineering-skill-lifecycle`.
-- Integration correction: current main added the Node 20.20.2 runtime after the
-  original skill-suite base. The resulting generated-index conflict was
+- Integration correction: current main added video-editor Metal whisper.cpp
+  transcription in PR #56 after the original skill-suite base. The resulting generated-index conflict was
   resolved only through `npm run indexes:sync`; the evidence-bound root index
   digest was updated to the combined catalog digest.
-- Post-integration proof: focused tests 35/35 and full tests 274/274 passed.
-  All repository-prescribed Registry gates, plan/evidence verification,
-  whitespace checks, pack dry-run, and debt scan must be green or retain their
-  already-disclosed non-blocking baseline before merge.
+- Post-review correction: the first integrated review found that stored
+  promotion receipts could omit one source-revision area and decision while
+  recomputing a subset digest. The hostile validator test failed before the
+  fix. Frontier records now encode their introduction revision (with omission
+  treated as revision 1 for compatibility), and every stored receipt must cover
+  exactly the records present at its source frontier revision. The unchanged
+  regression is green.
+- Portable-contract correction: focused confirmation cleared the stored-receipt
+  and proof findings but found that the Decision Frontier authoring contract did
+  not tell durable authors to persist the new introduction revision. A focused
+  contract test failed first. The workflow and reference now require
+  `introducedAtFrontierRevision` on new durable records, preserve it through
+  later edits, and document the missing-means-revision-1 compatibility rule.
+- Post-integration proof: focused tests 37/37 and full tests 276/276 passed.
+  Validation 167/167, deterministic index sync/check with
+  `SOURCE_DATE_EPOCH=1788227560`, catalog hygiene, build, seven release hashes,
+  public readiness (0 errors and 0 warnings), changed-stack verification,
+  syntax, whitespace, pack dry-run (1,046 files; 2,448,395 packed bytes;
+  11,153,944 unpacked bytes), and the configured debt scan (zero findings) all
+  passed. Plan/evidence verification then passed for all 21 current records
+  after the proof digests were refreshed.
+- Independent review: final focused confirmation returned pass for Standards,
+  Spec, Proof, and Overall with no remaining blocker.
 - Installed state: the exact 15 canonical packages and their Codex/Claude
   projections are already verified current on the local and admin Macs with
   cross-machine source, package, and rendered-tree digest parity.
-- Publication state at commit time: issue created; commit, push, pull request,
-  CI, and merge are authorized and pending. Final PR, CI, and merge revisions
-  are recorded in the GitHub issue/PR ledger because they occur after this
-  branch evidence is committed.
+- Publication state at evidence-refresh time: public issue #58 exists; commit,
+  push, pull request, CI, and merge are authorized and pending. Final PR, CI,
+  and merge revisions are recorded in the GitHub issue/PR ledger because they
+  occur after this branch evidence is committed.

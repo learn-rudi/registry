@@ -243,6 +243,26 @@ describe("portable skill contracts", () => {
     expect(metadata).toContain(`$${skillName}`);
   });
 
+  it("documents Decision Frontier record introduction revisions for durable authoring", async () => {
+    const [skill, contract] = await Promise.all([
+      fs.readFile(
+        path.join(repoRoot, "catalog/skills/rudi-decision-frontier/SKILL.md"),
+        "utf8"
+      ),
+      fs.readFile(
+        path.join(
+          repoRoot,
+          "catalog/skills/rudi-decision-frontier/references/frontier-contract.md"
+        ),
+        "utf8"
+      ),
+    ]);
+
+    expect(skill).toContain("introducedAtFrontierRevision");
+    expect(contract).toContain("introducedAtFrontierRevision");
+    expect(contract).toMatch(/missing.*revision 1/is);
+  });
+
   it("publishes the accepted cross-host skill baseline", async () => {
     const index = JSON.parse(
       await fs.readFile(path.join(repoRoot, "index.json"), "utf8")

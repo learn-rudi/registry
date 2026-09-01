@@ -49,6 +49,7 @@ const DECISION_FRONTIER_FIELDS = new Set([
 ]);
 const FRONTIER_AREA_FIELDS = new Set([
   "id",
+  "introducedAtFrontierRevision",
   "question",
   "status",
   "resolution",
@@ -58,6 +59,7 @@ const FRONTIER_AREA_FIELDS = new Set([
 ]);
 const FRONTIER_DECISION_FIELDS = new Set([
   "id",
+  "introducedAtFrontierRevision",
   "question",
   "recommendation",
   "resolution",
@@ -1499,6 +1501,17 @@ function frontierAreaDigest(area) {
   );
 }
 
+function frontierRecordIntroductionRevision(record, label, currentFrontierRevision) {
+  const revision = record.introducedAtFrontierRevision ?? 1;
+  if (!Number.isSafeInteger(revision) || revision < 1) {
+    throw new Error(label + " introducedAtFrontierRevision must be a positive safe integer");
+  }
+  if (revision > currentFrontierRevision) {
+    throw new Error(label + " cannot be introduced after the current frontier revision");
+  }
+  return revision;
+}
+
 function validateFrontierAreaBinding(binding, areas, label) {
   if (!isPlainObject(binding)) throw new Error(label + " must be an object");
   assertKnownFields(binding, FRONTIER_AREA_BINDING_FIELDS, label);
@@ -1579,6 +1592,11 @@ function validateDecisionFrontier(value) {
     assertKnownFields(decision, FRONTIER_DECISION_FIELDS, "decision record");
     const id = validateIdentifier(decision.id, "decision record ID");
     if (decisions.has(id)) throw new Error("Duplicate decision record ID: " + id);
+    frontierRecordIntroductionRevision(
+      decision,
+      "decision record " + id,
+      value.revision
+    );
     validateText(decision.question, "decision record question", 2000);
     validateNullableText(decision.recommendation, "decision recommendation", 4000);
     if (!new Set(["proposed", "accepted", "rejected", "superseded"]).has(decision.status)) {
@@ -1607,6 +1625,11 @@ function validateDecisionFrontier(value) {
     const id = validateIdentifier(area.id, "unresolved area ID");
     if (areas.has(id)) throw new Error("Duplicate unresolved area ID: " + id);
     areas.add(id);
+    frontierRecordIntroductionRevision(
+      area,
+      "unresolved area " + id,
+      value.revision
+    );
     validateText(area.question, "unresolved area question", 2000);
     if (!new Set(["open", "resolved", "accepted_deferral", "out_of_scope"]).has(area.status)) {
       throw new Error("Unknown unresolved area status: " + area.status);
@@ -1731,6 +1754,44 @@ function validateDecisionFrontier(value) {
         throw new Error("Duplicate promotion decision binding: " + binding.decisionId);
       }
       boundDecisionIds.add(binding.decisionId);
+    }
+    const sourceAreaIds = value.areas
+      .filter(
+        (area) =>
+          frontierRecordIntroductionRevision(
+            area,
+            "unresolved area " + area.id,
+            value.revision
+          ) <= receipt.sourceFrontierRevision
+      )
+      .map((area) => area.id)
+      .sort(compareCodeUnits);
+    if (
+      JSON.stringify([...boundAreaIds].sort(compareCodeUnits)) !==
+      JSON.stringify(sourceAreaIds)
+    ) {
+      throw new Error(
+        "promotion area bindings must exactly cover their source frontier revision"
+      );
+    }
+    const sourceDecisionIds = value.decisions
+      .filter(
+        (decision) =>
+          frontierRecordIntroductionRevision(
+            decision,
+            "decision record " + decision.id,
+            value.revision
+          ) <= receipt.sourceFrontierRevision
+      )
+      .map((decision) => decision.id)
+      .sort(compareCodeUnits);
+    if (
+      JSON.stringify([...boundDecisionIds].sort(compareCodeUnits)) !==
+      JSON.stringify(sourceDecisionIds)
+    ) {
+      throw new Error(
+        "promotion decision bindings must exactly cover their source frontier revision"
+      );
     }
     if (
       receipt.sourceFrontierDigest !==

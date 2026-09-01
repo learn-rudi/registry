@@ -26,6 +26,7 @@ function openFrontierPlan() {
       areas: [
         {
           id: "delivery-authority",
+          introducedAtFrontierRevision: 1,
           question: "Which workflow owns durable execution state?",
           status: "open",
           resolution: null,
@@ -37,6 +38,7 @@ function openFrontierPlan() {
       decisions: [
         {
           id: "single-orchestrator",
+          introducedAtFrontierRevision: 1,
           question: "Should discovery create a second orchestrator?",
           recommendation: "Keep Chief of Staff authoritative.",
           resolution: null,
@@ -438,10 +440,72 @@ describe("Decision Frontier plan contract", () => {
     expect(await fs.readFile(planPath, "utf8")).toBe(before);
   });
 
+  it("rejects a stored promotion receipt that omits part of its source frontier", async () => {
+    const plan = closedFrontierPlan();
+    const secondDecision = {
+      id: "second-decision",
+      introducedAtFrontierRevision: 1,
+      question: "Which second decision belonged to this source revision?",
+      recommendation: "Keep the complete source snapshot bound.",
+      resolution: "Bind this decision into the promotion receipt.",
+      status: "accepted",
+      approvalRef: "human:second-decision",
+      decidedAt: "2026-08-31T20:01:00.000Z",
+    };
+    const secondArea = {
+      id: "second-area",
+      introducedAtFrontierRevision: 1,
+      question: "Which second area belonged to this source revision?",
+      status: "resolved",
+      resolution: "Bind this area into the promotion receipt.",
+      decisionIds: [secondDecision.id],
+      approvalRef: null,
+      decidedAt: "2026-08-31T20:01:00.000Z",
+    };
+    plan.decisionFrontier.decisions.push(secondDecision);
+    plan.decisionFrontier.areas.push(secondArea);
+    const planPath = await writePlan(plan);
+    const inputPath = await writeInput(
+      "complete-source-promotion.json",
+      promotionInput(plan, "promotion-complete-source", "complete-source-node")
+    );
+    await execFileAsync("node", [
+      scriptPath,
+      "promote",
+      "--plan",
+      planPath,
+      "--input",
+      inputPath,
+    ]);
+
+    const mutated = JSON.parse(await fs.readFile(planPath, "utf8"));
+    const receipt = mutated.decisionFrontier.promotions[0];
+    receipt.areaBindings = receipt.areaBindings.filter(
+      (binding: { areaId: string }) => binding.areaId !== secondArea.id
+    );
+    receipt.decisionBindings = receipt.decisionBindings.filter(
+      (binding: { decisionId: string }) => binding.decisionId !== secondDecision.id
+    );
+    receipt.sourceFrontierDigest = sha256({
+      initiativeObjective: mutated.decisionFrontier.initiativeObjective,
+      revision: receipt.sourceFrontierRevision,
+      areas: [mutated.decisionFrontier.areas[0]],
+      decisions: [mutated.decisionFrontier.decisions[0]],
+    });
+    await fs.writeFile(planPath, JSON.stringify(mutated, null, 2) + "\n");
+
+    await expect(
+      execFileAsync("node", [scriptPath, "validate", "--plan", planPath])
+    ).rejects.toMatchObject({
+      stderr: expect.stringMatching(/exactly cover.*source frontier revision/i),
+    });
+  });
+
   it("rejects mutation of an accepted deferral after it has been promoted", async () => {
     const plan = closedFrontierPlan();
     plan.decisionFrontier.areas.push({
       id: "future-retention",
+      introducedAtFrontierRevision: 1,
       question: "When will the retention policy be implemented?",
       status: "accepted_deferral",
       resolution: "Defer for thirty days.",

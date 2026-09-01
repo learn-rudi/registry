@@ -124,15 +124,19 @@ the same node, handoff, routing, run, evidence, and transition contracts.
 - `revision` is a positive safe integer incremented for each accepted frontier
   mutation.
 - `areas` is a non-empty array of closed unresolved-area records with exactly
-  `id`, `question`, `status`, `resolution`, `decisionIds`, `approvalRef`, and
-  `decidedAt`. Status is `open`, `resolved`, `accepted_deferral`, or
+  `id`, optional `introducedAtFrontierRevision`, `question`, `status`,
+  `resolution`, `decisionIds`, `approvalRef`, and `decidedAt`. Omission of the
+  introduction revision means revision 1 for backward compatibility. Status is
+  `open`, `resolved`, `accepted_deferral`, or
   `out_of_scope`. Open areas claim no resolution, decisions, approval, or
   timestamp. Resolved areas cite one or more accepted decision records.
   Deferrals and out-of-scope decisions require their own approval reference and
   canonical UTC timestamp.
-- `decisions` is a non-empty array of closed records with exactly `id`,
-  `question`, `recommendation`, `resolution`, `status`, `approvalRef`, and
-  `decidedAt`. Status is `proposed`, `accepted`, `rejected`, or `superseded`.
+- `decisions` is a non-empty array of closed records with exactly `id`, optional
+  `introducedAtFrontierRevision`, `question`, `recommendation`, `resolution`,
+  `status`, `approvalRef`, and `decidedAt`. Omission of the introduction
+  revision means revision 1 for backward compatibility. Status is `proposed`,
+  `accepted`, `rejected`, or `superseded`.
   Proposed recommendations claim no resolution or approval. Terminal decisions
   require a resolution, approval reference, and canonical UTC timestamp.
 - `promotions` is an append-only array of closed receipts. Each receipt binds a
@@ -146,7 +150,10 @@ whole-plan `validate`; workers and discovery artifacts propose evidence but do
 not mutate the plan. Once a decision is bound into a promotion receipt, preserve
 that exact record. The same rule applies to resolved, deferred, and out-of-scope
 area outcomes. Introduce a new ID for later change rather than rewriting
-digest-bound history.
+digest-bound history. Records introduced after revision 1 must state their exact
+`introducedAtFrontierRevision`; stored promotion receipts must cover exactly the
+records whose introduction revision is at or before their source frontier
+revision.
 
 `promote --plan <path> --input <path>` is the only portable operation that
 converts a frontier snapshot into execution nodes. Promotion input is closed,

@@ -53,4 +53,37 @@ Final axis disposition after the proof correction:
 - Standards: pass
 - Spec: pass
 - Proof: pass — the deterministic plan-evidence verifier resolved and hashed all
-  17 accepted evidence records after review reconciliation.
+  17 accepted evidence records after the original review reconciliation.
+
+## Main-integration review
+
+The fresh review of the current-main integration returned **revise** with two
+findings:
+
+1. stored promotion receipts did not prove their bindings completely covered
+   the recorded source frontier revision; and
+2. integration proof retained pre-integration counts and omitted the
+   deterministic `SOURCE_DATE_EPOCH` requirement used by CI.
+
+The first finding has a behavior-level regression that failed because the
+mutated subset receipt validated. Frontier records now carry explicit
+introduction-revision semantics (missing means revision 1 for backward
+compatibility), and whole-plan validation requires receipt bindings to cover
+exactly the records present at the receipt's source revision. The unchanged test
+passes. The second finding is corrected in the exact integrated-tree gate
+receipt, including 37/37 focused tests, 276/276 full tests, 1,046 packed files,
+the CI-equivalent source epoch, and current-main provenance. Focused reviewer
+confirmation resolved both original findings but identified one remaining
+portable-contract gap: Decision Frontier authors were not instructed to persist
+the new introduction-revision field. A contract regression failed first; the
+workflow and reference now require `introducedAtFrontierRevision` on new durable
+records and document the revision-1 compatibility rule. Final focused reviewer
+confirmation passed the remaining finding with no blocker.
+
+Final integrated-tree axis disposition:
+
+- Standards: pass
+- Spec: pass
+- Proof: pass — the named portable contract test, all 21 evidence records, and
+  `git diff --check` passed in focused confirmation.
+- Overall: pass

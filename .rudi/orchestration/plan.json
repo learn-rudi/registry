@@ -284,7 +284,7 @@
               "subjectType": "criterion",
               "subjectId": "promotion-semantics",
               "uri": "artifact://rudi-engineering-skills/catalog/skills/rudi-chief-of-staff/scripts/project-plan.mjs",
-              "digest": "sha256:5dfd09d1670b2a157fd694a299ad5b45e12fd0d25a80b9379ec24cf27ce7e8a1",
+              "digest": "sha256:54c1ea918bf29b5fbcd74a39f8cd9e1c94a0a9666bc3fed5e4d3cb7813827d43",
               "mediaType": "text/javascript"
             },
             {
@@ -298,7 +298,7 @@
               "subjectType": "verification",
               "subjectId": "focused-green",
               "uri": "artifact://rudi-engineering-skills/src/portable-agentic-workflow-skills.test.ts",
-              "digest": "sha256:4023269b5bc3d1aa53b7a0eed69e0d245c5cbcad03c051d6eceae16f18aed652",
+              "digest": "sha256:b99bef78f581520a58dbacf2f6ff54af33df6552157c55b0508ea678849bd157",
               "mediaType": "text/typescript"
             },
             {
@@ -427,21 +427,21 @@
               "subjectType": "criterion",
               "subjectId": "package-validity",
               "uri": "artifact://rudi-engineering-skills/index.json",
-              "digest": "sha256:0f5682874ef6bcfc721ccfa01b4ac064b5db32b6bc2fe19cf455ba50882b36b4",
+              "digest": "sha256:a0757970a5f53b62e6823d3665147b19fd504d2ecf63f86f54309b2776316f33",
               "mediaType": "application/json"
             },
             {
               "subjectType": "criterion",
               "subjectId": "repository-gates",
               "uri": "artifact://rudi-engineering-skills/docs/swe-compliance/2026-08-31-rudi-engineering-skill-suite.md",
-              "digest": "sha256:7ff9bb931a5ecf82a48db7f6d25058f784695dfa17c9c45d86ca8b40269e48c5",
+              "digest": "sha256:d801348f33c455a46e93cc18941ec2289033e44404c903e57172cda6bf4be037",
               "mediaType": "text/markdown"
             },
             {
               "subjectType": "verification",
               "subjectId": "registry-gates",
               "uri": "artifact://rudi-engineering-skills/.rudi/orchestration/evidence/registry-gates.md",
-              "digest": "sha256:9db4b948d2f5147e3af9183c0b4d55e2b32dda62bb14daf73c573ecbca5bf1f0",
+              "digest": "sha256:1b037ccb6122c2346ec4311429c804ee3d37b861cfb783cb55fce7bf561c73c4",
               "mediaType": "text/markdown"
             },
             {
@@ -455,7 +455,7 @@
               "subjectType": "deliverable",
               "subjectId": "proof-record",
               "uri": "artifact://rudi-engineering-skills/docs/swe-compliance/2026-08-31-rudi-engineering-skill-suite.md",
-              "digest": "sha256:7ff9bb931a5ecf82a48db7f6d25058f784695dfa17c9c45d86ca8b40269e48c5",
+              "digest": "sha256:d801348f33c455a46e93cc18941ec2289033e44404c903e57172cda6bf4be037",
               "mediaType": "text/markdown"
             }
           ]
@@ -573,21 +573,21 @@
               "subjectType": "criterion",
               "subjectId": "three-axis-review",
               "uri": "artifact://rudi-engineering-skills/.rudi/orchestration/evidence/independent-review.md",
-              "digest": "sha256:07d2e76aafe652988cd8e66f4801c5e16aa67ab98e4970980b1d2c11b5b41d7e",
+              "digest": "sha256:efd06f0ebceb09d2820118418e74f4644f97ef08484d096611c09b00cdde2b55",
               "mediaType": "text/markdown"
             },
             {
               "subjectType": "verification",
               "subjectId": "review-report",
               "uri": "artifact://rudi-engineering-skills/.rudi/orchestration/evidence/independent-review.md",
-              "digest": "sha256:07d2e76aafe652988cd8e66f4801c5e16aa67ab98e4970980b1d2c11b5b41d7e",
+              "digest": "sha256:efd06f0ebceb09d2820118418e74f4644f97ef08484d096611c09b00cdde2b55",
               "mediaType": "text/markdown"
             },
             {
               "subjectType": "deliverable",
               "subjectId": "review",
               "uri": "artifact://rudi-engineering-skills/.rudi/orchestration/evidence/independent-review.md",
-              "digest": "sha256:07d2e76aafe652988cd8e66f4801c5e16aa67ab98e4970980b1d2c11b5b41d7e",
+              "digest": "sha256:efd06f0ebceb09d2820118418e74f4644f97ef08484d096611c09b00cdde2b55",
               "mediaType": "text/markdown"
             }
           ]
@@ -704,28 +704,28 @@
               "subjectType": "criterion",
               "subjectId": "findings-reconciled",
               "uri": "artifact://rudi-engineering-skills/docs/swe-compliance/2026-08-31-rudi-engineering-skill-suite.md",
-              "digest": "sha256:7ff9bb931a5ecf82a48db7f6d25058f784695dfa17c9c45d86ca8b40269e48c5",
+              "digest": "sha256:d801348f33c455a46e93cc18941ec2289033e44404c903e57172cda6bf4be037",
               "mediaType": "text/markdown"
             },
             {
               "subjectType": "criterion",
               "subjectId": "honest-handoff",
               "uri": "artifact://rudi-engineering-skills/docs/swe-compliance/2026-08-31-rudi-engineering-skill-suite.md",
-              "digest": "sha256:7ff9bb931a5ecf82a48db7f6d25058f784695dfa17c9c45d86ca8b40269e48c5",
+              "digest": "sha256:d801348f33c455a46e93cc18941ec2289033e44404c903e57172cda6bf4be037",
               "mediaType": "text/markdown"
             },
             {
               "subjectType": "verification",
               "subjectId": "final-diff",
               "uri": "artifact://rudi-engineering-skills/docs/swe-compliance/2026-08-31-rudi-engineering-skill-suite.md",
-              "digest": "sha256:7ff9bb931a5ecf82a48db7f6d25058f784695dfa17c9c45d86ca8b40269e48c5",
+              "digest": "sha256:d801348f33c455a46e93cc18941ec2289033e44404c903e57172cda6bf4be037",
               "mediaType": "text/markdown"
             },
             {
               "subjectType": "deliverable",
               "subjectId": "closure-record",
               "uri": "artifact://rudi-engineering-skills/docs/swe-compliance/2026-08-31-rudi-engineering-skill-suite.md",
-              "digest": "sha256:7ff9bb931a5ecf82a48db7f6d25058f784695dfa17c9c45d86ca8b40269e48c5",
+              "digest": "sha256:d801348f33c455a46e93cc18941ec2289033e44404c903e57172cda6bf4be037",
               "mediaType": "text/markdown"
             }
           ]

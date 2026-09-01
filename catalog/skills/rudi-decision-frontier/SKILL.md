@@ -36,7 +36,10 @@ durable frontier state or promotion input.
    - `rudi-prototype` for one feasibility or interaction uncertainty;
    - `rudi-diagnose` for unexplained observed behavior.
 5. Record a decision only when its evidence and owner are clear. Preserve
-   `unknown`, rejected, deferred, and out-of-scope outcomes explicitly.
+   `unknown`, rejected, deferred, and out-of-scope outcomes explicitly. In
+   durable state, set each new area's and decision's
+   `introducedAtFrontierRevision` to the revision where it first appears and
+   preserve that value through later edits.
 6. Close the frontier only when every required area is resolved, explicitly
    deferred with approval, or accepted as out of scope.
 7. Run `map-change-impact` against the accepted choices. Convert the result
