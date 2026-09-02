@@ -11,6 +11,13 @@
   },
 
   "runtime": "node",
+  "surface": "both",
+  "toolSurfaces": {
+    "swe_manual_list": "cloud-hosted",
+    "swe_manual_read": "cloud-hosted",
+    "swe_manual_search": "cloud-hosted",
+    "swe_debt_scan": "local-only"
+  },
 
   "requires": {
     "binaries": [],

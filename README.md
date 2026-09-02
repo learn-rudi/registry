@@ -73,6 +73,7 @@ Minimal manifest:
     "path": "catalog/stacks/my-stack"
   },
   "runtime": "node",
+  "surface": "local-only",
   "requires": {
     "binaries": [],
     "secrets": [
@@ -104,6 +105,12 @@ skill, declare the stack in that skill's `requires.stacks`, set
 `related.operatorSkill`, and include the same ID in `related.skills`. Additional
 `related.skills` entries are optional companion workflows. `provides.tools` is
 only for MCP tools exposed by the stack.
+
+`surface` classifies hosted eligibility as `local-only`, `cloud-hosted`, or
+`both`; omission fails closed to `local-only`. A `both` stack uses exact
+`toolSurfaces` overrides to opt individual tools into hosted execution. See
+[SCHEMA.md](SCHEMA.md#surface-and-toolsurfaces) for the no-elevation and
+allowlist rules.
 
 `lifecycle` is optional and omission means unclassified. Do not claim
 `stable` or `supported` without evidence. Deprecated packages carry an

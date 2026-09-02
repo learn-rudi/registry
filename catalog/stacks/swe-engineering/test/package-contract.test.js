@@ -19,6 +19,9 @@ async function collectFiles(directory, relative = "") {
 }
 
 test("package contract keeps the manual and tool surface portable", async () => {
+  const packageJson = JSON.parse(
+    await fs.readFile(path.join(stackRoot, "package.json"), "utf8")
+  );
   const manifest = JSON.parse(
     await fs.readFile(path.join(stackRoot, "manifest.json"), "utf8")
   );
@@ -38,6 +41,15 @@ test("package contract keeps the manual and tool surface portable", async () => 
     "swe_manual_search",
     "swe_debt_scan",
   ]);
+  assert.equal(manifest.surface, "both");
+  assert.deepEqual(manifest.toolSurfaces, {
+    swe_manual_list: "cloud-hosted",
+    swe_manual_read: "cloud-hosted",
+    swe_manual_search: "cloud-hosted",
+    swe_debt_scan: "local-only",
+  });
+  assert.equal(packageJson.version, "0.2.0");
+  assert.equal(packageJson.exports["./hosted"], "./src/hosted.js");
 
   const files = await collectFiles(stackRoot);
   assert.equal(files.includes(".DS_Store"), false);

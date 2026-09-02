@@ -472,6 +472,62 @@ describe("schema validation - valid manifests", () => {
     expect(valid).toBe(true);
   });
 
+  it("should accept a stack surface with exact tool overrides", () => {
+    const manifest = {
+      id: "stack:swe-engineering",
+      kind: "stack",
+      name: "SWE Engineering",
+      version: "0.5.0",
+      delivery: "remote",
+      install: {
+        source: "catalog",
+        path: "catalog/stacks/swe-engineering",
+      },
+      runtime: "node",
+      surface: "both",
+      toolSurfaces: {
+        swe_manual_list: "cloud-hosted",
+        swe_debt_scan: "local-only",
+      },
+      provides: {
+        tools: ["swe_manual_list", "swe_debt_scan"],
+      },
+      mcp: {
+        transport: "stdio",
+        command: "node",
+      },
+    };
+
+    expect(validate(manifest)).toBe(true);
+  });
+
+  it("should reject unknown surface values and non-stack surface fields", () => {
+    const stack = {
+      id: "stack:test",
+      kind: "stack",
+      name: "Test Stack",
+      version: "1.0.0",
+      delivery: "remote",
+      install: { source: "catalog", path: "catalog/stacks/test" },
+      runtime: "node",
+      surface: "internet",
+      provides: { tools: ["test_tool"] },
+      mcp: { transport: "stdio", command: "node" },
+    };
+    const skill = {
+      id: "skill:test",
+      kind: "skill",
+      name: "Test Skill",
+      version: "1.0.0",
+      delivery: "remote",
+      install: { source: "catalog", path: "catalog/skills/test.md" },
+      surface: "cloud-hosted",
+    };
+
+    expect(validate(stack)).toBe(false);
+    expect(validate(skill)).toBe(false);
+  });
+
   it("should reject related.skills entries that are not skill package ids", () => {
     const manifest = {
       id: "stack:video-editor",

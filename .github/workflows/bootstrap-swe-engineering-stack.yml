@@ -1,0 +1,324 @@
+name: Bootstrap @rudi/swe-engineering-stack@0.2.0
+
+on:
+  workflow_dispatch:
+    inputs:
+      accepted_sha:
+        description: Exact current main SHA approved for the one-time bootstrap
+        required: true
+        type: string
+      confirmation:
+        description: Type bootstrap @rudi/swe-engineering-stack@0.2.0
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bootstrap-swe-engineering-stack-0.2.0
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: verify
+    if: github.repository == 'learnrudi/registry' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: catalog/stacks/swe-engineering
+
+    steps:
+      - name: Check out accepted source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Validate one-time authorization inputs
+        env:
+          ACCEPTED_SHA: ${{ inputs.accepted_sha }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          if ! [[ "$ACCEPTED_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "accepted_sha must be a full lowercase commit SHA" >&2
+            exit 1
+          fi
+          if [ "$ACCEPTED_SHA" != "$GITHUB_SHA" ]; then
+            echo "accepted_sha does not match the dispatched main revision" >&2
+            exit 1
+          fi
+          if [ "$CONFIRMATION" != 'bootstrap @rudi/swe-engineering-stack@0.2.0' ]; then
+            echo "confirmation does not match the one-time package target" >&2
+            exit 1
+          fi
+
+      - name: Verify accepted package tree
+        run: |
+          EXPECTED_PACKAGE_TREE='0d974929e1c954c3116e2e54ed449ade64f7fe6f'
+          ACTUAL_PACKAGE_TREE="$(git rev-parse "$GITHUB_SHA:catalog/stacks/swe-engineering")"
+          if [ "$ACTUAL_PACKAGE_TREE" != "$EXPECTED_PACKAGE_TREE" ]; then
+            echo "Package tree $ACTUAL_PACKAGE_TREE does not match reviewed tree $EXPECTED_PACKAGE_TREE" >&2
+            exit 1
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+
+      - name: Verify provenance-capable runtime
+        run: |
+          NPM_VERSION="$(npm --version)"
+          node ../../../scripts/validate-publish-runtime.mjs "$NPM_VERSION"
+
+      - name: Install package dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Verify exact absent package
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+
+          const expectedName = '@rudi/swe-engineering-stack';
+          const expectedVersion = '0.2.0';
+          const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          if (packageJson.name !== expectedName || packageJson.version !== expectedVersion) {
+            throw new Error(`Expected ${expectedName}@${expectedVersion}, found ${packageJson.name}@${packageJson.version}`);
+          }
+          if (packageJson.repository?.url !== 'git+https://github.com/learnrudi/registry.git'
+            || packageJson.repository?.directory !== 'catalog/stacks/swe-engineering') {
+            throw new Error('Package repository metadata does not match learnrudi/registry');
+          }
+          if (packageJson.publishConfig?.access !== 'public') {
+            throw new Error('First-package bootstrap must remain public');
+          }
+
+          const response = await fetch(`https://registry.npmjs.org/${encodeURIComponent(expectedName)}`, {
+            headers: { accept: 'application/json' },
+          });
+          if (response.status !== 404) {
+            if (!response.ok) {
+              throw new Error(`npm registry metadata request failed with HTTP ${response.status}`);
+            }
+            throw new Error(`${expectedName} already exists; bootstrap is unsafe to repeat`);
+          }
+          NODE
+
+      - name: Test package
+        run: npm test
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=moderate
+
+      - name: Verify packed package
+        run: |
+          npm pack --json --pack-destination "$RUNNER_TEMP" --ignore-scripts > "$RUNNER_TEMP/npm-pack-swe-engineering-bootstrap-verify.json"
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const expectedFiles = [
+              "README.md",
+              "package.json",
+              "src/core.js",
+              "src/hosted.js",
+              "src/index.js",
+              "src/manual.js",
+              "src/manual/01-Master-Engineering-Doctrine.txt",
+              "src/manual/02-Engineering-Quick-Reference.txt",
+              "src/manual/03-Testing-Doctrine-Source.txt",
+              "src/manual/04-Debugging-Doctrine-Source.txt",
+              "src/manual/05-API-Engineering-Standard.md",
+              "src/manual/06-Security-Engineering-Standard.md",
+              "src/manual/07-Backend-Application-Engineering-Standard.md",
+              "src/manual/08-Infrastructure-and-Deployment-Engineering-Standard.md",
+              "src/manual/09-Build-Order-and-Engineering-System.md",
+              "src/manual/10-Engineering-Operating-Manual-Index.md",
+              "src/manual/11-Agent-Copilot-Operating-Standard.md",
+              "src/manual/12-Horizontal-Engineering-and-Codebase-Stewardship-Standard.md",
+              "src/manual/13-RUDI-Agentic-Engineering-Standard.md",
+              "src/tools/agent-debt-scan.cjs",
+            ];
+            const [packed] = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/npm-pack-swe-engineering-bootstrap-verify.json", "utf8"));
+            const actualFiles = packed.files.map(({ path }) => path).sort();
+            const expectedIntegrity = "sha512-1SvxpASZuleQuLoWrBK/uHmtY5EKhhsdj8VxmGtsS1yyVaFYfPYoJxxA+Cip1GSt89ZuvSQyHatwk10HCcpVJA==";
+            const expectedShasum = "6582c3ed1329b3876e3dd5dc5686766f76d38109";
+            if (packed.name !== "@rudi/swe-engineering-stack" || packed.version !== "0.2.0") {
+              throw new Error(`Packed unexpected artifact ${packed.name}@${packed.version}`);
+            }
+            if (packed.integrity !== expectedIntegrity || packed.shasum !== expectedShasum) {
+              throw new Error(`Packed artifact digest does not match the reviewed bytes: ${packed.integrity} / ${packed.shasum}`);
+            }
+            if (JSON.stringify(actualFiles) !== JSON.stringify(expectedFiles)) {
+              throw new Error(`Unexpected package files: ${actualFiles.join(", ")}`);
+            }
+          '
+
+  bootstrap:
+    name: bootstrap
+    needs: verify
+    if: github.repository == 'learnrudi/registry' && github.ref == 'refs/heads/main'
+    environment: npm-bootstrap
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: catalog/stacks/swe-engineering
+
+    steps:
+      - name: Check out the same accepted source without credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Recheck authorization inputs and source identity
+        env:
+          ACCEPTED_SHA: ${{ inputs.accepted_sha }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          if [ "$ACCEPTED_SHA" != "$GITHUB_SHA" ] || [ "$ACTUAL_SHA" != "$GITHUB_SHA" ]; then
+            echo "Bootstrap source does not match the accepted main revision" >&2
+            exit 1
+          fi
+          if [ "$CONFIRMATION" != 'bootstrap @rudi/swe-engineering-stack@0.2.0' ]; then
+            echo "confirmation does not match the one-time package target" >&2
+            exit 1
+          fi
+          if [ -n "$(git status --porcelain=v1)" ]; then
+            echo "Bootstrap checkout is not clean" >&2
+            exit 1
+          fi
+          EXPECTED_PACKAGE_TREE='0d974929e1c954c3116e2e54ed449ade64f7fe6f'
+          ACTUAL_PACKAGE_TREE="$(git rev-parse "$GITHUB_SHA:catalog/stacks/swe-engineering")"
+          if [ "$ACTUAL_PACKAGE_TREE" != "$EXPECTED_PACKAGE_TREE" ]; then
+            echo "Package tree does not match the reviewed bootstrap artifact" >&2
+            exit 1
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+
+      - name: Verify provenance-capable runtime without repository code
+        run: |
+          NPM_VERSION="$(npm --version)"
+          NPM_VERSION="$NPM_VERSION" node --input-type=module -e '
+            const version = process.env.NPM_VERSION;
+            const match = /^(\d+)\.(\d+)\.(\d+)(?:\+[0-9A-Za-z.-]+)?$/.exec(version);
+            if (!match) throw new Error(`Unsupported npm version: ${version}`);
+            const minimum = [11, 5, 1];
+            const actual = match.slice(1, 4).map(Number);
+            for (let index = 0; index < minimum.length; index += 1) {
+              if (actual[index] > minimum[index]) process.exit(0);
+              if (actual[index] < minimum[index]) throw new Error(`npm ${version} is below the required stable floor`);
+            }
+          '
+
+      - name: Recheck exact absent package
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+
+          const expectedName = '@rudi/swe-engineering-stack';
+          const expectedVersion = '0.2.0';
+          const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          if (packageJson.name !== expectedName || packageJson.version !== expectedVersion) {
+            throw new Error(`Expected ${expectedName}@${expectedVersion}, found ${packageJson.name}@${packageJson.version}`);
+          }
+          const response = await fetch(`https://registry.npmjs.org/${encodeURIComponent(expectedName)}`, {
+            headers: { accept: 'application/json' },
+          });
+          if (response.status !== 404) {
+            if (!response.ok) {
+              throw new Error(`npm registry metadata request failed with HTTP ${response.status}`);
+            }
+            throw new Error(`${expectedName} already exists; bootstrap is unsafe to repeat`);
+          }
+          NODE
+
+      - name: Pack fresh verified package without lifecycle scripts
+        id: pack
+        run: |
+          npm pack --json --pack-destination "$RUNNER_TEMP" --ignore-scripts > "$RUNNER_TEMP/npm-pack-swe-engineering-bootstrap.json"
+          PACKAGE_TARBALL="$(node --input-type=module -e '
+            import fs from "node:fs";
+            const expectedFiles = [
+              "README.md",
+              "package.json",
+              "src/core.js",
+              "src/hosted.js",
+              "src/index.js",
+              "src/manual.js",
+              "src/manual/01-Master-Engineering-Doctrine.txt",
+              "src/manual/02-Engineering-Quick-Reference.txt",
+              "src/manual/03-Testing-Doctrine-Source.txt",
+              "src/manual/04-Debugging-Doctrine-Source.txt",
+              "src/manual/05-API-Engineering-Standard.md",
+              "src/manual/06-Security-Engineering-Standard.md",
+              "src/manual/07-Backend-Application-Engineering-Standard.md",
+              "src/manual/08-Infrastructure-and-Deployment-Engineering-Standard.md",
+              "src/manual/09-Build-Order-and-Engineering-System.md",
+              "src/manual/10-Engineering-Operating-Manual-Index.md",
+              "src/manual/11-Agent-Copilot-Operating-Standard.md",
+              "src/manual/12-Horizontal-Engineering-and-Codebase-Stewardship-Standard.md",
+              "src/manual/13-RUDI-Agentic-Engineering-Standard.md",
+              "src/tools/agent-debt-scan.cjs",
+            ];
+            const [packed] = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/npm-pack-swe-engineering-bootstrap.json", "utf8"));
+            const actualFiles = packed.files.map(({ path }) => path).sort();
+            const expectedIntegrity = "sha512-1SvxpASZuleQuLoWrBK/uHmtY5EKhhsdj8VxmGtsS1yyVaFYfPYoJxxA+Cip1GSt89ZuvSQyHatwk10HCcpVJA==";
+            const expectedShasum = "6582c3ed1329b3876e3dd5dc5686766f76d38109";
+            if (packed.name !== "@rudi/swe-engineering-stack" || packed.version !== "0.2.0") {
+              throw new Error(`Packed unexpected artifact ${packed.name}@${packed.version}`);
+            }
+            if (packed.integrity !== expectedIntegrity || packed.shasum !== expectedShasum) {
+              throw new Error(`Packed artifact digest does not match the reviewed bytes: ${packed.integrity} / ${packed.shasum}`);
+            }
+            if (JSON.stringify(actualFiles) !== JSON.stringify(expectedFiles)) {
+              throw new Error(`Unexpected package files: ${actualFiles.join(", ")}`);
+            }
+            process.stdout.write(packed.filename);
+          ')"
+          echo "filename=$PACKAGE_TARBALL" >> "$GITHUB_OUTPUT"
+
+      - name: Publish first package with provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_BOOTSTRAP_TOKEN }}
+          PACKAGE_TARBALL: ${{ steps.pack.outputs.filename }}
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "The npm-bootstrap environment is missing NPM_BOOTSTRAP_TOKEN" >&2
+            exit 1
+          fi
+          node --input-type=module <<'NODE'
+          const token = process.env.NODE_AUTH_TOKEN;
+          const expectedName = '@rudi/swe-engineering-stack';
+          if (!token) {
+            throw new Error('The npm-bootstrap environment did not provide a token');
+          }
+          const response = await fetch(`https://registry.npmjs.org/${encodeURIComponent(expectedName)}`, {
+            headers: {
+              accept: 'application/json',
+              authorization: `Bearer ${token}`,
+            },
+          });
+          if (response.status !== 404) {
+            if (!response.ok) {
+              throw new Error(`Authenticated npm package lookup failed with HTTP ${response.status}`);
+            }
+            throw new Error(`${expectedName} already exists for the authenticated publisher; bootstrap is unsafe to repeat`);
+          }
+          NODE
+          npm publish "$RUNNER_TEMP/$PACKAGE_TARBALL" --access public --ignore-scripts --provenance --registry=https://registry.npmjs.org

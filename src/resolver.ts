@@ -95,6 +95,8 @@ export interface Provides {
   tools?: string[];
 }
 
+export type Surface = "local-only" | "cloud-hosted" | "both";
+
 export interface Related {
   operatorSkill?: string;
   skills?: string[];
@@ -142,6 +144,8 @@ export interface Package {
   runtime?: "node" | "python" | "deno" | "bun";
   requires?: Requires;
   provides?: Provides;
+  surface?: Surface;
+  toolSurfaces?: Record<string, Surface>;
   related?: Related;
   mcp?: Mcp;
 }
@@ -272,6 +276,48 @@ export class PolicyError extends Error {
 }
 
 /**
+ * Resolve one declared stack tool's remote-eligibility classification.
+ *
+ * Unclassified stacks fail closed. A `both` stack also requires each remotely
+ * eligible tool to opt in explicitly, so omitted tool entries remain local.
+ */
+export function resolveToolSurface(pkg: Package, toolName: string): Surface {
+  if (pkg.kind !== "stack") {
+    throw new PolicyError(pkg.id, "tool surfaces apply only to stacks");
+  }
+
+  const declaredTools = pkg.provides?.tools ?? [];
+  if (!declaredTools.includes(toolName)) {
+    throw new PolicyError(pkg.id, `tool is not declared: ${toolName}`);
+  }
+
+  for (const overrideName of Object.keys(pkg.toolSurfaces ?? {})) {
+    if (!declaredTools.includes(overrideName)) {
+      throw new PolicyError(
+        pkg.id,
+        `toolSurfaces key ${overrideName} is not declared by provides.tools`
+      );
+    }
+  }
+
+  const override = pkg.toolSurfaces?.[toolName];
+  const stackSurface = pkg.surface ?? "local-only";
+  if (
+    stackSurface === "local-only" &&
+    override !== undefined &&
+    override !== "local-only"
+  ) {
+    throw new PolicyError(
+      pkg.id,
+      `local-only stack cannot elevate tool ${toolName} to ${override}`
+    );
+  }
+  if (override !== undefined) return override;
+  if (stackSurface === "cloud-hosted") return "cloud-hosted";
+  return "local-only";
+}
+
+/**
  * Validate effective policy constraints that JSON Schema can't express
  */
 export function assertEffectivePolicy(resolved: ResolvedPackage): void {
@@ -370,6 +416,30 @@ export function assertEffectivePolicy(resolved: ResolvedPackage): void {
     }
     if (!resolved.mcp) {
       throw new PolicyError(id, `stack requires mcp field`);
+    }
+
+    const declaredTools = new Set(resolved.provides?.tools ?? []);
+    for (const [toolName, surface] of Object.entries(
+      resolved.toolSurfaces ?? {}
+    )) {
+      if (!declaredTools.has(toolName)) {
+        throw new PolicyError(
+          id,
+          `toolSurfaces key ${toolName} is not declared by provides.tools`
+        );
+      }
+      if (resolved.surface === "local-only" && surface !== "local-only") {
+        throw new PolicyError(
+          id,
+          `local-only stack cannot elevate tool ${toolName} to ${surface}`
+        );
+      }
+      if (resolved.surface === undefined && surface !== "local-only") {
+        throw new PolicyError(
+          id,
+          `unclassified stack cannot elevate tool ${toolName} to ${surface}`
+        );
+      }
     }
   }
 }

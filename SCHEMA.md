@@ -375,6 +375,32 @@ Use `requires.stacks` for skill packages that need one or more stacks to perform
 }
 ```
 
+### `surface` and `toolSurfaces`
+
+Stack remote-execution eligibility is explicit and fail-closed:
+
+```json
+"surface": "both",
+"toolSurfaces": {
+  "video_trim": "cloud-hosted",
+  "video_speed": "local-only"
+}
+```
+
+Allowed values are `local-only`, `cloud-hosted`, and `both`.
+
+- Omitted `surface` resolves to `local-only`.
+- A `local-only` or unclassified stack cannot elevate a tool through an
+  override.
+- On a `both` stack, an omitted tool override resolves to `local-only`.
+- Every `toolSurfaces` key must appear in the same manifest's
+  `provides.tools` list.
+- The local stdio router continues to expose installed stack tools; these
+  fields control hosted eligibility, not local removal.
+- Registry eligibility is necessary but not sufficient for hosted execution.
+  A hosted service must additionally pin and review an immutable first-party
+  adapter and enforce its own exact allowlist and tenant policy.
+
 ### `related`
 ```json
 "related": {
