@@ -7,6 +7,7 @@
 import { describe, it, expect } from "vitest";
 import {
   resolve,
+  resolveToolSurface,
   assertEffectivePolicy,
   PolicyError,
   type Package,
@@ -526,6 +527,68 @@ describe("assertEffectivePolicy", () => {
   });
 
   describe("stack constraints", () => {
+    it("defaults unclassified stacks and omitted tools on both surfaces to local-only", () => {
+      expect(resolveToolSurface(minimalStack, "video_trim")).toBe("local-only");
+      expect(
+        resolveToolSurface({ ...minimalStack, surface: "both" }, "video_trim")
+      ).toBe("local-only");
+    });
+
+    it("resolves only declared explicit tool surfaces", () => {
+      const pkg: Package = {
+        ...minimalStack,
+        surface: "both",
+        toolSurfaces: {
+          video_trim: "cloud-hosted",
+          video_speed: "local-only",
+        },
+      };
+
+      expect(resolveToolSurface(pkg, "video_trim")).toBe("cloud-hosted");
+      expect(resolveToolSurface(pkg, "video_speed")).toBe("local-only");
+      expect(() => resolveToolSurface(pkg, "video_unknown")).toThrow(
+        "tool is not declared"
+      );
+    });
+
+    it("rejects local-only elevation and overrides for undeclared tools", () => {
+      const elevated = resolve(
+        {
+          ...minimalStack,
+          surface: "local-only",
+          toolSurfaces: { video_trim: "cloud-hosted" },
+        },
+        { os: "darwin", arch: "arm64" }
+      );
+      const unknown = resolve(
+        {
+          ...minimalStack,
+          surface: "both",
+          toolSurfaces: { video_unknown: "cloud-hosted" },
+        },
+        { os: "darwin", arch: "arm64" }
+      );
+
+      expect(() => assertEffectivePolicy(elevated)).toThrow(
+        "local-only stack cannot elevate tool video_trim"
+      );
+      expect(() => assertEffectivePolicy(unknown)).toThrow(
+        "toolSurfaces key video_unknown is not declared"
+      );
+      expect(() => resolveToolSurface(elevated, "video_trim")).toThrow(
+        "local-only stack cannot elevate tool video_trim"
+      );
+      expect(() => resolveToolSurface({
+        ...minimalStack,
+        toolSurfaces: { video_trim: "cloud-hosted" },
+      }, "video_trim")).toThrow(
+        "local-only stack cannot elevate tool video_trim"
+      );
+      expect(() => resolveToolSurface(unknown, "video_trim")).toThrow(
+        "toolSurfaces key video_unknown is not declared"
+      );
+    });
+
     it("should require runtime field for stacks", () => {
       const pkg: Package = {
         ...minimalStack,

@@ -69,6 +69,16 @@
     },
     "requires": { "$ref": "#/$defs/Requires" },
     "provides": { "$ref": "#/$defs/Provides" },
+    "surface": { "$ref": "#/$defs/Surface" },
+    "toolSurfaces": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+      },
+      "additionalProperties": { "$ref": "#/$defs/Surface" },
+      "description": "Exact per-tool remote eligibility overrides; keys must also appear in provides.tools"
+    },
     "related": { "$ref": "#/$defs/Related" },
     "mcp": { "$ref": "#/$defs/Mcp" }
   },
@@ -85,6 +95,19 @@
         "required": ["runtime", "mcp", "provides"],
         "properties": {
           "install": { "properties": { "source": { "const": "catalog" } } }
+        }
+      }
+    },
+
+    {
+      "if": {
+        "properties": { "kind": { "not": { "const": "stack" } } },
+        "required": ["kind"]
+      },
+      "then": {
+        "properties": {
+          "surface": false,
+          "toolSurfaces": false
         }
       }
     },
@@ -504,6 +527,12 @@
           "description": "MCP tools this stack exposes"
         }
       }
+    },
+
+    "Surface": {
+      "type": "string",
+      "enum": ["local-only", "cloud-hosted", "both"],
+      "description": "Remote execution eligibility; omission fails closed to local-only"
     },
 
     "Related": {
