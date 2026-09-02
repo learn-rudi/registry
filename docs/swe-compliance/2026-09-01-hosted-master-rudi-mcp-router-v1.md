@@ -1,6 +1,7 @@
 # Registry hosted-stack surface contract
 
-Status: Phase 5 bootstrap-source verification; package release remains gated.
+Status: Phase 5 package release and provenance verified; normal trusted
+publisher configured and bootstrap credentials revoked.
 
 ## Phase 0: Baseline And Manual Lookup
 
@@ -9,10 +10,10 @@ Status: Phase 5 bootstrap-source verification; package release remains gated.
   schema tests, Registry docs, and candidate first-party stack manifests/code.
 - Risk: High because an incorrect default can expose code in a credentialed
   internet-facing runtime.
-- First-package baseline: official npm metadata returns `E404` for
+- First-package baseline: official npm metadata returned `E404` for
   `@learnrudi/swe-engineering-stack`; `learnrudi/registry` is public, so
   GitHub-hosted provenance is supported. The authenticated npm profile shows
-  the `learnrudi` organization; exact owner/admin authority remains a human
+  the `learnrudi` organization; exact owner/admin authority remained a human
   preflight gate rather than an inferred fact.
 - Relevant manual controls: Appendix F CI/CD and secrets isolation, Appendix H
   artifact traceability, the agent red-green/review standard, and the
@@ -136,8 +137,10 @@ Status: Phase 5 bootstrap-source verification; package release remains gated.
   `@learnrudi`-only package-write token with no
   organization permission, immediate pre-publish confirmation, cryptographic
   signature/provenance verification, trusted-publisher configuration, token
-  removal/revocation, and fail-closed recovery. It records current scope
-  ownership as unverified.
+  removal/revocation, and fail-closed recovery. The authenticated browser
+  operator later attested that npm identified `bzhoff` as the organization
+  owner; that private control-plane claim is not independently reproducible
+  without authenticated npm access.
 
 ## Phase 4: Green Tests And Refactor
 
@@ -211,8 +214,9 @@ Verified on 2026-09-01 and the 2026-09-02 bootstrap-source continuation:
   cleanup confirmation; the repository hygiene gate then passed with zero
   targets.
 - Independent bootstrap-source review passed Standards, Spec, and Proof with
-  no P0–P3 findings. Live npm provenance and the normal OIDC publication path
-  remain unprovable until separately authorized release operations.
+  no P0–P3 findings. The separately authorized live release then supplied the
+  npm provenance and immutable artifact evidence recorded below; the normal
+  OIDC workflow first applies to a later distinct version.
 - Reverified review corrections: the exported resolver now owns
   no-elevation validation, hosted listing removes `manualRoot`, the hosted
   import slice excludes the local process scanner, and the package declares
@@ -223,20 +227,37 @@ Verified on 2026-09-01 and the 2026-09-02 bootstrap-source continuation:
 - Record generated sources, commands/results, commits/PR, package release
   status, accepted debt, and worktree closeout receipt.
 - Human runbook:
-  `docs/runbooks/npm-swe-engineering-stack-bootstrap.md`; authored and
-  source-verified, not executed.
-- Current release status: not published. Merge and npm publication remain
-  separate human-controlled gates; Cloud activation cannot proceed until the
-  reviewed package commit and immutable release are available.
-- The npm package does not yet exist, so its first publication is a separately
-  authorized one-time bootstrap gate. The normal workflow remains OIDC-only and
-  intentionally provides no long-lived-token fallback. The separate bootstrap
-  workflow accepts an environment-scoped credential only for exact `0.2.0`, is
-  unsafe to dispatch without owner/admin scope proof and explicit approval, and
-  becomes fail-closed once the package exists. The normal workflow becomes the
-  publication path for a later distinct version after npm trusts its exact
-  identity.
-- Final bootstrap-source review verdict is `pass`; release execution remains
-  `needs human decision`. Authenticated `@learnrudi` ownership, source merge,
-  environment/token setup, dispatch, publication, trust configuration, and
-  credential revocation are unexecuted.
+  `docs/runbooks/npm-swe-engineering-stack-bootstrap.md`; executed and closed
+  with immutable package, provenance, trusted-publisher, and revocation
+  evidence.
+- Registry main `4ce2d9b3daaab419e33a43f413011db66f02ea24` and package
+  tree `a20da20c28a138c8ab537c367fa98b380f16ece1` published public
+  `@learnrudi/swe-engineering-stack@0.2.0` in successful bootstrap run
+  `33659462566`. The exact registry integrity is
+  `sha512-6pyA3PyFiwojA4Y2MBc/OKWiK8p/0mK7eiPlGmdICEeQLnAmgz+dydJcTxBX58Wkbm1n5pMwNT673lC0VQT9cw==`
+  and the shasum is `5b6fd58434ed3ccead4770365c7efd58c33622f3`.
+- npm's attestation endpoint exposes both the npm publish predicate and SLSA
+  provenance v1; the latter binds GitHub-hosted builder, repository
+  `learnrudi/registry`, source commit `4ce2d9b`, bootstrap workflow, and run
+  `33659462566`. Isolated signature audit reported 96 verified registry
+  signatures, ten verified attestations, and no missing or invalid signatures.
+  The compact public evidence receipt
+  `docs/swe-compliance/2026-09-02-swe-engineering-stack-release-evidence.json`
+  records the exact audit-result hash, public attestation-response hash,
+  predicates, package subject, and public-ledger index.
+- The authenticated npm UI was operator-attested as trusting GitHub Actions
+  identity `learnrudi/registry`, workflow
+  `publish-swe-engineering-stack.yml`, blank environment, and `npm publish`
+  only. The normal workflow remains OIDC-only and has no token fallback; its
+  first eligible use is a later distinct version. This npm package-security
+  control is not exposed to unauthenticated independent readback.
+- Absence of the one-time npm token `RUDI SWE stack bootstrap` was
+  operator-attested from the authenticated npm token page. GitHub environment
+  secret `npm-bootstrap/NPM_BOOTSTRAP_TOKEN` is independently absent. The
+  protected environment and completed runs remain as audit evidence.
+- Final package-release verdict is `pass`. Cloud PR #19 exact dependencies,
+  lock integrity, Node 20 application proof, container scan/SBOM/provenance,
+  disabled-route smoke, and independent review passed at exact head
+  `a88f3945780cfc7afc59698d6eb36b15a741612d`; that head merged to Cloud
+  `main` as `9fc89fb606f0ad53a7e944b84577b654f2577664`. Provider setup, migration,
+  deployment, DNS, live smoke, and rollback remain separate gates.
