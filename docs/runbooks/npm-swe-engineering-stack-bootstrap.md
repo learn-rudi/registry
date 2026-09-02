@@ -1,8 +1,10 @@
 # Bootstrap `@learnrudi/swe-engineering-stack@0.2.0` With Provenance
 
-Status: authored and source-verified; not executed. Authoring this runbook does
-not authorize merge, npm login, organization changes, token creation, GitHub
-environment changes, workflow dispatch, or package publication.
+Status: executed successfully on 2026-09-02; immutable public package and
+provenance independently verified, authenticated npm control-plane state
+operator-attested, bootstrap credentials revoked.
+Authoring this runbook did not itself authorize any external action; the
+execution used separately recorded action-time approvals.
 
 ## Scope And Authority
 
@@ -29,34 +31,40 @@ environment changes, workflow dispatch, or package publication.
 
 ## Preconditions
 
-- [ ] The package-identity correction PR is accepted and merged through
+- [x] The package-identity correction PR is accepted and merged through
   repository policy; its exact reviewed head, merge record, and the dispatched
   `main` SHA are recorded.
-- [ ] The merged package tree at
+- [x] The merged package tree at
   `catalog/stacks/swe-engineering` is
   `a20da20c28a138c8ab537c367fa98b380f16ece1`.
-- [ ] The source repository and package are public, and `package.json` points to
+- [x] The source repository and package are public, and `package.json` points to
   `git+https://github.com/learnrudi/registry.git`.
-- [ ] `@learnrudi/swe-engineering-stack` still returns npm `E404`.
-- [ ] The human operator has interactively authenticated to npm without sharing
+- [x] `@learnrudi/swe-engineering-stack` returned npm `E404` immediately before
+  the successful first publication.
+- [x] The human operator has interactively authenticated to npm without sharing
   credentials in chat, shell history, screenshots, logs, or tracked files.
-- [ ] `npm org ls learnrudi <verified-npm-username>` proves the authenticated
-  operator is an `owner` or `admin`. If it does not, stop: do not create the
-  organization, claim the scope, rename the package, or publish under another
-  scope without a new decision and source review.
-- [ ] A separately approved granular npm token uses the shortest available
-  expiration that covers the release window, grants **Packages and scopes →
-  Read and write** to the `@learnrudi` scope only, grants no **Organizations**
-  permission, and has **Bypass 2FA** enabled for this noninteractive direct
-  publish. Its value exists only as the GitHub environment secret
-  `NPM_BOOTSTRAP_TOKEN` and is revoked immediately afterward.
+- [x] The human operator read the authenticated npm organization members page
+  and attested that verified username `bzhoff` is the `learnrudi` owner. This
+  replaced the literal `npm org ls` command because authentication was held in
+  the user-controlled browser, not copied into the shell; the private role is
+  not independently reproducible without authenticated npm access.
+  If the check had not proved `owner` or `admin`, the release would have
+  stopped. Do not create the organization, claim the scope, rename the package,
+  or publish under another scope without a new decision and source review.
+- [x] The human operator attested that the separately approved granular npm
+  token used the shortest available expiration covering the release window,
+  granted **Packages and scopes → Read and write** to the `@learnrudi` scope
+  only, granted no **Organizations** permission, and had **Bypass 2FA** enabled
+  for the noninteractive direct publish. Its value existed only as the GitHub
+  environment secret `NPM_BOOTSTRAP_TOKEN` and was revoked immediately
+  afterward; no credential-bearing proof artifact was retained.
 - [x] The GitHub environment `npm-bootstrap` is restricted to `main`, requires
   reviewer `rudijetson`, permits the explicitly authorized solo self-review
   mode, disallows administrator bypass, and exposes no unrelated secrets.
-- [ ] The operator has reviewed npm's immutable-record notice because
+- [x] The operator reviewed npm's immutable-record notice because
   provenance enters a public transparency log.
 
-Current source-readiness evidence:
+Pre-publication source-readiness evidence:
 
 - both GitHub repositories involved in package publication are public;
 - anonymous npm metadata shows `@learnrudi/swe-engineering-stack` absent;
@@ -99,7 +107,10 @@ Current source-readiness evidence:
   cd <validated-clean-registry-checkout>
   git status --short --branch
   git fetch origin refs/heads/main:refs/remotes/origin/main
-  gh pr view 62 \
+  gh pr view 63 \
+    --repo learnrudi/registry \
+    --json state,mergedAt,headRefOid,mergeCommit
+  gh pr view 65 \
     --repo learnrudi/registry \
     --json state,mergedAt,headRefOid,mergeCommit
   git rev-parse refs/remotes/origin/main
@@ -118,9 +129,15 @@ Current source-readiness evidence:
     src/swe-engineering-publish-workflow.test.ts
   ```
 
-- Expected result: PR state is `MERGED`; `<reviewed-pr-head>` is the exact head
-  named by the final independent review and closeout receipt; the checkout
-  remains clean; `main` has no content difference from that reviewed head in
+- Expected result: both PR states are `MERGED`; PR #63 is the package-identity
+  correction reviewed at exact head
+  `538a4927c47d5191ede73d1e91658e8036b1c982` and merged as
+  `5f8820ebc1ab216ecaea6b4ec9577d85d5f4ff3e`; PR #65 is the bootstrap-runtime
+  correction reviewed at exact head
+  `608a590c78b19624f8ab502da1d3c71fd97958bb` and merged as
+  `4ce2d9b3daaab419e33a43f413011db66f02ea24`. Use the PR #65 head as
+  `<reviewed-pr-head>` for the bounded diff. The checkout remains clean;
+  accepted `main` has no content difference from that final reviewed head in
   either release workflow, the package, its workflow contract test, or this
   runbook; the package tree is
   `a20da20c28a138c8ab537c367fa98b380f16ece1`; and the diff check is clean.
@@ -255,8 +272,20 @@ Current source-readiness evidence:
     npm audit signatures \
       --registry=https://registry.npmjs.org \
       --json \
-      --include-attestations \
       > npm-audit-signatures.json
+    attestations_url="$(npm view \
+      @learnrudi/swe-engineering-stack@0.2.0 \
+      dist.attestations.url \
+      --registry=https://registry.npmjs.org)"
+    curl --fail --silent --show-error \
+      "$attestations_url" \
+      --output npm-attestations.json
+    jq -e '
+      [.attestations[].predicateType] as $types
+      | ($types | index("https://github.com/npm/attestation/tree/main/specs/publish/v0.1")) != null
+      and ($types | index("https://slsa.dev/provenance/v1")) != null
+    ' npm-attestations.json >/dev/null
+    shasum -a 256 npm-audit-signatures.json npm-attestations.json
   )
   ```
 
@@ -274,8 +303,9 @@ Current source-readiness evidence:
   - shasum `5b6fd58434ed3ccead4770365c7efd58c33622f3`;
   - an attestations URL and SLSA provenance predicate;
   - both signature-audit commands exit successfully after a lifecycle-disabled
-    isolated install, and the retained JSON contains the verified attestation
-    bundle and transparency-log material;
+    isolated install, the retained audit JSON has empty `invalid` and `missing`
+    arrays, and the separately retained public attestation response contains
+    both required predicates for the exact package subject;
   - npm's provenance details show GitHub Actions, the exact bootstrap workflow
     run, source commit `<accepted-main-sha>`, build file
     `.github/workflows/bootstrap-swe-engineering-stack.yml`, and a public-ledger
@@ -348,14 +378,60 @@ Current source-readiness evidence:
   environment inspection, token revocation confirmation, and retained approval
   record.
 - Evidence retained: accepted SHA, package tree, workflow run URL, npm
-  integrity/shasum/attestations URL, operator identity and role, approval
-  reference, deviations, and token-revocation time. Never retain the token.
+  integrity/shasum/attestations URL, signature/attestation result hashes,
+  operator identity and role, approval reference, deviations, and
+  token-revocation time. The compact non-secret public evidence receipt is
+  `docs/swe-compliance/2026-09-02-swe-engineering-stack-release-evidence.json`.
+  Never retain the token.
 
 ## Completion Record
 
-- Executed by and time: not executed.
-- Deviations or skipped steps: solo review mode was explicitly authorized;
-  exact npm `@learnrudi` owner/admin authority remains a pre-publication check.
-- Remaining gates after success: CLI package trusted publishing, Cloud exact
-  dependency/lock update and full image proof, source merges, provider setup,
-  migration, deployment, DNS attachment, live smoke, and rollback proof.
+- Executed by and time: npm owner `bzhoff` with the Codex operator on
+  2026-09-02, from first dispatch at `16:59Z` through final credential-absence
+  verification by `17:41Z`.
+- Accepted source: package-identity PR #63 head `538a492` merged as `5f8820e`,
+  bootstrap-runtime PR #65 head `608a590` merged as `4ce2d9b`; accepted
+  `learnrudi/registry` main
+  `4ce2d9b3daaab419e33a43f413011db66f02ea24`; package tree
+  `a20da20c28a138c8ab537c367fa98b380f16ece1`.
+- Safe failed attempt: run `33658257989` stopped in the no-secret verify job
+  before credential access because a floating npm pack runtime did not
+  reproduce the locally reviewed compressed bytes. Registry PR #65 pinned
+  Ubuntu `24.04`, Node `24.19.0`, npm `11.17.0`, and the reproduced digest.
+- Successful publication: run `33659462566` published public
+  `@learnrudi/swe-engineering-stack@0.2.0` with integrity
+  `sha512-6pyA3PyFiwojA4Y2MBc/OKWiK8p/0mK7eiPlGmdICEeQLnAmgz+dydJcTxBX58Wkbm1n5pMwNT673lC0VQT9cw==`
+  and shasum `5b6fd58434ed3ccead4770365c7efd58c33622f3`.
+- Provenance: npm exposes a SLSA v1 attestation whose builder, repository,
+  source commit, bootstrap workflow, and invocation bind that exact run.
+  Browser provenance links point to GitHub Actions, source commit `4ce2d9b`,
+  `.github/workflows/bootstrap-swe-engineering-stack.yml`, run
+  `33659462566`, and transparency-log entry `2688217956`.
+- Signature verification: isolated lifecycle-disabled install succeeded;
+  `npm audit signatures` reported 96 verified registry signatures and ten
+  verified attestations with no missing or invalid signatures. The durable
+  non-secret evidence receipt records the exact empty audit result and hash,
+  public attestation endpoint and response hash, both predicate types, package
+  subject digest, and public-ledger index.
+- Trusted publisher: the authenticated npm UI was operator-attested as
+  recording GitHub Actions identity `learnrudi/registry`, workflow
+  `publish-swe-engineering-stack.yml`, blank environment, and allowed action
+  `npm publish` only. npm does not expose that package-security record to
+  unauthenticated independent readback.
+- Revocation: removal of npm token `RUDI SWE stack bootstrap` was
+  operator-attested from the authenticated token page; GitHub environment
+  `npm-bootstrap` independently lists no `NPM_BOOTSTRAP_TOKEN` secret. The
+  protected environment and completed workflow runs remain as audit evidence.
+- Deviations or skipped steps: solo review mode was explicitly authorized; npm
+  owner authority was re-read from the authenticated organization members UI
+  rather than by exporting browser authentication to the shell. The owner,
+  trusted-publisher, and npm-token-absence statements are deliberately labeled
+  operator-attested because they are not independently reproducible without
+  authenticated npm control-plane access. No credential value or authenticated
+  screenshot was retained in source, logs, chat, or local temporary storage.
+- Remaining gates: Cloud PR #19 merged exact reviewed head
+  `a88f3945780cfc7afc59698d6eb36b15a741612d` to `main` as
+  `9fc89fb606f0ad53a7e944b84577b654f2577664` after exact dependencies,
+  lock integrity, Node 20 tests, audit, hosted container proof, and independent
+  review passed. Provider setup, migration, deployment, DNS attachment, live
+  smoke, and rollback proof remain.

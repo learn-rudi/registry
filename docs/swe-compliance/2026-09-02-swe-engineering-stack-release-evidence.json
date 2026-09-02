@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "rudi.npm-release-evidence.v1",
+  "capturedAt": "2026-09-02T18:14:14Z",
+  "package": {
+    "name": "@learnrudi/swe-engineering-stack",
+    "version": "0.2.0",
+    "repository": "git+https://github.com/learnrudi/registry.git",
+    "sourceCommit": "4ce2d9b3daaab419e33a43f413011db66f02ea24",
+    "packageTree": "a20da20c28a138c8ab537c367fa98b380f16ece1",
+    "publishRun": "https://github.com/learnrudi/registry/actions/runs/33659462566"
+  },
+  "publicRegistry": {
+    "metadataUrl": "https://registry.npmjs.org/@learnrudi%2fswe-engineering-stack/0.2.0",
+    "tarballUrl": "https://registry.npmjs.org/@learnrudi/swe-engineering-stack/-/swe-engineering-stack-0.2.0.tgz",
+    "integrity": "sha512-6pyA3PyFiwojA4Y2MBc/OKWiK8p/0mK7eiPlGmdICEeQLnAmgz+dydJcTxBX58Wkbm1n5pMwNT673lC0VQT9cw==",
+    "shasum": "5b6fd58434ed3ccead4770365c7efd58c33622f3",
+    "fileCount": 20,
+    "attestationsUrl": "https://registry.npmjs.org/-/npm/v1/attestations/@learnrudi%2fswe-engineering-stack@0.2.0",
+    "attestationsResponseSha256AtCapture": "5ced20244e81e001d0a6caa6290e7eaef00e621fe95ca070e5d6ef74497b7ccf",
+    "attestationCountAtCapture": 2,
+    "predicateTypes": [
+      "https://github.com/npm/attestation/tree/main/specs/publish/v0.1",
+      "https://slsa.dev/provenance/v1"
+    ],
+    "subjectSha512Hex": "ea9c80dcfc858b0a2303863630173f38a5a22bca7fd262bb7a23e51a67480847902e7026833f9dc9d25c4f1057e7c5a46e6d67e69330353ebbde50b45504fd73",
+    "transparencyLogIndex": 2688217956
+  },
+  "signatureAudit": {
+    "nodeVersion": "v25.2.1",
+    "npmVersion": "11.6.2",
+    "installLifecycleScripts": false,
+    "command": "npm audit signatures --json",
+    "result": {
+      "invalid": [],
+      "missing": []
+    },
+    "resultSha256": "539ea4684b22e24869bace50b48bda695776477f892861b08d51d219f0d08faf",
+    "summaryCommand": "npm audit signatures",
+    "verifiedRegistrySignatures": 96,
+    "verifiedAttestations": 10
+  },
+  "authenticatedNpmControlPlane": {
+    "evidenceClass": "operator-attested authenticated browser observation",
+    "verificationCompletedBy": "bzhoff",
+    "verificationCompletedMinuteUtc": "2026-09-02T17:41Z",
+    "organization": "learnrudi",
+    "organizationRole": "Owner",
+    "trustedPublisher": {
+      "provider": "GitHub Actions",
+      "organization": "learnrudi",
+      "repository": "registry",
+      "workflow": "publish-swe-engineering-stack.yml",
+      "environment": "",
+      "allowedAction": "npm publish"
+    },
+    "bootstrapTokenAbsent": true,
+    "independentlyReproducibleWithoutAuthenticatedNpmAccess": false,
+    "reason": "npm exposes these package-security and token controls only in the authenticated account UI; no credential or screenshot was retained"
+  },
+  "githubControlPlane": {
+    "environment": "npm-bootstrap",
+    "environmentSecretCount": 0,
+    "independentlyReproducibleWithRepositoryAccess": true
+  }
+}
