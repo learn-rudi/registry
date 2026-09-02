@@ -4,7 +4,7 @@ import {
   searchManual,
 } from "./manual.js";
 
-export const HOSTED_ADAPTER_ID = "@rudi/swe-engineering-stack";
+export const HOSTED_ADAPTER_ID = "@learnrudi/swe-engineering-stack";
 export const HOSTED_ADAPTER_VERSION = "0.2.0";
 
 export const HOSTED_TOOL_DEFINITIONS = Object.freeze([

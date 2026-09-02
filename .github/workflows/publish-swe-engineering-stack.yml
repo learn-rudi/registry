@@ -1,10 +1,10 @@
-name: Publish @rudi/swe-engineering-stack
+name: Publish @learnrudi/swe-engineering-stack
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: Exact @rudi/swe-engineering-stack version to publish from main
+        description: Exact @learnrudi/swe-engineering-stack version to publish from main
         required: true
         type: string
 
@@ -56,7 +56,7 @@ jobs:
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
 
-          const expectedName = '@rudi/swe-engineering-stack';
+          const expectedName = '@learnrudi/swe-engineering-stack';
           const expectedVersion = process.env.EXPECTED_VERSION;
           const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
           if (packageJson.name !== expectedName) {
@@ -121,7 +121,7 @@ jobs:
             ];
             const [packed] = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/npm-pack-swe-engineering-verify.json", "utf8"));
             const actualFiles = packed.files.map(({ path }) => path).sort();
-            if (packed.name !== "@rudi/swe-engineering-stack") {
+            if (packed.name !== "@learnrudi/swe-engineering-stack") {
               throw new Error(`Packed unexpected package ${packed.name}`);
             }
             if (packed.version !== process.env.EXPECTED_VERSION) {
@@ -193,7 +193,7 @@ jobs:
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
 
-          const expectedName = '@rudi/swe-engineering-stack';
+          const expectedName = '@learnrudi/swe-engineering-stack';
           const expectedVersion = process.env.EXPECTED_VERSION;
           const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
           if (packageJson.name !== expectedName || packageJson.version !== expectedVersion) {
@@ -250,7 +250,7 @@ jobs:
             ];
             const [packed] = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/npm-pack-swe-engineering-publish.json", "utf8"));
             const actualFiles = packed.files.map(({ path }) => path).sort();
-            if (packed.name !== "@rudi/swe-engineering-stack") {
+            if (packed.name !== "@learnrudi/swe-engineering-stack") {
               throw new Error(`Packed unexpected package ${packed.name}`);
             }
             if (packed.version !== process.env.EXPECTED_VERSION) {

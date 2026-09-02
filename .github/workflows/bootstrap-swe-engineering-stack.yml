@@ -1,4 +1,4 @@
-name: Bootstrap @rudi/swe-engineering-stack@0.2.0
+name: Bootstrap @learnrudi/swe-engineering-stack@0.2.0
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       confirmation:
-        description: Type bootstrap @rudi/swe-engineering-stack@0.2.0
+        description: Type bootstrap @learnrudi/swe-engineering-stack@0.2.0
         required: true
         type: string
 
@@ -51,14 +51,14 @@ jobs:
             echo "accepted_sha does not match the dispatched main revision" >&2
             exit 1
           fi
-          if [ "$CONFIRMATION" != 'bootstrap @rudi/swe-engineering-stack@0.2.0' ]; then
+          if [ "$CONFIRMATION" != 'bootstrap @learnrudi/swe-engineering-stack@0.2.0' ]; then
             echo "confirmation does not match the one-time package target" >&2
             exit 1
           fi
 
       - name: Verify accepted package tree
         run: |
-          EXPECTED_PACKAGE_TREE='0d974929e1c954c3116e2e54ed449ade64f7fe6f'
+          EXPECTED_PACKAGE_TREE='a20da20c28a138c8ab537c367fa98b380f16ece1'
           ACTUAL_PACKAGE_TREE="$(git rev-parse "$GITHUB_SHA:catalog/stacks/swe-engineering")"
           if [ "$ACTUAL_PACKAGE_TREE" != "$EXPECTED_PACKAGE_TREE" ]; then
             echo "Package tree $ACTUAL_PACKAGE_TREE does not match reviewed tree $EXPECTED_PACKAGE_TREE" >&2
@@ -85,7 +85,7 @@ jobs:
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
 
-          const expectedName = '@rudi/swe-engineering-stack';
+          const expectedName = '@learnrudi/swe-engineering-stack';
           const expectedVersion = '0.2.0';
           const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
           if (packageJson.name !== expectedName || packageJson.version !== expectedVersion) {
@@ -145,9 +145,9 @@ jobs:
             ];
             const [packed] = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/npm-pack-swe-engineering-bootstrap-verify.json", "utf8"));
             const actualFiles = packed.files.map(({ path }) => path).sort();
-            const expectedIntegrity = "sha512-1SvxpASZuleQuLoWrBK/uHmtY5EKhhsdj8VxmGtsS1yyVaFYfPYoJxxA+Cip1GSt89ZuvSQyHatwk10HCcpVJA==";
-            const expectedShasum = "6582c3ed1329b3876e3dd5dc5686766f76d38109";
-            if (packed.name !== "@rudi/swe-engineering-stack" || packed.version !== "0.2.0") {
+            const expectedIntegrity = "sha512-jATXP5q3V3Ai3z6xDvjdy/QTgrewdMKFYPgotDMs902iBbEgj6PREGN019XZkJlt3gkgM02BjSPaUbzKvrWf5A==";
+            const expectedShasum = "5868821f7e560256e664eb3e08e8f6041fbc591e";
+            if (packed.name !== "@learnrudi/swe-engineering-stack" || packed.version !== "0.2.0") {
               throw new Error(`Packed unexpected artifact ${packed.name}@${packed.version}`);
             }
             if (packed.integrity !== expectedIntegrity || packed.shasum !== expectedShasum) {
@@ -189,7 +189,7 @@ jobs:
             echo "Bootstrap source does not match the accepted main revision" >&2
             exit 1
           fi
-          if [ "$CONFIRMATION" != 'bootstrap @rudi/swe-engineering-stack@0.2.0' ]; then
+          if [ "$CONFIRMATION" != 'bootstrap @learnrudi/swe-engineering-stack@0.2.0' ]; then
             echo "confirmation does not match the one-time package target" >&2
             exit 1
           fi
@@ -197,7 +197,7 @@ jobs:
             echo "Bootstrap checkout is not clean" >&2
             exit 1
           fi
-          EXPECTED_PACKAGE_TREE='0d974929e1c954c3116e2e54ed449ade64f7fe6f'
+          EXPECTED_PACKAGE_TREE='a20da20c28a138c8ab537c367fa98b380f16ece1'
           ACTUAL_PACKAGE_TREE="$(git rev-parse "$GITHUB_SHA:catalog/stacks/swe-engineering")"
           if [ "$ACTUAL_PACKAGE_TREE" != "$EXPECTED_PACKAGE_TREE" ]; then
             echo "Package tree does not match the reviewed bootstrap artifact" >&2
@@ -231,7 +231,7 @@ jobs:
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
 
-          const expectedName = '@rudi/swe-engineering-stack';
+          const expectedName = '@learnrudi/swe-engineering-stack';
           const expectedVersion = '0.2.0';
           const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
           if (packageJson.name !== expectedName || packageJson.version !== expectedVersion) {
@@ -278,9 +278,9 @@ jobs:
             ];
             const [packed] = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/npm-pack-swe-engineering-bootstrap.json", "utf8"));
             const actualFiles = packed.files.map(({ path }) => path).sort();
-            const expectedIntegrity = "sha512-1SvxpASZuleQuLoWrBK/uHmtY5EKhhsdj8VxmGtsS1yyVaFYfPYoJxxA+Cip1GSt89ZuvSQyHatwk10HCcpVJA==";
-            const expectedShasum = "6582c3ed1329b3876e3dd5dc5686766f76d38109";
-            if (packed.name !== "@rudi/swe-engineering-stack" || packed.version !== "0.2.0") {
+            const expectedIntegrity = "sha512-jATXP5q3V3Ai3z6xDvjdy/QTgrewdMKFYPgotDMs902iBbEgj6PREGN019XZkJlt3gkgM02BjSPaUbzKvrWf5A==";
+            const expectedShasum = "5868821f7e560256e664eb3e08e8f6041fbc591e";
+            if (packed.name !== "@learnrudi/swe-engineering-stack" || packed.version !== "0.2.0") {
               throw new Error(`Packed unexpected artifact ${packed.name}@${packed.version}`);
             }
             if (packed.integrity !== expectedIntegrity || packed.shasum !== expectedShasum) {
@@ -304,7 +304,7 @@ jobs:
           fi
           node --input-type=module <<'NODE'
           const token = process.env.NODE_AUTH_TOKEN;
-          const expectedName = '@rudi/swe-engineering-stack';
+          const expectedName = '@learnrudi/swe-engineering-stack';
           if (!token) {
             throw new Error('The npm-bootstrap environment did not provide a token');
           }

@@ -1,4 +1,4 @@
-# Bootstrap `@rudi/swe-engineering-stack@0.2.0` With Provenance
+# Bootstrap `@learnrudi/swe-engineering-stack@0.2.0` With Provenance
 
 Status: authored and source-verified; not executed. Authoring this runbook does
 not authorize merge, npm login, organization changes, token creation, GitHub
@@ -6,13 +6,13 @@ environment changes, workflow dispatch, or package publication.
 
 ## Scope And Authority
 
-- Operator: an npm `@rudi` organization owner or admin with first-package
+- Operator: an npm `@learnrudi` organization owner or admin with first-package
   publish authority and a GitHub administrator for `learnrudi/registry`.
-- Exact systems: public npm registry, npm scope `@rudi`, public GitHub repository
+- Exact systems: public npm registry, npm scope `@learnrudi`, public GitHub repository
   `learnrudi/registry`, branch `main`, workflow
   `bootstrap-swe-engineering-stack.yml`, and GitHub environment
   `npm-bootstrap`.
-- Outcome: publish exactly `@rudi/swe-engineering-stack@0.2.0` once from the
+- Outcome: publish exactly `@learnrudi/swe-engineering-stack@0.2.0` once from the
   reviewed package tree with npm provenance, verify the immutable registry
   artifact, configure the normal trusted publisher, then revoke the bootstrap
   credential.
@@ -23,52 +23,52 @@ environment changes, workflow dispatch, or package publication.
   version.
 - Authorized actions: none merely because this file exists.
 - Actions requiring separate confirmation: source merge, npm authentication,
-  `@rudi` organization or scope changes, token creation, GitHub environment or
+  `@learnrudi` organization or scope changes, token creation, GitHub environment or
   secret changes, bootstrap dispatch, package publication, trusted-publisher
   configuration, token revocation, deprecation, or unpublish.
 
 ## Preconditions
 
-- [ ] Draft Registry PR `learnrudi/registry#62` is accepted and merged through
+- [ ] The package-identity correction PR is accepted and merged through
   repository policy; its exact reviewed head, merge record, and the dispatched
   `main` SHA are recorded.
 - [ ] The merged package tree at
   `catalog/stacks/swe-engineering` is
-  `0d974929e1c954c3116e2e54ed449ade64f7fe6f`.
+  `a20da20c28a138c8ab537c367fa98b380f16ece1`.
 - [ ] The source repository and package are public, and `package.json` points to
   `git+https://github.com/learnrudi/registry.git`.
-- [ ] `@rudi/swe-engineering-stack` still returns npm `E404`.
+- [ ] `@learnrudi/swe-engineering-stack` still returns npm `E404`.
 - [ ] The human operator has interactively authenticated to npm without sharing
   credentials in chat, shell history, screenshots, logs, or tracked files.
-- [ ] `npm org ls rudi <verified-npm-username>` proves the authenticated
+- [ ] `npm org ls learnrudi <verified-npm-username>` proves the authenticated
   operator is an `owner` or `admin`. If it does not, stop: do not create the
   organization, claim the scope, rename the package, or publish under another
   scope without a new decision and source review.
 - [ ] A separately approved granular npm token uses the shortest available
   expiration that covers the release window, grants **Packages and scopes →
-  Read and write** to the `@rudi` scope only, grants no **Organizations**
+  Read and write** to the `@learnrudi` scope only, grants no **Organizations**
   permission, and has **Bypass 2FA** enabled for this noninteractive direct
   publish. Its value exists only as the GitHub environment secret
   `NPM_BOOTSTRAP_TOKEN` and is revoked immediately afterward.
-- [ ] The GitHub environment `npm-bootstrap` is restricted to `main`, has a
-  required human reviewer, prevents self-review, disallows administrator
-  bypass, and exposes no unrelated secrets.
+- [x] The GitHub environment `npm-bootstrap` is restricted to `main`, requires
+  reviewer `rudijetson`, permits the explicitly authorized solo self-review
+  mode, disallows administrator bypass, and exposes no unrelated secrets.
 - [ ] The operator has reviewed npm's immutable-record notice because
   provenance enters a public transparency log.
 
 Current source-readiness evidence:
 
 - both GitHub repositories involved in package publication are public;
-- anonymous npm metadata shows `@rudi/swe-engineering-stack` absent;
-- local npm authentication currently returns `E401`, so scope ownership is not
-  established by this worktree;
+- anonymous npm metadata shows `@learnrudi/swe-engineering-stack` absent;
+- the authenticated npm profile shows the `learnrudi` organization, while the
+  exact owner/admin role remains an interactive pre-publication checkpoint;
 - the reviewed dry-run contains exactly 20 files with integrity
-  `sha512-1SvxpASZuleQuLoWrBK/uHmtY5EKhhsdj8VxmGtsS1yyVaFYfPYoJxxA+Cip1GSt89ZuvSQyHatwk10HCcpVJA==`
-  and shasum `6582c3ed1329b3876e3dd5dc5686766f76d38109`.
+  `sha512-jATXP5q3V3Ai3z6xDvjdy/QTgrewdMKFYPgotDMs902iBbEgj6PREGN019XZkJlt3gkgM02BjSPaUbzKvrWf5A==`
+  and shasum `5868821f7e560256e664eb3e08e8f6041fbc591e`.
 
 ## Procedure
 
-### 1. Verify npm identity and `@rudi` authority
+### 1. Verify npm identity and `@learnrudi` authority
 
 - Mutation: interactive login only; following checks are read-only.
 - Retry: login is repeatable; organization creation or membership changes are
@@ -78,14 +78,14 @@ Current source-readiness evidence:
   ```bash
   npm login --auth-type=web --registry=https://registry.npmjs.org
   npm whoami --registry=https://registry.npmjs.org
-  npm org ls rudi <verified-npm-username> --json --registry=https://registry.npmjs.org
+  npm org ls learnrudi <verified-npm-username> --json --registry=https://registry.npmjs.org
   ```
 
 - Expected result: the username is the intended release operator and the final
   command reports `owner` or `admin` for that same user.
 - Checkpoint: record only the username and role, never credential values.
 - If different: stop. Do not create or rename a scope, change membership, or
-  substitute `@learnrudi` without a separately ratified package-identity change.
+  substitute another scope without a separately ratified package-identity change.
 
 ### 2. Verify the accepted source without checking it out
 
@@ -122,7 +122,7 @@ Current source-readiness evidence:
   remains clean; `main` has no content difference from that reviewed head in
   either release workflow, the package, its workflow contract test, or this
   runbook; the package tree is
-  `0d974929e1c954c3116e2e54ed449ade64f7fe6f`; and the diff check is clean.
+  `a20da20c28a138c8ab537c367fa98b380f16ece1`; and the diff check is clean.
 - Checkpoint: retain the full `main` SHA as `<accepted-main-sha>`.
 - If different: stop and require a fresh package diff, tests, and review.
 
@@ -133,7 +133,7 @@ Current source-readiness evidence:
 - Action:
 
   ```bash
-  npm view @rudi/swe-engineering-stack name version --json --registry=https://registry.npmjs.org
+  npm view @learnrudi/swe-engineering-stack name version --json --registry=https://registry.npmjs.org
   ```
 
 - Expected result: npm returns `E404` while using the verified interactive npm
@@ -150,25 +150,26 @@ Current source-readiness evidence:
 - Action:
   1. In the verified operator's npm settings, create a **Granular Access
      Token** with the shortest expiration that covers this release window.
-  2. Set **Packages and scopes** to **Read and write**, select only the `@rudi`
+  2. Set **Packages and scopes** to **Read and write**, select only the `@learnrudi`
      scope, leave **Organizations** at **No access**, and enable **Bypass 2FA**.
      Organization permission manages organization settings and does not grant
      package publication. A noninteractive direct publish requires a write
      token that can satisfy npm's publishing 2FA rule.
   3. In `learnrudi/registry`, open **Settings → Environments** and create or
      inspect the exact environment `npm-bootstrap`.
-  4. Restrict deployment branches to `main`, require an authorized reviewer,
-     enable **Prevent self-review**, and deselect **Allow administrators to
-     bypass configured protection rules**.
+  4. Restrict deployment branches to `main`, require reviewer `rudijetson`,
+     leave **Prevent self-review** disabled for the explicitly authorized solo
+     review mode, and deselect **Allow administrators to bypass configured
+     protection rules**.
   5. Add the token as the environment secret `NPM_BOOTSTRAP_TOKEN`. Do not use
      a repository-wide or organization-wide secret, and never persist the
      token in shell history, a file, chat, or an approval record.
-- Expected result: only the `npm-bootstrap` job on `main` can request the
-  exact `@rudi` package-scope token; a reviewer other than the dispatcher must
-  approve it, and administrators cannot bypass the review.
+- Expected result: only the `npm-bootstrap` job on `main` can request the exact
+  `@learnrudi` package-scope token; reviewer `rudijetson` must approve it, and
+  administrators cannot bypass the review.
 - Checkpoint: inspect the token expiration, Packages and scopes selection,
   Organizations setting, Bypass 2FA setting, environment name, branch rule,
-  reviewer, Prevent self-review, disabled administrator bypass, secret name,
+  reviewer, authorized solo-review setting, disabled administrator bypass, secret name,
   and absence of unrelated secrets. Never reveal the value.
 - If different: stop and correct the environment before dispatch.
 
@@ -181,8 +182,8 @@ Current source-readiness evidence:
   ```text
   learnrudi/registry
   <accepted-main-sha>
-  package tree 0d974929e1c954c3116e2e54ed449ade64f7fe6f
-  @rudi/swe-engineering-stack@0.2.0
+  package tree a20da20c28a138c8ab537c367fa98b380f16ece1
+  @learnrudi/swe-engineering-stack@0.2.0
   workflow bootstrap-swe-engineering-stack.yml
   environment npm-bootstrap
   ```
@@ -204,7 +205,7 @@ Current source-readiness evidence:
     --repo learnrudi/registry \
     --ref main \
     -f accepted_sha=<accepted-main-sha> \
-    -f confirmation='bootstrap @rudi/swe-engineering-stack@0.2.0'
+    -f confirmation='bootstrap @learnrudi/swe-engineering-stack@0.2.0'
   ```
 
 - Expected result: the no-secret `verify` job passes; the `bootstrap` job pauses
@@ -233,7 +234,7 @@ Current source-readiness evidence:
 - Action:
 
   ```bash
-  npm view @rudi/swe-engineering-stack@0.2.0 \
+  npm view @learnrudi/swe-engineering-stack@0.2.0 \
     name version repository dist.integrity dist.shasum dist.attestations \
     --json \
     --registry=https://registry.npmjs.org
@@ -246,7 +247,7 @@ Current source-readiness evidence:
     --no-fund \
     --save-exact \
     --registry=https://registry.npmjs.org \
-    @rudi/swe-engineering-stack@0.2.0
+    @learnrudi/swe-engineering-stack@0.2.0
   (
     cd "$verification_dir"
     npm audit signatures --registry=https://registry.npmjs.org
@@ -268,8 +269,8 @@ Current source-readiness evidence:
   - repository `git+https://github.com/learnrudi/registry.git` with directory
     `catalog/stacks/swe-engineering`;
   - integrity
-    `sha512-1SvxpASZuleQuLoWrBK/uHmtY5EKhhsdj8VxmGtsS1yyVaFYfPYoJxxA+Cip1GSt89ZuvSQyHatwk10HCcpVJA==`;
-  - shasum `6582c3ed1329b3876e3dd5dc5686766f76d38109`;
+    `sha512-jATXP5q3V3Ai3z6xDvjdy/QTgrewdMKFYPgotDMs902iBbEgj6PREGN019XZkJlt3gkgM02BjSPaUbzKvrWf5A==`;
+  - shasum `5868821f7e560256e664eb3e08e8f6041fbc591e`;
   - an attestations URL and SLSA provenance predicate;
   - both signature-audit commands exit successfully after a lifecycle-disabled
     isolated install, and the retained JSON contains the verified attestation
@@ -289,7 +290,7 @@ Current source-readiness evidence:
 - Mutation: reversible npm package-security configuration.
 - Retry: idempotent while the exact identity is unchanged.
 - Action: in npm package settings for
-  `@rudi/swe-engineering-stack`, configure GitHub Actions trusted publishing:
+  `@learnrudi/swe-engineering-stack`, configure GitHub Actions trusted publishing:
   - organization: `learnrudi`;
   - repository: `registry`;
   - workflow filename: `publish-swe-engineering-stack.yml`;
@@ -334,7 +335,7 @@ Current source-readiness evidence:
 - Suspected credential exposure: revoke the npm token immediately, remove the
   environment secret, retain audit evidence, and stop the release.
 - Scope ownership mismatch: stop. Organization creation, package renaming, or
-  moving to `@learnrudi` requires an explicit product decision and fresh source
+  moving to another scope requires an explicit product decision and fresh source
   changes across Registry, Cloud, and System.
 
 ## Final Verification
@@ -352,8 +353,8 @@ Current source-readiness evidence:
 ## Completion Record
 
 - Executed by and time: not executed.
-- Deviations or skipped steps: none; npm identity and `@rudi` ownership remain
-  unverified because this worktree has no valid npm session.
+- Deviations or skipped steps: solo review mode was explicitly authorized;
+  exact npm `@learnrudi` owner/admin authority remains a pre-publication check.
 - Remaining gates after success: CLI package trusted publishing, Cloud exact
   dependency/lock update and full image proof, source merges, provider setup,
   migration, deployment, DNS attachment, live smoke, and rollback proof.

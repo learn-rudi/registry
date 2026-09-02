@@ -52,7 +52,7 @@ describe("SWE Engineering package publication", () => {
       publishConfig: { access: string };
     };
 
-    expect(packageJson.name).toBe("@rudi/swe-engineering-stack");
+    expect(packageJson.name).toBe("@learnrudi/swe-engineering-stack");
     expect(packageJson.version).toBe("0.2.0");
     expect(packageJson.repository).toEqual({
       type: "git",
@@ -60,7 +60,9 @@ describe("SWE Engineering package publication", () => {
       directory: "catalog/stacks/swe-engineering",
     });
     expect(packageJson.publishConfig).toEqual({ access: "public" });
-    expect(workflow).toMatch(/^name: Publish @rudi\/swe-engineering-stack$/m);
+    expect(workflow).toMatch(
+      /^name: Publish @learnrudi\/swe-engineering-stack$/m,
+    );
     expect(workflow).toMatch(/^\s{2}workflow_dispatch:$/m);
     expect(workflowHeader).toMatch(/^\s{2}contents: read$/m);
     expect(workflowHeader).not.toMatch(/id-token:/);
@@ -118,7 +120,7 @@ describe("SWE Engineering package publication", () => {
     const workflowHeader = workflow.slice(0, workflow.indexOf("\njobs:\n"));
 
     expect(workflow).toMatch(
-      /^name: Bootstrap @rudi\/swe-engineering-stack@0\.2\.0$/m,
+      /^name: Bootstrap @learnrudi\/swe-engineering-stack@0\.2\.0$/m,
     );
     expect(workflow).toMatch(/^\s{2}workflow_dispatch:$/m);
     expect(workflow).toMatch(/^\s{6}accepted_sha:$/m);
@@ -136,7 +138,7 @@ describe("SWE Engineering package publication", () => {
     expect(verifyJob).not.toMatch(/id-token:|NPM_BOOTSTRAP_TOKEN/);
     expect(verifyJob).toMatch(/inputs\.accepted_sha/);
     expect(verifyJob).toMatch(
-      /bootstrap @rudi\/swe-engineering-stack@0\.2\.0/,
+      /bootstrap @learnrudi\/swe-engineering-stack@0\.2\.0/,
     );
     expect(verifyJob).toMatch(/npm ci --ignore-scripts/);
     expect(verifyJob).toMatch(/npm test/);
@@ -171,15 +173,15 @@ describe("SWE Engineering package publication", () => {
     expect(workflow.match(/NPM_BOOTSTRAP_TOKEN/g)).toHaveLength(2);
     expect(
       workflow.match(
-        /EXPECTED_PACKAGE_TREE='0d974929e1c954c3116e2e54ed449ade64f7fe6f'/g,
+        /EXPECTED_PACKAGE_TREE='a20da20c28a138c8ab537c367fa98b380f16ece1'/g,
       ),
     ).toHaveLength(2);
     expect(
       workflow.split(
-        "sha512-1SvxpASZuleQuLoWrBK/uHmtY5EKhhsdj8VxmGtsS1yyVaFYfPYoJxxA+Cip1GSt89ZuvSQyHatwk10HCcpVJA==",
+        "sha512-jATXP5q3V3Ai3z6xDvjdy/QTgrewdMKFYPgotDMs902iBbEgj6PREGN019XZkJlt3gkgM02BjSPaUbzKvrWf5A==",
       ),
     ).toHaveLength(3);
-    expect(workflow.split("6582c3ed1329b3876e3dd5dc5686766f76d38109")).toHaveLength(
+    expect(workflow.split("5868821f7e560256e664eb3e08e8f6041fbc591e")).toHaveLength(
       3,
     );
     const credentialStep = bootstrapJob.slice(
