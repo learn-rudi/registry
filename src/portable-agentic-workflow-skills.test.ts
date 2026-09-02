@@ -300,7 +300,7 @@ describe("portable skill contracts", () => {
       },
     });
     expect(index.packages["skill:rudi-chief-of-staff"]).toMatchObject({
-      version: "1.2.0",
+      version: "1.2.1",
       install: {
         source: "catalog",
         path: "catalog/skills/rudi-chief-of-staff",

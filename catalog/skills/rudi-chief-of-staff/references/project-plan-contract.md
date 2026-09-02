@@ -284,7 +284,14 @@ A noncanonical run record is a closed object with exactly `schemaVersion`,
 `projectId`, `runId`, `planRevision`, `projects`, `hosts`, `attempts`,
 `usageReports`, and `lineage`. `schemaVersion` is `1`; `projectId` and `runId` equal the plan values;
 and `planRevision` is the exact plan revision observed when the record was last
-written. All nested records below are closed.
+written. It may equal or lag the current plan revision but may never lead it.
+A lagging run is valid only when its complete semantic state remains consistent
+with the current plan. An accepted reconciliation whose revision has already
+been observed by the run requires its exact matching `resultReference`; a
+reconciliation newer than the run may omit that reference only as the
+recoverable result of a plan-first interrupted write. All nested records below
+are closed. An attempt's `preparedPlanRevision` may not exceed the run's
+`planRevision`; lag cannot be used to carry future-revision attempt state.
 
 Each `projects` discovery record has exactly:
 
@@ -437,7 +444,8 @@ resource pause.
 
 - Without `--run`, report statically ready node IDs in lexical order and mark
   every placement `unverified`. This does not claim safe dispatchability.
-- With `--run`, validate exact plan/run identity and revision, calculate unique
+- With `--run`, validate exact plan/run identity and the safe revision relation,
+  then calculate unique
   conjunctive project-host routes from discovery records, and greedily select a safe
   dispatchable cohort in lexical node-ID order. Count active attempts against
   `requestedMaxParallel` globally and `maxConcurrency` per host, and treat both
@@ -541,8 +549,10 @@ historical meaning. A node may be `done` only when its latest reconciliation is
 complete and that snapshot exactly equals the current node/handoff contract.
 Reconciliations are append ordered by unique, strictly increasing
 `acceptedPlanRevision`, and an accepted revision may occur only once across the
-whole plan. A non-null `attemptId` may appear in only one terminal
-reconciliation; rework or retry requires a new attempt. A cancellation
+whole plan. Result and cancellation IDs are globally unique across the plan. A
+non-null `attemptId` may appear in only one terminal reconciliation, must belong
+to that reconciliation's node, and must have been prepared at a strictly earlier
+plan revision. Rework or retry requires a new attempt. A cancellation
 reconciliation is terminal: it must be
 the final record and the node must remain `cancelled`.
 Cancellation records use outcome `cancelled`; result records use their proposal
@@ -599,7 +609,7 @@ be retried and remains auditable in `archiveHistory`.
 | `validate` | Perform closed-schema and graph-wide static validation without mutation. |
 | `promote` | Validate one accepted schema-v2 frontier snapshot and atomically append proposed nodes plus an idempotent, revision- and decision-bound receipt; never dispatch. |
 | `run-init` | Create the canonical run exactly once from closed project/host/model discovery input, with empty attempts and usage history. |
-| `validate-run` | Validate exact plan/run identity, revision, routes, histories, usage policy, and lineage without mutation. |
+| `validate-run` | Validate exact plan/run identity, safe revision relation, routes, histories, accepted references, usage policy, and lineage without mutation. |
 | `ready` | Run `ready --plan <path> [--run <path>]` for static eligibility or run-aware safe concurrency and route calculation; never bind or reserve. |
 | `prepare` | Atomically append one exact immutable attempt binding and deterministic idempotency key after all route, lock, capacity, review, resource, and fallback gates pass. |
 | `record-dispatch` | Append and normalize one dispatch observation; reconcile an indeterminate outcome without overwriting accepted work. |
@@ -637,9 +647,26 @@ lock and re-read the authoritative plan while holding it, so concurrent writers
 cannot both accept the same source revision. A bounded lock wait fails closed;
 the tool does not break or guess that an existing lock is stale. Increment
 `revision` exactly once only after a successful accepted mutation. A rejected
-or idempotent duplicate leaves owned bytes and revision unchanged. Run-only
-lifecycle mutations never increment plan revision and require exact current
-`planRevision` identity.
+or idempotent duplicate leaves the authoritative plan bytes and revision
+unchanged. Every run writer acquires the adjacent run mutation lock and re-reads
+the run while holding it, preventing accepted events from overwriting one
+another. Run-only lifecycle mutations never increment plan revision; they
+validate a safe equal-or-lagging run, require their input to name the current
+plan revision, and persist the current revision on an accepted mutation or
+idempotent catch-up.
+
+Reconciliation holds the plan lock and then the run lock, validates both
+ledgers, and updates both in memory. It writes the authoritative plan first and
+the run second. The plan reconciliation and run `resultReference` must bind the
+same input digest, attempt, ID, outcome, and accepted plan revision. If the run
+write is interrupted, the old run revision makes that state recognizable: a
+replay with byte-identical result or cancellation input and identical target,
+manager reason, and acceptance timestamp repairs only the missing matching
+reference and catches the run up without incrementing the plan. Run-ahead,
+missing-attempt, non-lagging missing
+reference, stale, conflicting, or ambiguous state is rejected without an owned
+file write. Plan-and-run operations use the same plan-then-run lock order; no
+command acquires those locks in reverse order.
 
 `render` is byte-identical for identical validated input. Sort nodes, evidence
 snapshots, and edges by JavaScript string code units, independent of host

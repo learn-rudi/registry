@@ -173,22 +173,20 @@ describe("project orchestration", () => {
     (run.attempts[0] as typeof attempt).resultReference.acceptedPlanRevision =
       1;
     await writeRun(run);
-    const staleReference = JSON.parse(
-      (
-        await execFileAsync("node", [
+    const invalidRunBytes = await fs.readFile(runPath, "utf8");
+    await expect(
+      execFileAsync("node", [
           scriptPath,
           "archive-eligible",
           "--plan",
           planPath,
           "--run",
           runPath,
-        ])
-      ).stdout,
-    );
-    expect(staleReference.eligible).toEqual([]);
-    expect(staleReference.ineligible[0].reasons).toContain(
-      "result_not_reconciled",
-    );
+        ]),
+    ).rejects.toMatchObject({
+      stderr: expect.stringMatching(/result reference.*accepted reconciliation/i),
+    });
+    expect(await fs.readFile(runPath, "utf8")).toBe(invalidRunBytes);
   });
 
   it("rejects a visible desktop attempt without explicit authorization", async () => {
@@ -583,7 +581,45 @@ describe("project orchestration", () => {
     });
     plan.revision = 4;
     run.planRevision = 4;
-    run.attempts = [producerAttempt];
+    const failedProducerAttempt = {
+      ...activeAttempt("producer", producer.resourceLocks),
+      attemptId: "attempt-producer-2",
+      preparedPlanRevision: 3,
+      preparedAt: "2026-08-11T12:15:00.000Z",
+      binding: {
+        ...activeAttempt("producer", producer.resourceLocks).binding,
+        projectBindingId: "source-binding",
+        hostBindingId: "source-host-binding",
+        idempotencyKey: "idempotency-producer-2",
+      },
+      dispatchState: "accepted",
+      terminationOutcome: "failed",
+      nativeLifecycle: "failed",
+      dispatchHistory: [
+        {
+          ...activeAttempt("producer", producer.resourceLocks)
+            .dispatchHistory[0],
+          dispatchId: "dispatch-producer-2",
+          nativeLifecycle: "running",
+          recordedAt: "2026-08-11T12:16:00.000Z",
+        },
+      ],
+      dispatchTimestamp: "2026-08-11T12:16:00.000Z",
+      terminationHistory: [
+        {
+          terminationId: "termination-producer-2",
+          outcome: "failed",
+          nativeLifecycle: "failed",
+          recordedAt: "2026-08-11T12:18:00.000Z",
+        },
+      ],
+      resultReference: {
+        kind: "result",
+        id: "result-producer-2",
+        acceptedPlanRevision: 4,
+      },
+    };
+    run.attempts = [producerAttempt, failedProducerAttempt];
     run.lineage[0].source.digest = acceptedDigest;
     run.lineage[0].destination.attemptId = null;
     await writePlan(plan);

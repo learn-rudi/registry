@@ -71,6 +71,53 @@ describe("project orchestration", () => {
       fromStatus: "ready",
       toStatus: "cancelled",
     });
+    const run = JSON.parse(await fs.readFile(runPath, "utf8"));
+    expect(run.planRevision).toBe(2);
+    expect(run.attempts).toEqual([]);
+  });
+
+  it("repairs a never-dispatched cancellation by exact replay after a plan-first interruption", async () => {
+    const planPath = await writePlan(planRecord([nodeRecord("task-a")]));
+    const runPath = await writeRun(runRecord());
+    const laggingRunBytes = await fs.readFile(runPath, "utf8");
+    const cancellationPath = await writeInput("replay-undispatched-cancellation.json", {
+      schemaVersion: 1,
+      projectId: "demo-project",
+      runId: "run-1",
+      nodeId: "task-a",
+      attemptId: null,
+      cancellationId: "cancel-task-a-undispatched-replay",
+      reason: "The manager intentionally removed this scope.",
+      evidence: [],
+    });
+    const args = [
+      scriptPath,
+      "reconcile",
+      "--plan",
+      planPath,
+      "--run",
+      runPath,
+      "--input",
+      cancellationPath,
+      "--to",
+      "cancelled",
+      "--manager-reason",
+      "Cancelled by the manager.",
+      "--accepted-at",
+      "2026-08-11T12:06:00.000Z",
+    ];
+
+    await execFileAsync("node", args);
+    const acceptedPlanBytes = await fs.readFile(planPath, "utf8");
+    await fs.writeFile(runPath, laggingRunBytes);
+
+    const replay = JSON.parse((await execFileAsync("node", args)).stdout);
+
+    expect(replay).toMatchObject({ revision: 2, idempotent: true });
+    expect(await fs.readFile(planPath, "utf8")).toBe(acceptedPlanBytes);
+    const repairedRun = JSON.parse(await fs.readFile(runPath, "utf8"));
+    expect(repairedRun.planRevision).toBe(2);
+    expect(repairedRun.attempts).toEqual([]);
   });
 
   it("reconciles a dispatched cancellation only after confirmed native stop", async () => {
@@ -83,11 +130,6 @@ describe("project orchestration", () => {
       terminationHistory: [
         terminationRecord("task-a", "cancelled", "cancelled"),
       ],
-      resultReference: {
-        kind: "cancellation",
-        id: "cancel-task-a-2",
-        acceptedPlanRevision: 1,
-      },
     };
     const runPath = await writeRun(runRecord([attempt]));
     const cancellationPath = await writeInput("dispatched-cancellation.json", {
@@ -124,6 +166,70 @@ describe("project orchestration", () => {
       revision: 2,
       idempotent: false,
     });
+    const run = JSON.parse(await fs.readFile(runPath, "utf8"));
+    expect(run.planRevision).toBe(2);
+    expect(run.attempts[0].resultReference).toEqual({
+      kind: "cancellation",
+      id: "cancel-task-a-2",
+      acceptedPlanRevision: 2,
+    });
+  });
+
+  it("repairs a cancelled attempt by exact replay after a plan-first interruption", async () => {
+    const running = { ...nodeRecord("task-a"), status: "running" };
+    const planPath = await writePlan(planRecord([running]));
+    const attempt = {
+      ...activeAttempt("task-a", running.resourceLocks),
+      terminationOutcome: "cancelled",
+      nativeLifecycle: "cancelled",
+      terminationHistory: [
+        terminationRecord("task-a", "cancelled", "cancelled"),
+      ],
+    };
+    const runPath = await writeRun(runRecord([attempt]));
+    const laggingRunBytes = await fs.readFile(runPath, "utf8");
+    const cancellationPath = await writeInput("replay-cancellation.json", {
+      schemaVersion: 1,
+      projectId: "demo-project",
+      runId: "run-1",
+      nodeId: "task-a",
+      attemptId: "attempt-task-a",
+      cancellationId: "cancel-task-a-replay",
+      reason: "The manager stopped the native worker.",
+      evidence: [],
+    });
+    const args = [
+      scriptPath,
+      "reconcile",
+      "--plan",
+      planPath,
+      "--run",
+      runPath,
+      "--input",
+      cancellationPath,
+      "--to",
+      "cancelled",
+      "--manager-reason",
+      "Native stop confirmed and accepted.",
+      "--accepted-at",
+      "2026-08-11T12:07:00.000Z",
+    ];
+
+    await execFileAsync("node", args);
+    const acceptedPlanBytes = await fs.readFile(planPath, "utf8");
+    await fs.writeFile(runPath, laggingRunBytes);
+
+    const replay = JSON.parse((await execFileAsync("node", args)).stdout);
+
+    expect(replay).toMatchObject({ revision: 2, idempotent: true });
+    expect(await fs.readFile(planPath, "utf8")).toBe(acceptedPlanBytes);
+    const repairedRun = JSON.parse(await fs.readFile(runPath, "utf8"));
+    expect(repairedRun.planRevision).toBe(2);
+    expect(repairedRun.attempts[0].resultReference).toEqual({
+      kind: "cancellation",
+      id: "cancel-task-a-replay",
+      acceptedPlanRevision: 2,
+    });
   });
 
   it("reconciles cancellation when an attempt proves no native work was accepted", async () => {
@@ -139,11 +245,6 @@ describe("project orchestration", () => {
           nativeLifecycle: "route_failed",
         },
       ],
-      resultReference: {
-        kind: "cancellation",
-        id: "cancel-task-a-route-failed",
-        acceptedPlanRevision: 1,
-      },
     };
     const runPath = await writeRun(runRecord([attempt]));
     const cancellationPath = await writeInput(
@@ -181,6 +282,13 @@ describe("project orchestration", () => {
       nodeId: "task-a",
       status: "cancelled",
       revision: 2,
+    });
+    const run = JSON.parse(await fs.readFile(runPath, "utf8"));
+    expect(run.planRevision).toBe(2);
+    expect(run.attempts[0].resultReference).toEqual({
+      kind: "cancellation",
+      id: "cancel-task-a-route-failed",
+      acceptedPlanRevision: 2,
     });
   });
 

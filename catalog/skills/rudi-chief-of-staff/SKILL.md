@@ -1,7 +1,7 @@
 ---
 name: rudi-chief-of-staff
 description: Coordinate complex single- or multi-project objectives from the initiating agent through an acceptance-led task graph, exact provider/model routing, durable run lifecycle, resource and review limits, explicit handoffs, bounded workers, and evidence-backed integration with human oversight. Use when the user asks to delegate dependent work, run a crew, act as a chief of staff or first mate, coordinate multiple agents or desktop tasks, or keep a long-running project moving predictably across worktrees, projects, or hosts.
-version: 1.2.0
+version: 1.2.1
 ---
 
 # RUDI Chief of Staff
@@ -37,6 +37,15 @@ The durable layout is:
 Ignore `runs/*.json` in Git by default, but retain the records while reconciling
 an attempt or recovering an indeterminate dispatch. Keep native project, host,
 task, thread, checkout, and worktree IDs only in run transport.
+
+Treat `run.planRevision` as the plan revision observed by the run's last
+accepted write. A run may temporarily lag after a plan-only mutation, but it
+may never lead the plan or contradict the current plan's lifecycle, binding,
+history, reconciliation, or evidence state. No attempt may claim preparation
+at a revision newer than the run has observed. Do not hand-edit either ledger to
+repair lag. The next accepted run mutation catches up to the current plan; if a
+reconciliation was interrupted after its plan write, replay the exact same
+input so the CLI can repair only the matching run reference and revision.
 
 ## Resolve discovery before execution
 
@@ -188,6 +197,10 @@ has terminated.
    Validate its project, run, node, attempt, and result identity and reject
    unknown, stale, conflicting, extra, or authority-expanding input without
    mutating the plan. Exact duplicates are idempotent.
+   Reconciliation serializes both ledgers, writes the authoritative plan first,
+   then writes the matching run reference. If the second write is interrupted,
+   replay only the byte-identical accepted input; a stale, conflicting, or
+   ambiguous replay fails closed.
 3. A complete result may move `running` to `review`. Only the manager may move
    `review` to `done`, and only after all criterion, verification, deliverable,
    and handoff evidence is complete and retrievable.
