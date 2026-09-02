@@ -23,6 +23,9 @@ Status: Phase 5 independent-review remediation; package release remains gated.
   third-party approval, or signing-system invention.
 - Commits/push/PR are authorized; npm package publication is a later release
   gate after merge/review.
+- Add a package-specific, manual, main-only trusted-publishing workflow for
+  `@rudi/swe-engineering-stack`; initial npm package creation, trust
+  configuration, and publication remain later release gates.
 
 ## Phase 2: Red Tests
 
@@ -33,16 +36,34 @@ Status: Phase 5 independent-review remediation; package release remains gated.
   exported resolver returned `cloud-hosted` for prohibited overrides on both
   unclassified and explicit `local-only` stacks. Direct resolver regression
   cases now protect that boundary.
+- Release-workflow contract red, Node `v20.20.2`:
+  `npm test -- --run src/swe-engineering-publish-workflow.test.ts` -> one
+  failed test because
+  `.github/workflows/publish-swe-engineering-stack.yml` did not exist. The
+  failure established the missing package publication path before
+  implementation.
+- Trusted-publishing runtime-helper red, Node `v20.20.2`: the same focused test
+  failed to import `scripts/validate-publish-runtime.mjs` before the helper was
+  added. Its behavior cases include the lower-major trap (`10.6.2`), both npm
+  `11.5.1` boundary sides, later supported versions, and malformed input.
 
 ## Phase 3: Implementation
 
 - Schema and runtime resolver must agree. Generated `index.json` changes only
   through `npm run indexes:sync`.
+- The package release path uses exact manual version input, immutable action
+  pins, the npm trusted-publishing runtime floor, registry immutability checks,
+  package-local install/test/audit, and an exact packed-file allowlist. It
+  contains no npm token fallback.
 
 ## Phase 4: Green Tests And Refactor
 
 - Rerun focused schema/surface tests unchanged; inspect generated diff; keep
   contract and initial manifest/package export as reviewable slices.
+- Release-workflow contract green, Node `v20.20.2`: the exact red command now
+  passes 2/2, including the trusted-publishing runtime boundary cases. The
+  workflow YAML parses successfully and all seven embedded run scripts pass
+  `bash -n`.
 
 ## Phase 5: Full Verification
 
@@ -58,7 +79,7 @@ Status: Phase 5 independent-review remediation; package release remains gated.
 
 Verified on 2026-09-01 after implementation:
 
-- `npm test`: 281/281 passed after review remediation.
+- `npm test`: 283/283 passed after release-workflow contract coverage.
 - `npm run build`: 167/167 manifests validated and compiled.
 - `npm run indexes:sync` followed by `npm run indexes:check`: generated root
   index, platform indexes, catalog hash tree, and release metadata current.
@@ -69,6 +90,19 @@ Verified on 2026-09-01 after implementation:
   `@modelcontextprotocol/sdk` 1.30.0 and its reviewed lock tree.
 - nested `npm pack --dry-run`: 20 intended package files only; no tests,
   dependency directory, or generated runtime state.
+- Exact package workflow replay: `npm ci --ignore-scripts`, 9/9 package tests,
+  and `npm audit --omit=dev --audit-level=moderate` all passed; the audit found
+  zero vulnerabilities. The 20-file dry-run exactly matches the workflow
+  allowlist.
+- `npm run release:verify`, `npm run validate:public -- --json`,
+  `npm run stacks:verify -- --changed-from origin/main --prepare`, repository
+  debt scan, root pack, and `git diff --check` all passed. Both action
+  references are immutable 40-character pins. `actionlint` was unavailable;
+  YAML parsing and embedded-shell syntax checks are the local static proof.
+- Regenerating indexes after the package metadata change produced no semantic
+  index diff. Replaying the repository workflow's deterministic
+  `SOURCE_DATE_EPOCH` check passed with the tracked timestamp, avoiding an
+  unrelated timestamp-only change. The nested lockfile is byte-unchanged.
 - repository debt scan: zero findings; `git diff --check`: clean.
 - Reverified review corrections: the exported resolver now owns
   no-elevation validation, hosted listing removes `manualRoot`, the hosted
@@ -82,3 +116,7 @@ Verified on 2026-09-01 after implementation:
 - Current release status: not published. Merge and npm publication remain
   separate human-controlled gates; Cloud activation cannot proceed until the
   reviewed package commit and immutable release are available.
+- The npm package does not yet exist, so its first publication is a separately
+  authorized one-time bootstrap gate. The checked-in workflow is OIDC-only and
+  intentionally provides no long-lived-token fallback; it becomes the normal
+  publication path after npm can trust the exact workflow identity.
