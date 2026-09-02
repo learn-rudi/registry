@@ -46,6 +46,11 @@ Status: Phase 5 independent-review remediation; package release remains gated.
   failed to import `scripts/validate-publish-runtime.mjs` before the helper was
   added. Its behavior cases include the lower-major trap (`10.6.2`), both npm
   `11.5.1` boundary sides, later supported versions, and malformed input.
+- Independent release-path review found that the helper accepted boundary
+  prereleases such as `11.5.1-rc.1` as meeting the stable floor. Cross-repo
+  review also exposed job-wide OIDC permission while install/tests executed.
+  New contract cases for prerelease rejection, split permissions, a code-free
+  publish job, and fresh same-SHA checkout all failed before remediation.
 
 ## Phase 3: Implementation
 
@@ -55,15 +60,22 @@ Status: Phase 5 independent-review remediation; package release remains gated.
   pins, the npm trusted-publishing runtime floor, registry immutability checks,
   package-local install/test/audit, and an exact packed-file allowlist. It
   contains no npm token fallback.
+- Verification and publication are separate jobs. The verification job has no
+  OIDC permission and runs install, tests, audit, and a pack allowlist check.
+  Only its dependent publish job receives `id-token: write`; that job uses a
+  fresh same-SHA credential-free checkout, installs no dependencies, executes
+  no repository helper or tests, repacks with lifecycle scripts disabled, and
+  rechecks registry immutability plus the allowlist before publishing. The
+  publish command pins `https://registry.npmjs.org` at command-line precedence.
 
 ## Phase 4: Green Tests And Refactor
 
 - Rerun focused schema/surface tests unchanged; inspect generated diff; keep
   contract and initial manifest/package export as reviewable slices.
 - Release-workflow contract green, Node `v20.20.2`: the exact red command now
-  passes 2/2, including the trusted-publishing runtime boundary cases. The
-  workflow YAML parses successfully and all seven embedded run scripts pass
-  `bash -n`.
+  passes 2/2, including the trusted-publishing runtime boundary and permission
+  cases. The workflow YAML parses successfully and all 11 embedded run scripts
+  pass `bash -n`.
 
 ## Phase 5: Full Verification
 
@@ -94,6 +106,11 @@ Verified on 2026-09-01 after implementation:
   and `npm audit --omit=dev --audit-level=moderate` all passed; the audit found
   zero vulnerabilities. The 20-file dry-run exactly matches the workflow
   allowlist.
+- The exact replay also passed under clean Node `v24.20.0` with npm `11.6.2`.
+  Stable npm `11.5.1` is accepted while its `alpha` and `rc` prereleases fail
+  closed. The final permission contract proves the verification job lacks
+  `id-token: write`, the publish job depends on verification, and the publish
+  job contains no install, test, audit, or repository runtime-helper command.
 - `npm run release:verify`, `npm run validate:public -- --json`,
   `npm run stacks:verify -- --changed-from origin/main --prepare`, repository
   debt scan, root pack, and `git diff --check` all passed. Both action

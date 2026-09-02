@@ -10,16 +10,17 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 concurrency:
   group: publish-swe-engineering-stack
   cancel-in-progress: false
 
 jobs:
-  publish:
-    name: publish
+  verify:
+    name: verify
     if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
@@ -29,6 +30,9 @@ jobs:
     steps:
       - name: Check out accepted source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -86,12 +90,140 @@ jobs:
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=moderate
 
-      - name: Pack verified package
+      - name: Verify packed package
+        env:
+          EXPECTED_VERSION: ${{ inputs.version }}
+        run: |
+          npm pack --json --pack-destination "$RUNNER_TEMP" --ignore-scripts > "$RUNNER_TEMP/npm-pack-swe-engineering-verify.json"
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const expectedFiles = [
+              "README.md",
+              "package.json",
+              "src/core.js",
+              "src/hosted.js",
+              "src/index.js",
+              "src/manual.js",
+              "src/manual/01-Master-Engineering-Doctrine.txt",
+              "src/manual/02-Engineering-Quick-Reference.txt",
+              "src/manual/03-Testing-Doctrine-Source.txt",
+              "src/manual/04-Debugging-Doctrine-Source.txt",
+              "src/manual/05-API-Engineering-Standard.md",
+              "src/manual/06-Security-Engineering-Standard.md",
+              "src/manual/07-Backend-Application-Engineering-Standard.md",
+              "src/manual/08-Infrastructure-and-Deployment-Engineering-Standard.md",
+              "src/manual/09-Build-Order-and-Engineering-System.md",
+              "src/manual/10-Engineering-Operating-Manual-Index.md",
+              "src/manual/11-Agent-Copilot-Operating-Standard.md",
+              "src/manual/12-Horizontal-Engineering-and-Codebase-Stewardship-Standard.md",
+              "src/manual/13-RUDI-Agentic-Engineering-Standard.md",
+              "src/tools/agent-debt-scan.cjs",
+            ];
+            const [packed] = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/npm-pack-swe-engineering-verify.json", "utf8"));
+            const actualFiles = packed.files.map(({ path }) => path).sort();
+            if (packed.name !== "@rudi/swe-engineering-stack") {
+              throw new Error(`Packed unexpected package ${packed.name}`);
+            }
+            if (packed.version !== process.env.EXPECTED_VERSION) {
+              throw new Error(`Packed version ${packed.version} does not match ${process.env.EXPECTED_VERSION}`);
+            }
+            if (JSON.stringify(actualFiles) !== JSON.stringify(expectedFiles)) {
+              throw new Error(`Unexpected package files: ${actualFiles.join(", ")}`);
+            }
+          '
+
+  publish:
+    name: publish
+    needs: verify
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: catalog/stacks/swe-engineering
+
+    steps:
+      - name: Check out the same accepted source without credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+
+      - name: Verify fresh source identity
+        run: |
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          if [ "$ACTUAL_SHA" != "$GITHUB_SHA" ]; then
+            echo "Checked out $ACTUAL_SHA instead of $GITHUB_SHA" >&2
+            exit 1
+          fi
+          if [ -n "$(git status --porcelain=v1)" ]; then
+            echo "Publish checkout is not clean" >&2
+            exit 1
+          fi
+
+      - name: Verify trusted-publishing runtime without repository code
+        run: |
+          NPM_VERSION="$(npm --version)"
+          NPM_VERSION="$NPM_VERSION" node --input-type=module -e '
+            const version = process.env.NPM_VERSION;
+            const match = /^(\d+)\.(\d+)\.(\d+)(?:\+[0-9A-Za-z.-]+)?$/.exec(version);
+            if (!match) throw new Error(`Unsupported npm version: ${version}`);
+            const minimum = [11, 5, 1];
+            const actual = match.slice(1, 4).map(Number);
+            for (let index = 0; index < minimum.length; index += 1) {
+              if (actual[index] > minimum[index]) process.exit(0);
+              if (actual[index] < minimum[index]) throw new Error(`npm ${version} does not support trusted publishing; require >=11.5.1`);
+            }
+          '
+
+      - name: Recheck exact version and registry immutability
+        env:
+          EXPECTED_VERSION: ${{ inputs.version }}
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+
+          const expectedName = '@rudi/swe-engineering-stack';
+          const expectedVersion = process.env.EXPECTED_VERSION;
+          const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          if (packageJson.name !== expectedName || packageJson.version !== expectedVersion) {
+            throw new Error(`Expected ${expectedName}@${expectedVersion}, found ${packageJson.name}@${packageJson.version}`);
+          }
+          if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(expectedVersion)) {
+            throw new Error(`Invalid release version: ${expectedVersion}`);
+          }
+
+          const encodedName = encodeURIComponent(expectedName);
+          const response = await fetch(`https://registry.npmjs.org/${encodedName}`, {
+            headers: { accept: 'application/json' },
+          });
+          if (response.status !== 404 && !response.ok) {
+            throw new Error(`npm registry metadata request failed with HTTP ${response.status}`);
+          }
+          const versions = response.status === 404
+            ? {}
+            : (await response.json()).versions ?? {};
+          if (Object.hasOwn(versions, expectedVersion)) {
+            throw new Error(`${expectedName}@${expectedVersion} already exists`);
+          }
+          NODE
+
+      - name: Pack fresh verified package without lifecycle scripts
         id: pack
         env:
           EXPECTED_VERSION: ${{ inputs.version }}
         run: |
-          npm pack --json --pack-destination "$RUNNER_TEMP" --ignore-scripts > "$RUNNER_TEMP/npm-pack-swe-engineering.json"
+          npm pack --json --pack-destination "$RUNNER_TEMP" --ignore-scripts > "$RUNNER_TEMP/npm-pack-swe-engineering-publish.json"
           PACKAGE_TARBALL="$(node --input-type=module -e '
             import fs from "node:fs";
             const expectedFiles = [
@@ -116,7 +248,7 @@ jobs:
               "src/manual/13-RUDI-Agentic-Engineering-Standard.md",
               "src/tools/agent-debt-scan.cjs",
             ];
-            const [packed] = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/npm-pack-swe-engineering.json", "utf8"));
+            const [packed] = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/npm-pack-swe-engineering-publish.json", "utf8"));
             const actualFiles = packed.files.map(({ path }) => path).sort();
             if (packed.name !== "@rudi/swe-engineering-stack") {
               throw new Error(`Packed unexpected package ${packed.name}`);
@@ -134,4 +266,4 @@ jobs:
       - name: Publish through npm trusted publishing
         env:
           PACKAGE_TARBALL: ${{ steps.pack.outputs.filename }}
-        run: npm publish "$RUNNER_TEMP/$PACKAGE_TARBALL" --access public --ignore-scripts
+        run: npm publish "$RUNNER_TEMP/$PACKAGE_TARBALL" --access public --ignore-scripts --registry=https://registry.npmjs.org
