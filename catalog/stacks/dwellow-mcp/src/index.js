@@ -3,7 +3,7 @@
 const { spawn } = require("node:child_process");
 const { dirname, join } = require("node:path");
 
-const REMOTE_URL = process.env.DWELLOW_MCP_URL || "https://mcp-production-5c11.up.railway.app/mcp";
+const REMOTE_URL = process.env.DWELLOW_MCP_URL || "https://dwellow-mcp.learnrudi.com/mcp";
 const BRIDGE_PACKAGE = process.env.DWELLOW_MCP_REMOTE_PACKAGE || "mcp-remote@0.1.38";
 
 const nodeBin = process.execPath;
