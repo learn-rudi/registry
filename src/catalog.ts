@@ -20,7 +20,7 @@ export class CatalogPackageError extends Error {
   }
 }
 
-type FrontmatterValue = string | string[] | FrontmatterObject;
+type FrontmatterValue = string | string[] | boolean | FrontmatterObject;
 interface FrontmatterObject {
   [key: string]: FrontmatterValue;
 }
@@ -49,6 +49,7 @@ const SKILL_FRONTMATTER_KEYS = new Set([
   "icon",
   "author",
   "requires",
+  "disable-model-invocation",
 ]);
 
 function toPosixPath(filePath: string): string {
@@ -128,11 +129,16 @@ function parseInlineList(value: string, file: string): string[] {
   return body.split(",").map((item) => stripQuotes(item.trim())).filter(Boolean);
 }
 
-function parseScalar(value: string, file: string): string | string[] {
+function parseScalar(value: string, file: string): string | string[] | boolean {
   const trimmed = value.trim();
   if (trimmed.startsWith("[") || trimmed.endsWith("]")) {
     return parseInlineList(trimmed, file);
   }
+  const quoted =
+    (trimmed.startsWith("\"") && trimmed.endsWith("\"")) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"));
+  if (!quoted && trimmed === "true") return true;
+  if (!quoted && trimmed === "false") return false;
   return stripQuotes(trimmed);
 }
 
@@ -279,6 +285,20 @@ function optionalString(
   return value.trim();
 }
 
+function optionalBoolean(
+  frontmatter: FrontmatterObject,
+  key: string,
+  file: string
+): boolean | undefined {
+  const value = frontmatter[key];
+  if (value === undefined) return undefined;
+  if (typeof value === "boolean") return value;
+  throw new CatalogPackageError(
+    `Skill frontmatter field must be a boolean: ${key}`,
+    file
+  );
+}
+
 function optionalStringArray(
   frontmatter: FrontmatterObject,
   key: string,
@@ -382,6 +402,7 @@ function packageFromSkillMarkdown(file: string, content: string): Package {
   const author = optionalString(frontmatter, "author", file);
   const tags = optionalStringArray(frontmatter, "tags", file);
   const requires = parseSkillRequires(frontmatter, file);
+  optionalBoolean(frontmatter, "disable-model-invocation", file);
 
   return {
     id: derivedId,

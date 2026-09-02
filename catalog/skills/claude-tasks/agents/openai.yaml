@@ -1,0 +1,7 @@
+interface:
+  display_name: "Claude Tasks"
+  short_description: "Control Claude Desktop sessions explicitly"
+  default_prompt: "Use $claude-tasks to inspect an exact Claude session or perform one explicit session-management command."
+
+policy:
+  allow_implicit_invocation: false

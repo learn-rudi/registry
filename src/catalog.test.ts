@@ -130,6 +130,64 @@ description: Demonstrates bundled skill package discovery
     });
   });
 
+  it("accepts Claude's boolean disable-model-invocation skill flag", async () => {
+    await writeText(
+      path.join(tmpDir, "catalog/skills/manual-only/SKILL.md"),
+      `---
+name: manual-only
+description: Runs only when the user invokes it explicitly
+disable-model-invocation: true
+---
+
+# Manual Only
+`
+    );
+
+    const packages = await discoverCatalogPackages(tmpDir);
+
+    expect(packages).toHaveLength(1);
+    expect(packages[0].manifest.id).toBe("skill:manual-only");
+  });
+
+  it("rejects a non-boolean disable-model-invocation skill flag", async () => {
+    await writeText(
+      path.join(tmpDir, "catalog/skills/manual-only/SKILL.md"),
+      `---
+name: manual-only
+description: Runs only when the user invokes it explicitly
+disable-model-invocation: sometimes
+---
+
+# Manual Only
+`
+    );
+
+    await expect(discoverCatalogPackages(tmpDir)).rejects.toThrow(
+      "Skill frontmatter field must be a boolean: disable-model-invocation"
+    );
+  });
+
+  it.each(['"true"', "'false'"])(
+    "rejects quoted YAML string %s for disable-model-invocation",
+    async (literal) => {
+      await writeText(
+        path.join(tmpDir, "catalog/skills/manual-only/SKILL.md"),
+        `---
+name: manual-only
+description: Runs only when the user invokes it explicitly
+disable-model-invocation: ${literal}
+---
+
+# Manual Only
+`
+      );
+
+      await expect(discoverCatalogPackages(tmpDir)).rejects.toThrow(
+        "Skill frontmatter field must be a boolean: disable-model-invocation"
+      );
+    }
+  );
+
   it("rejects a published stack without a primary operator skill", async () => {
     await writeDemoStack();
 

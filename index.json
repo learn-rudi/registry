@@ -1,14 +1,14 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-09-02T00:21:04.000Z",
+  "generatedAt": "2026-09-02T18:21:12.000Z",
   "stats": {
-    "total": 167,
+    "total": 168,
     "byKind": {
       "agent": 4,
       "binary": 27,
       "runtime": 6,
-      "skill": 80,
+      "skill": 81,
       "stack": 50
     }
   },
@@ -1792,6 +1792,20 @@
           "operator",
           "cagis"
         ]
+      }
+    },
+    "skill:claude-tasks": {
+      "id": "skill:claude-tasks",
+      "kind": "skill",
+      "name": "claude-tasks",
+      "version": "1.0.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/claude-tasks"
+      },
+      "meta": {
+        "description": "Control Claude Code Desktop sessions through a closed command grammar with exact session IDs, explicit review selection, and verified mutation receipts. Use only when the user explicitly invokes `$claude-tasks` or `/claude-tasks`; never infer it from ordinary conversation."
       }
     },
     "skill:client-engagement-intake": {
