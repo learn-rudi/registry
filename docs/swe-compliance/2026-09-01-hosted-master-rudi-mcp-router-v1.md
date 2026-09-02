@@ -64,8 +64,9 @@ Status: Phase 5 bootstrap-source verification; package release remains gated.
   unavailable `@rudi` scope.
 - The renamed 20-file package has reviewed tree
   `a20da20c28a138c8ab537c367fa98b380f16ece1`, integrity
-  `sha512-jATXP5q3V3Ai3z6xDvjdy/QTgrewdMKFYPgotDMs902iBbEgj6PREGN019XZkJlt3gkgM02BjSPaUbzKvrWf5A==`,
-  and shasum `5868821f7e560256e664eb3e08e8f6041fbc591e`.
+  `sha512-6pyA3PyFiwojA4Y2MBc/OKWiK8p/0mK7eiPlGmdICEeQLnAmgz+dydJcTxBX58Wkbm1n5pMwNT673lC0VQT9cw==`,
+  and shasum `5b6fd58434ed3ccead4770365c7efd58c33622f3`
+  under the pinned GitHub bootstrap runtime.
 
 ## Phase 2: Red Tests
 
@@ -198,10 +199,13 @@ Verified on 2026-09-01 and the 2026-09-02 bootstrap-source continuation:
   index drift; catalog hygiene, release provenance, public-readiness, and the
   nine-test SWE stack verification passed. The edited TypeScript debt scan
   reported zero findings.
-- After the namespace correction, the package dry-run remains the same exact
-  20-file allowlist with reviewed integrity
-  `sha512-jATXP5q3V3Ai3z6xDvjdy/QTgrewdMKFYPgotDMs902iBbEgj6PREGN019XZkJlt3gkgM02BjSPaUbzKvrWf5A==`
-  and shasum `5868821f7e560256e664eb3e08e8f6041fbc591e`.
+- The first bootstrap attempt stopped safely before credential access because
+  the local review runtime and the GitHub release runtime produced different
+  compressed tarball bytes from the same package tree and exact 20-file
+  allowlist. The bootstrap workflow now pins Node `24.19.0`; its observed
+  GitHub pack has integrity
+  `sha512-6pyA3PyFiwojA4Y2MBc/OKWiK8p/0mK7eiPlGmdICEeQLnAmgz+dydJcTxBX58Wkbm1n5pMwNT673lC0VQT9cw==`
+  and shasum `5b6fd58434ed3ccead4770365c7efd58c33622f3`.
   A generated 45 MB nested `node_modules` verification artifact was moved
   intact to machine-local RUDI temporary storage rather than deleted without
   cleanup confirmation; the repository hygiene gate then passed with zero

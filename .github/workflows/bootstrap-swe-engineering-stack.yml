@@ -25,7 +25,7 @@ jobs:
     if: github.repository == 'learnrudi/registry' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     defaults:
       run:
@@ -68,13 +68,17 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: '24'
+          node-version: '24.19.0'
           registry-url: 'https://registry.npmjs.org'
           package-manager-cache: false
 
       - name: Verify provenance-capable runtime
         run: |
           NPM_VERSION="$(npm --version)"
+          if [ "$NPM_VERSION" != '11.17.0' ]; then
+            echo "npm $NPM_VERSION does not match the reviewed bootstrap runtime 11.17.0" >&2
+            exit 1
+          fi
           node ../../../scripts/validate-publish-runtime.mjs "$NPM_VERSION"
 
       - name: Install package dependencies
@@ -145,8 +149,8 @@ jobs:
             ];
             const [packed] = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/npm-pack-swe-engineering-bootstrap-verify.json", "utf8"));
             const actualFiles = packed.files.map(({ path }) => path).sort();
-            const expectedIntegrity = "sha512-jATXP5q3V3Ai3z6xDvjdy/QTgrewdMKFYPgotDMs902iBbEgj6PREGN019XZkJlt3gkgM02BjSPaUbzKvrWf5A==";
-            const expectedShasum = "5868821f7e560256e664eb3e08e8f6041fbc591e";
+            const expectedIntegrity = "sha512-6pyA3PyFiwojA4Y2MBc/OKWiK8p/0mK7eiPlGmdICEeQLnAmgz+dydJcTxBX58Wkbm1n5pMwNT673lC0VQT9cw==";
+            const expectedShasum = "5b6fd58434ed3ccead4770365c7efd58c33622f3";
             if (packed.name !== "@learnrudi/swe-engineering-stack" || packed.version !== "0.2.0") {
               throw new Error(`Packed unexpected artifact ${packed.name}@${packed.version}`);
             }
@@ -166,7 +170,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     defaults:
       run:
@@ -207,13 +211,17 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: '24'
+          node-version: '24.19.0'
           registry-url: 'https://registry.npmjs.org'
           package-manager-cache: false
 
       - name: Verify provenance-capable runtime without repository code
         run: |
           NPM_VERSION="$(npm --version)"
+          if [ "$NPM_VERSION" != '11.17.0' ]; then
+            echo "npm $NPM_VERSION does not match the reviewed bootstrap runtime 11.17.0" >&2
+            exit 1
+          fi
           NPM_VERSION="$NPM_VERSION" node --input-type=module -e '
             const version = process.env.NPM_VERSION;
             const match = /^(\d+)\.(\d+)\.(\d+)(?:\+[0-9A-Za-z.-]+)?$/.exec(version);
@@ -278,8 +286,8 @@ jobs:
             ];
             const [packed] = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/npm-pack-swe-engineering-bootstrap.json", "utf8"));
             const actualFiles = packed.files.map(({ path }) => path).sort();
-            const expectedIntegrity = "sha512-jATXP5q3V3Ai3z6xDvjdy/QTgrewdMKFYPgotDMs902iBbEgj6PREGN019XZkJlt3gkgM02BjSPaUbzKvrWf5A==";
-            const expectedShasum = "5868821f7e560256e664eb3e08e8f6041fbc591e";
+            const expectedIntegrity = "sha512-6pyA3PyFiwojA4Y2MBc/OKWiK8p/0mK7eiPlGmdICEeQLnAmgz+dydJcTxBX58Wkbm1n5pMwNT673lC0VQT9cw==";
+            const expectedShasum = "5b6fd58434ed3ccead4770365c7efd58c33622f3";
             if (packed.name !== "@learnrudi/swe-engineering-stack" || packed.version !== "0.2.0") {
               throw new Error(`Packed unexpected artifact ${packed.name}@${packed.version}`);
             }
