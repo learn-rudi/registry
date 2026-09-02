@@ -62,9 +62,10 @@ Current source-readiness evidence:
 - anonymous npm metadata shows `@learnrudi/swe-engineering-stack` absent;
 - the authenticated npm profile shows the `learnrudi` organization, while the
   exact owner/admin role remains an interactive pre-publication checkpoint;
-- the reviewed dry-run contains exactly 20 files with integrity
-  `sha512-jATXP5q3V3Ai3z6xDvjdy/QTgrewdMKFYPgotDMs902iBbEgj6PREGN019XZkJlt3gkgM02BjSPaUbzKvrWf5A==`
-  and shasum `5868821f7e560256e664eb3e08e8f6041fbc591e`.
+- the pinned GitHub bootstrap runtime (`ubuntu-24.04`, Node `24.19.0`, npm
+  `11.17.0`) packs exactly 20 files with integrity
+  `sha512-6pyA3PyFiwojA4Y2MBc/OKWiK8p/0mK7eiPlGmdICEeQLnAmgz+dydJcTxBX58Wkbm1n5pMwNT673lC0VQT9cw==`
+  and shasum `5b6fd58434ed3ccead4770365c7efd58c33622f3`.
 
 ## Procedure
 
@@ -269,8 +270,8 @@ Current source-readiness evidence:
   - repository `git+https://github.com/learnrudi/registry.git` with directory
     `catalog/stacks/swe-engineering`;
   - integrity
-    `sha512-jATXP5q3V3Ai3z6xDvjdy/QTgrewdMKFYPgotDMs902iBbEgj6PREGN019XZkJlt3gkgM02BjSPaUbzKvrWf5A==`;
-  - shasum `5868821f7e560256e664eb3e08e8f6041fbc591e`;
+    `sha512-6pyA3PyFiwojA4Y2MBc/OKWiK8p/0mK7eiPlGmdICEeQLnAmgz+dydJcTxBX58Wkbm1n5pMwNT673lC0VQT9cw==`;
+  - shasum `5b6fd58434ed3ccead4770365c7efd58c33622f3`;
   - an attestations URL and SLSA provenance predicate;
   - both signature-audit commands exit successfully after a lifecycle-disabled
     isolated install, and the retained JSON contains the verified attestation

@@ -176,12 +176,17 @@ describe("SWE Engineering package publication", () => {
         /EXPECTED_PACKAGE_TREE='a20da20c28a138c8ab537c367fa98b380f16ece1'/g,
       ),
     ).toHaveLength(2);
+    expect(workflow.match(/runs-on: ubuntu-24\.04/g)).toHaveLength(2);
+    expect(workflow.match(/node-version: '24\.19\.0'/g)).toHaveLength(2);
+    expect(
+      workflow.match(/NPM_VERSION" != '11\.17\.0'/g),
+    ).toHaveLength(2);
     expect(
       workflow.split(
-        "sha512-jATXP5q3V3Ai3z6xDvjdy/QTgrewdMKFYPgotDMs902iBbEgj6PREGN019XZkJlt3gkgM02BjSPaUbzKvrWf5A==",
+        "sha512-6pyA3PyFiwojA4Y2MBc/OKWiK8p/0mK7eiPlGmdICEeQLnAmgz+dydJcTxBX58Wkbm1n5pMwNT673lC0VQT9cw==",
       ),
     ).toHaveLength(3);
-    expect(workflow.split("5868821f7e560256e664eb3e08e8f6041fbc591e")).toHaveLength(
+    expect(workflow.split("5b6fd58434ed3ccead4770365c7efd58c33622f3")).toHaveLength(
       3,
     );
     const credentialStep = bootstrapJob.slice(
