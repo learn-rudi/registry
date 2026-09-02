@@ -116,6 +116,114 @@ describe("project orchestration", () => {
       status: "running",
       revision: 2,
     });
+
+    const validation = JSON.parse(
+      (
+        await execFileAsync("node", [
+          scriptPath,
+          "validate-run",
+          "--plan",
+          planPath,
+          "--run",
+          runPath,
+        ])
+      ).stdout,
+    );
+    expect(validation).toMatchObject({
+      valid: true,
+      planRevision: 1,
+    });
+  });
+
+  it("catches a lagging run up on the next accepted run mutation", async () => {
+    const planPath = await writePlan(planRecord([nodeRecord("task-a")]));
+    const runPath = await writeRun(
+      runRecord([activeAttempt("task-a", ["files:task-a"])]),
+    );
+
+    await execFileAsync("node", [
+      scriptPath,
+      "transition",
+      "--plan",
+      planPath,
+      "--run",
+      runPath,
+      "--node",
+      "task-a",
+      "--to",
+      "running",
+    ]);
+    const terminationPath = await writeInput("termination.json", {
+      schemaVersion: 1,
+      projectId: "demo-project",
+      runId: "run-1",
+      planRevision: 2,
+      attemptId: "attempt-task-a",
+      terminationId: "termination-task-a",
+      outcome: "complete",
+      nativeLifecycle: "completed",
+      recordedAt: "2026-08-11T12:02:00.000Z",
+    });
+
+    await execFileAsync("node", [
+      scriptPath,
+      "record-termination",
+      "--plan",
+      planPath,
+      "--run",
+      runPath,
+      "--input",
+      terminationPath,
+    ]);
+
+    const run = JSON.parse(await fs.readFile(runPath, "utf8"));
+    expect(run.planRevision).toBe(2);
+    expect(run.attempts[0].terminationOutcome).toBe("complete");
+  });
+
+  it("persists revision catch-up during an idempotent run-event replay", async () => {
+    const planPath = await writePlan(planRecord([nodeRecord("task-a")]));
+    const attempt = activeAttempt("task-a", ["files:task-a"]);
+    const runPath = await writeRun(runRecord([attempt]));
+
+    await execFileAsync("node", [
+      scriptPath,
+      "transition",
+      "--plan",
+      planPath,
+      "--run",
+      runPath,
+      "--node",
+      "task-a",
+      "--to",
+      "running",
+    ]);
+    const dispatchPath = await writeInput("dispatch-replay.json", {
+      schemaVersion: 1,
+      projectId: "demo-project",
+      runId: "run-1",
+      planRevision: 2,
+      attemptId: "attempt-task-a",
+      ...attempt.dispatchHistory[0],
+    });
+
+    const replay = JSON.parse(
+      (
+        await execFileAsync("node", [
+          scriptPath,
+          "record-dispatch",
+          "--plan",
+          planPath,
+          "--run",
+          runPath,
+          "--input",
+          dispatchPath,
+        ])
+      ).stdout,
+    );
+
+    expect(replay.idempotent).toBe(true);
+    expect(JSON.parse(await fs.readFile(runPath, "utf8")).planRevision).toBe(2);
   });
 
   it("refuses ready to running when a dependency is no longer done", async () => {
@@ -235,11 +343,32 @@ describe("project orchestration", () => {
         evidence,
       },
     ]);
+    const run = JSON.parse(await fs.readFile(runPath, "utf8"));
+    expect(run.planRevision).toBe(2);
+    expect(run.attempts[0].resultReference).toEqual({
+      kind: "result",
+      id: "result-task-a-1",
+      acceptedPlanRevision: 2,
+    });
 
     const duplicate = JSON.parse(
       (await execFileAsync("node", reconcileArgs)).stdout,
     );
     expect(duplicate).toMatchObject({ revision: 2, idempotent: true });
+
+    const acceptedPlanBytes = await fs.readFile(planPath, "utf8");
+    const acceptedRunBytes = await fs.readFile(runPath, "utf8");
+    const conflictingReplayArgs = [...reconcileArgs];
+    conflictingReplayArgs[
+      conflictingReplayArgs.indexOf("--manager-reason") + 1
+    ] = "A different manager decision must not replay.";
+    await expect(
+      execFileAsync("node", conflictingReplayArgs),
+    ).rejects.toMatchObject({
+      stderr: expect.stringMatching(/conflicting reconciliation replay/i),
+    });
+    expect(await fs.readFile(planPath, "utf8")).toBe(acceptedPlanBytes);
+    expect(await fs.readFile(runPath, "utf8")).toBe(acceptedRunBytes);
 
     await writeInput("result.json", {
       schemaVersion: 1,
@@ -254,6 +383,87 @@ describe("project orchestration", () => {
     });
     await expect(execFileAsync("node", reconcileArgs)).rejects.toMatchObject({
       stderr: expect.stringMatching(/conflicting duplicate result id/i),
+    });
+  });
+
+  it("repairs the run by exact replay after a plan-first reconciliation interruption", async () => {
+    const running = { ...nodeRecord("task-a"), status: "running" };
+    const planPath = await writePlan(planRecord([running]));
+    const attempt = {
+      ...activeAttempt("task-a", running.resourceLocks),
+      terminationOutcome: "complete",
+      nativeLifecycle: "completed",
+      terminationHistory: [
+        terminationRecord("task-a", "complete", "completed"),
+      ],
+    };
+    const runPath = await writeRun(runRecord([attempt]));
+    const laggingRunBytes = await fs.readFile(runPath, "utf8");
+    const evidence = [
+      {
+        subjectType: "criterion",
+        subjectId: "accepted",
+        uri: "artifact://run-1/task-a/criterion.json",
+        digest: `sha256:${"a".repeat(64)}`,
+        mediaType: "application/json",
+      },
+      {
+        subjectType: "verification",
+        subjectId: "tests",
+        uri: "artifact://run-1/task-a/tests.txt",
+        digest: `sha256:${"b".repeat(64)}`,
+        mediaType: "text/plain",
+      },
+      {
+        subjectType: "deliverable",
+        subjectId: "implementation",
+        uri: "artifact://run-1/task-a/implementation.patch",
+        digest: `sha256:${"c".repeat(64)}`,
+        mediaType: "text/x-diff",
+      },
+    ];
+    const resultPath = await writeInput("replay-result.json", {
+      schemaVersion: 1,
+      projectId: "demo-project",
+      runId: "run-1",
+      nodeId: "task-a",
+      attemptId: "attempt-task-a",
+      resultId: "result-task-a-replay",
+      outcome: "complete",
+      summary: "Completed the scoped implementation.",
+      evidence,
+    });
+    const args = [
+      scriptPath,
+      "reconcile",
+      "--plan",
+      planPath,
+      "--run",
+      runPath,
+      "--input",
+      resultPath,
+      "--to",
+      "review",
+      "--manager-reason",
+      "Evidence is complete and ready for review.",
+      "--accepted-at",
+      "2026-08-11T12:05:00.000Z",
+    ];
+
+    await execFileAsync("node", args);
+    const acceptedPlanBytes = await fs.readFile(planPath, "utf8");
+    await fs.writeFile(runPath, laggingRunBytes);
+
+    const replay = JSON.parse((await execFileAsync("node", args)).stdout);
+
+    expect(replay).toMatchObject({ revision: 2, idempotent: true });
+    expect(await fs.readFile(planPath, "utf8")).toBe(acceptedPlanBytes);
+    const repairedRun = JSON.parse(await fs.readFile(runPath, "utf8"));
+    expect(repairedRun.planRevision).toBe(2);
+    expect(repairedRun.attempts[0].resultReference).toEqual({
+      kind: "result",
+      id: "result-task-a-replay",
+      acceptedPlanRevision: 2,
     });
   });
 

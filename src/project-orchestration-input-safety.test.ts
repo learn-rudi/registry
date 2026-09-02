@@ -355,4 +355,365 @@ describe("project orchestration", () => {
       stderr: expect.stringMatching(/unknown run field: fallbackHostId/i),
     });
   });
+
+  it("rejects a run revision ahead of its authoritative plan without mutation", async () => {
+    const planPath = await writePlan(planRecord([nodeRecord("task-a")]));
+    const run = runRecord();
+    run.planRevision = 2;
+    const runPath = await writeRun(run);
+    const before = await fs.readFile(runPath, "utf8");
+
+    await expect(
+      execFileAsync("node", [
+        scriptPath,
+        "validate-run",
+        "--plan",
+        planPath,
+        "--run",
+        runPath,
+      ]),
+    ).rejects.toMatchObject({
+      stderr: expect.stringMatching(/run plan revision.*ahead/i),
+    });
+    expect(await fs.readFile(runPath, "utf8")).toBe(before);
+  });
+
+  it("rejects an attempt prepared after the lagging run revision without mutation", async () => {
+    const node = {
+      ...nodeRecord("task-a"),
+      status: "failed",
+      blockingReason: "The attempt failed.",
+      reconciliations: [
+        {
+          resultId: "result-task-a-failed",
+          cancellationId: null,
+          attemptId: "attempt-task-a",
+          inputDigest: "a".repeat(64),
+          outcome: "failed",
+          fromStatus: "running",
+          toStatus: "failed",
+          acceptedAt: "2026-08-11T12:05:00.000Z",
+          acceptedPlanRevision: 2,
+          managerReason: "The failed outcome was accepted.",
+          evidenceContract: evidenceContractRecord(),
+          evidence: [],
+        },
+      ],
+    } as any;
+    const plan = planRecord([node]);
+    plan.revision = 2;
+    const planPath = await writePlan(plan);
+    const attempt = {
+      ...activeAttempt("task-a", node.resourceLocks),
+      preparedPlanRevision: 2,
+      terminationOutcome: "failed",
+      nativeLifecycle: "failed",
+      terminationHistory: [terminationRecord("task-a", "failed", "failed")],
+    };
+    const run = runRecord([attempt]);
+    run.planRevision = 1;
+    const runPath = await writeRun(run);
+    const before = await fs.readFile(runPath, "utf8");
+
+    await expect(
+      execFileAsync("node", [
+        scriptPath,
+        "validate-run",
+        "--plan",
+        planPath,
+        "--run",
+        runPath,
+      ]),
+    ).rejects.toMatchObject({
+      stderr: expect.stringMatching(/preparedPlanRevision.*run plan revision/i),
+    });
+    expect(await fs.readFile(runPath, "utf8")).toBe(before);
+  });
+
+  it("rejects duplicate reconciliation IDs across nodes without mutation", async () => {
+    const cancellation = (nodeId: string, acceptedPlanRevision: number) => ({
+      resultId: null,
+      cancellationId: "cancel-shared",
+      attemptId: null,
+      inputDigest: nodeId === "task-a" ? "a".repeat(64) : "b".repeat(64),
+      outcome: "cancelled",
+      fromStatus: "ready",
+      toStatus: "cancelled",
+      acceptedAt: acceptedPlanRevision === 2
+        ? "2026-08-11T12:05:00.000Z"
+        : "2026-08-11T12:06:00.000Z",
+      acceptedPlanRevision,
+      managerReason: "The cancellation was accepted.",
+      evidenceContract: evidenceContractRecord(),
+      evidence: [],
+    });
+    const plan = planRecord([
+      {
+        ...nodeRecord("task-a"),
+        status: "cancelled",
+        blockingReason: "Cancelled.",
+        reconciliations: [cancellation("task-a", 2)],
+      },
+      {
+        ...nodeRecord("task-b"),
+        status: "cancelled",
+        blockingReason: "Cancelled.",
+        reconciliations: [cancellation("task-b", 3)],
+      },
+    ] as any);
+    plan.revision = 3;
+    const planPath = await writePlan(plan);
+    const before = await fs.readFile(planPath, "utf8");
+
+    await expect(
+      execFileAsync("node", [scriptPath, "validate", "--plan", planPath]),
+    ).rejects.toMatchObject({
+      stderr: expect.stringMatching(/duplicate reconciliation ID/i),
+    });
+    expect(await fs.readFile(planPath, "utf8")).toBe(before);
+  });
+
+  it("rejects one attempt reconciled by multiple nodes without mutation", async () => {
+    const result = (resultId: string, acceptedPlanRevision: number) => ({
+      resultId,
+      cancellationId: null,
+      attemptId: "attempt-task-a",
+      inputDigest: resultId.endsWith("a") ? "a".repeat(64) : "b".repeat(64),
+      outcome: "failed",
+      fromStatus: "running",
+      toStatus: "failed",
+      acceptedAt: acceptedPlanRevision === 2
+        ? "2026-08-11T12:05:00.000Z"
+        : "2026-08-11T12:06:00.000Z",
+      acceptedPlanRevision,
+      managerReason: "The failed outcome was accepted.",
+      evidenceContract: evidenceContractRecord(),
+      evidence: [],
+    });
+    const plan = planRecord([
+      {
+        ...nodeRecord("task-a"),
+        status: "failed",
+        blockingReason: "Failed.",
+        reconciliations: [result("result-task-a", 2)],
+      },
+      {
+        ...nodeRecord("task-b"),
+        status: "failed",
+        blockingReason: "Failed.",
+        reconciliations: [result("result-task-b", 3)],
+      },
+    ] as any);
+    plan.revision = 3;
+    const planPath = await writePlan(plan);
+    const before = await fs.readFile(planPath, "utf8");
+
+    await expect(
+      execFileAsync("node", [scriptPath, "validate", "--plan", planPath]),
+    ).rejects.toMatchObject({
+      stderr: expect.stringMatching(/attempt.*only one terminal reconciliation/i),
+    });
+    expect(await fs.readFile(planPath, "utf8")).toBe(before);
+  });
+
+  it("rejects a reconciliation bound to another node's attempt without mutation", async () => {
+    const nodeA = nodeRecord("task-a");
+    const nodeB = {
+      ...nodeRecord("task-b"),
+      status: "cancelled",
+      blockingReason: "Cancelled.",
+      reconciliations: [
+        {
+          resultId: null,
+          cancellationId: "cancel-task-b",
+          attemptId: "attempt-task-a",
+          inputDigest: "a".repeat(64),
+          outcome: "cancelled",
+          fromStatus: "ready",
+          toStatus: "cancelled",
+          acceptedAt: "2026-08-11T12:05:00.000Z",
+          acceptedPlanRevision: 2,
+          managerReason: "The cancellation was accepted.",
+          evidenceContract: evidenceContractRecord(),
+          evidence: [],
+        },
+      ],
+    } as any;
+    const plan = planRecord([nodeA, nodeB]);
+    plan.revision = 2;
+    const planPath = await writePlan(plan);
+    const attempt = {
+      ...activeAttempt("task-a", nodeA.resourceLocks),
+      terminationOutcome: "cancelled",
+      nativeLifecycle: "cancelled",
+      terminationHistory: [terminationRecord("task-a", "cancelled", "cancelled")],
+    };
+    const runPath = await writeRun(runRecord([attempt]));
+    const before = await fs.readFile(runPath, "utf8");
+
+    await expect(
+      execFileAsync("node", [
+        scriptPath,
+        "validate-run",
+        "--plan",
+        planPath,
+        "--run",
+        runPath,
+      ]),
+    ).rejects.toMatchObject({
+      stderr: expect.stringMatching(/reconciliation.*node.*attempt/i),
+    });
+    expect(await fs.readFile(runPath, "utf8")).toBe(before);
+  });
+
+  it("rejects reconciliation accepted at its preparation revision without mutation", async () => {
+    const node = {
+      ...nodeRecord("task-a"),
+      status: "failed",
+      blockingReason: "The attempt failed.",
+      reconciliations: [
+        {
+          resultId: "result-task-a-failed",
+          cancellationId: null,
+          attemptId: "attempt-task-a",
+          inputDigest: "a".repeat(64),
+          outcome: "failed",
+          fromStatus: "running",
+          toStatus: "failed",
+          acceptedAt: "2026-08-11T12:05:00.000Z",
+          acceptedPlanRevision: 2,
+          managerReason: "The failed outcome was accepted.",
+          evidenceContract: evidenceContractRecord(),
+          evidence: [],
+        },
+      ],
+    } as any;
+    const plan = planRecord([node]);
+    plan.revision = 2;
+    const planPath = await writePlan(plan);
+    const attempt = {
+      ...activeAttempt("task-a", node.resourceLocks),
+      preparedPlanRevision: 2,
+      terminationOutcome: "failed",
+      nativeLifecycle: "failed",
+      terminationHistory: [terminationRecord("task-a", "failed", "failed")],
+      resultReference: {
+        kind: "result",
+        id: "result-task-a-failed",
+        acceptedPlanRevision: 2,
+      },
+    };
+    const run = runRecord([attempt]);
+    run.planRevision = 2;
+    const runPath = await writeRun(run);
+    const before = await fs.readFile(runPath, "utf8");
+
+    await expect(
+      execFileAsync("node", [
+        scriptPath,
+        "validate-run",
+        "--plan",
+        planPath,
+        "--run",
+        runPath,
+      ]),
+    ).rejects.toMatchObject({
+      stderr: expect.stringMatching(/acceptedPlanRevision.*preparation/i),
+    });
+    expect(await fs.readFile(runPath, "utf8")).toBe(before);
+  });
+
+  it("rejects a non-lagging run that omits an accepted result reference", async () => {
+    const node = {
+      ...nodeRecord("task-a"),
+      status: "failed",
+      blockingReason: "The attempt failed.",
+      reconciliations: [
+        {
+          resultId: "result-task-a-failed",
+          cancellationId: null,
+          attemptId: "attempt-task-a",
+          inputDigest: "a".repeat(64),
+          outcome: "failed",
+          fromStatus: "running",
+          toStatus: "failed",
+          acceptedAt: "2026-08-11T12:05:00.000Z",
+          acceptedPlanRevision: 2,
+          managerReason: "The failed outcome was accepted.",
+          evidenceContract: evidenceContractRecord(),
+          evidence: [],
+        },
+      ],
+    } as any;
+    const plan = planRecord([node]);
+    plan.revision = 2;
+    const planPath = await writePlan(plan);
+    const attempt = {
+      ...activeAttempt("task-a", node.resourceLocks),
+      terminationOutcome: "failed",
+      nativeLifecycle: "failed",
+      terminationHistory: [terminationRecord("task-a", "failed", "failed")],
+    };
+    const run = runRecord([attempt]);
+    run.planRevision = 2;
+    const runPath = await writeRun(run);
+    const before = await fs.readFile(runPath, "utf8");
+
+    await expect(
+      execFileAsync("node", [
+        scriptPath,
+        "validate-run",
+        "--plan",
+        planPath,
+        "--run",
+        runPath,
+      ]),
+    ).rejects.toMatchObject({
+      stderr: expect.stringMatching(/missing.*run result reference/i),
+    });
+    expect(await fs.readFile(runPath, "utf8")).toBe(before);
+  });
+
+  it("rejects a lagging run that has lost an accepted reconciliation attempt", async () => {
+    const node = {
+      ...nodeRecord("task-a"),
+      status: "failed",
+      blockingReason: "The attempt failed.",
+      reconciliations: [
+        {
+          resultId: "result-task-a-failed",
+          cancellationId: null,
+          attemptId: "attempt-task-a",
+          inputDigest: "a".repeat(64),
+          outcome: "failed",
+          fromStatus: "running",
+          toStatus: "failed",
+          acceptedAt: "2026-08-11T12:05:00.000Z",
+          acceptedPlanRevision: 2,
+          managerReason: "The failed outcome was accepted.",
+          evidenceContract: evidenceContractRecord(),
+          evidence: [],
+        },
+      ],
+    } as any;
+    const plan = planRecord([node]);
+    plan.revision = 2;
+    const planPath = await writePlan(plan);
+    const runPath = await writeRun(runRecord());
+    const before = await fs.readFile(runPath, "utf8");
+
+    await expect(
+      execFileAsync("node", [
+        scriptPath,
+        "validate-run",
+        "--plan",
+        planPath,
+        "--run",
+        runPath,
+      ]),
+    ).rejects.toMatchObject({
+      stderr: expect.stringMatching(/accepted reconciliation.*unknown run attempt/i),
+    });
+    expect(await fs.readFile(runPath, "utf8")).toBe(before);
+  });
 });

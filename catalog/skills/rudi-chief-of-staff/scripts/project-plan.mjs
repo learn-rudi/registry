@@ -1052,7 +1052,7 @@ async function withExclusiveMutationLock(file, callback) {
     } catch (error) {
       if (!error || error.code !== "EEXIST") throw error;
       if (Date.now() >= deadline) {
-        throw new Error("Timed out waiting for the plan mutation lock: " + lockPath);
+        throw new Error("Timed out waiting for the mutation lock: " + lockPath);
       }
       await new Promise((resolve) => setTimeout(resolve, 20));
     }
@@ -1070,6 +1070,20 @@ async function withExclusiveMutationLock(file, callback) {
       if (!error || error.code !== "ENOENT") throw error;
     });
   }
+}
+
+async function mutateRunFile(planPath, runPath, mutator) {
+  return withExclusiveMutationLock(runPath, async () => {
+    const plan = validatePlan(await readPlanFile(planPath));
+    const run = await readRunFile(runPath, planPath);
+    const previousRunPlanRevision = run.planRevision;
+    const result = await mutator(plan, run);
+    if (!result.idempotent || run.planRevision !== previousRunPlanRevision) {
+      validateRun(plan, run);
+      await replaceOwnedFile(runPath, serializeJson(run));
+    }
+    return { plan, run, result };
+  });
 }
 
 function serializeJson(value) {
@@ -1431,9 +1445,25 @@ export function validatePlan(raw) {
       acceptedRevisions.add(receipt.acceptedPlanRevision);
     }
   }
+  const reconciliationIds = new Set();
+  const reconciledAttemptIds = new Set();
   for (const node of raw.nodes) {
     validateReconciliations(raw, node);
     for (const record of node.reconciliations) {
+      const reconciliationId = record.resultId ?? record.cancellationId;
+      if (reconciliationIds.has(reconciliationId)) {
+        throw new Error("Duplicate reconciliation ID: " + reconciliationId);
+      }
+      reconciliationIds.add(reconciliationId);
+      if (record.attemptId !== null) {
+        if (reconciledAttemptIds.has(record.attemptId)) {
+          throw new Error(
+            "An attempt may have only one terminal reconciliation: " +
+              record.attemptId
+          );
+        }
+        reconciledAttemptIds.add(record.attemptId);
+      }
       if (acceptedRevisions.has(record.acceptedPlanRevision)) {
         throw new Error(
           "Duplicate accepted plan revision: " + record.acceptedPlanRevision
@@ -2201,10 +2231,16 @@ function validateRun(plan, run) {
   if (
     run.schemaVersion !== 1 ||
     run.projectId !== plan.projectId ||
-    run.runId !== plan.runId ||
-    run.planRevision !== plan.revision
+    run.runId !== plan.runId
   ) {
-    throw new Error("Run identity or plan revision does not match the plan");
+    throw new Error("Run identity does not match the plan");
+  }
+  if (
+    !Number.isSafeInteger(run.planRevision) ||
+    run.planRevision < 1 ||
+    run.planRevision > plan.revision
+  ) {
+    throw new Error("Run plan revision is invalid or ahead of the plan");
   }
   if (!Array.isArray(run.projects) || !Array.isArray(run.hosts) || !Array.isArray(run.attempts)) {
     throw new Error("run projects, hosts, and attempts must be arrays");
@@ -2303,6 +2339,7 @@ function validateRun(plan, run) {
   }
 
   const attemptIds = new Set();
+  const attemptsById = new Map();
   const idempotencyKeys = new Set();
   const activeNodeIds = new Set();
   const nodes = new Map(plan.nodes.map((node) => [node.id, node]));
@@ -2312,12 +2349,16 @@ function validateRun(plan, run) {
     validateIdentifier(attempt.attemptId, "attempt ID");
     if (attemptIds.has(attempt.attemptId)) throw new Error("Duplicate attempt ID: " + attempt.attemptId);
     attemptIds.add(attempt.attemptId);
+    attemptsById.set(attempt.attemptId, attempt);
     if (
       !Number.isSafeInteger(attempt.preparedPlanRevision) ||
       attempt.preparedPlanRevision < 1 ||
       attempt.preparedPlanRevision > plan.revision
     ) {
       throw new Error("attempt preparedPlanRevision is invalid");
+    }
+    if (attempt.preparedPlanRevision > run.planRevision) {
+      throw new Error("attempt preparedPlanRevision is ahead of the run plan revision");
     }
     validateCanonicalTimestamp(attempt.preparedAt, "attempt preparedAt");
     const node = nodes.get(attempt.nodeId);
@@ -2623,8 +2664,24 @@ function validateRun(plan, run) {
           attempt.resultReference.acceptedPlanRevision === record.acceptedPlanRevision
         );
       });
-      if (acceptedRecord && !reconciliationMatchesAttemptLifecycle(acceptedRecord, attempt)) {
+      if (!acceptedRecord) {
+        throw new Error("attempt result reference has no accepted reconciliation");
+      }
+      if (attempt.resultReference.acceptedPlanRevision > run.planRevision) {
+        throw new Error("attempt result reference is ahead of the run revision");
+      }
+      if (!reconciliationMatchesAttemptLifecycle(acceptedRecord, attempt)) {
         throw new Error("attempt lifecycle does not match its accepted reconciliation");
+      }
+    } else {
+      const acceptedRecord = node.reconciliations.find(
+        (record) => record.attemptId === attempt.attemptId
+      );
+      if (
+        acceptedRecord &&
+        acceptedRecord.acceptedPlanRevision <= run.planRevision
+      ) {
+        throw new Error("accepted reconciliation is missing its run result reference");
       }
     }
     if (isActiveAttempt(attempt)) {
@@ -2634,10 +2691,39 @@ function validateRun(plan, run) {
       activeNodeIds.add(attempt.nodeId);
     }
   }
+  for (const node of plan.nodes) {
+    for (const record of node.reconciliations) {
+      if (record.attemptId !== null) {
+        const attempt = attemptsById.get(record.attemptId);
+        if (!attempt) {
+          throw new Error(
+            "Accepted reconciliation references an unknown run attempt: " +
+              record.attemptId
+          );
+        }
+        if (attempt.nodeId !== node.id) {
+          throw new Error(
+            "Accepted reconciliation node does not match its run attempt: " +
+              record.attemptId
+          );
+        }
+        if (record.acceptedPlanRevision <= attempt.preparedPlanRevision) {
+          throw new Error(
+            "reconciliation acceptedPlanRevision must be later than attempt preparation"
+          );
+        }
+      }
+    }
+  }
   validateLineage(plan, run);
   validateAttemptLineage(plan, run);
   validateUsageReports(plan, run, attemptIds);
   return run;
+}
+
+function synchronizeRunPlanRevision(plan, run) {
+  validateRun(plan, run);
+  run.planRevision = plan.revision;
 }
 
 function validateUsageReports(plan, run, attemptIds) {
@@ -2991,7 +3077,7 @@ function prepareIdempotencyKey(plan, input) {
 }
 
 export function prepareAttempt(plan, run, rawInput) {
-  validateRun(plan, run);
+  synchronizeRunPlanRevision(plan, run);
   const input = validatePrepareInput(plan, rawInput);
   const node = plan.nodes.find((candidate) => candidate.id === input.nodeId);
   if (!node) throw new Error("Unknown prepare node ID: " + input.nodeId);
@@ -3148,7 +3234,7 @@ function usageReportFromInput(plan, raw) {
 }
 
 export function recordUsage(plan, run, rawInput) {
-  validateRun(plan, run);
+  synchronizeRunPlanRevision(plan, run);
   const report = usageReportFromInput(plan, rawInput);
   const existing = run.usageReports.find(
     (candidate) => candidate.usageId === report.usageId
@@ -3206,7 +3292,7 @@ function dispatchRecordFromInput(plan, raw) {
 }
 
 export function recordDispatch(plan, run, rawInput) {
-  validateRun(plan, run);
+  synchronizeRunPlanRevision(plan, run);
   const record = dispatchRecordFromInput(plan, rawInput);
   const attempt = run.attempts.find(
     (candidate) => candidate.attemptId === rawInput.attemptId
@@ -3277,7 +3363,7 @@ function terminationRecordFromInput(plan, raw) {
 }
 
 export function recordTermination(plan, run, rawInput) {
-  validateRun(plan, run);
+  synchronizeRunPlanRevision(plan, run);
   const record = terminationRecordFromInput(plan, rawInput);
   const attempt = run.attempts.find(
     (candidate) => candidate.attemptId === rawInput.attemptId
@@ -3329,7 +3415,7 @@ function steeringInput(plan, raw) {
 }
 
 export function recordSteering(plan, run, rawInput) {
-  validateRun(plan, run);
+  synchronizeRunPlanRevision(plan, run);
   const input = steeringInput(plan, rawInput);
   const attempt = run.attempts.find(
     (candidate) => candidate.attemptId === input.attemptId
@@ -3409,7 +3495,7 @@ function archiveRecordFromInput(plan, raw) {
 }
 
 export function recordArchive(plan, run, rawInput) {
-  validateRun(plan, run);
+  synchronizeRunPlanRevision(plan, run);
   const record = archiveRecordFromInput(plan, rawInput);
   const attempt = run.attempts.find(
     (candidate) => candidate.attemptId === rawInput.attemptId
@@ -3789,18 +3875,61 @@ function validateCancellation(plan, run, raw) {
     if (!noNativeWorkAccepted && attempt.terminationOutcome !== "cancelled") {
       throw new Error("Cancellation attempt has not reached confirmed native termination");
     }
-    if (
-      attempt.resultReference?.kind !== "cancellation" ||
-      attempt.resultReference?.id !== raw.cancellationId
-    ) {
-      throw new Error("Cancellation attempt reference does not match the accepted input");
-    }
   }
   return { node, attempt, evidence };
 }
 
 function requiredEvidenceSubjects(plan, node) {
   return requiredEvidenceSubjectsFromContract(evidenceContractFor(plan, node));
+}
+
+function validateReconciliationReplay(record, options) {
+  if (
+    record.toStatus !== options.to ||
+    record.managerReason !== options.managerReason ||
+    record.acceptedAt !== options.acceptedAt
+  ) {
+    throw new Error("Conflicting reconciliation replay");
+  }
+}
+
+function synchronizeReconciliationReference(plan, run, node, record) {
+  validateRun(plan, run);
+  const previousPlanRevision = run.planRevision;
+  let referenceChanged = false;
+  if (record.attemptId !== null) {
+    const attempt = run.attempts.find(
+      (candidate) => candidate.attemptId === record.attemptId
+    );
+    if (!attempt || attempt.nodeId !== node.id) {
+      throw new Error("Accepted reconciliation references an unknown run attempt");
+    }
+    if (!reconciliationMatchesAttemptLifecycle(record, attempt)) {
+      throw new Error("Accepted reconciliation does not match run lifecycle");
+    }
+    const expectedReference = {
+      kind: record.resultId !== null ? "result" : "cancellation",
+      id: record.resultId ?? record.cancellationId,
+      acceptedPlanRevision: record.acceptedPlanRevision,
+    };
+    if (attempt.resultReference === null) {
+      if (run.planRevision >= record.acceptedPlanRevision) {
+        throw new Error(
+          "Accepted reconciliation is missing from a non-lagging run"
+        );
+      }
+      attempt.resultReference = expectedReference;
+      referenceChanged = true;
+    } else if (
+      JSON.stringify(attempt.resultReference) !==
+      JSON.stringify(expectedReference)
+    ) {
+      throw new Error("Run result reference conflicts with accepted reconciliation");
+    }
+  }
+  run.planRevision = plan.revision;
+  validateRun(plan, run);
+  return referenceChanged || previousPlanRevision !== run.planRevision;
 }
 
 export function reconcileResult(plan, run, result, rawBytes, options) {
@@ -3810,7 +3939,17 @@ export function reconcileResult(plan, run, result, rawBytes, options) {
     for (const record of existingNode.reconciliations) {
       if (record.resultId !== proposedId && record.cancellationId !== proposedId) continue;
       if (record.inputDigest === inputDigest) {
-        return { node: existingNode, idempotent: true };
+        validateReconciliationReplay(record, options);
+        return {
+          node: existingNode,
+          idempotent: true,
+          runUpdated: synchronizeReconciliationReference(
+            plan,
+            run,
+            existingNode,
+            record
+          ),
+        };
       }
       throw new Error("Conflicting duplicate result ID: " + proposedId);
     }
@@ -3858,7 +3997,12 @@ export function reconcileResult(plan, run, result, rawBytes, options) {
     evidence,
   });
   plan.revision += 1;
-  return { node, idempotent: false };
+  const record = node.reconciliations.at(-1);
+  return {
+    node,
+    idempotent: false,
+    runUpdated: synchronizeReconciliationReference(plan, run, node, record),
+  };
 }
 
 export function reconcileCancellation(plan, run, cancellation, rawBytes, options) {
@@ -3873,7 +4017,17 @@ export function reconcileCancellation(plan, run, cancellation, rawBytes, options
         continue;
       }
       if (record.inputDigest === inputDigest) {
-        return { node: existingNode, idempotent: true };
+        validateReconciliationReplay(record, options);
+        return {
+          node: existingNode,
+          idempotent: true,
+          runUpdated: synchronizeReconciliationReference(
+            plan,
+            run,
+            existingNode,
+            record
+          ),
+        };
       }
       throw new Error("Conflicting duplicate cancellation ID: " + proposedId);
     }
@@ -3903,7 +4057,12 @@ export function reconcileCancellation(plan, run, cancellation, rawBytes, options
     evidence,
   });
   plan.revision += 1;
-  return { node, idempotent: false };
+  const record = node.reconciliations.at(-1);
+  return {
+    node,
+    idempotent: false,
+    runUpdated: synchronizeReconciliationReference(plan, run, node, record),
+  };
 }
 
 export function transitionNode(plan, nodeId, nextStatus, blockingReason = null, run = null) {
@@ -4178,14 +4337,13 @@ async function main() {
     if (!(await pathExists(runPath))) {
       throw new Error("Durable run must be initialized before prepare");
     }
-    const plan = validatePlan(await readPlanFile(planPath));
-    const run = await readRunFile(runPath, planPath);
     const input = await readJsonFile(options.input);
-    const result = prepareAttempt(plan, run, input);
+    const { plan, result } = await mutateRunFile(
+      planPath,
+      runPath,
+      (lockedPlan, run) => prepareAttempt(lockedPlan, run, input)
+    );
     const attempt = result.attempt;
-    if (!result.idempotent) {
-      await replaceOwnedFile(runPath, serializeJson(run));
-    }
     process.stdout.write(
       serializeJson({
         prepared: true,
@@ -4205,13 +4363,13 @@ async function main() {
   if (command === "record-usage") {
     const options = parseRunInputArgs(args);
     const planPath = assertCanonicalPlanPath(options.plan);
-    const plan = validatePlan(await readPlanFile(planPath));
-    const runPath = assertRunBelongsToPlan(options.run, planPath, plan.runId);
-    const run = await readRunFile(runPath, planPath);
-    const result = recordUsage(plan, run, await readJsonFile(options.input));
-    if (!result.idempotent) {
-      await replaceOwnedFile(runPath, serializeJson(run));
-    }
+    const runPath = assertRunBelongsToPlan(options.run, planPath);
+    const input = await readJsonFile(options.input);
+    const { result } = await mutateRunFile(
+      planPath,
+      runPath,
+      (plan, run) => recordUsage(plan, run, input)
+    );
     process.stdout.write(
       serializeJson({
         usageId: result.report.usageId,
@@ -4226,13 +4384,13 @@ async function main() {
   if (command === "record-dispatch") {
     const options = parseRunInputArgs(args);
     const planPath = assertCanonicalPlanPath(options.plan);
-    const plan = validatePlan(await readPlanFile(planPath));
-    const runPath = assertRunBelongsToPlan(options.run, planPath, plan.runId);
-    const run = await readRunFile(runPath, planPath);
-    const result = recordDispatch(plan, run, await readJsonFile(options.input));
-    if (!result.idempotent) {
-      await replaceOwnedFile(runPath, serializeJson(run));
-    }
+    const runPath = assertRunBelongsToPlan(options.run, planPath);
+    const input = await readJsonFile(options.input);
+    const { result } = await mutateRunFile(
+      planPath,
+      runPath,
+      (plan, run) => recordDispatch(plan, run, input)
+    );
     process.stdout.write(
       serializeJson({
         attemptId: result.attempt.attemptId,
@@ -4245,17 +4403,13 @@ async function main() {
   if (command === "record-termination") {
     const options = parseRunInputArgs(args);
     const planPath = assertCanonicalPlanPath(options.plan);
-    const plan = validatePlan(await readPlanFile(planPath));
-    const runPath = assertRunBelongsToPlan(options.run, planPath, plan.runId);
-    const run = await readRunFile(runPath, planPath);
-    const result = recordTermination(
-      plan,
-      run,
-      await readJsonFile(options.input)
+    const runPath = assertRunBelongsToPlan(options.run, planPath);
+    const input = await readJsonFile(options.input);
+    const { result } = await mutateRunFile(
+      planPath,
+      runPath,
+      (plan, run) => recordTermination(plan, run, input)
     );
-    if (!result.idempotent) {
-      await replaceOwnedFile(runPath, serializeJson(run));
-    }
     process.stdout.write(
       serializeJson({
         attemptId: result.attempt.attemptId,
@@ -4268,14 +4422,13 @@ async function main() {
   if (command === "record-steering") {
     const options = parseRunInputArgs(args);
     const planPath = assertCanonicalPlanPath(options.plan);
-    const plan = validatePlan(await readPlanFile(planPath));
-    const runPath = assertRunBelongsToPlan(options.run, planPath, plan.runId);
-    const run = await readRunFile(runPath, planPath);
+    const runPath = assertRunBelongsToPlan(options.run, planPath);
     const input = await readJsonFile(options.input);
-    const result = recordSteering(plan, run, input);
-    if (!result.idempotent) {
-      await replaceOwnedFile(runPath, serializeJson(run));
-    }
+    const { result } = await mutateRunFile(
+      planPath,
+      runPath,
+      (plan, run) => recordSteering(plan, run, input)
+    );
     process.stdout.write(
       serializeJson({
         attemptId: input.attemptId,
@@ -4289,13 +4442,13 @@ async function main() {
   if (command === "record-archive") {
     const options = parseRunInputArgs(args);
     const planPath = assertCanonicalPlanPath(options.plan);
-    const plan = validatePlan(await readPlanFile(planPath));
-    const runPath = assertRunBelongsToPlan(options.run, planPath, plan.runId);
-    const run = await readRunFile(runPath, planPath);
-    const result = recordArchive(plan, run, await readJsonFile(options.input));
-    if (!result.idempotent) {
-      await replaceOwnedFile(runPath, serializeJson(run));
-    }
+    const runPath = assertRunBelongsToPlan(options.run, planPath);
+    const input = await readJsonFile(options.input);
+    const { result } = await mutateRunFile(
+      planPath,
+      runPath,
+      (plan, run) => recordArchive(plan, run, input)
+    );
     process.stdout.write(
       serializeJson({
         attemptId: result.attempt.attemptId,
@@ -4330,17 +4483,27 @@ async function main() {
     const planPath = assertCanonicalPlanPath(options.plan);
     const { plan, node } = await withExclusiveMutationLock(planPath, async () => {
       const lockedPlan = validatePlan(await readPlanFile(planPath));
-      const run = options.run ? await readRunFile(options.run, planPath) : null;
-      const transitionedNode = transitionNode(
-        lockedPlan,
-        options.node,
-        options.to,
-        options.blockingReason,
-        run
+      const applyTransition = async (run) => {
+        const transitionedNode = transitionNode(
+          lockedPlan,
+          options.node,
+          options.to,
+          options.blockingReason,
+          run
+        );
+        validatePlan(lockedPlan);
+        await replaceOwnedFile(planPath, serializeJson(lockedPlan));
+        return { plan: lockedPlan, node: transitionedNode };
+      };
+      if (!options.run) return applyTransition(null);
+      const runPath = assertRunBelongsToPlan(
+        options.run,
+        planPath,
+        lockedPlan.runId
       );
-      validatePlan(lockedPlan);
-      await replaceOwnedFile(planPath, serializeJson(lockedPlan));
-      return { plan: lockedPlan, node: transitionedNode };
+      return withExclusiveMutationLock(runPath, async () =>
+        applyTransition(await readRunFile(runPath, planPath))
+      );
     });
     process.stdout.write(
       serializeJson({ nodeId: node.id, status: node.status, revision: plan.revision })
@@ -4350,6 +4513,7 @@ async function main() {
   if (command === "reconcile") {
     const options = parseReconcileArgs(args);
     const planPath = assertCanonicalPlanPath(options.plan);
+    const runPath = assertRunBelongsToPlan(options.run, planPath);
     const input = await readJsonDocument(options.input);
     const hasResultId = Object.hasOwn(input.value, "resultId");
     const hasCancellationId = Object.hasOwn(input.value, "cancellationId");
@@ -4358,15 +4522,22 @@ async function main() {
     }
     const { plan, result } = await withExclusiveMutationLock(planPath, async () => {
       const lockedPlan = validatePlan(await readPlanFile(planPath));
-      const run = await readRunFile(options.run, planPath);
-      const reconciliation = hasResultId
-        ? reconcileResult(lockedPlan, run, input.value, input.bytes, options)
-        : reconcileCancellation(lockedPlan, run, input.value, input.bytes, options);
-      if (!reconciliation.idempotent) {
+      assertRunBelongsToPlan(runPath, planPath, lockedPlan.runId);
+      return withExclusiveMutationLock(runPath, async () => {
+        const run = await readRunFile(runPath, planPath);
+        const reconciliation = hasResultId
+          ? reconcileResult(lockedPlan, run, input.value, input.bytes, options)
+          : reconcileCancellation(lockedPlan, run, input.value, input.bytes, options);
         validatePlan(lockedPlan);
-        await replaceOwnedFile(planPath, serializeJson(lockedPlan));
-      }
-      return { plan: lockedPlan, result: reconciliation };
+        validateRun(lockedPlan, run);
+        if (!reconciliation.idempotent) {
+          await replaceOwnedFile(planPath, serializeJson(lockedPlan));
+        }
+        if (!reconciliation.idempotent || reconciliation.runUpdated) {
+          await replaceOwnedFile(runPath, serializeJson(run));
+        }
+        return { plan: lockedPlan, result: reconciliation };
+      });
     });
     process.stdout.write(
       serializeJson({
