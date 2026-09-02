@@ -10,9 +10,9 @@ Status: Phase 5 bootstrap-source verification; package release remains gated.
 - Risk: High because an incorrect default can expose code in a credentialed
   internet-facing runtime.
 - First-package baseline: official npm metadata returns `E404` for
-  `@rudi/swe-engineering-stack`; `learnrudi/registry` is public, so GitHub-hosted
-  provenance is supported. The local npm session returns `E401`, so the
-  authenticated operator's ownership of the `@rudi` scope remains a human
+  `@learnrudi/swe-engineering-stack`; `learnrudi/registry` is public, so
+  GitHub-hosted provenance is supported. The authenticated npm profile shows
+  the `learnrudi` organization; exact owner/admin authority remains a human
   preflight gate rather than an inferred fact.
 - Relevant manual controls: Appendix F CI/CD and secrets isolation, Appendix H
   artifact traceability, the agent red-green/review standard, and the
@@ -32,7 +32,7 @@ Status: Phase 5 bootstrap-source verification; package release remains gated.
 - Commits/push/PR are authorized; npm package publication is a later release
   gate after merge/review.
 - Add a package-specific, manual, main-only trusted-publishing workflow for
-  `@rudi/swe-engineering-stack`; initial npm package creation, trust
+  `@learnrudi/swe-engineering-stack`; initial npm package creation, trust
   configuration, and publication remain later release gates.
 - Prepare a separate one-time bootstrap workflow and human runbook because npm
   cannot configure trusted publishing before the package exists. Source-only
@@ -50,6 +50,22 @@ Status: Phase 5 bootstrap-source verification; package release remains gated.
   security-reviewable and must not be generalized into a shared executable
   while either privileged job is active. Reassess after bootstrap credential
   revocation; no third semantic release path is accepted.
+
+### 2026-09-02 npm namespace correction
+
+- Scope lock: RUDI remains the product name and “Responsible Use of Digital
+  Intelligence”; `learnrudi` is the controlled npm distribution organization.
+  The package contract is therefore `@learnrudi/swe-engineering-stack@0.2.0`.
+- This correction changes only the package identity and its coordinated
+  Registry, Cloud, and System references. It does not authorize publication,
+  workflow dispatch, token creation, deployment, or DNS changes.
+- Red proof: `npm test -- src/swe-engineering-publish-workflow.test.ts` failed
+  2/3 because the package and both release workflows still named the
+  unavailable `@rudi` scope.
+- The renamed 20-file package has reviewed tree
+  `a20da20c28a138c8ab537c367fa98b380f16ece1`, integrity
+  `sha512-jATXP5q3V3Ai3z6xDvjdy/QTgrewdMKFYPgotDMs902iBbEgj6PREGN019XZkJlt3gkgM02BjSPaUbzKvrWf5A==`,
+  and shasum `5868821f7e560256e664eb3e08e8f6041fbc591e`.
 
 ## Phase 2: Red Tests
 
@@ -102,7 +118,7 @@ Status: Phase 5 bootstrap-source verification; package release remains gated.
   rechecks registry immutability plus the allowlist before publishing. The
   publish command pins `https://registry.npmjs.org` at command-line precedence.
 - The separate bootstrap workflow is hard-coded to exact version `0.2.0` and
-  reviewed package tree `0d974929e1c954c3116e2e54ed449ade64f7fe6f`.
+  reviewed package tree `a20da20c28a138c8ab537c367fa98b380f16ece1`.
   Its no-secret verification job validates repository/main/SHA/confirmation,
   requires the package name itself to be absent, runs install/test/audit, and
   checks the exact pack allowlist. Only the dependent `npm-bootstrap`
@@ -113,9 +129,10 @@ Status: Phase 5 bootstrap-source verification; package release remains gated.
   identity/allowlist checks, and performs an authenticated package-name absence
   check immediately before publishing with `--provenance` and a
   command-line-pinned registry.
-- The human runbook requires interactive npm identity and `@rudi` owner/admin
-  proof, a main-only reviewed GitHub environment with self-review and admin
-  bypass disabled, a shortest-lived `@rudi`-only package-write token with no
+- The human runbook requires interactive npm identity and `@learnrudi`
+  owner/admin proof, a main-only reviewed GitHub environment with the explicitly
+  authorized solo self-review mode and admin bypass disabled, a shortest-lived
+  `@learnrudi`-only package-write token with no
   organization permission, immediate pre-publish confirmation, cryptographic
   signature/provenance verification, trusted-publisher configuration, token
   removal/revocation, and fail-closed recovery. It records current scope
@@ -181,10 +198,10 @@ Verified on 2026-09-01 and the 2026-09-02 bootstrap-source continuation:
   index drift; catalog hygiene, release provenance, public-readiness, and the
   nine-test SWE stack verification passed. The edited TypeScript debt scan
   reported zero findings.
-- The package dry-run remains the same exact 20-file artifact with reviewed
-  integrity
-  `sha512-1SvxpASZuleQuLoWrBK/uHmtY5EKhhsdj8VxmGtsS1yyVaFYfPYoJxxA+Cip1GSt89ZuvSQyHatwk10HCcpVJA==`
-  and shasum `6582c3ed1329b3876e3dd5dc5686766f76d38109`.
+- After the namespace correction, the package dry-run remains the same exact
+  20-file allowlist with reviewed integrity
+  `sha512-jATXP5q3V3Ai3z6xDvjdy/QTgrewdMKFYPgotDMs902iBbEgj6PREGN019XZkJlt3gkgM02BjSPaUbzKvrWf5A==`
+  and shasum `5868821f7e560256e664eb3e08e8f6041fbc591e`.
   A generated 45 MB nested `node_modules` verification artifact was moved
   intact to machine-local RUDI temporary storage rather than deleted without
   cleanup confirmation; the repository hygiene gate then passed with zero
@@ -216,6 +233,6 @@ Verified on 2026-09-01 and the 2026-09-02 bootstrap-source continuation:
   publication path for a later distinct version after npm trusts its exact
   identity.
 - Final bootstrap-source review verdict is `pass`; release execution remains
-  `needs human decision`. Authenticated `@rudi` ownership, source merge,
+  `needs human decision`. Authenticated `@learnrudi` ownership, source merge,
   environment/token setup, dispatch, publication, trust configuration, and
   credential revocation are unexecuted.

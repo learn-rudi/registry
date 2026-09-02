@@ -1,5 +1,5 @@
 {
-  "name": "@rudi/swe-engineering-stack",
+  "name": "@learnrudi/swe-engineering-stack",
   "version": "0.2.0",
   "description": "RUDI MCP stack for the SWE Operating Manual and agent debt scanning.",
   "type": "module",

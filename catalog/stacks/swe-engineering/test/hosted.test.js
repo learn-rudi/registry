@@ -10,7 +10,7 @@ import {
 } from "../src/hosted.js";
 
 test("hosted adapter exposes only the three read-only manual tools", () => {
-  assert.equal(HOSTED_ADAPTER_ID, "@rudi/swe-engineering-stack");
+  assert.equal(HOSTED_ADAPTER_ID, "@learnrudi/swe-engineering-stack");
   assert.equal(HOSTED_ADAPTER_VERSION, "0.2.0");
   assert.deepEqual(
     HOSTED_TOOL_DEFINITIONS.map((tool) => tool.name),
