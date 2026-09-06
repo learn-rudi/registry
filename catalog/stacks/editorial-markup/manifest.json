@@ -3,13 +3,11 @@
   "kind": "stack",
   "name": "Editorial Markup",
   "version": "0.1.0",
-
   "delivery": "remote",
   "install": {
     "source": "catalog",
     "path": "catalog/stacks/editorial-markup"
   },
-
   "runtime": "node",
   "requires": {
     "binaries": [],
@@ -32,15 +30,25 @@
   "mcp": {
     "transport": "stdio",
     "command": "node",
-    "args": ["dist/index.js"],
+    "args": [
+      "dist/index.js"
+    ],
     "cwd": "."
   },
-
   "meta": {
     "description": "Build validated inline editorial markup HTML, export clean copy, and run Playwright QA for accept/reject review artifacts.",
     "author": "RUDI",
     "license": "MIT",
-    "category": "document-processing",
-    "tags": ["writing", "editing", "redline", "html", "review", "qa", "playwright"]
+    "category": "documents",
+    "tags": [
+      "writing",
+      "editing",
+      "redline",
+      "html",
+      "review",
+      "qa",
+      "playwright",
+      "capability:edit"
+    ]
   }
 }

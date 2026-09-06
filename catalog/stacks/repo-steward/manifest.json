@@ -53,7 +53,7 @@
     "description": "Enroll one workspace path, safely discover its nested Git worktrees, coordinate one repository worker at a time, and maintain durable action and worktree-closeout ledgers.",
     "author": "RUDI",
     "license": "MIT",
-    "category": "development",
+    "category": "code",
     "tags": [
       "git",
       "github",
@@ -63,7 +63,8 @@
       "leases",
       "action-ledger",
       "closeout-receipts",
-      "agents"
+      "agents",
+      "capability:review"
     ],
     "icon": "git-branch"
   }

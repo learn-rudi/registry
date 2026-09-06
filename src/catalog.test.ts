@@ -52,6 +52,51 @@ afterEach(async () => {
 });
 
 describe("catalog package discovery", () => {
+  it("rejects non-primitive categories on authored stacks", async () => {
+    const packages = await discoverCatalogPackages(path.resolve(import.meta.dirname, ".."));
+    const stack = packages.find(item => item.manifest.id === "stack:vercel")!;
+    stack.manifest.meta = { ...stack.manifest.meta, category: "deployment" };
+    expect(() => assertCatalogReferences(packages)).not.toThrow();
+    expect(() => assertCatalogReferences(packages, { canonicalStacks: true })).toThrow(/primitive category/);
+  });
+
+  it("rejects missing or malformed facets on authored stacks", async () => {
+    const packages = await discoverCatalogPackages(path.resolve(import.meta.dirname, ".."));
+    const stack = packages.find(item => item.manifest.id === "stack:vercel")!;
+    stack.manifest.meta = { ...stack.manifest.meta, tags: ["deployment"] };
+    expect(() => assertCatalogReferences(packages, { canonicalStacks: true })).toThrow(/capability facet/);
+    stack.manifest.meta.tags = ["capability:deploy", "provider:Bad Value"];
+    expect(() => assertCatalogReferences(packages, { canonicalStacks: true })).toThrow(/Invalid.*facet/);
+  });
+
+  it("keeps authored stack categories aligned with their primary operator", async () => {
+    const packages = await discoverCatalogPackages(path.resolve(import.meta.dirname, ".."));
+    const stack = packages.find(item => item.manifest.id === "stack:vercel")!;
+    stack.manifest.meta = { ...stack.manifest.meta, category: "code" };
+    expect(() => assertCatalogReferences(packages, { canonicalStacks: true })).toThrow(/operator.*category/);
+  });
+
+  it("keeps Node stack package and lock release versions aligned with manifests", async () => {
+    const root = path.resolve(import.meta.dirname, "..");
+    const packages = await discoverCatalogPackages(root);
+    for (const item of packages.filter(item => item.manifest.kind === "stack" && item.manifest.runtime === "node")) {
+      const directory = path.dirname(path.join(root, item.path));
+      const pkg = JSON.parse(await fs.readFile(path.join(directory, "package.json"), "utf8"));
+      expect(pkg.version, item.manifest.id).toBe(item.manifest.version);
+      let lockText: string;
+      try {
+        lockText = await fs.readFile(path.join(directory, "package-lock.json"), "utf8");
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+        expect(Object.keys({ ...pkg.dependencies, ...pkg.devDependencies }), item.manifest.id).toEqual([]);
+        continue;
+      }
+      const lock = JSON.parse(lockText);
+      expect(lock.version, `${item.manifest.id} lock`).toBe(item.manifest.version);
+      expect(lock.packages[""].version, `${item.manifest.id} locked root`).toBe(item.manifest.version);
+    }
+  });
+
   it("rejects an unclassified authored skill while retaining legacy reader compatibility", async () => {
     await writeText(path.join(tmpDir, "catalog/skills/demo/SKILL.md"), [
       "---", "name: Demo", "description: Manage a deployment", "category: automation",

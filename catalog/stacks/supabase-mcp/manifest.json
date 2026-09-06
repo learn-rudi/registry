@@ -3,13 +3,11 @@
   "kind": "stack",
   "name": "Supabase MCP",
   "version": "0.1.0",
-
   "delivery": "remote",
   "install": {
     "source": "catalog",
     "path": "catalog/stacks/supabase-mcp"
   },
-
   "runtime": "node",
   "requires": {
     "binaries": [],
@@ -59,7 +57,6 @@
     ],
     "cwd": "."
   },
-
   "meta": {
     "description": "Connect agents to Supabase's hosted OAuth MCP server for database, project, Edge Functions, docs, and development tools.",
     "author": "RUDI",
@@ -71,7 +68,9 @@
       "database",
       "mcp",
       "oauth",
-      "remote"
+      "remote",
+      "capability:manage",
+      "provider:supabase"
     ],
     "icon": "supabase",
     "remoteMcp": {

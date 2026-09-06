@@ -3,13 +3,11 @@
   "kind": "stack",
   "name": "Notion Workspace",
   "version": "1.2.0",
-
   "delivery": "remote",
   "install": {
     "source": "catalog",
     "path": "catalog/stacks/notion-workspace"
   },
-
   "runtime": "node",
   "requires": {
     "binaries": [],
@@ -51,16 +49,25 @@
   "mcp": {
     "transport": "stdio",
     "command": "npx",
-    "args": ["tsx", "src/index.ts"],
+    "args": [
+      "tsx",
+      "src/index.ts"
+    ],
     "cwd": "."
   },
-
   "meta": {
     "description": "Search, create, and manage Notion pages and databases",
     "author": "CO-LLAB",
     "license": "MIT",
-    "category": "productivity",
-    "tags": ["notion", "pages", "databases", "workspace"],
+    "category": "documents",
+    "tags": [
+      "notion",
+      "pages",
+      "databases",
+      "workspace",
+      "capability:manage",
+      "provider:notion"
+    ],
     "icon": "📝"
   },
   "related": {

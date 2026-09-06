@@ -3,13 +3,11 @@
   "kind": "stack",
   "name": "Google AI Suite",
   "version": "1.0.0",
-
   "delivery": "remote",
   "install": {
     "source": "catalog",
     "path": "catalog/stacks/google-ai"
   },
-
   "runtime": "node",
   "requires": {
     "binaries": [],
@@ -23,21 +21,34 @@
     ]
   },
   "provides": {
-    "tools": ["generate_image", "generate_video"]
+    "tools": [
+      "generate_image",
+      "generate_video"
+    ]
   },
   "mcp": {
     "transport": "stdio",
     "command": "npx",
-    "args": ["tsx", "src/index.ts"],
+    "args": [
+      "tsx",
+      "src/index.ts"
+    ],
     "cwd": "."
   },
-
   "meta": {
     "description": "Generate images (Gemini, Imagen 4) and videos (Veo 3.1) using Google AI",
     "author": "CO-LLAB",
     "license": "MIT",
-    "category": "ai-generation",
-    "tags": ["ai", "google-ai", "gemini", "imagen", "veo"],
+    "category": "media",
+    "tags": [
+      "ai",
+      "google-ai",
+      "gemini",
+      "imagen",
+      "veo",
+      "capability:generate",
+      "provider:google"
+    ],
     "icon": "🎨"
   },
   "related": {

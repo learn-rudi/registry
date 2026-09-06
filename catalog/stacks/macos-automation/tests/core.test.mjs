@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import test from "node:test";
+import test, { after, before } from "node:test";
 import {
   buildLaunchAgentPlist,
   classifyMacosError,
@@ -26,6 +26,14 @@ import {
   startKeepAwake,
   stopKeepAwake,
 } from "../dist/core.js";
+
+// Reminder fixtures below use Eastern time; the CI runner may default to UTC.
+const originalTimezone = process.env.TZ;
+before(() => { process.env.TZ = "America/New_York"; });
+after(() => {
+  if (originalTimezone === undefined) delete process.env.TZ;
+  else process.env.TZ = originalTimezone;
+});
 
 function makeRunner(result = { stdout: "", stderr: "", exitCode: 0 }, spawnResult = { pid: 4321 }) {
   const calls = [];
@@ -78,7 +86,7 @@ test("shortcut execution dry-runs unless explicitly confirmed", async () => {
   });
   const { calls, runner } = makeRunner();
 
-  const result = await runShortcut(input, { runner });
+  const result = await runShortcut(input, { platform: "darwin", runner });
 
   assert.equal(result.ran, false);
   assert.equal(result.dry_run, true);
@@ -95,7 +103,7 @@ test("confirmed shortcut execution uses the shortcuts CLI without a shell", asyn
   });
   const { calls, runner } = makeRunner({ stdout: "done\n", stderr: "", exitCode: 0 });
 
-  const result = await runShortcut(input, { runner });
+  const result = await runShortcut(input, { platform: "darwin", runner });
 
   assert.equal(result.ran, true);
   assert.equal(result.stdout, "done");
@@ -109,6 +117,18 @@ test("confirmed shortcut execution uses the shortcuts CLI without a shell", asyn
     "--output-path",
     "/tmp/out.txt",
   ]);
+});
+
+test("confirmed shortcut execution rejects unsupported platforms before invoking the runner", async () => {
+  const { calls, runner } = makeRunner();
+  await assert.rejects(
+    () => runShortcut(parseShortcutArgs({ name: "Daily Brief", confirm_run: true }), {
+      platform: "linux",
+      runner,
+    }),
+    /only supports macOS/
+  );
+  assert.equal(calls.length, 0);
 });
 
 test("reminder creation validates and normalizes due_at", async () => {
@@ -128,7 +148,7 @@ test("reminder creation validates and normalizes due_at", async () => {
   });
 
   const { calls, runner } = makeRunner();
-  const result = await createReminder(input, { runner });
+  const result = await createReminder(input, { platform: "darwin", runner });
 
   assert.equal(result.created, false);
   assert.equal(result.dry_run, true);
@@ -145,7 +165,7 @@ test("confirmed reminder creation passes user values as osascript argv", async (
   });
   const { calls, runner } = makeRunner({ stdout: "x-apple-reminder://123\n", stderr: "", exitCode: 0 });
 
-  const result = await createReminder(input, { runner });
+  const result = await createReminder(input, { platform: "darwin", runner });
 
   assert.equal(result.created, true);
   assert.equal(result.id, "x-apple-reminder://123");
@@ -171,7 +191,7 @@ test("Finder selection parser returns newline-delimited POSIX paths", async () =
     exitCode: 0,
   });
 
-  const result = await getSelectedFinderItems({ runner });
+  const result = await getSelectedFinderItems({ platform: "darwin", runner });
 
   assert.deepEqual(result.paths, [
     "/tmp/rudi-a.mov",
@@ -250,7 +270,7 @@ test("LaunchAgent install dry-runs without writing or loading", async () => {
     schedule: { type: "interval", seconds: 600 },
   });
 
-  const result = await installLaunchAgent(input, { runner, homeDir });
+  const result = await installLaunchAgent(input, { platform: "darwin", runner, homeDir });
 
   assert.equal(result.installed, false);
   assert.equal(result.dry_run, true);
@@ -274,7 +294,7 @@ test("confirmed LaunchAgent install writes plist and can bootstrap", async () =>
     confirm_install: true,
   });
 
-  const result = await installLaunchAgent(input, { runner, homeDir, uid: 501 });
+  const result = await installLaunchAgent(input, { platform: "darwin", runner, homeDir, uid: 501 });
 
   assert.equal(result.installed, true);
   assert.equal(result.loaded, true);
@@ -297,14 +317,14 @@ test("LaunchAgent remove dry-runs and confirmed remove unloads then deletes", as
 
   const dryRun = await removeLaunchAgent(
     parseLaunchAgentLabelArgs({ label: "dev.rudi.cleanup" }),
-    { runner, homeDir, uid: 501 }
+    { platform: "darwin", runner, homeDir, uid: 501 }
   );
   assert.equal(dryRun.removed, false);
   assert.equal(await fs.readFile(plistPath, "utf8"), "<plist />");
 
   const removed = await removeLaunchAgent(
     parseLaunchAgentLabelArgs({ label: "dev.rudi.cleanup", confirm_remove: true }),
-    { runner, homeDir, uid: 501 }
+    { platform: "darwin", runner, homeDir, uid: 501 }
   );
   assert.equal(removed.removed, true);
   assert.deepEqual(calls[0].args, ["bootout", "gui/501", plistPath]);
@@ -315,14 +335,14 @@ test("LaunchAgent run-now dry-runs unless explicitly confirmed", async () => {
   const { calls, runner } = makeRunner();
   const dryRun = await runLaunchAgentNow(
     parseLaunchAgentLabelArgs({ label: "dev.rudi.daily-brief" }),
-    { runner, uid: 501 }
+    { platform: "darwin", runner, uid: 501 }
   );
   assert.equal(dryRun.started, false);
   assert.equal(calls.length, 0);
 
   const started = await runLaunchAgentNow(
     parseLaunchAgentLabelArgs({ label: "dev.rudi.daily-brief", confirm_run: true }),
-    { runner, uid: 501 }
+    { platform: "darwin", runner, uid: 501 }
   );
   assert.equal(started.started, true);
   assert.deepEqual(calls[0].args, ["kickstart", "-k", "gui/501/dev.rudi.daily-brief"]);
@@ -355,7 +375,7 @@ test("keep-awake start dry-runs a bounded caffeinate command", async () => {
     reason: "Rendering short-form video exports",
   });
 
-  const result = await startKeepAwake(input, { runner, homeDir });
+  const result = await startKeepAwake(input, { platform: "darwin", runner, homeDir });
 
   assert.equal(result.started, false);
   assert.equal(result.dry_run, true);
@@ -388,7 +408,7 @@ test("confirmed keep-awake start spawns caffeinate and persists session state", 
     confirm_start: true,
   });
 
-  const result = await startKeepAwake(input, { runner, homeDir });
+  const result = await startKeepAwake(input, { platform: "darwin", runner, homeDir });
 
   assert.equal(result.started, true);
   assert.equal(result.pid, 9876);
@@ -402,7 +422,7 @@ test("confirmed keep-awake start spawns caffeinate and persists session state", 
   assert.equal(saved.pid, 9876);
   assert.equal(saved.reason, "Client call recording");
 
-  const status = await listKeepAwakeSessions({ homeDir, processManager });
+  const status = await listKeepAwakeSessions({ platform: "darwin", homeDir, processManager });
   assert.equal(status.active_count, 1);
   assert.equal(status.sessions[0].session_id, "meeting-block");
   assert.equal(status.sessions[0].active, true);
@@ -423,19 +443,19 @@ test("keep-awake stop dry-runs then kills managed caffeinate sessions", async ()
       duration_minutes: 45,
       confirm_start: true,
     }),
-    { runner, homeDir }
+    { platform: "darwin", runner, homeDir }
   );
 
   const dryRun = await stopKeepAwake(
     parseKeepAwakeStopArgs({ session_id: "long-export" }),
-    { homeDir, processManager }
+    { platform: "darwin", homeDir, processManager }
   );
   assert.equal(dryRun.stopped, false);
   assert.equal(killed.length, 0);
 
   const stopped = await stopKeepAwake(
     parseKeepAwakeStopArgs({ session_id: "long-export", confirm_stop: true }),
-    { homeDir, processManager }
+    { platform: "darwin", homeDir, processManager }
   );
   assert.equal(stopped.stopped, true);
   assert.equal(stopped.killed_count, 1);

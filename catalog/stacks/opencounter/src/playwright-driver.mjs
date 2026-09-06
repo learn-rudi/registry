@@ -1,30 +1,13 @@
 import { chromium } from "playwright";
+import { createGuidanceCheckpointSha256, createZoningProviderInputSha256, validateProviderReference } from "./core.mjs";
+import { assertGuidanceReadyToAdvance, waitForProviderRouteToSettle } from "./guidance-navigation.mjs";
+import { exportGuidancePdfFromSummary, hasZoningSummaryHeadings, parseSummary, parseSummaryHeadings } from "./summary-export.mjs";
+import { providerUseLabelMatches, providerUseRadioSelector, verifyZoningUseBeforeProjectMutation, waitForAddressOptions } from "./zoning-provider-contract.mjs";
+import { addressesReferToSameCincinnatiStreet, normalizeCincinnatiAddress } from "./address-normalization.mjs";
 import {
-  createGuidanceCheckpointSha256,
-  createZoningProviderInputSha256,
-  validateProviderReference
-} from "./core.mjs";
-import {
-  assertGuidanceReadyToAdvance,
-  waitForProviderRouteToSettle
-} from "./guidance-navigation.mjs";
-import {
-  exportGuidancePdfFromSummary,
-  hasZoningSummaryHeadings,
-  parseSummary,
-  parseSummaryHeadings
-} from "./summary-export.mjs";
-import {
-  providerUseLabelMatches,
-  providerUseRadioSelector,
-  verifyZoningUseBeforeProjectMutation,
-  waitForAddressOptions
-} from "./zoning-provider-contract.mjs";
-import {
-  addressesReferToSameCincinnatiStreet,
-  normalizeCincinnatiAddress
-} from "./address-normalization.mjs";
-import { observeGuidanceQuestions } from "./guidance-question-observer.mjs";
+  readPageState
+} from "./guidance-page-state.mjs";
+export { readPageState } from "./guidance-page-state.mjs";
 
 export {
   assertGuidanceReadyToAdvance,
@@ -38,10 +21,12 @@ export {
 };
 
 const ORIGIN = "https://opencounter.cincinnati-oh.gov";
+
 const CHROMIUM_USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
   + "AppleWebKit/537.36 (KHTML, like Gecko) "
   + "Chrome/151.0.0.0 Safari/537.36";
+
 const ROOT_BUTTONS = {
   business: { heading: "Business Portal", button: "Calculate my permits" },
   residential: { heading: "Residential Portal", button: "Calculate my permits" },
@@ -725,54 +710,6 @@ async function readExisting(page, providerReference, guidanceState = null) {
   return await readPageState(page, reference, guidanceState);
 }
 
-export async function readPageState(
-  page,
-  providerReference,
-  guidanceState = null
-) {
-  await waitForProviderRouteToSettle(page);
-  if (page.url().includes("/apply/summary")) return parseSummary(page, providerReference);
-  const fallbackAddressQuestion = guidanceState?.activeCheckpoint?.questions
-    ?.find((question) => question.id === "opencounter-address") ?? null;
-  const observed = await page.evaluate(
-    observeGuidanceQuestions,
-    fallbackAddressQuestion
-  );
-  const {
-    addressConfirmationPending,
-    addressValue,
-    questions: observedQuestions
-  } = observed;
-  const questions = [...observedQuestions];
-  if (addressConfirmationPending
-    && !questions.some((question) => question.id === "opencounter-address")) {
-    if (typeof addressValue !== "string"
-      || addressValue.trim().length === 0
-      || typeof guidanceState?.requestedAddress !== "string"
-      || !addressesReferToSameCincinnatiStreet(
-        addressValue,
-        guidanceState.requestedAddress
-      )) {
-      throw new Error("opencounter_address_checkpoint_missing");
-    }
-    questions.unshift({
-      id: "opencounter-address",
-      options: [{ label: addressValue, value: addressValue }],
-      prompt: "Which OpenCounter address match is the intended location?",
-      required: true,
-      type: "single_select"
-    });
-  }
-  if (questions.length > 0) {
-    return { providerReference, questions, status: "needs_requester_input" };
-  }
-  return {
-    providerReference,
-    route: new URL(page.url()).pathname,
-    status: "indeterminate"
-  };
-}
-
 async function clickUnique(page, name) {
   const button = name === "Next"
     ? page.locator("button[data-save-button=true]")
@@ -800,6 +737,7 @@ function referenceFromUrl(url) {
   if (!match) throw new Error("opencounter_project_reference_missing");
   return `opencounter:project:${match[1]}`;
 }
+
 function cssEscape(value) {
   return String(value).replace(/["\\]/g, "\\$&");
 }

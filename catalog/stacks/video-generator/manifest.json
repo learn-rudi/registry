@@ -57,7 +57,7 @@
     "description": "Agent-safe multi-provider video generation for content creation workflows.",
     "author": "brandonz@heritagehill.co",
     "license": "MIT",
-    "category": "ai-generation",
+    "category": "media",
     "tags": [
       "video",
       "generation",
@@ -69,7 +69,8 @@
       "openai",
       "sora",
       "content-creation",
-      "social-media"
+      "social-media",
+      "capability:generate"
     ],
     "icon": "video"
   },

@@ -3,13 +3,11 @@
   "kind": "stack",
   "name": "Data Analysis",
   "version": "1.0.0",
-
   "delivery": "remote",
   "install": {
     "source": "catalog",
     "path": "catalog/stacks/data-analysis"
   },
-
   "runtime": "python",
   "requires": {
     "binaries": [],
@@ -32,16 +30,24 @@
   "mcp": {
     "transport": "stdio",
     "command": "python",
-    "args": ["src/server.py"],
+    "args": [
+      "src/server.py"
+    ],
     "cwd": "."
   },
-
   "meta": {
     "description": "Analyze data with Python, pandas, numpy, and matplotlib. Generate charts and insights.",
     "author": "RUDI",
     "license": "MIT",
     "category": "data",
-    "tags": ["data", "analysis", "python", "pandas", "charts"],
+    "tags": [
+      "data",
+      "analysis",
+      "python",
+      "pandas",
+      "charts",
+      "capability:analyze"
+    ],
     "icon": "📈"
   },
   "related": {

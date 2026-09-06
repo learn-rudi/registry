@@ -39,14 +39,15 @@
     "description": "Transcribe, enrich, and query audio or video-linked speech. Accepts local files, direct media URLs, supported video-page URLs, or base64 input.",
     "author": "RUDI",
     "license": "MIT",
-    "category": "audio-processing",
+    "category": "media",
     "tags": [
       "audio",
       "transcription",
       "whisper",
       "yt-dlp",
       "enrichment",
-      "speech-to-text"
+      "speech-to-text",
+      "capability:extract"
     ],
     "icon": "mic"
   },

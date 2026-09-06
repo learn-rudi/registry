@@ -3,34 +3,43 @@
   "kind": "stack",
   "name": "Local Whisper",
   "version": "1.0.0",
-
   "delivery": "remote",
   "install": {
     "source": "catalog",
     "path": "catalog/stacks/whisper"
   },
-
   "runtime": "python",
   "requires": {
     "binaries": [],
     "secrets": []
   },
   "provides": {
-    "tools": ["whisper_transcribe", "whisper_list_models"]
+    "tools": [
+      "whisper_transcribe",
+      "whisper_list_models"
+    ]
   },
   "mcp": {
     "transport": "stdio",
     "command": "python",
-    "args": ["python/src/server.py"],
+    "args": [
+      "python/src/server.py"
+    ],
     "cwd": "."
   },
-
   "meta": {
     "description": "Transcribe audio locally with faster-whisper. No API key needed - runs on your machine.",
     "author": "RUDI",
     "license": "MIT",
-    "category": "ai-local",
-    "tags": ["whisper", "transcription", "audio", "local", "speech-to-text"],
+    "category": "media",
+    "tags": [
+      "whisper",
+      "transcription",
+      "audio",
+      "local",
+      "speech-to-text",
+      "capability:extract"
+    ],
     "icon": "🎙️"
   },
   "related": {

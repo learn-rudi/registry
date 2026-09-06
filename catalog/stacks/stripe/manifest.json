@@ -43,13 +43,16 @@
     "description": "Create and inspect Stripe products, one-time prices, and Payment Links through guarded RUDI MCP tools",
     "author": "RUDI",
     "license": "MIT",
-    "category": "payments",
+    "category": "data",
     "tags": [
       "stripe",
       "payments",
       "products",
       "prices",
-      "payment-links"
+      "payment-links",
+      "capability:manage",
+      "domain:finance",
+      "provider:stripe"
     ],
     "icon": "credit-card"
   },

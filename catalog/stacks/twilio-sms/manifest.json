@@ -3,13 +3,11 @@
   "kind": "stack",
   "name": "Twilio SMS",
   "version": "0.1.0",
-
   "delivery": "remote",
   "install": {
     "source": "catalog",
     "path": "catalog/stacks/twilio-sms"
   },
-
   "runtime": "node",
   "requires": {
     "binaries": [],
@@ -63,16 +61,26 @@
   "mcp": {
     "transport": "stdio",
     "command": "npx",
-    "args": ["tsx", "src/index.ts"],
+    "args": [
+      "tsx",
+      "src/index.ts"
+    ],
     "cwd": "."
   },
-
   "meta": {
     "description": "Send SMS messages and inspect recent Twilio messages through a guarded MCP interface.",
     "author": "CO-LLAB",
     "license": "MIT",
     "category": "communication",
-    "tags": ["twilio", "sms", "messaging", "mcp", "communication"],
+    "tags": [
+      "twilio",
+      "sms",
+      "messaging",
+      "mcp",
+      "communication",
+      "capability:communicate",
+      "provider:twilio"
+    ],
     "icon": "💬"
   },
   "related": {

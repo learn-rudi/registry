@@ -65,7 +65,9 @@
       "media",
       "upload",
       "shortform",
-      "social-media"
+      "social-media",
+      "capability:manage",
+      "provider:cloudinary"
     ],
     "icon": "cloud-upload"
   },

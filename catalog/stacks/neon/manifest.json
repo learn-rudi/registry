@@ -3,16 +3,16 @@
   "kind": "stack",
   "name": "Neon",
   "version": "0.1.0",
-
   "delivery": "remote",
   "install": {
     "source": "catalog",
     "path": "catalog/stacks/neon"
   },
-
   "runtime": "node",
   "requires": {
-    "binaries": ["binary:neonctl"],
+    "binaries": [
+      "binary:neonctl"
+    ],
     "secrets": [
       {
         "key": "NEON_API_KEY",
@@ -43,16 +43,27 @@
   "mcp": {
     "transport": "stdio",
     "command": "npx",
-    "args": ["tsx", "src/index.ts"],
+    "args": [
+      "tsx",
+      "src/index.ts"
+    ],
     "cwd": "."
   },
-
   "meta": {
     "description": "Guarded Neon platform operations for projects, branches, connection URI retrieval, and MCP config generation.",
     "author": "RUDI",
     "license": "MIT",
     "category": "data",
-    "tags": ["neon", "postgres", "database", "branching", "mcp", "platform"],
+    "tags": [
+      "neon",
+      "postgres",
+      "database",
+      "branching",
+      "mcp",
+      "platform",
+      "capability:manage",
+      "provider:neon"
+    ],
     "boundary": "Use stack:neon for Neon platform operations and stack:postgres for SQL querying via DATABASE_URL.",
     "mcpSafety": "Neon MCP is intended for development and testing. Do not connect MCP agents freely to production databases."
   },

@@ -3,13 +3,11 @@
   "kind": "stack",
   "name": "Slack",
   "version": "1.0.0",
-
   "delivery": "remote",
   "install": {
     "source": "catalog",
     "path": "catalog/stacks/slack"
   },
-
   "runtime": "node",
   "requires": {
     "binaries": [],
@@ -42,16 +40,25 @@
   "mcp": {
     "transport": "stdio",
     "command": "npx",
-    "args": ["tsx", "src/index.ts"],
+    "args": [
+      "tsx",
+      "src/index.ts"
+    ],
     "cwd": "."
   },
-
   "meta": {
     "description": "Send messages, search channels, upload files, and manage reactions in Slack",
     "author": "CO-LLAB",
     "license": "MIT",
     "category": "communication",
-    "tags": ["slack", "messaging", "chat", "team"],
+    "tags": [
+      "slack",
+      "messaging",
+      "chat",
+      "team",
+      "capability:communicate",
+      "provider:slack"
+    ],
     "icon": "💬"
   },
   "related": {

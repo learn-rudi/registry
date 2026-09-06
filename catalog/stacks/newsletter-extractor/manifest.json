@@ -33,7 +33,7 @@
     "description": "Extract newsletter email bodies, normalize newsletter links, and read RSS/Atom feeds",
     "author": "CO-LLAB",
     "license": "MIT",
-    "category": "data-extraction",
+    "category": "communication",
     "tags": [
       "newsletter",
       "email",
@@ -42,7 +42,9 @@
       "atom",
       "links",
       "extraction",
-      "content"
+      "content",
+      "capability:extract",
+      "domain:content-production"
     ],
     "icon": "📬"
   },

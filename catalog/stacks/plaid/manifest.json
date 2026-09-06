@@ -61,14 +61,17 @@
     "description": "Connect bank accounts through Plaid, list accounts and balances, and sync transactions.",
     "author": "CO-LLAB",
     "license": "MIT",
-    "category": "finance",
+    "category": "data",
     "tags": [
       "plaid",
       "banking",
       "finance",
       "transactions",
       "accounts",
-      "balances"
+      "balances",
+      "capability:analyze",
+      "domain:finance",
+      "provider:plaid"
     ]
   },
   "related": {

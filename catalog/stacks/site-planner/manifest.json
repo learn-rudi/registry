@@ -42,14 +42,16 @@
     "description": "Fixed-root MCP adapter for inspecting, generating, optimizing, previewing, forking, and applying changes to a pinned local Site Planner workspace.",
     "author": "RUDI",
     "license": "MIT",
-    "category": "development",
+    "category": "data",
     "tags": [
       "site-planner",
       "lot-planning",
       "concepts",
       "revisions",
       "local-first",
-      "property"
+      "property",
+      "capability:analyze",
+      "domain:real-estate"
     ],
     "boundary": "The adapter executes only the configured Site Planner JSON CLI against a fixed workspace and exact clean Git revision. It does not perform zoning, entitlement, parking, finance, or underwriting analysis.",
     "secretGuidance": "Keep SITE_PLANNER_WRITE_HMAC_V1 in RUDI secret state. Do not expose it to agents, logs, artifacts, configuration JSON, or tool output."

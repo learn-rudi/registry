@@ -48,7 +48,7 @@ test("package contract keeps the manual and tool surface portable", async () => 
     swe_manual_search: "cloud-hosted",
     swe_debt_scan: "local-only",
   });
-  assert.equal(packageJson.version, "0.2.0");
+  assert.equal(packageJson.version, manifest.version);
   assert.equal(packageJson.exports["./hosted"], "./src/hosted.js");
 
   const files = await collectFiles(stackRoot);

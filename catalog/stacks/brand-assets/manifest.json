@@ -36,7 +36,7 @@
     "description": "Local-first, provenance-preserving normalization of generated raster logo candidates into validated SVG brand assets and editable descriptor variants.",
     "author": "brandonz@heritagehill.co",
     "license": "MIT",
-    "category": "content-and-brand",
+    "category": "media",
     "tags": [
       "brand-assets",
       "vectorization",
@@ -44,7 +44,8 @@
       "logo",
       "potrace",
       "image-processing",
-      "content-and-brand"
+      "content-and-brand",
+      "capability:design"
     ],
     "icon": "✳️",
     "boundary": "Canonical post-generation brand-asset normalization stack. It accepts explicit local raster/SVG paths, performs deterministic local transforms, and returns provenance; it does not generate images, choose canonical geometry, install fonts, edit business repositories, or publish assets.",

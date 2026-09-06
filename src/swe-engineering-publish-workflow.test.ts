@@ -53,7 +53,7 @@ describe("SWE Engineering package publication", () => {
     };
 
     expect(packageJson.name).toBe("@learnrudi/swe-engineering-stack");
-    expect(packageJson.version).toBe("0.2.0");
+    expect(packageJson.version).toBe("0.5.0");
     expect(packageJson.repository).toEqual({
       type: "git",
       url: "git+https://github.com/learnrudi/registry.git",

@@ -3,13 +3,11 @@
   "kind": "stack",
   "name": "Document QA",
   "version": "1.0.0",
-
   "delivery": "remote",
   "install": {
     "source": "catalog",
     "path": "catalog/stacks/document-qa"
   },
-
   "runtime": "node",
   "requires": {
     "binaries": [],
@@ -30,16 +28,25 @@
   "mcp": {
     "transport": "stdio",
     "command": "npx",
-    "args": ["tsx", "src/index.ts"],
+    "args": [
+      "tsx",
+      "src/index.ts"
+    ],
     "cwd": "."
   },
-
   "meta": {
     "description": "Visual QA inspection for HTML documents using screenshots and Claude Vision.",
     "author": "CO-LLAB",
     "license": "MIT",
-    "category": "document-processing",
-    "tags": ["qa", "vision", "html", "pdf", "validation"],
+    "category": "documents",
+    "tags": [
+      "qa",
+      "vision",
+      "html",
+      "pdf",
+      "validation",
+      "capability:review"
+    ],
     "icon": "🔍"
   },
   "related": {

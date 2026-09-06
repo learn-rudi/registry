@@ -33,14 +33,16 @@
     "description": "Extract and query sports statistics from Basketball Reference, ESPN, and other sports sites",
     "author": "CO-LLAB",
     "license": "MIT",
-    "category": "data-extraction",
+    "category": "data",
     "tags": [
       "sports",
       "nba",
       "basketball",
       "statistics",
       "analytics",
-      "basketball-reference"
+      "basketball-reference",
+      "capability:analyze",
+      "domain:sports"
     ],
     "icon": "🏀"
   },

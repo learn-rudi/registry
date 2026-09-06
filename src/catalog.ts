@@ -466,9 +466,25 @@ export async function discoverCatalogPackages(root = process.cwd()): Promise<Cat
   return packages.sort((a, b) => a.manifest.id.localeCompare(b.manifest.id));
 }
 
-const SKILL_CATEGORIES = new Set([
+const PRIMITIVE_CATEGORIES = new Set([
   "web", "code", "data", "documents", "media", "communication", "agents",
 ]);
+
+function assertPrimitiveCategory(item: CatalogPackageFile): void {
+  if (!PRIMITIVE_CATEGORIES.has(String(item.manifest.meta?.category))) {
+    throw new CatalogPackageError("Package requires one primitive category: web, code, data, documents, media, communication, agents", item.path, item.manifest.id);
+  }
+}
+
+function assertCanonicalStack(item: CatalogPackageFile): void {
+  if (item.manifest.kind !== "stack") return;
+  const slug = item.manifest.id.slice("stack:".length);
+  if (item.path !== `catalog/stacks/${slug}/manifest.json`) {
+    throw new CatalogPackageError("Authored stacks require a same-ID folder with manifest.json", item.path, item.manifest.id);
+  }
+  assertPrimitiveCategory(item);
+  assertFacetTags(item);
+}
 
 function assertCanonicalSkill(item: CatalogPackageFile): void {
   const pkg = item.manifest;
@@ -477,28 +493,32 @@ function assertCanonicalSkill(item: CatalogPackageFile): void {
   if (item.path !== `catalog/skills/${slug}/SKILL.md`) {
     throw new CatalogPackageError("Authored skills require a same-ID folder with SKILL.md", item.path, pkg.id);
   }
-  if (!SKILL_CATEGORIES.has(String(pkg.meta?.category))) {
-    throw new CatalogPackageError("Skill requires one primitive category: web, code, data, documents, media, communication, agents", item.path, pkg.id);
-  }
-  const tags = pkg.meta?.tags as string[] | undefined;
-  if (!tags?.some(tag => /^capability:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(tag))) {
-    throw new CatalogPackageError("Skill requires a capability facet tag", item.path, pkg.id);
+  assertPrimitiveCategory(item);
+  assertFacetTags(item);
+}
+
+function assertFacetTags(item: CatalogPackageFile): void {
+  const pkg = item.manifest;
+  const tags = pkg.meta?.tags;
+  if (!Array.isArray(tags) || !tags.some(tag => typeof tag === "string" && /^capability:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(tag))) {
+    throw new CatalogPackageError("Package requires a capability facet tag", item.path, pkg.id);
   }
   for (const tag of tags) {
-    if (/^(capability|domain|provider):/.test(tag)
-      && !/^(capability|domain|provider):[a-z0-9]+(?:-[a-z0-9]+)*$/.test(tag)) {
-      throw new CatalogPackageError(`Invalid skill facet tag: ${tag}`, item.path, pkg.id);
+    if (typeof tag !== "string" || (/^(capability|domain|provider):/.test(tag)
+      && !/^(capability|domain|provider):[a-z0-9]+(?:-[a-z0-9]+)*$/.test(tag))) {
+      throw new CatalogPackageError(`Invalid package facet tag: ${String(tag)}`, item.path, pkg.id);
     }
   }
 }
 
 export function assertCatalogReferences(
   packages: CatalogPackageFile[],
-  options: { canonicalSkills?: boolean } = {},
+  options: { canonicalSkills?: boolean; canonicalStacks?: boolean } = {},
 ): void {
   const byId = new Map<string, CatalogPackageFile>();
   for (const item of packages) {
     if (options.canonicalSkills) assertCanonicalSkill(item);
+    if (options.canonicalStacks) assertCanonicalStack(item);
     const existing = byId.get(item.manifest.id);
     if (existing) {
       throw new CatalogPackageError(
@@ -562,6 +582,13 @@ export function assertCatalogReferences(
       if (!operatorPackage?.manifest.requires?.stacks?.includes(item.manifest.id)) {
         throw new CatalogPackageError(
           `operator skill ${operatorSkill} must declare ${item.manifest.id} in requires.stacks`,
+          item.path,
+          item.manifest.id
+        );
+      }
+      if (options.canonicalStacks && operatorPackage?.manifest.meta?.category !== item.manifest.meta?.category) {
+        throw new CatalogPackageError(
+          `Primary operator ${operatorSkill} category must match its stack category`,
           item.path,
           item.manifest.id
         );

@@ -86,7 +86,7 @@ function saveDatabases(dbs: TrackedDatabase[]): void {
 
 // Create MCP server
 const server = new Server(
-  { name: "notion-workspace", version: "1.0.0" },
+  { name: "notion-workspace", version: "1.2.0" },
   { capabilities: { tools: {} } }
 );
 
