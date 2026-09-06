@@ -1,9 +1,16 @@
 ---
-name: map-change-impact
+name: Map Change Impact
 description: Map the exact repository paths a proposed feature, fix, refactor, migration, or remediation will affect and print the ordered actions, risks, dependencies, and verification needed before implementation. Use when a user asks what file paths will be impacted, what needs to change, what has already been implemented, what remains to do, what the blast radius is, or wants an implementation-ready change map without starting the edits.
-version: 1.1.0
-category: development
-tags: [rudi, impact-analysis, scope, repository, planning, verification]
+version: 1.1.1
+category: code
+tags:
+  - rudi
+  - impact-analysis
+  - scope
+  - repository
+  - planning
+  - verification
+  - capability:review
 ---
 
 # Map Change Impact

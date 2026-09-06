@@ -1,9 +1,17 @@
 ---
-name: rudi-worktree-closeout
+name: RUDI Worktree Closeout
 description: Classify an agent-development worktree at a delivery boundary and persist a non-mutating closeout receipt through Repo Steward. Use when accepted, superseded, retained, or archive-candidate work needs explicit lineage, preservation, disposition, and cleanup-approval evidence without changing Git state.
-version: 1.0.0
-category: development
-tags: [rudi, git, worktrees, closeout, receipts, lineage, preservation]
+version: 1.0.1
+category: code
+tags:
+  - rudi
+  - git
+  - worktrees
+  - closeout
+  - receipts
+  - lineage
+  - preservation
+  - capability:review
 requires:
   stacks:
     - stack:repo-steward

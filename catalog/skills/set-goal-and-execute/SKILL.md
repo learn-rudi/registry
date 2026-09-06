@@ -1,9 +1,16 @@
 ---
-name: set-goal-and-execute
+name: Set Goal And Execute
 description: Turn an explicitly approved brief into a durable active goal and execute it end to end through implementation and verification. Use when the user says "set the goal and execute," invokes $set-goal-and-execute, or unmistakably requests this exact goal-driven execution mode; do not use for planning-only, review-only, or ordinary task requests.
-version: 1.0.0
-category: development
-tags: [rudi, goals, execution, verification, authority, workflow]
+version: 1.0.1
+category: agents
+tags:
+  - rudi
+  - goals
+  - execution
+  - verification
+  - authority
+  - workflow
+  - capability:coordinate
 ---
 
 # Set Goal And Execute

@@ -1,6 +1,10 @@
 ---
-name: rudi-human-runbook
+name: RUDI Human Runbook
 description: Produce a safe, copyable, checkpointed runbook for setup or recovery work that a person must perform because it depends on interactive consent, physical access, account ownership, hardware, or an unavailable automation boundary. Use for human-only OAuth, vendor-console, device, release, or recovery steps; do not use to disguise an automatable agent workflow or embed secret values.
+category: documents
+tags:
+  - capability:write
+version: 1.0.1
 ---
 
 # RUDI Human Runbook

@@ -262,7 +262,7 @@ async function main() {
   // Discover manifests
   console.log("Discovering catalog packages...");
   const manifests = await discoverCatalogPackages();
-  assertCatalogReferences(manifests);
+  assertCatalogReferences(manifests, { canonicalSkills: true });
   console.log(`Found ${manifests.length} package(s)\n`);
 
   if (manifests.length === 0) {

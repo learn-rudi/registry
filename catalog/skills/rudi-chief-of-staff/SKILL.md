@@ -1,7 +1,10 @@
 ---
-name: rudi-chief-of-staff
+name: RUDI Chief of Staff
 description: Coordinate complex single- or multi-project objectives from the initiating agent through an acceptance-led task graph, exact provider/model routing, durable run lifecycle, resource and review limits, explicit handoffs, bounded workers, and evidence-backed integration with human oversight. Use when the user asks to delegate dependent work, run a crew, act as a chief of staff or first mate, coordinate multiple agents or desktop tasks, or keep a long-running project moving predictably across worktrees, projects, or hosts.
-version: 1.2.1
+version: 1.2.2
+category: agents
+tags:
+  - capability:coordinate
 ---
 
 # RUDI Chief of Staff

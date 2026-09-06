@@ -1,9 +1,15 @@
 ---
-name: horizontal-engineering-review
+name: Horizontal Engineering Review
 description: Assess repository-wide architectural coherence across multiple changes, assign evidence-backed dispositions to semantic duplication and shared-contract drift, and plan or execute authorized consolidation. Use for horizontal architecture reviews, repeated mechanisms, consolidation obligations, or cross-module drift; do not use for ordinary single-change code review or Git worktree cleanup.
-version: 1.1.0
-category: development
-tags: [architecture, consolidation, codebase-stewardship, technical-debt, engineering]
+version: 1.1.1
+category: code
+tags:
+  - architecture
+  - consolidation
+  - codebase-stewardship
+  - technical-debt
+  - engineering
+  - capability:review
 requires:
   stacks:
     - stack:swe-engineering

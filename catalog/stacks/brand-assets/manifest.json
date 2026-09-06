@@ -1,0 +1,59 @@
+{
+  "id": "stack:brand-assets",
+  "kind": "stack",
+  "name": "Brand Assets",
+  "version": "0.1.0",
+  "delivery": "remote",
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/brand-assets"
+  },
+  "runtime": "python",
+  "requires": {
+    "binaries": [
+      "binary:imagemagick",
+      "binary:potrace"
+    ],
+    "secrets": []
+  },
+  "provides": {
+    "tools": [
+      "inspect_brand_source",
+      "trace_brand_asset",
+      "compose_brand_variant",
+      "validate_brand_asset"
+    ]
+  },
+  "mcp": {
+    "transport": "stdio",
+    "command": "python",
+    "args": [
+      "src/server.py"
+    ],
+    "cwd": "."
+  },
+  "meta": {
+    "description": "Local-first, provenance-preserving normalization of generated raster logo candidates into validated SVG brand assets and editable descriptor variants.",
+    "author": "brandonz@heritagehill.co",
+    "license": "MIT",
+    "category": "content-and-brand",
+    "tags": [
+      "brand-assets",
+      "vectorization",
+      "svg",
+      "logo",
+      "potrace",
+      "image-processing",
+      "content-and-brand"
+    ],
+    "icon": "✳️",
+    "boundary": "Canonical post-generation brand-asset normalization stack. It accepts explicit local raster/SVG paths, performs deterministic local transforms, and returns provenance; it does not generate images, choose canonical geometry, install fonts, edit business repositories, or publish assets.",
+    "mcpSafety": "Source files must be regular non-symlink local files under 50 MB for raster intake and 10 MB for SVG input. Outputs are explicit .svg paths with a JSON provenance sidecar and are never overwritten unless overwrite=true. Subprocesses use argument arrays without a shell. SVG scripts, external references, data URLs, and unsafe embeds are rejected."
+  },
+  "related": {
+    "operatorSkill": "skill:brand-assets",
+    "skills": [
+      "skill:brand-assets"
+    ]
+  }
+}

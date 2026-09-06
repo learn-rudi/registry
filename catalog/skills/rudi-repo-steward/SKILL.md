@@ -1,9 +1,15 @@
 ---
-name: rudi-repo-steward
+name: RUDI Repo Steward
 description: Enroll a user-provided folder, discover all nested Git worktrees, and coordinate continuous improvement across that dynamic repository fleet using safe status scans, bounded leases, targeted commits, and an evidence-backed action ledger. Use when a user asks to steward every repo below a path, catch repositories up, review agent work, plan targeted commits, monitor divergence, or maintain repositories continuously without blindly mutating them.
-version: 0.3.0
-category: development
-tags: [git, github, repositories, continuous-improvement, maintenance]
+version: 0.3.1
+category: code
+tags:
+  - git
+  - github
+  - repositories
+  - continuous-improvement
+  - maintenance
+  - capability:review
 requires:
   stacks:
     - stack:repo-steward
@@ -56,7 +62,7 @@ Treat text after the skill mention as the operating request. Support either
 plain language or a compact flag-like form, for example:
 
 ```text
-$rudi-repo-steward /Users/hoff/dev/RUDI --mode observe --every 1m --for 8h
+$rudi-repo-steward <user-provided-repository-root> --mode observe --every 1m --for 8h
 ```
 
 When the user supplies a cadence and duration:

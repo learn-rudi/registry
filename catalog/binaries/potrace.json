@@ -1,0 +1,30 @@
+{
+  "id": "binary:potrace",
+  "kind": "binary",
+  "name": "Potrace",
+  "version": "1.16",
+  "delivery": "system",
+  "install": {
+    "source": "system"
+  },
+  "bins": {
+    "potrace": {
+      "path": "potrace"
+    }
+  },
+  "detect": {
+    "command": "potrace --version",
+    "expectExitCode": 0
+  },
+  "meta": {
+    "description": "Bitmap-to-vector tracing engine used for deterministic logo candidate conversion.",
+    "category": "media"
+  },
+  "installHints": {
+    "brew": "brew install potrace",
+    "apt": "sudo apt install potrace",
+    "winget": "Install Potrace and ensure potrace is on PATH.",
+    "choco": "Install Potrace and ensure potrace is on PATH.",
+    "manual": "Install Potrace and ensure potrace is on PATH."
+  }
+}

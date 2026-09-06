@@ -1,6 +1,10 @@
 ---
-name: rudi-decision-frontier
+name: RUDI Decision Frontier
 description: Resolve the exact product, architecture, workflow, or delivery decisions that separate an ambiguous initiative from execution-ready work, then promote an approved decision snapshot into proposed Chief-of-Staff plan nodes. Use when important choices, stakeholder knowledge, feasibility evidence, or scope boundaries are still unresolved; do not use for a small task whose contract is already stable or to dispatch implementation.
+category: agents
+tags:
+  - capability:coordinate
+version: 1.0.1
 ---
 
 # RUDI Decision Frontier

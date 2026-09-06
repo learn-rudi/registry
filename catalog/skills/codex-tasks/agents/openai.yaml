@@ -1,0 +1,7 @@
+interface:
+  display_name: "Codex Tasks"
+  short_description: "Control Codex Desktop tasks explicitly"
+  default_prompt: "Use $codex-tasks to inspect an exact task or perform one explicit Codex Desktop task-management command."
+
+policy:
+  allow_implicit_invocation: false

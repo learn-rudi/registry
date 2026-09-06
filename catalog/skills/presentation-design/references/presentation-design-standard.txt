@@ -1,0 +1,30 @@
+PRESENTATION DESIGN STANDARD
+Version 0.2 | 2026-09-05 | Reusable editorial method
+Scope: editorial business presentations. An explicitly supplied client brand or template takes precedence.
+
+HOW TO USE
+Attach or explicitly reference this document in the creation prompt, together with the content source and an approved example deck or PowerPoint template. Merely storing this file in SharePoint does not make it a global instruction. Keep the specific presentation brief separate from this reusable standard.
+
+COMPOSITION
+Give each slide one clear purpose and one dominant visual element. Group related material with proximity and alignment. Use space deliberately. Vary layout according to meaning while keeping type, margins, and colors consistent. Do not fill unused space with decoration.
+Default to 16:9, 0.6-inch outer margins, a light neutral background, dark type, and one restrained accent selected from the supplied brand profile. Use Aptos Display for headlines and Aptos for body unless an approved brand specifies otherwise. Aim for 36–48 pt headlines and 22–26 pt body text; use at least 12 pt for short source notes. Move supporting explanations to notes. Preserve required data rather than forcing every slide into a word limit.
+
+LAYOUT CHOICES
+Opening: a large title, one short context sentence, and one secondary detail such as a date. Keep generous open space.
+Comparison: native editable table with direct headers and minimal horizontal rules. Keep every required row, unit, and qualifier.
+Sequence: a meaningful timeline with directly labeled milestones. Use readable spacing rather than decorative containers.
+Quantities: a native chart or editable diagram that shows the relationship between amounts. Directly label units, periods, assumptions, and uncertainty. Never imply approval, commitment, or precision absent from the source.
+Risks: unboxed rows pairing the trigger with its consequence, grouped by space and alignment.
+Decisions: a short numbered list with each decision and only its documented deadline or owner.
+Photography: use only when it contributes evidence or a relevant sense of place or people. Use approved imagery and preserve rights and attribution.
+
+PATTERNS TO AVOID
+Generic card grids; colored left-border callouts; ornamental section numbers; repeated header bars; decorative icons; gradients; shadows; pills; stock AI imagery; low-contrast captions; repeated em dashes; vague promotional copy. Keep a pattern only when it has a clear functional role. Tables and meaningful charts are not decorative cards.
+
+CONTENT INTEGRITY
+Use identified source documents and record their version/date. Distinguish draft proposals from current approved facts. Surface contradictory dates, counts, and approval states rather than inventing a resolution. Preserve source citations in notes and use a short visible source label when needed. Do not convert a source-specific deadline into a deadline for every item.
+
+BUILD AND REVIEW
+For new presentations, start with a fresh file or a clean copy of the approved template. For edits, preserve the existing deck and change only the requested slides. Run one generation at a time. Do not restart generation into a file whose previous operation might still be running.
+Verify slide count, all required data, native table/chart editability, readable text, and absence of clipping or overlap. Inspect every rendered slide, then save and reopen. The reopened file must match the inspected version. AI completion messages alone do not establish that a presentation is ready.
+

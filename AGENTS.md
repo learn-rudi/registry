@@ -12,7 +12,7 @@ catalog/
 ├── runtimes/{id}.json             # Runtime definitions
 ├── binaries/{id}.json             # Binary definitions
 ├── agents/{id}.json               # Agent definitions
-└── skills/{id}.md or {id}/SKILL.md
+└── skills/{id}/SKILL.md
 ```
 
 Canonical paths are unversioned. Do not create `index.v2.json`,

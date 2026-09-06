@@ -1,6 +1,10 @@
 ---
-name: rudi-diagnose
+name: RUDI Diagnose
 description: Investigate a reproducible defect, failed check, degraded workflow, or unexplained system behavior by locating the first incorrect state through falsifiable hypotheses and tight feedback loops. Use when the cause is unknown and evidence must precede a fix; do not use for implementing a known change, broad architecture review, or speculative cleanup.
+category: code
+tags:
+  - capability:diagnose
+version: 1.0.1
 ---
 
 # RUDI Diagnose

@@ -1,9 +1,15 @@
 ---
-name: rudi-context-gardener
+name: RUDI Context Gardener
 description: Audit and right-size durable agent instructions across AGENTS.md, CLAUDE.md, and other repository guidance. Use when instructions feel bloated, duplicated, contradictory, stale, host-specific, or poorly divided between global guidance, repository guidance, nested guidance, skills, configuration, and executable stacks.
-version: 1.1.0
-category: development
-tags: [rudi, agent-context, instructions, progressive-disclosure, maintenance]
+version: 1.1.1
+category: agents
+tags:
+  - rudi
+  - agent-context
+  - instructions
+  - progressive-disclosure
+  - maintenance
+  - capability:review
 ---
 
 # RUDI Context Gardener

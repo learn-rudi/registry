@@ -1,6 +1,10 @@
 ---
-name: rudi-prototype
+name: RUDI Prototype
 description: Build a deliberately disposable logic, interaction, or integration prototype to answer one named uncertainty before committing to production architecture. Use when feasibility, workflow shape, UX behavior, or a provider boundary cannot be decided cheaply from existing evidence; do not use for production-ready implementation, migrations, or general feature delivery.
+category: code
+tags:
+  - capability:prototype
+version: 1.0.1
 ---
 
 # RUDI Prototype

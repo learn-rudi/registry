@@ -41,7 +41,7 @@ migration material lives under `docs/archive/`.
 | `binary` | CLI tool | `catalog/binaries/{name}.json` |
 | `agent` | AI assistant | `catalog/agents/{name}.json` |
 | `stack` | MCP server | `catalog/stacks/{name}/manifest.json` |
-| `skill` | Reusable skill template | `catalog/skills/{name}.md` or `catalog/skills/{name}/SKILL.md` |
+| `skill` | Reusable skill template | `catalog/skills/{name}/SKILL.md` (legacy flat files remain readable) |
 | `prompt` | Legacy prompt template | `catalog/prompts/{name}.md` |
 
 ---
@@ -158,7 +158,7 @@ stable or supported.
 
 ### Skill Packages
 
-Skills use either a legacy-compatible flat Markdown file at `catalog/skills/{name}.md` or a bundle rooted at `catalog/skills/{name}/SKILL.md`. Bundles may carry `scripts/`, `references/`, and `assets/`; the complete directory is the install payload.
+Author skills in `catalog/skills/{name}/SKILL.md`. Bundles may carry `scripts/`, `references/`, `assets/`, and `agents/openai.yaml`; the complete directory is the install payload. Legacy flat Markdown input remains readable, but the public validator and compiler require canonical folders for authored catalog entries.
 During v2 validation and compile, the registry derives:
 
 - `id`: `skill:{name}` from the flat Markdown filename or bundled directory name
@@ -167,7 +167,7 @@ During v2 validation and compile, the registry derives:
 - `install.source`: `catalog`
 - `install.path`: the flat Markdown file path or bundled directory path
 
-Only top-level flat `*.md` files and exact `*/SKILL.md` entries are package entrypoints. Nested Markdown references are payload files, not additional packages. Entry frontmatter must include `name` and `description`; `version` defaults to `1.0.0` when omitted. Optional `requires.stacks` entries are normalized to canonical `stack:*` package IDs and must resolve to existing v2 stack packages.
+Only top-level flat `*.md` files and exact `*/SKILL.md` entries are package entrypoints. Nested Markdown references are payload files, not additional packages. Entry frontmatter must include `name` and `description`; legacy input defaults `version` to `1.0.0` when omitted. Authored catalog skills also require one primitive `category` and at least one `capability:` tag; `domain:` and `provider:` facets are optional. See [Skill catalog organization](docs/skill-catalog.md). Optional `requires.stacks` entries are normalized to canonical `stack:*` package IDs and must resolve to existing v2 stack packages.
 
 Public registry skills must avoid personal, client-specific, machine-specific, or brand-specific defaults. Consumers can edit the installed local copy or layer a private skill on top of the public one.
 

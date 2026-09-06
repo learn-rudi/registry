@@ -52,6 +52,40 @@ afterEach(async () => {
 });
 
 describe("catalog package discovery", () => {
+  it("rejects an unclassified authored skill while retaining legacy reader compatibility", async () => {
+    await writeText(path.join(tmpDir, "catalog/skills/demo/SKILL.md"), [
+      "---", "name: Demo", "description: Manage a deployment", "category: automation",
+      "tags: [capability:deploy]", "---", "",
+    ].join("\n"));
+    const packages = await discoverCatalogPackages(tmpDir);
+    expect(() => assertCatalogReferences(packages)).not.toThrow();
+    expect(() => assertCatalogReferences(packages, { canonicalSkills: true })).toThrow(/primitive category/);
+  });
+
+  it("ships same-ID skill folders with one primitive category and capability facets", async () => {
+    const packages = await discoverCatalogPackages(path.resolve(import.meta.dirname, ".."));
+    const categories = new Set(["web", "code", "data", "documents", "media", "communication", "agents"]);
+    const skills = packages.filter(item => item.manifest.kind === "skill");
+    expect(skills.length).toBeGreaterThan(0);
+    for (const skill of skills) {
+      const slug = skill.manifest.id.slice("skill:".length);
+      expect(skill.path).toBe(`catalog/skills/${slug}/SKILL.md`);
+      expect(skill.manifest.install?.path).toBe(`catalog/skills/${slug}`);
+      expect(categories.has(String(skill.manifest.meta?.category))).toBe(true);
+      expect((skill.manifest.meta?.tags as string[]).some(tag => /^capability:[a-z0-9-]+$/.test(tag))).toBe(true);
+    }
+  });
+
+  it("keeps draft-only shortform skills installable without publishing or video stacks", async () => {
+    const packages = await discoverCatalogPackages(path.resolve(import.meta.dirname, ".."));
+    const byId = new Map(packages.map(item => [item.manifest.id, item.manifest]));
+    for (const id of ["shortform-your-words-script", "shortform-publish-copy", "shortform-social-publish-package"]) {
+      expect(byId.get(`skill:${id}`)?.requires?.stacks || []).toEqual([]);
+      expect(byId.get("stack:video-editor")?.related?.skills).toContain(`skill:${id}`);
+    }
+    expect(byId.get("skill:inline-editorial-markup")?.requires?.stacks).toContain("stack:editorial-markup");
+  });
+
   it("discovers Markdown skills as v2 catalog packages", async () => {
     await writeDemoStack();
     await writeText(
