@@ -193,3 +193,27 @@ and timeouts were unchanged. Original peer main checkouts remain preserved.
   Retain all task checkouts and uncommitted changes. Commit, PR, merge, release,
   live installation/native activation and cleanup remain separately authorized
   delivery steps.
+
+
+## Publishing follow-up: CI portability
+
+The user subsequently authorized feature-branch publication, PR merge, main
+checkout synchronization on both Macs, and installed package/native-skill
+updates. CLI PR #45 passed CI and merged. Registry PR #68 passed schema
+validation on macOS, Linux, and Windows, plus 50 of 51 stack contracts, before
+the macOS automation unit suite exposed two existing host assumptions.
+
+The test-only correction supplies the existing `platform: "darwin"` dependency
+to mocked macOS operations and scopes the reminder fixtures to Eastern time,
+restoring the previous time zone afterward. All original assertions remain;
+a negative test also verifies that Linux is rejected before a command runs.
+No production platform guard or date behavior changes.
+
+Red: GitHub Actions run 34043963996 reproduced the Linux/UTC failures. After
+preparing the package dependencies/build, the unchanged original suite also
+failed locally under UTC with a Linux-platform preload. Green: the corrected
+suite passed all 20 tests under the same conditions and under the native Mac
+platform. Initial local invocations without the built `dist/core.js` were
+setup failures, not behavioral red evidence. The focused debt scan covered
+the test file and found no warnings or errors. GitHub CI must pass again for
+the exact updated PR head before merge.
