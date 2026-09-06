@@ -41,14 +41,16 @@
   "mcp": {
     "transport": "stdio",
     "command": "node",
-    "args": ["src/index.js"],
+    "args": [
+      "src/index.js"
+    ],
     "cwd": "."
   },
   "meta": {
     "description": "Bridge to the hosted Dwellow real-estate development feasibility MCP server.",
     "author": "RUDI",
     "license": "MIT",
-    "category": "real-estate",
+    "category": "data",
     "tags": [
       "dwellow",
       "real-estate",
@@ -56,12 +58,16 @@
       "site-engine",
       "feasibility",
       "mcp",
-      "remote"
+      "remote",
+      "capability:analyze",
+      "domain:real-estate"
     ],
     "icon": "building-2"
   },
   "related": {
     "operatorSkill": "skill:dwellow-mcp",
-    "skills": ["skill:dwellow-mcp"]
+    "skills": [
+      "skill:dwellow-mcp"
+    ]
   }
 }

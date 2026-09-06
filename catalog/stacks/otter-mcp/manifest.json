@@ -3,13 +3,11 @@
   "kind": "stack",
   "name": "Otter MCP",
   "version": "0.1.0",
-
   "delivery": "remote",
   "install": {
     "source": "catalog",
     "path": "catalog/stacks/otter-mcp"
   },
-
   "runtime": "node",
   "requires": {
     "binaries": [],
@@ -30,18 +28,19 @@
     ],
     "cwd": "."
   },
-
   "meta": {
     "description": "Search and fetch Otter meeting transcripts through Otter's hosted OAuth MCP server.",
     "author": "RUDI",
     "license": "MIT",
-    "category": "productivity",
+    "category": "communication",
     "tags": [
       "otter",
       "meetings",
       "transcripts",
       "mcp",
-      "oauth"
+      "oauth",
+      "capability:extract",
+      "provider:otter"
     ],
     "icon": "otter",
     "remoteMcp": {

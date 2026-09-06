@@ -113,7 +113,7 @@
     "description": "Workflow-focused tools for Gmail, Google Sheets, Docs, Slides, Drive, Calendar, and Tasks",
     "author": "CO-LLAB",
     "license": "MIT",
-    "category": "api-integrations",
+    "category": "communication",
     "tags": [
       "google",
       "gmail",
@@ -122,7 +122,9 @@
       "slides",
       "drive",
       "calendar",
-      "tasks"
+      "tasks",
+      "capability:manage",
+      "provider:google"
     ],
     "icon": "📧"
   },

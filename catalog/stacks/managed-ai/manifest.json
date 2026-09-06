@@ -45,21 +45,34 @@
   "mcp": {
     "transport": "stdio",
     "command": "npx",
-    "args": ["tsx", "src/index.ts"],
+    "args": [
+      "tsx",
+      "src/index.ts"
+    ],
     "cwd": "."
   },
   "meta": {
     "description": "Authenticated, tenant-scoped API client for bounded Managed AI context, review candidates, approvals, and projection preparation.",
     "author": "RUDI",
     "license": "MIT",
-    "category": "business",
-    "tags": ["managed-ai", "context", "approvals", "projections", "mcp"],
+    "category": "agents",
+    "tags": [
+      "managed-ai",
+      "context",
+      "approvals",
+      "projections",
+      "mcp",
+      "capability:manage",
+      "domain:client-services"
+    ],
     "icon": "brain-circuit",
     "boundary": "This stack is an API client only. It uses one configured tenant and fixed Managed AI v1 routes. It cannot open PostgreSQL connections or tunnels, poll providers, run business matching logic, write client files, apply patches, record publication evidence, or run Git commands.",
     "secretGuidance": "Bind RUDI_MANAGED_AI_API_TOKEN to a distinct agent/service principal with only the tenant roles required for the selected tools. Use an HTTPS API origin, keep tokens out of URLs and logs, and rotate or revoke them through the Managed AI authentication authority."
   },
   "related": {
     "operatorSkill": "skill:managed-ai",
-    "skills": ["skill:managed-ai"]
+    "skills": [
+      "skill:managed-ai"
+    ]
   }
 }

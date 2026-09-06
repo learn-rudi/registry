@@ -51,7 +51,7 @@
     "description": "Publish static apps through RUDI Share as revocable tailnet-private previews or Anyone-with-the-link URLs.",
     "author": "RUDI",
     "license": "MIT",
-    "category": "deployment",
+    "category": "web",
     "tags": [
       "hosting",
       "static-site",
@@ -60,7 +60,8 @@
       "deployment",
       "private-preview",
       "tailnet",
-      "sharing"
+      "sharing",
+      "capability:deploy"
     ],
     "icon": "cloud-upload"
   }

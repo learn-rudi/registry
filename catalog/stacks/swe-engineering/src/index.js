@@ -16,7 +16,7 @@ import {
 const server = new Server(
   {
     name: "swe-engineering",
-    version: "0.2.0",
+    version: "0.5.0",
   },
   {
     capabilities: {

@@ -51,7 +51,7 @@
     "description": "Validated multi-provider text-to-speech generation with OpenAI, ElevenLabs, and Gemini.",
     "author": "RUDI",
     "license": "MIT",
-    "category": "ai-generation",
+    "category": "media",
     "tags": [
       "speech",
       "text-to-speech",
@@ -60,7 +60,8 @@
       "openai",
       "elevenlabs",
       "gemini",
-      "content-creation"
+      "content-creation",
+      "capability:generate"
     ],
     "icon": "audio-lines"
   },

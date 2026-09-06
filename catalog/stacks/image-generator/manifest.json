@@ -10,7 +10,9 @@
   },
   "runtime": "python",
   "requires": {
-    "binaries": ["binary:chromium"],
+    "binaries": [
+      "binary:chromium"
+    ],
     "secrets": [
       {
         "key": "GEMINI_API_KEY",
@@ -55,7 +57,7 @@
     "description": "Agent-safe API and bounded Midjourney browser image generation for content creation workflows.",
     "author": "brandonz@heritagehill.co",
     "license": "MIT",
-    "category": "ai-generation",
+    "category": "media",
     "tags": [
       "image",
       "generation",
@@ -67,7 +69,8 @@
       "browser-automation",
       "playwright",
       "content-creation",
-      "social-media"
+      "social-media",
+      "capability:generate"
     ],
     "icon": "🎨",
     "boundary": "Canonical image-generation stack. Midjourney support is limited to dedicated-profile login, idempotent prompt submission, bounded reference uploads from RUDI input/output roots, authenticated session checks, and requester-triggered export of job variations. No arbitrary navigation, selectors, likes, follows, deletes, edits, billing, or account management.",

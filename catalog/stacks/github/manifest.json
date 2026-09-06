@@ -3,13 +3,11 @@
   "kind": "stack",
   "name": "GitHub",
   "version": "1.0.0",
-
   "delivery": "remote",
   "install": {
     "source": "catalog",
     "path": "catalog/stacks/github"
   },
-
   "runtime": "node",
   "requires": {
     "binaries": [],
@@ -89,16 +87,27 @@
   "mcp": {
     "transport": "stdio",
     "command": "node",
-    "args": ["dist/index.js"],
+    "args": [
+      "dist/index.js"
+    ],
     "cwd": "."
   },
-
   "meta": {
     "description": "Manage GitHub repositories, branches, contents, collaborators, issues, pull requests, releases, Actions, artifacts, and direct REST API calls",
     "author": "RUDI",
     "license": "MIT",
-    "category": "development",
-    "tags": ["github", "git", "repos", "prs", "issues", "releases", "actions"],
+    "category": "code",
+    "tags": [
+      "github",
+      "git",
+      "repos",
+      "prs",
+      "issues",
+      "releases",
+      "actions",
+      "capability:manage",
+      "provider:github"
+    ],
     "icon": "🐙"
   },
   "related": {

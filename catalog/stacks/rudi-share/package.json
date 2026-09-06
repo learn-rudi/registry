@@ -1,6 +1,6 @@
 {
   "name": "@rudi/rudi-share-stack",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "RUDI Share MCP adapter for publishing local static web artifacts.",
   "type": "module",
   "private": true,

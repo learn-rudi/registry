@@ -3,13 +3,11 @@
   "kind": "stack",
   "name": "macOS Automation",
   "version": "0.1.0",
-
   "delivery": "remote",
   "install": {
     "source": "catalog",
     "path": "catalog/stacks/macos-automation"
   },
-
   "runtime": "node",
   "requires": {
     "binaries": [],
@@ -44,15 +42,17 @@
   "mcp": {
     "transport": "stdio",
     "command": "npx",
-    "args": ["tsx", "src/index.ts"],
+    "args": [
+      "tsx",
+      "src/index.ts"
+    ],
     "cwd": "."
   },
-
   "meta": {
     "description": "Guarded macOS automation tools for apps, Finder, Reminders, Shortcuts, notifications, and System Events permission checks.",
     "author": "RUDI",
     "license": "MIT",
-    "category": "local-automation",
+    "category": "agents",
     "tags": [
       "macos",
       "apple-script",
@@ -63,9 +63,13 @@
       "launchd",
       "productivity",
       "automation",
-      "mcp"
+      "mcp",
+      "capability:manage",
+      "provider:apple"
     ],
-    "platforms": ["darwin"],
+    "platforms": [
+      "darwin"
+    ],
     "permissions": [
       "Accessibility for System Events tools",
       "Automation for Finder, Reminders, and target app control"

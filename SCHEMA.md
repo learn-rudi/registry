@@ -156,6 +156,16 @@ stable or supported.
   public indexes. Retired definitions do not remain as hidden or versioned
   schema-v2 packages.
 
+### Stack classification
+
+Authored stacks use `catalog/stacks/{id}/manifest.json`. Their `meta.category`
+must be one of `web`, `code`, `data`, `documents`, `media`, `communication`, or
+`agents`, matching the primary operator skill. `meta.tags` requires at least
+one `capability:<slug>`; optional `domain:<slug>` and `provider:<slug>` facets
+use lowercase kebab-case. Ordinary keywords remain supported. The compiler and
+validator enforce authored metadata; legacy readers remain compatible. See
+[Stack catalog organization](docs/stack-catalog.md).
+
 ### Skill Packages
 
 Author skills in `catalog/skills/{name}/SKILL.md`. Bundles may carry `scripts/`, `references/`, `assets/`, and `agents/openai.yaml`; the complete directory is the install payload. Legacy flat Markdown input remains readable, but the public validator and compiler require canonical folders for authored catalog entries.

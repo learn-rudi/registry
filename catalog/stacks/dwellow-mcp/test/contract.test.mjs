@@ -14,7 +14,7 @@ test("publishes Dwellow-only Registry identity", async () => {
     await fs.readFile(path.join(stackRoot, "manifest.json"), "utf8"),
   );
   const operator = await fs.readFile(
-    path.join(stackRoot, "..", "..", "skills", "dwellow-mcp.md"),
+    path.join(stackRoot, "..", "..", "skills", "dwellow-mcp", "SKILL.md"),
     "utf8",
   );
 

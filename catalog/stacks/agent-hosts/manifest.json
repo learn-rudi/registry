@@ -39,14 +39,15 @@
     "description": "Governed synchronous MCP gateway for a fixed local DeepSeek, Claude Code, and Codex Agent Host fleet.",
     "author": "RUDI",
     "license": "MIT",
-    "category": "ai-generation",
+    "category": "agents",
     "tags": [
       "agent-host",
       "codex",
       "claude-code",
       "deepseek",
       "headless",
-      "mcp"
+      "mcp",
+      "capability:manage"
     ]
   },
   "related": {

@@ -4,23 +4,54 @@
   "name": "Hamilton County Auditor Public Data",
   "version": "0.1.0",
   "delivery": "remote",
-  "install": { "source": "catalog", "path": "catalog/stacks/hamilton-county-auditor" },
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/hamilton-county-auditor"
+  },
   "runtime": "node",
   "requires": {
     "binaries": [],
     "secrets": [
-      { "key": "CINCINNATI_PUBLIC_DATA_API_BASE_URL", "label": "Cincinnati Public Data API Base URL", "required": true },
-      { "key": "CINCINNATI_PUBLIC_DATA_API_KEY", "label": "Cincinnati Public Data API Key", "required": false }
+      {
+        "key": "CINCINNATI_PUBLIC_DATA_API_BASE_URL",
+        "label": "Cincinnati Public Data API Base URL",
+        "required": true
+      },
+      {
+        "key": "CINCINNATI_PUBLIC_DATA_API_KEY",
+        "label": "Cincinnati Public Data API Key",
+        "required": false
+      }
     ]
   },
-  "provides": { "tools": ["auditor_lookup_parcel_facts"] },
-  "mcp": { "transport": "stdio", "command": "node", "args": ["src/index.mjs"], "cwd": "." },
+  "provides": {
+    "tools": [
+      "auditor_lookup_parcel_facts"
+    ]
+  },
+  "mcp": {
+    "transport": "stdio",
+    "command": "node",
+    "args": [
+      "src/index.mjs"
+    ],
+    "cwd": "."
+  },
   "meta": {
     "description": "Read-only authoritative parcel ownership, assessed value, characteristics, and sales facts through the configured public-data API.",
     "author": "RUDI",
     "license": "MIT",
-    "category": "government-data",
-    "tags": ["hamilton-county", "auditor", "parcels", "ownership", "valuation", "sales"],
+    "category": "data",
+    "tags": [
+      "hamilton-county",
+      "auditor",
+      "parcels",
+      "ownership",
+      "valuation",
+      "sales",
+      "capability:extract",
+      "domain:real-estate"
+    ],
     "boundary": "Read-only Hamilton County Auditor facts only. The stack exposes no refresh, payment, filing, or parcel mutation tools."
   },
   "related": {

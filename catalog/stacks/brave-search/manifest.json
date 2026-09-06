@@ -37,13 +37,15 @@
     "description": "Read-only Brave web search with bounded input validation, retries, safe provider errors, and normalized result rows.",
     "author": "RUDI",
     "license": "MIT",
-    "category": "search",
+    "category": "web",
     "tags": [
       "brave",
       "search",
       "web",
       "discovery",
-      "research"
+      "research",
+      "capability:research",
+      "provider:brave"
     ],
     "boundary": "Provider transport only. The stack does not own query plans, persistence, editorial provenance, annotations, clustering, promotion, or publication. Callers are responsible for confirming that their Brave plan permits any storage of API results.",
     "secretGuidance": "Keep BRAVE_SEARCH_API_KEY in RUDI secret state. The router injects it only into this stack process; never expose it in agent prompts, logs, artifacts, or tool output."

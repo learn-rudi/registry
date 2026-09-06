@@ -3,13 +3,11 @@
   "kind": "stack",
   "name": "RUDI CRM",
   "version": "0.3.0",
-
   "delivery": "remote",
   "install": {
     "source": "catalog",
     "path": "catalog/stacks/rudi-crm"
   },
-
   "runtime": "node",
   "requires": {
     "binaries": [],
@@ -53,18 +51,19 @@
     ],
     "cwd": "."
   },
-
   "meta": {
     "description": "Controlled MCP interface for RUDI CRM engagement memory, discovery, triage, validators, and correspondence context.",
     "author": "RUDI",
     "license": "MIT",
-    "category": "business",
+    "category": "data",
     "tags": [
       "crm",
       "engagements",
       "postgres",
       "mcp",
-      "audit"
+      "audit",
+      "capability:manage",
+      "domain:client-services"
     ],
     "icon": "rudi-crm",
     "boundary": "RUDI CRM exposes a controlled write/read contract over existing Postgres functions and views. It does not expose raw table writes or generic SQL execution.",

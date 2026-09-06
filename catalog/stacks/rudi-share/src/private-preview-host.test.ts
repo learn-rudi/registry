@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
-import { spawn } from 'node:child_process'
+import childProcess, { spawn } from 'node:child_process'
+import { syncBuiltinESMExports } from 'node:module'
 import {
   mkdir,
   mkdtemp,
@@ -28,12 +29,21 @@ test('managed preview host kills a real child that reports readiness too late', 
   const root = await mkdtemp(join(tmpdir(), 'rudi-share-late-host-'))
   context.after(() => rm(root, { recursive: true, force: true }))
   const childModule = join(root, 'late-host.mjs')
-  const pidPath = join(root, 'child.pid')
+  const realSpawn = childProcess.spawn
+  let childPid: number | undefined
+  const spawnObserver = context.mock.method(childProcess, 'spawn', (...args: Parameters<typeof spawn>) => {
+    const child = realSpawn(...args)
+    if (Array.isArray(args[1]) && args[1].includes(childModule)) childPid = child.pid
+    return child
+  })
+  syncBuiltinESMExports()
+  context.after(() => {
+    spawnObserver.mock.restore()
+    syncBuiltinESMExports()
+  })
   await writeFile(
     childModule,
     [
-      "import { writeFileSync } from 'node:fs'",
-      'writeFileSync(process.argv[2], String(process.pid))',
       "setTimeout(() => process.send?.({ type: 'ready', pid: process.pid, port: 41014 }), 1500)",
       'setInterval(() => undefined, 1000)',
     ].join('\n')
@@ -50,7 +60,7 @@ test('managed preview host kills a real child that reports readiness too late', 
       options: Record<string, unknown>
     ) => Promise<unknown>)(
       {
-        artifactRoot: pidPath,
+        artifactRoot: root,
         previewId: 'private_1234567890abcdef1234',
         artifactSha256: 'b'.repeat(64),
         port: 41014,
@@ -68,9 +78,11 @@ test('managed preview host kills a real child that reports readiness too late', 
       return true
     }
   )
-  const childPid = Number(await (await import('node:fs/promises')).readFile(pidPath, 'utf8'))
+  // A real child can be killed before its JavaScript loads on a slower host.
+  // Observe spawn's PID without requiring a child-written file before timeout.
+  assert.equal(typeof childPid, 'number')
   assert.throws(
-    () => process.kill(childPid, 0),
+    () => process.kill(childPid as number, 0),
     (error: unknown) => error instanceof Error && 'code' in error && error.code === 'ESRCH'
   )
 })

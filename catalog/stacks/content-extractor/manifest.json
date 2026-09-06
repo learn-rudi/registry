@@ -3,12 +3,10 @@
   "kind": "stack",
   "name": "Content Extractor",
   "version": "1.0.0",
-
   "lifecycle": {
     "maturity": "stable",
     "support": "supported"
   },
-
   "delivery": "remote",
   "install": {
     "source": "catalog",
@@ -71,7 +69,7 @@
     "description": "Extract content from YouTube, Reddit, TikTok, web articles, GitHub, and link batches",
     "author": "CO-LLAB",
     "license": "MIT",
-    "category": "data-extraction",
+    "category": "data",
     "tags": [
       "youtube",
       "reddit",
@@ -82,7 +80,8 @@
       "batch",
       "transcript",
       "extraction",
-      "scraping"
+      "scraping",
+      "capability:extract"
     ],
     "icon": "📥"
   },

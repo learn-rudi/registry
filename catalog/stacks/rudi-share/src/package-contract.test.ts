@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 
 const stackRoot = fileURLToPath(new URL('../', import.meta.url))
 const companionSkill = fileURLToPath(
-  new URL('../../skills/share-web-app.md', new URL('../', import.meta.url))
+  new URL('../../skills/share-web-app/SKILL.md', new URL('../', import.meta.url))
 )
 
 async function collectTextFiles(directory: string): Promise<string[]> {

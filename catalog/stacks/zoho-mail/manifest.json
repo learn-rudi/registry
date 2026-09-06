@@ -67,7 +67,9 @@
       "mail",
       "email",
       "oauth",
-      "attachments"
+      "attachments",
+      "capability:communicate",
+      "provider:zoho"
     ],
     "icon": "mail"
   },

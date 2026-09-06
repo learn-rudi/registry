@@ -94,8 +94,8 @@ Minimal manifest:
     "description": "What the stack does",
     "author": "Your Name",
     "license": "MIT",
-    "category": "productivity",
-    "tags": ["example"]
+    "category": "data",
+    "tags": ["example", "capability:query"]
   }
 }
 ```
@@ -105,6 +105,10 @@ skill, declare the stack in that skill's `requires.stacks`, set
 `related.operatorSkill`, and include the same ID in `related.skills`. Additional
 `related.skills` entries are optional companion workflows. `provides.tools` is
 only for MCP tools exposed by the stack.
+
+Stacks share the seven primitive categories and capability/domain/provider tags
+with their primary operators. See [Stack catalog organization](docs/stack-catalog.md)
+for naming, discovery, verification and reproducible index checks.
 
 `surface` classifies hosted eligibility as `local-only`, `cloud-hosted`, or
 `both`; omission fails closed to `local-only`. A `both` stack uses exact

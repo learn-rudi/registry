@@ -3,13 +3,11 @@
   "kind": "stack",
   "name": "RUDI Processor",
   "version": "2.0.0",
-
   "delivery": "remote",
   "install": {
     "source": "catalog",
     "path": "catalog/stacks/rudi-processor"
   },
-
   "runtime": "python",
   "requires": {
     "binaries": [
@@ -55,19 +53,19 @@
     ],
     "cwd": "."
   },
-
   "meta": {
     "description": "Local file metadata extraction, workspace audit, and indexed content search.",
     "author": "RUDI",
     "license": "MIT",
-    "category": "data-extraction",
+    "category": "data",
     "tags": [
       "metadata",
       "files",
       "documents",
       "ocr",
       "indexing",
-      "search"
+      "search",
+      "capability:extract"
     ],
     "icon": "processor"
   },

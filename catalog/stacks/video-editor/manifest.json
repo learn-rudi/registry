@@ -3,20 +3,21 @@
   "kind": "stack",
   "name": "Video Editor",
   "version": "1.0.0",
-
   "delivery": "remote",
   "install": {
     "source": "catalog",
     "path": "catalog/stacks/video-editor"
   },
-
   "runtime": "node",
-
   "requires": {
-    "binaries": ["ffmpeg", "ffprobe", "whisper", "chromium"],
+    "binaries": [
+      "ffmpeg",
+      "ffprobe",
+      "whisper",
+      "chromium"
+    ],
     "secrets": []
   },
-
   "provides": {
     "tools": [
       "video_info",
@@ -60,7 +61,6 @@
       "video_process_video_transcript"
     ]
   },
-
   "related": {
     "operatorSkill": "skill:rudi-video-editor",
     "skills": [
@@ -70,20 +70,34 @@
       "skill:shortform-social-publish-package"
     ]
   },
-
   "mcp": {
     "transport": "stdio",
     "command": "npx",
-    "args": ["tsx", "src/index.ts"],
+    "args": [
+      "tsx",
+      "src/index.ts"
+    ],
     "cwd": "."
   },
-
   "meta": {
     "description": "Comprehensive local video editing stack for quick ffmpeg operations, structured runs, captions, rendering, and QA.",
     "author": "CO-LLAB",
     "license": "MIT",
     "category": "media",
-    "tags": ["video", "ffmpeg", "editing", "silence", "transcript", "slides", "captions", "remotion", "templates", "qa", "media"],
+    "tags": [
+      "video",
+      "ffmpeg",
+      "editing",
+      "silence",
+      "transcript",
+      "slides",
+      "captions",
+      "remotion",
+      "templates",
+      "qa",
+      "media",
+      "capability:edit"
+    ],
     "icon": "🎬"
   }
 }

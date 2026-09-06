@@ -151,7 +151,7 @@ async function main() {
 
   if (results.every((result) => result.valid)) {
     try {
-      assertCatalogReferences(validPackages, { canonicalSkills: true });
+      assertCatalogReferences(validPackages, { canonicalSkills: true, canonicalStacks: true });
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       const packageError = error instanceof CatalogPackageError ? error : undefined;

@@ -1,7 +1,7 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-09-02T22:01:30.000Z",
+  "generatedAt": "2026-09-06T00:59:31.000Z",
   "stats": {
     "total": 173,
     "byKind": {
@@ -3882,14 +3882,15 @@
         "description": "Governed synchronous MCP gateway for a fixed local DeepSeek, Claude Code, and Codex Agent Host fleet.",
         "author": "RUDI",
         "license": "MIT",
-        "category": "ai-generation",
+        "category": "agents",
         "tags": [
           "agent-host",
           "codex",
           "claude-code",
           "deepseek",
           "headless",
-          "mcp"
+          "mcp",
+          "capability:manage"
         ]
       },
       "related": {
@@ -3940,14 +3941,15 @@
         "description": "Transcribe, enrich, and query audio or video-linked speech. Accepts local files, direct media URLs, supported video-page URLs, or base64 input.",
         "author": "RUDI",
         "license": "MIT",
-        "category": "audio-processing",
+        "category": "media",
         "tags": [
           "audio",
           "transcription",
           "whisper",
           "yt-dlp",
           "enrichment",
-          "speech-to-text"
+          "speech-to-text",
+          "capability:extract"
         ],
         "icon": "mic"
       },
@@ -3996,7 +3998,7 @@
         "description": "Local-first, provenance-preserving normalization of generated raster logo candidates into validated SVG brand assets and editable descriptor variants.",
         "author": "brandonz@heritagehill.co",
         "license": "MIT",
-        "category": "content-and-brand",
+        "category": "media",
         "tags": [
           "brand-assets",
           "vectorization",
@@ -4004,7 +4006,8 @@
           "logo",
           "potrace",
           "image-processing",
-          "content-and-brand"
+          "content-and-brand",
+          "capability:design"
         ],
         "icon": "✳️",
         "boundary": "Canonical post-generation brand-asset normalization stack. It accepts explicit local raster/SVG paths, performs deterministic local transforms, and returns provenance; it does not generate images, choose canonical geometry, install fonts, edit business repositories, or publish assets.",
@@ -4056,13 +4059,15 @@
         "description": "Read-only Brave web search with bounded input validation, retries, safe provider errors, and normalized result rows.",
         "author": "RUDI",
         "license": "MIT",
-        "category": "search",
+        "category": "web",
         "tags": [
           "brave",
           "search",
           "web",
           "discovery",
-          "research"
+          "research",
+          "capability:research",
+          "provider:brave"
         ],
         "boundary": "Provider transport only. The stack does not own query plans, persistence, editorial provenance, annotations, clustering, promotion, or publication. Callers are responsible for confirming that their Brave plan permits any storage of API results.",
         "secretGuidance": "Keep BRAVE_SEARCH_API_KEY in RUDI secret state. The router injects it only into this stack process; never expose it in agent prompts, logs, artifacts, or tool output."
@@ -4117,13 +4122,15 @@
         "description": "Read-only Cincinnati and Hamilton County parcel, complete provider-native zoning context, and property activity lookup through the configured public-data API.",
         "author": "RUDI",
         "license": "MIT",
-        "category": "government-data",
+        "category": "data",
         "tags": [
           "cincinnati",
           "hamilton-county",
           "cagis",
           "parcels",
-          "zoning"
+          "zoning",
+          "capability:extract",
+          "domain:real-estate"
         ],
         "boundary": "Read-only CAGIS facts only. Zoning context is marked complete only for a matched Cincinnati provider result with valid code, overlay array, source identity, and fetched time. No permit, case, inspection, or parcel mutation tools are exposed."
       },
@@ -4201,7 +4208,9 @@
           "media",
           "upload",
           "shortform",
-          "social-media"
+          "social-media",
+          "capability:manage",
+          "provider:cloudinary"
         ],
         "icon": "cloud-upload"
       },
@@ -4283,7 +4292,7 @@
         "description": "Extract content from YouTube, Reddit, TikTok, web articles, GitHub, and link batches",
         "author": "CO-LLAB",
         "license": "MIT",
-        "category": "data-extraction",
+        "category": "data",
         "tags": [
           "youtube",
           "reddit",
@@ -4294,7 +4303,8 @@
           "batch",
           "transcript",
           "extraction",
-          "scraping"
+          "scraping",
+          "capability:extract"
         ],
         "icon": "📥"
       },
@@ -4350,7 +4360,7 @@
         "description": "Creator audit and style-reference tooling for shortform research, contact sheets, keyframe sheets, and local audit inventory.",
         "author": "CO-LLAB",
         "license": "MIT",
-        "category": "creator-intelligence",
+        "category": "media",
         "tags": [
           "creator",
           "tiktok",
@@ -4359,7 +4369,9 @@
           "audit",
           "style-reference",
           "contact-sheet",
-          "keyframes"
+          "keyframes",
+          "capability:analyze",
+          "domain:content-production"
         ],
         "icon": "🎞️"
       },
@@ -4417,7 +4429,8 @@
           "analysis",
           "python",
           "pandas",
-          "charts"
+          "charts",
+          "capability:analyze"
         ],
         "icon": "📈"
       },
@@ -4465,14 +4478,15 @@
         "description": "Extract PDF slides as images, remove watermarks, and process presentations.",
         "author": "CO-LLAB",
         "license": "MIT",
-        "category": "document-processing",
+        "category": "documents",
         "tags": [
           "pdf",
           "slides",
           "watermark",
           "extraction",
           "images",
-          "presentation"
+          "presentation",
+          "capability:extract"
         ],
         "icon": "📄"
       },
@@ -4523,13 +4537,14 @@
         "description": "Visual QA inspection for HTML documents using screenshots and Claude Vision.",
         "author": "CO-LLAB",
         "license": "MIT",
-        "category": "document-processing",
+        "category": "documents",
         "tags": [
           "qa",
           "vision",
           "html",
           "pdf",
-          "validation"
+          "validation",
+          "capability:review"
         ],
         "icon": "🔍"
       },
@@ -4592,7 +4607,7 @@
         "description": "Bridge to the hosted Dwellow real-estate development feasibility MCP server.",
         "author": "RUDI",
         "license": "MIT",
-        "category": "real-estate",
+        "category": "data",
         "tags": [
           "dwellow",
           "real-estate",
@@ -4600,7 +4615,9 @@
           "site-engine",
           "feasibility",
           "mcp",
-          "remote"
+          "remote",
+          "capability:analyze",
+          "domain:real-estate"
         ],
         "icon": "building-2"
       },
@@ -4652,7 +4669,7 @@
         "description": "Build validated inline editorial markup HTML, export clean copy, and run Playwright QA for accept/reject review artifacts.",
         "author": "RUDI",
         "license": "MIT",
-        "category": "document-processing",
+        "category": "documents",
         "tags": [
           "writing",
           "editing",
@@ -4660,7 +4677,8 @@
           "html",
           "review",
           "qa",
-          "playwright"
+          "playwright",
+          "capability:edit"
         ]
       }
     },
@@ -4762,7 +4780,7 @@
         "description": "Manage GitHub repositories, branches, contents, collaborators, issues, pull requests, releases, Actions, artifacts, and direct REST API calls",
         "author": "RUDI",
         "license": "MIT",
-        "category": "development",
+        "category": "code",
         "tags": [
           "github",
           "git",
@@ -4770,7 +4788,9 @@
           "prs",
           "issues",
           "releases",
-          "actions"
+          "actions",
+          "capability:manage",
+          "provider:github"
         ],
         "icon": "🐙"
       },
@@ -4822,13 +4842,15 @@
         "description": "Generate images (Gemini, Imagen 4) and videos (Veo 3.1) using Google AI",
         "author": "CO-LLAB",
         "license": "MIT",
-        "category": "ai-generation",
+        "category": "media",
         "tags": [
           "ai",
           "google-ai",
           "gemini",
           "imagen",
-          "veo"
+          "veo",
+          "capability:generate",
+          "provider:google"
         ],
         "icon": "🎨"
       },
@@ -4954,7 +4976,7 @@
         "description": "Workflow-focused tools for Gmail, Google Sheets, Docs, Slides, Drive, Calendar, and Tasks",
         "author": "CO-LLAB",
         "license": "MIT",
-        "category": "api-integrations",
+        "category": "communication",
         "tags": [
           "google",
           "gmail",
@@ -4963,7 +4985,9 @@
           "slides",
           "drive",
           "calendar",
-          "tasks"
+          "tasks",
+          "capability:manage",
+          "provider:google"
         ],
         "icon": "📧"
       },
@@ -5017,14 +5041,16 @@
         "description": "Read-only authoritative parcel ownership, assessed value, characteristics, and sales facts through the configured public-data API.",
         "author": "RUDI",
         "license": "MIT",
-        "category": "government-data",
+        "category": "data",
         "tags": [
           "hamilton-county",
           "auditor",
           "parcels",
           "ownership",
           "valuation",
-          "sales"
+          "sales",
+          "capability:extract",
+          "domain:real-estate"
         ],
         "boundary": "Read-only Hamilton County Auditor facts only. The stack exposes no refresh, payment, filing, or parcel mutation tools."
       },
@@ -5094,7 +5120,7 @@
         "description": "Agent-safe API and bounded Midjourney browser image generation for content creation workflows.",
         "author": "brandonz@heritagehill.co",
         "license": "MIT",
-        "category": "ai-generation",
+        "category": "media",
         "tags": [
           "image",
           "generation",
@@ -5106,7 +5132,8 @@
           "browser-automation",
           "playwright",
           "content-creation",
-          "social-media"
+          "social-media",
+          "capability:generate"
         ],
         "icon": "🎨",
         "boundary": "Canonical image-generation stack. Midjourney support is limited to dedicated-profile login, idempotent prompt submission, bounded reference uploads from RUDI input/output roots, authenticated session checks, and requester-triggered export of job variations. No arbitrary navigation, selectors, likes, follows, deletes, edits, billing, or account management.",
@@ -5173,7 +5200,7 @@
         "description": "Guarded macOS automation tools for apps, Finder, Reminders, Shortcuts, notifications, and System Events permission checks.",
         "author": "RUDI",
         "license": "MIT",
-        "category": "local-automation",
+        "category": "agents",
         "tags": [
           "macos",
           "apple-script",
@@ -5184,7 +5211,9 @@
           "launchd",
           "productivity",
           "automation",
-          "mcp"
+          "mcp",
+          "capability:manage",
+          "provider:apple"
         ],
         "platforms": [
           "darwin"
@@ -5259,13 +5288,15 @@
         "description": "Authenticated, tenant-scoped API client for bounded Managed AI context, review candidates, approvals, and projection preparation.",
         "author": "RUDI",
         "license": "MIT",
-        "category": "business",
+        "category": "agents",
         "tags": [
           "managed-ai",
           "context",
           "approvals",
           "projections",
-          "mcp"
+          "mcp",
+          "capability:manage",
+          "domain:client-services"
         ],
         "icon": "brain-circuit",
         "boundary": "This stack is an API client only. It uses one configured tenant and fixed Managed AI v1 routes. It cannot open PostgreSQL connections or tunnels, poll providers, run business matching logic, write client files, apply patches, record publication evidence, or run Git commands.",
@@ -5312,14 +5343,16 @@
         "description": "Read and extract content from Microsoft Word (.docx) and Excel (.xlsx) documents",
         "author": "CO-LLAB",
         "license": "MIT",
-        "category": "document-processing",
+        "category": "documents",
         "tags": [
           "microsoft",
           "office",
           "word",
           "excel",
           "docx",
-          "xlsx"
+          "xlsx",
+          "capability:extract",
+          "provider:microsoft"
         ],
         "icon": "📄"
       },
@@ -5364,13 +5397,15 @@
         "description": "Read-only, fixed-job reviewed baseline zoning-code evidence bundles for Cincinnati from release-configured mappings and complete CAGIS zoning context.",
         "author": "RUDI",
         "license": "MIT",
-        "category": "government-data",
+        "category": "data",
         "tags": [
           "municode",
           "municipal-code",
           "ordinances",
           "government-data",
-          "zoning"
+          "zoning",
+          "capability:analyze",
+          "domain:real-estate"
         ],
         "boundary": "Exposes one release-configured composite only. Callers cannot choose publication IDs, node IDs, origins, or primitive browse/read operations. Synthetic fixtures are never production-ready. Provider text is source evidence, not legal advice, completeness, applicability, approval, or permitting."
       },
@@ -5443,7 +5478,9 @@
           "database",
           "branching",
           "mcp",
-          "platform"
+          "platform",
+          "capability:manage",
+          "provider:neon"
         ],
         "boundary": "Use stack:neon for Neon platform operations and stack:postgres for SQL querying via DATABASE_URL.",
         "mcpSafety": "Neon MCP is intended for development and testing. Do not connect MCP agents freely to production databases."
@@ -5490,7 +5527,7 @@
         "description": "Extract newsletter email bodies, normalize newsletter links, and read RSS/Atom feeds",
         "author": "CO-LLAB",
         "license": "MIT",
-        "category": "data-extraction",
+        "category": "communication",
         "tags": [
           "newsletter",
           "email",
@@ -5499,7 +5536,9 @@
           "atom",
           "links",
           "extraction",
-          "content"
+          "content",
+          "capability:extract",
+          "domain:content-production"
         ],
         "icon": "📬"
       },
@@ -5571,12 +5610,14 @@
         "description": "Search, create, and manage Notion pages and databases",
         "author": "CO-LLAB",
         "license": "MIT",
-        "category": "productivity",
+        "category": "documents",
         "tags": [
           "notion",
           "pages",
           "databases",
-          "workspace"
+          "workspace",
+          "capability:manage",
+          "provider:notion"
         ],
         "icon": "📝"
       },
@@ -5630,14 +5671,16 @@
         "description": "OpenAI tools: DALL-E images, Whisper transcription, TTS speech, Sora video",
         "author": "CO-LLAB",
         "license": "MIT",
-        "category": "ai-generation",
+        "category": "media",
         "tags": [
           "ai",
           "openai",
           "dalle",
           "whisper",
           "tts",
-          "sora"
+          "sora",
+          "capability:generate",
+          "provider:openai"
         ],
         "icon": "🤖"
       },
@@ -5698,7 +5741,7 @@
         "description": "Guarded, headless browser guidance for Cincinnati zoning, business permits and fees, special events, and residential permitting.",
         "author": "RUDI",
         "license": "MIT",
-        "category": "government-services",
+        "category": "data",
         "tags": [
           "cincinnati",
           "opencounter",
@@ -5706,7 +5749,9 @@
           "permits",
           "special-events",
           "residential",
-          "playwright"
+          "playwright",
+          "capability:analyze",
+          "domain:real-estate"
         ],
         "boundary": "Catalog-bound Zoning guidance, compatibility guidance, and provider PDF export during requester-triggered completion or explicit recovery only. No account creation, sign-in, terms acceptance, uploads, staff messages, application submission, or payment.",
         "mcpSafety": "The Zoning start tool accepts only a packaged catalog identity and entry identity, resolves the exact provider label/slug internally, and performs a read-only provider fingerprint preflight before project creation. The low-level Zoning reconciliation primitive additionally requires the exact normalized provider-input digest, cryptographically binds state to that digest and project, and can mutate only the same surviving project; it is not by itself a registered Service Desk reconciler. Compatibility tools remain available but are not admitted for the Service Desk Zoning Check. Browser contexts are isolated and closed after each bounded call; resumable anonymous state, normalized requested address, and canonical active checkpoint are encrypted at rest and expire after 24 hours. Continuation rejects stale checkpoint digests and unknown answers before browser dispatch, observes already-committed provider values instead of replaying them, and fails on conflicts. Completed continuation dismisses only the exact optional save modal, verifies bounded PDF bytes, writes a content-addressed local RUDI artifact, and returns its metadata."
@@ -5752,13 +5797,15 @@
         "description": "Search and fetch Otter meeting transcripts through Otter's hosted OAuth MCP server.",
         "author": "RUDI",
         "license": "MIT",
-        "category": "productivity",
+        "category": "communication",
         "tags": [
           "otter",
           "meetings",
           "transcripts",
           "mcp",
-          "oauth"
+          "oauth",
+          "capability:extract",
+          "provider:otter"
         ],
         "icon": "otter",
         "remoteMcp": {
@@ -5837,14 +5884,17 @@
         "description": "Connect bank accounts through Plaid, list accounts and balances, and sync transactions.",
         "author": "CO-LLAB",
         "license": "MIT",
-        "category": "finance",
+        "category": "data",
         "tags": [
           "plaid",
           "banking",
           "finance",
           "transactions",
           "accounts",
-          "balances"
+          "balances",
+          "capability:analyze",
+          "domain:finance",
+          "provider:plaid"
         ]
       },
       "related": {
@@ -5903,7 +5953,8 @@
           "postgres",
           "postgresql",
           "database",
-          "sql"
+          "sql",
+          "capability:manage"
         ],
         "icon": "🐘"
       },
@@ -5969,7 +6020,7 @@
         "description": "Enroll one workspace path, safely discover its nested Git worktrees, coordinate one repository worker at a time, and maintain durable action and worktree-closeout ledgers.",
         "author": "RUDI",
         "license": "MIT",
-        "category": "development",
+        "category": "code",
         "tags": [
           "git",
           "github",
@@ -5979,7 +6030,8 @@
           "leases",
           "action-ledger",
           "closeout-receipts",
-          "agents"
+          "agents",
+          "capability:review"
         ],
         "icon": "git-branch"
       }
@@ -6041,13 +6093,15 @@
         "description": "Controlled MCP interface for RUDI CRM engagement memory, discovery, triage, validators, and correspondence context.",
         "author": "RUDI",
         "license": "MIT",
-        "category": "business",
+        "category": "data",
         "tags": [
           "crm",
           "engagements",
           "postgres",
           "mcp",
-          "audit"
+          "audit",
+          "capability:manage",
+          "domain:client-services"
         ],
         "icon": "rudi-crm",
         "boundary": "RUDI CRM exposes a controlled write/read contract over existing Postgres functions and views. It does not expose raw table writes or generic SQL execution.",
@@ -6119,14 +6173,15 @@
         "description": "Local file metadata extraction, workspace audit, and indexed content search.",
         "author": "RUDI",
         "license": "MIT",
-        "category": "data-extraction",
+        "category": "data",
         "tags": [
           "metadata",
           "files",
           "documents",
           "ocr",
           "indexing",
-          "search"
+          "search",
+          "capability:extract"
         ],
         "icon": "processor"
       },
@@ -6190,7 +6245,7 @@
         "description": "Publish static apps through RUDI Share as revocable tailnet-private previews or Anyone-with-the-link URLs.",
         "author": "RUDI",
         "license": "MIT",
-        "category": "deployment",
+        "category": "web",
         "tags": [
           "hosting",
           "static-site",
@@ -6199,7 +6254,8 @@
           "deployment",
           "private-preview",
           "tailnet",
-          "sharing"
+          "sharing",
+          "capability:deploy"
         ],
         "icon": "cloud-upload"
       }
@@ -6248,14 +6304,16 @@
         "description": "Fixed-root MCP adapter for inspecting, generating, optimizing, previewing, forking, and applying changes to a pinned local Site Planner workspace.",
         "author": "RUDI",
         "license": "MIT",
-        "category": "development",
+        "category": "data",
         "tags": [
           "site-planner",
           "lot-planning",
           "concepts",
           "revisions",
           "local-first",
-          "property"
+          "property",
+          "capability:analyze",
+          "domain:real-estate"
         ],
         "boundary": "The adapter executes only the configured Site Planner JSON CLI against a fixed workspace and exact clean Git revision. It does not perform zoning, entitlement, parking, finance, or underwriting analysis.",
         "secretGuidance": "Keep SITE_PLANNER_WRITE_HMAC_V1 in RUDI secret state. Do not expose it to agents, logs, artifacts, configuration JSON, or tool output."
@@ -6324,7 +6382,9 @@
           "slack",
           "messaging",
           "chat",
-          "team"
+          "team",
+          "capability:communicate",
+          "provider:slack"
         ],
         "icon": "💬"
       },
@@ -6589,7 +6649,7 @@
         "description": "Post to Twitter, LinkedIn, Facebook, Instagram, TikTok, and YouTube with readiness checks and unified publisher validation",
         "author": "CO-LLAB",
         "license": "MIT",
-        "category": "social",
+        "category": "communication",
         "tags": [
           "twitter",
           "linkedin",
@@ -6597,7 +6657,9 @@
           "instagram",
           "tiktok",
           "youtube",
-          "social-media"
+          "social-media",
+          "capability:publish",
+          "domain:content-production"
         ],
         "icon": "📱"
       }
@@ -6655,7 +6717,7 @@
         "description": "Validated multi-provider text-to-speech generation with OpenAI, ElevenLabs, and Gemini.",
         "author": "RUDI",
         "license": "MIT",
-        "category": "ai-generation",
+        "category": "media",
         "tags": [
           "speech",
           "text-to-speech",
@@ -6664,7 +6726,8 @@
           "openai",
           "elevenlabs",
           "gemini",
-          "content-creation"
+          "content-creation",
+          "capability:generate"
         ],
         "icon": "audio-lines"
       },
@@ -6710,14 +6773,16 @@
         "description": "Extract and query sports statistics from Basketball Reference, ESPN, and other sports sites",
         "author": "CO-LLAB",
         "license": "MIT",
-        "category": "data-extraction",
+        "category": "data",
         "tags": [
           "sports",
           "nba",
           "basketball",
           "statistics",
           "analytics",
-          "basketball-reference"
+          "basketball-reference",
+          "capability:analyze",
+          "domain:sports"
         ],
         "icon": "🏀"
       },
@@ -6776,7 +6841,8 @@
           "sqlite",
           "database",
           "sql",
-          "local"
+          "local",
+          "capability:manage"
         ],
         "icon": "📊"
       },
@@ -6832,13 +6898,16 @@
         "description": "Create and inspect Stripe products, one-time prices, and Payment Links through guarded RUDI MCP tools",
         "author": "RUDI",
         "license": "MIT",
-        "category": "payments",
+        "category": "data",
         "tags": [
           "stripe",
           "payments",
           "products",
           "prices",
-          "payment-links"
+          "payment-links",
+          "capability:manage",
+          "domain:finance",
+          "provider:stripe"
         ],
         "icon": "credit-card"
       },
@@ -6919,7 +6988,9 @@
           "database",
           "mcp",
           "oauth",
-          "remote"
+          "remote",
+          "capability:manage",
+          "provider:supabase"
         ],
         "icon": "supabase",
         "remoteMcp": {
@@ -6994,7 +7065,7 @@
         "description": "Portable SWE Operating Manual reference and JS/TS agent debt scanning tools for engineering workflows.",
         "author": "RUDI",
         "license": "MIT",
-        "category": "development",
+        "category": "code",
         "tags": [
           "swe",
           "engineering",
@@ -7002,7 +7073,8 @@
           "testing",
           "debugging",
           "debt-scan",
-          "code-quality"
+          "code-quality",
+          "capability:review"
         ]
       }
     },
@@ -7056,13 +7128,15 @@
         "description": "Create, manage, and analyze Tally forms and submissions",
         "author": "RUDI",
         "license": "MIT",
-        "category": "productivity",
+        "category": "data",
         "tags": [
           "tally",
           "forms",
           "surveys",
           "data-collection",
-          "feedback"
+          "feedback",
+          "capability:analyze",
+          "provider:tally"
         ]
       },
       "related": {
@@ -7151,7 +7225,9 @@
           "sms",
           "messaging",
           "mcp",
-          "communication"
+          "communication",
+          "capability:communicate",
+          "provider:twilio"
         ],
         "icon": "💬"
       },
@@ -7218,12 +7294,14 @@
         "description": "Deploy to Vercel, manage environment variables, and monitor deployments",
         "author": "RUDI",
         "license": "MIT",
-        "category": "deployment",
+        "category": "web",
         "tags": [
           "vercel",
           "deployment",
           "serverless",
-          "hosting"
+          "hosting",
+          "capability:deploy",
+          "provider:vercel"
         ],
         "icon": "⚡"
       },
@@ -7331,7 +7409,8 @@
           "remotion",
           "templates",
           "qa",
-          "media"
+          "media",
+          "capability:edit"
         ],
         "icon": "🎬"
       }
@@ -7395,7 +7474,7 @@
         "description": "Agent-safe multi-provider video generation for content creation workflows.",
         "author": "brandonz@heritagehill.co",
         "license": "MIT",
-        "category": "ai-generation",
+        "category": "media",
         "tags": [
           "video",
           "generation",
@@ -7407,7 +7486,8 @@
           "openai",
           "sora",
           "content-creation",
-          "social-media"
+          "social-media",
+          "capability:generate"
         ],
         "icon": "video"
       },
@@ -7452,7 +7532,7 @@
         "description": "Export HTML to PDF/PNG with mode detection, artifact verification, and structured diagnostics.",
         "author": "CO-LLAB",
         "license": "MIT",
-        "category": "document-processing",
+        "category": "documents",
         "tags": [
           "export",
           "pdf",
@@ -7462,7 +7542,8 @@
           "print",
           "screenshot",
           "playwright",
-          "diagnostics"
+          "diagnostics",
+          "capability:export"
         ],
         "icon": "📄"
       },
@@ -7506,13 +7587,14 @@
         "description": "Transcribe audio locally with faster-whisper. No API key needed - runs on your machine.",
         "author": "RUDI",
         "license": "MIT",
-        "category": "ai-local",
+        "category": "media",
         "tags": [
           "whisper",
           "transcription",
           "audio",
           "local",
-          "speech-to-text"
+          "speech-to-text",
+          "capability:extract"
         ],
         "icon": "🎙️"
       },
@@ -7592,7 +7674,9 @@
           "mail",
           "email",
           "oauth",
-          "attachments"
+          "attachments",
+          "capability:communicate",
+          "provider:zoho"
         ],
         "icon": "mail"
       },

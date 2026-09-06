@@ -4,23 +4,53 @@
   "name": "CAGIS Public Data",
   "version": "0.2.0",
   "delivery": "remote",
-  "install": { "source": "catalog", "path": "catalog/stacks/cagis" },
+  "install": {
+    "source": "catalog",
+    "path": "catalog/stacks/cagis"
+  },
   "runtime": "node",
   "requires": {
     "binaries": [],
     "secrets": [
-      { "key": "CINCINNATI_PUBLIC_DATA_API_BASE_URL", "label": "Cincinnati Public Data API Base URL", "required": true },
-      { "key": "CINCINNATI_PUBLIC_DATA_API_KEY", "label": "Cincinnati Public Data API Key", "required": false }
+      {
+        "key": "CINCINNATI_PUBLIC_DATA_API_BASE_URL",
+        "label": "Cincinnati Public Data API Base URL",
+        "required": true
+      },
+      {
+        "key": "CINCINNATI_PUBLIC_DATA_API_KEY",
+        "label": "Cincinnati Public Data API Key",
+        "required": false
+      }
     ]
   },
-  "provides": { "tools": ["cagis_lookup_property_activity"] },
-  "mcp": { "transport": "stdio", "command": "node", "args": ["src/index.mjs"], "cwd": "." },
+  "provides": {
+    "tools": [
+      "cagis_lookup_property_activity"
+    ]
+  },
+  "mcp": {
+    "transport": "stdio",
+    "command": "node",
+    "args": [
+      "src/index.mjs"
+    ],
+    "cwd": "."
+  },
   "meta": {
     "description": "Read-only Cincinnati and Hamilton County parcel, complete provider-native zoning context, and property activity lookup through the configured public-data API.",
     "author": "RUDI",
     "license": "MIT",
-    "category": "government-data",
-    "tags": ["cincinnati", "hamilton-county", "cagis", "parcels", "zoning"],
+    "category": "data",
+    "tags": [
+      "cincinnati",
+      "hamilton-county",
+      "cagis",
+      "parcels",
+      "zoning",
+      "capability:extract",
+      "domain:real-estate"
+    ],
     "boundary": "Read-only CAGIS facts only. Zoning context is marked complete only for a matched Cincinnati provider result with valid code, overlay array, source identity, and fetched time. No permit, case, inspection, or parcel mutation tools are exposed."
   },
   "related": {

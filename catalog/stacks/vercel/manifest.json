@@ -3,13 +3,11 @@
   "kind": "stack",
   "name": "Vercel",
   "version": "1.0.0",
-
   "delivery": "remote",
   "install": {
     "source": "catalog",
     "path": "catalog/stacks/vercel"
   },
-
   "runtime": "node",
   "requires": {
     "binaries": [],
@@ -46,16 +44,25 @@
   "mcp": {
     "transport": "stdio",
     "command": "npx",
-    "args": ["tsx", "src/index.ts"],
+    "args": [
+      "tsx",
+      "src/index.ts"
+    ],
     "cwd": "."
   },
-
   "meta": {
     "description": "Deploy to Vercel, manage environment variables, and monitor deployments",
     "author": "RUDI",
     "license": "MIT",
-    "category": "deployment",
-    "tags": ["vercel", "deployment", "serverless", "hosting"],
+    "category": "web",
+    "tags": [
+      "vercel",
+      "deployment",
+      "serverless",
+      "hosting",
+      "capability:deploy",
+      "provider:vercel"
+    ],
     "icon": "⚡"
   },
   "related": {
