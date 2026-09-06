@@ -1,5 +1,7 @@
 # Stack-Related Skills Checklist
 
+Current authoring and installed-folder behavior are documented in [Skill catalog organization](../skill-catalog.md). The milestones below retain their historical paths and evidence.
+
 > **Status: active product roadmap.** This is planning material, not a catalog
 > package or an implementation contract.
 

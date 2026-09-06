@@ -269,28 +269,28 @@ describe("portable skill contracts", () => {
     );
 
     expect(index.packages["skill:map-change-impact"]).toMatchObject({
-      version: "1.1.0",
+      version: "1.1.1",
       install: {
         source: "catalog",
         path: "catalog/skills/map-change-impact",
       },
     });
     expect(index.packages["skill:grill-with-docs-loop"]).toMatchObject({
-      version: "2.2.0",
+      version: "2.2.1",
       install: {
         source: "catalog",
-        path: "catalog/skills/grill-with-docs-loop.md",
+        path: "catalog/skills/grill-with-docs-loop",
       },
     });
     expect(index.packages["skill:swe-compliance-checklist"]).toMatchObject({
-      version: "1.5.0",
+      version: "1.5.1",
       install: {
         source: "catalog",
-        path: "catalog/skills/swe-compliance-checklist.md",
+        path: "catalog/skills/swe-compliance-checklist",
       },
     });
     expect(index.packages["skill:horizontal-engineering-review"]).toMatchObject({
-      version: "1.1.0",
+      version: "1.1.1",
       install: {
         source: "catalog",
         path: "catalog/skills/horizontal-engineering-review",
@@ -300,7 +300,7 @@ describe("portable skill contracts", () => {
       },
     });
     expect(index.packages["skill:rudi-chief-of-staff"]).toMatchObject({
-      version: "1.2.1",
+      version: "1.2.2",
       install: {
         source: "catalog",
         path: "catalog/skills/rudi-chief-of-staff",
@@ -317,7 +317,7 @@ describe("portable skill contracts", () => {
       "publish-task-changes",
     ]) {
       expect(index.packages[`skill:${skillName}`]).toMatchObject({
-        version: "1.0.0",
+        version: "1.0.1",
         install: {
           source: "catalog",
           path: `catalog/skills/${skillName}`,
@@ -325,14 +325,14 @@ describe("portable skill contracts", () => {
       });
     }
     expect(index.packages["skill:rudi-repo-steward"]).toMatchObject({
-      version: "0.3.0",
+      version: "0.3.1",
       install: {
         source: "catalog",
         path: "catalog/skills/rudi-repo-steward",
       },
     });
     expect(index.packages["skill:rudi-worktree-closeout"]).toMatchObject({
-      version: "1.0.0",
+      version: "1.0.1",
       install: {
         source: "catalog",
         path: "catalog/skills/rudi-worktree-closeout",
@@ -342,7 +342,7 @@ describe("portable skill contracts", () => {
       },
     });
     expect(index.packages["skill:set-goal-and-execute"]).toMatchObject({
-      version: "1.0.0",
+      version: "1.0.1",
       install: {
         source: "catalog",
         path: "catalog/skills/set-goal-and-execute",
@@ -509,11 +509,11 @@ describe("portable skill contracts", () => {
   it("keeps the delivery workflow host-neutral and evidence-gated", async () => {
     const [issueLoop, complianceChecklist] = await Promise.all([
       fs.readFile(
-        path.join(repoRoot, "catalog/skills/rudi-swe-issue-loop.md"),
+        path.join(repoRoot, "catalog/skills/rudi-swe-issue-loop/SKILL.md"),
         "utf8"
       ),
       fs.readFile(
-        path.join(repoRoot, "catalog/skills/swe-compliance-checklist.md"),
+        path.join(repoRoot, "catalog/skills/swe-compliance-checklist/SKILL.md"),
         "utf8"
       ),
     ]);
@@ -525,11 +525,11 @@ describe("portable skill contracts", () => {
       expect(skill).toMatch(/evidence bundle/i);
     }
     expect(issueLoop).not.toContain("RUDI or Codex engineering work");
-    expect(issueLoop).toContain("version: 1.2.0");
+    expect(issueLoop).toContain("version: 1.2.1");
     expect(issueLoop).toMatch(/Standalone mode/i);
     expect(issueLoop).toMatch(/Composed mode/i);
     expect(issueLoop).toMatch(/Issue or PR state never.*plan dependency/is);
-    expect(complianceChecklist).toContain("version: 1.5.0");
+    expect(complianceChecklist).toContain("version: 1.5.1");
     expect(complianceChecklist).toMatch(/Standards, Spec, and Proof/i);
     expect(complianceChecklist).toContain("Horizontal-pattern scan:");
     expect(complianceChecklist).toContain("Horizontal-obligation disposition:");

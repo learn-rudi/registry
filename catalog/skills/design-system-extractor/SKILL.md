@@ -1,6 +1,10 @@
 ---
-name: design-system-extractor
+name: Design System Extractor
 description: Extract a website's visual system and marketing language into a validated design-system JSON file, rendered HTML and DOCX references, image-generation prompts, and a provenance-aware marketing-copy library. Use when a user supplies a website and wants reusable brand guidance or source material for social, campaign, presentation, or Canva assets.
+category: web
+tags:
+  - capability:extract
+version: 1.0.1
 ---
 
 # Design System Extractor

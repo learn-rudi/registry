@@ -185,9 +185,9 @@ describe("index structure", () => {
     expect(skills.length).toBe(index.stats.byKind.skill);
     expect(skills.every((skill) => (
       skill.install.source === "catalog" &&
-      /^catalog\/skills\/[a-z0-9][a-z0-9-]*(?:\.md)?$/.test(skill.install.path)
+      /^catalog\/skills\/[a-z0-9][a-z0-9-]*$/.test(skill.install.path)
     ))).toBe(true);
-    expect(skills.some((skill) => skill.install.path.endsWith(".md"))).toBe(true);
+    expect(skills.every((skill) => !skill.install.path.endsWith(".md"))).toBe(true);
   });
 
   it("should preserve related skill relationships in generated indexes", async () => {

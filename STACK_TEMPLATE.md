@@ -65,7 +65,10 @@ Describe what the stack outputs.
 
 ## Required Operator Skill
 
-Add `catalog/skills/example-stack.md` with `requires.stacks` containing
+Add `catalog/skills/example-stack/SKILL.md` with `requires.stacks` containing
 `stack:example-stack`. The skill must translate user requests into calls to the
 manifest-declared tools, use the live tool schema for parameters, confirm risky
 mutations, validate results, and verify completed changes.
+
+Skill category, naming, facet and dependency conventions are defined in
+[Skill catalog organization](docs/skill-catalog.md).

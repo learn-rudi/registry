@@ -1,7 +1,10 @@
 ---
-name: rudi-decision-canvas
+name: RUDI Decision Canvas
 description: Turn an ambiguous product, architecture, workflow, or design question into a self-contained visual options artifact, collect structured feedback, and convert approved choices into a written task contract. Use when prose alone makes alternatives hard to compare or when stakeholders need to annotate and decide before implementation.
-version: 1.1.0
+version: 1.1.1
+category: documents
+tags:
+  - capability:design
 ---
 
 # RUDI Decision Canvas

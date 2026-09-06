@@ -11,7 +11,7 @@ RUDI CLI. The catalog uses schema version 2 with unversioned canonical paths.
 | Binary | Standalone binaries and CLIs | `catalog/binaries/{id}.json` |
 | Agent | AI coding assistants | `catalog/agents/{id}.json` |
 | Runtime | Language interpreters | `catalog/runtimes/{id}.json` |
-| Skill | Reusable agent workflows | `catalog/skills/{id}.md` or `catalog/skills/{id}/SKILL.md` |
+| Skill | Reusable agent workflows | `catalog/skills/{id}/SKILL.md` |
 
 `index.json` is the single generated package index. Do not add parallel
 version-suffixed files or directories; the schema version belongs inside the
@@ -34,7 +34,7 @@ catalog/
 ├── stacks/{id}/
 │   ├── manifest.json         # Canonical stack metadata
 │   └── src/, node/, python/  # Stack implementation
-├── skills/                   # Flat or bundled skill packages
+├── skills/                   # Same-ID skill folders
 ├── binaries/{id}.json        # Canonical binary metadata
 ├── agents/{id}.json          # Canonical agent metadata
 └── runtimes/{id}.json        # Canonical runtime metadata
@@ -120,8 +120,8 @@ canonical catalog rather than left as installable placeholders. See
 
 ## Creating a Skill
 
-Use either a flat file at `catalog/skills/{skill-id}.md` or a bundle rooted at
-`catalog/skills/{skill-id}/SKILL.md`. Bundles may include `scripts/`,
+Author each skill in `catalog/skills/{skill-id}/SKILL.md`. Legacy flat files
+remain readable for compatibility. Bundles may include `scripts/`,
 `references/`, and `assets/`. Catalog packages must be portable: personal paths,
 client state, account data, and brand-specific defaults belong in local/private
 skills or `~/.rudi` state.
@@ -180,3 +180,6 @@ guidance.
 ## License
 
 MIT
+
+Skill category, naming, facet and dependency conventions are defined in
+[Skill catalog organization](docs/skill-catalog.md).

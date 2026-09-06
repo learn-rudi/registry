@@ -1,6 +1,10 @@
 ---
-name: rudi-code-review
+name: RUDI Code Review
 description: Review a completed software change independently against three separate axes—engineering Standards, the approved Spec, and the claimed Proof—and return prioritized, evidence-backed findings without editing by default. Use for pre-merge, pre-release, or high-risk change review when a diff and task contract exist; do not use for initial implementation, generic architecture consolidation, or debugging an unknown cause.
+category: code
+tags:
+  - capability:review
+version: 1.0.1
 ---
 
 # RUDI Code Review

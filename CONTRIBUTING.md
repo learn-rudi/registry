@@ -90,7 +90,7 @@ type, and SHA-256 checksum for every platform. System packages require
 
 ## Adding a Skill
 
-Use either `catalog/skills/{id}.md` or a bundle rooted at
+Use one same-ID folder rooted at
 `catalog/skills/{id}/SKILL.md`. Include portable YAML frontmatter with at least
 `name` and `description`. Keep personal, client-specific, brand-specific, and
 machine-specific workflow state out of public packages.
@@ -145,3 +145,6 @@ rudi search my-stack
 
 By contributing, you agree that your contribution is licensed under the MIT
 License.
+
+Skill category, naming, facet and dependency conventions are defined in
+[Skill catalog organization](docs/skill-catalog.md).

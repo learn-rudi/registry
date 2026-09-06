@@ -1,0 +1,4 @@
+interface:
+  display_name: "RUDI Design Rulebook"
+  short_description: "Audit or build UI against generic-design tells and the laws of UX"
+  default_prompt: "Use $rudi-design-rulebook to audit this design for machine-generated tells and laws-of-UX misses, then report findings with fixes."

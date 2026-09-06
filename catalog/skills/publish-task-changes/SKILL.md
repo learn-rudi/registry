@@ -1,6 +1,10 @@
 ---
-name: publish-task-changes
+name: Publish Task Changes
 description: Safely stage and commit only the current task's verified changes, with push and draft pull-request steps only when each endpoint is explicitly requested. Use when the user asks to commit, push, open a PR, or publish the current task from a cleanly attributable diff; do not use merely because implementation finished or when task-owned paths cannot be separated from unrelated work.
+category: code
+tags:
+  - capability:publish
+version: 1.0.1
 ---
 
 # Publish Task Changes

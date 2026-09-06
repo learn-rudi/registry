@@ -1,6 +1,10 @@
 ---
-name: rudi-stakeholder-questionnaire
+name: RUDI Stakeholder Questionnaire
 description: Create a concise, neutral questionnaire that obtains missing product, policy, workflow, domain, or acceptance knowledge from a named stakeholder and turns partial responses into explicit decision evidence. Use when another person holds information required to proceed; do not use to ask the stakeholder questions the agent can answer from available evidence or to fabricate answers.
+category: documents
+tags:
+  - capability:write
+version: 1.0.1
 ---
 
 # RUDI Stakeholder Questionnaire
