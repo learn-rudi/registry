@@ -1,15 +1,15 @@
 {
   "$schema": "https://learn-rudi.dev/schemas/registry/v2/index.schema.json",
   "schemaVersion": "2",
-  "generatedAt": "2026-09-02T13:43:05.000Z",
+  "generatedAt": "2026-09-02T22:01:30.000Z",
   "stats": {
-    "total": 167,
+    "total": 173,
     "byKind": {
       "agent": 4,
-      "binary": 27,
+      "binary": 28,
       "runtime": 6,
-      "skill": 80,
-      "stack": 50
+      "skill": 84,
+      "stack": 51
     }
   },
   "packages": {
@@ -622,6 +622,36 @@
       "meta": {
         "description": "Browser automation for screenshots, scraping, and testing",
         "category": "utilities"
+      }
+    },
+    "binary:potrace": {
+      "id": "binary:potrace",
+      "kind": "binary",
+      "name": "Potrace",
+      "version": "1.16",
+      "delivery": "system",
+      "install": {
+        "source": "system"
+      },
+      "bins": {
+        "potrace": {
+          "path": "potrace"
+        }
+      },
+      "detect": {
+        "command": "potrace --version",
+        "expectExitCode": 0
+      },
+      "meta": {
+        "description": "Bitmap-to-vector tracing engine used for deterministic logo candidate conversion.",
+        "category": "media"
+      },
+      "installHints": {
+        "brew": "brew install potrace",
+        "apt": "sudo apt install potrace",
+        "winget": "Install Potrace and ensure potrace is on PATH.",
+        "choco": "Install Potrace and ensure potrace is on PATH.",
+        "manual": "Install Potrace and ensure potrace is on PATH."
       }
     },
     "binary:psql": {
@@ -1665,11 +1695,11 @@
       "id": "skill:agent-hosts",
       "kind": "skill",
       "name": "Agent Hosts Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/agent-hosts.md"
+        "path": "catalog/skills/agent-hosts"
       },
       "requires": {
         "stacks": [
@@ -1677,12 +1707,13 @@
         ]
       },
       "meta": {
-        "description": "Operate Agent Hosts through RUDI's stack tools when a user asks for work supported by stack:agent-hosts. Governed synchronous MCP gateway for a fixed local DeepSeek, Claude Code, and Codex Agent Host fleet.",
-        "category": "ai-generation",
+        "description": "Governed synchronous MCP gateway for a fixed local DeepSeek, Claude Code, and Codex Agent Host fleet.",
+        "category": "agents",
         "tags": [
           "rudi",
           "operator",
-          "agent-hosts"
+          "agent-hosts",
+          "capability:manage"
         ]
       }
     },
@@ -1690,11 +1721,11 @@
       "id": "skill:audio-tools",
       "kind": "skill",
       "name": "Audio Tools Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/audio-tools.md"
+        "path": "catalog/skills/audio-tools"
       },
       "requires": {
         "stacks": [
@@ -1702,12 +1733,41 @@
         ]
       },
       "meta": {
-        "description": "Operate Audio Tools through RUDI's stack tools when a user asks for work supported by stack:audio-tools. Transcribe, enrich, and query audio or video-linked speech. Accepts local files, direct media URLs, supported video-page URLs, or base64 input.",
-        "category": "audio-processing",
+        "description": "Transcribe, enrich, and query audio or video-linked speech. Accepts local files, direct media URLs, supported video-page URLs, or base64 input.",
+        "category": "media",
         "tags": [
           "rudi",
           "operator",
-          "audio-tools"
+          "audio-tools",
+          "capability:extract"
+        ]
+      }
+    },
+    "skill:brand-assets": {
+      "id": "skill:brand-assets",
+      "kind": "skill",
+      "name": "Brand Assets Operator",
+      "version": "1.0.1",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/brand-assets"
+      },
+      "requires": {
+        "stacks": [
+          "stack:brand-assets"
+        ]
+      },
+      "meta": {
+        "description": "Operate Brand Assets through RUDI's stack tools when a user asks to inspect, vectorize, normalize, compose, or validate raster-generated logo assets.",
+        "category": "media",
+        "tags": [
+          "rudi",
+          "operator",
+          "brand-assets",
+          "vectorization",
+          "svg",
+          "capability:design"
         ]
       }
     },
@@ -1715,11 +1775,11 @@
       "id": "skill:brave-search",
       "kind": "skill",
       "name": "Brave Search Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/brave-search.md"
+        "path": "catalog/skills/brave-search"
       },
       "requires": {
         "stacks": [
@@ -1728,13 +1788,15 @@
       },
       "meta": {
         "description": "Operate Brave Search through RUDI's stack tools when a user asks for current web discovery supported by stack:brave-search. Read-only provider search with RUDI-mediated credentials and explicit storage-rights boundaries.",
-        "category": "research",
+        "category": "web",
         "tags": [
           "rudi",
           "operator",
           "brave",
           "search",
-          "web-discovery"
+          "web-discovery",
+          "capability:research",
+          "provider:brave"
         ]
       }
     },
@@ -1742,11 +1804,11 @@
       "id": "skill:business-communication-secretary",
       "kind": "skill",
       "name": "Business Communication Secretary",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/business-communication-secretary.md"
+        "path": "catalog/skills/business-communication-secretary"
       },
       "requires": {
         "stacks": [
@@ -1756,7 +1818,7 @@
       },
       "meta": {
         "description": "Operate the business communication workflow by reconciling source connectors such as Gmail, sent mail, Calendar, and meeting transcripts into a Notion action board",
-        "category": "business",
+        "category": "communication",
         "tags": [
           "email",
           "calendar",
@@ -1764,7 +1826,9 @@
           "transcripts",
           "communications",
           "follow-up",
-          "secretary"
+          "secretary",
+          "capability:coordinate",
+          "domain:client-services"
         ],
         "icon": "📬"
       }
@@ -1773,11 +1837,11 @@
       "id": "skill:cagis",
       "kind": "skill",
       "name": "CAGIS Public Data Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/cagis.md"
+        "path": "catalog/skills/cagis"
       },
       "requires": {
         "stacks": [
@@ -1785,12 +1849,14 @@
         ]
       },
       "meta": {
-        "description": "Operate CAGIS Public Data through RUDI's stack tools when a user asks for work supported by stack:cagis. Read-only Cincinnati and Hamilton County parcel, complete provider-native zoning context, and property activity lookup through the configured public-data API.",
-        "category": "government-data",
+        "description": "Read-only Cincinnati and Hamilton County parcel, complete provider-native zoning context, and property activity lookup through the configured public-data API.",
+        "category": "data",
         "tags": [
           "rudi",
           "operator",
-          "cagis"
+          "cagis",
+          "capability:extract",
+          "domain:real-estate"
         ]
       }
     },
@@ -1798,21 +1864,23 @@
       "id": "skill:client-engagement-intake",
       "kind": "skill",
       "name": "Client Engagement Intake",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/client-engagement-intake.md"
+        "path": "catalog/skills/client-engagement-intake"
       },
       "meta": {
         "description": "Create RUDI client engagement workspaces and private GitHub repos from client conversations, transcripts, and pipeline discussions",
-        "category": "business",
+        "category": "documents",
         "tags": [
           "clients",
           "pipeline",
           "engagements",
           "github",
-          "handoff"
+          "handoff",
+          "capability:coordinate",
+          "domain:client-services"
         ],
         "icon": "🧾"
       }
@@ -1821,11 +1889,11 @@
       "id": "skill:cloudinary",
       "kind": "skill",
       "name": "Cloudinary Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/cloudinary.md"
+        "path": "catalog/skills/cloudinary"
       },
       "requires": {
         "stacks": [
@@ -1833,12 +1901,33 @@
         ]
       },
       "meta": {
-        "description": "Operate Cloudinary through RUDI's stack tools when a user asks for work supported by stack:cloudinary. Upload local media to Cloudinary and return public HTTPS URLs for social publishing workflows.",
+        "description": "Upload local media to Cloudinary and return public HTTPS URLs for social publishing workflows.",
         "category": "media",
         "tags": [
           "rudi",
           "operator",
-          "cloudinary"
+          "cloudinary",
+          "capability:manage",
+          "provider:cloudinary"
+        ]
+      }
+    },
+    "skill:codex-tasks": {
+      "id": "skill:codex-tasks",
+      "kind": "skill",
+      "name": "Codex Tasks",
+      "version": "1.0.1",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/codex-tasks"
+      },
+      "meta": {
+        "description": "Manage Codex Desktop tasks, saved projects, and sidebar sections through a closed command grammar with exact target resolution, explicit authority, and verified native-tool receipts. Use when the user explicitly invokes `$codex-tasks`; do not use it to infer task-management actions from ordinary conversation or to choose a review workflow for the user.",
+        "category": "agents",
+        "tags": [
+          "capability:manage",
+          "provider:openai"
         ]
       }
     },
@@ -1846,11 +1935,11 @@
       "id": "skill:content-extractor",
       "kind": "skill",
       "name": "Content Extractor Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/content-extractor.md"
+        "path": "catalog/skills/content-extractor"
       },
       "requires": {
         "stacks": [
@@ -1858,12 +1947,13 @@
         ]
       },
       "meta": {
-        "description": "Operate Content Extractor through RUDI's stack tools when a user asks for work supported by stack:content-extractor. Extract content from YouTube, Reddit, TikTok, web articles, GitHub, and link batches",
-        "category": "data-extraction",
+        "description": "Extract content from YouTube, Reddit, TikTok, web articles, GitHub, and link batches",
+        "category": "data",
         "tags": [
           "rudi",
           "operator",
-          "content-extractor"
+          "content-extractor",
+          "capability:extract"
         ]
       }
     },
@@ -1871,11 +1961,11 @@
       "id": "skill:creator-intelligence",
       "kind": "skill",
       "name": "Creator Intelligence Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/creator-intelligence.md"
+        "path": "catalog/skills/creator-intelligence"
       },
       "requires": {
         "stacks": [
@@ -1883,12 +1973,14 @@
         ]
       },
       "meta": {
-        "description": "Operate Creator Intelligence through RUDI's stack tools when a user asks for work supported by stack:creator-intelligence. Creator audit and style-reference tooling for shortform research, contact sheets, keyframe sheets, and local audit inventory.",
-        "category": "creator-intelligence",
+        "description": "Creator audit and style-reference tooling for shortform research, contact sheets, keyframe sheets, and local audit inventory.",
+        "category": "media",
         "tags": [
           "rudi",
           "operator",
-          "creator-intelligence"
+          "creator-intelligence",
+          "capability:analyze",
+          "domain:content-production"
         ]
       }
     },
@@ -1896,11 +1988,11 @@
       "id": "skill:data-analysis",
       "kind": "skill",
       "name": "Data Analysis Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/data-analysis.md"
+        "path": "catalog/skills/data-analysis"
       },
       "requires": {
         "stacks": [
@@ -1908,38 +2000,43 @@
         ]
       },
       "meta": {
-        "description": "Operate Data Analysis through RUDI's stack tools when a user asks for work supported by stack:data-analysis. Analyze data with Python, pandas, numpy, and matplotlib. Generate charts and insights.",
+        "description": "Analyze data with Python, pandas, numpy, and matplotlib. Generate charts and insights.",
         "category": "data",
         "tags": [
           "rudi",
           "operator",
-          "data-analysis"
+          "data-analysis",
+          "capability:analyze"
         ]
       }
     },
     "skill:design-system-extractor": {
       "id": "skill:design-system-extractor",
       "kind": "skill",
-      "name": "design-system-extractor",
-      "version": "1.0.0",
+      "name": "Design System Extractor",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
         "path": "catalog/skills/design-system-extractor"
       },
       "meta": {
-        "description": "Extract a website's visual system and marketing language into a validated design-system JSON file, rendered HTML and DOCX references, image-generation prompts, and a provenance-aware marketing-copy library. Use when a user supplies a website and wants reusable brand guidance or source material for social, campaign, presentation, or Canva assets."
+        "description": "Extract a website's visual system and marketing language into a validated design-system JSON file, rendered HTML and DOCX references, image-generation prompts, and a provenance-aware marketing-copy library. Use when a user supplies a website and wants reusable brand guidance or source material for social, campaign, presentation, or Canva assets.",
+        "category": "web",
+        "tags": [
+          "capability:extract"
+        ]
       }
     },
     "skill:document-processor": {
       "id": "skill:document-processor",
       "kind": "skill",
       "name": "Document Processor Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/document-processor.md"
+        "path": "catalog/skills/document-processor"
       },
       "requires": {
         "stacks": [
@@ -1947,12 +2044,13 @@
         ]
       },
       "meta": {
-        "description": "Operate Document Processor through RUDI's stack tools when a user asks for work supported by stack:document-processor. Extract PDF slides as images, remove watermarks, and process presentations.",
-        "category": "document-processing",
+        "description": "Extract PDF slides as images, remove watermarks, and process presentations.",
+        "category": "documents",
         "tags": [
           "rudi",
           "operator",
-          "document-processor"
+          "document-processor",
+          "capability:extract"
         ]
       }
     },
@@ -1960,11 +2058,11 @@
       "id": "skill:document-qa",
       "kind": "skill",
       "name": "Document QA Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/document-qa.md"
+        "path": "catalog/skills/document-qa"
       },
       "requires": {
         "stacks": [
@@ -1972,12 +2070,13 @@
         ]
       },
       "meta": {
-        "description": "Operate Document QA through RUDI's stack tools when a user asks for work supported by stack:document-qa. Visual QA inspection for HTML documents using screenshots and Claude Vision.",
-        "category": "document-processing",
+        "description": "Visual QA inspection for HTML documents using screenshots and Claude Vision.",
+        "category": "documents",
         "tags": [
           "rudi",
           "operator",
-          "document-qa"
+          "document-qa",
+          "capability:review"
         ]
       }
     },
@@ -1985,11 +2084,11 @@
       "id": "skill:dwellow-mcp",
       "kind": "skill",
       "name": "Dwellow MCP Operator",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/dwellow-mcp.md"
+        "path": "catalog/skills/dwellow-mcp"
       },
       "requires": {
         "stacks": [
@@ -1997,12 +2096,14 @@
         ]
       },
       "meta": {
-        "description": "Operate Dwellow MCP through RUDI's stack tools when a user asks for work supported by stack:dwellow-mcp. Bridge to the hosted Dwellow real-estate development feasibility MCP server.",
-        "category": "real-estate",
+        "description": "Bridge to the hosted Dwellow real-estate development feasibility MCP server.",
+        "category": "data",
         "tags": [
           "rudi",
           "operator",
-          "dwellow-mcp"
+          "dwellow-mcp",
+          "capability:analyze",
+          "domain:real-estate"
         ]
       }
     },
@@ -2010,11 +2111,11 @@
       "id": "skill:github",
       "kind": "skill",
       "name": "GitHub Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/github.md"
+        "path": "catalog/skills/github"
       },
       "requires": {
         "stacks": [
@@ -2022,12 +2123,14 @@
         ]
       },
       "meta": {
-        "description": "Operate GitHub through RUDI's stack tools when a user asks for work supported by stack:github. Manage GitHub repositories, branches, contents, collaborators, issues, pull requests, releases, Actions, artifacts, and direct REST API calls",
-        "category": "development",
+        "description": "Manage GitHub repositories, branches, contents, collaborators, issues, pull requests, releases, Actions, artifacts, and direct REST API calls",
+        "category": "code",
         "tags": [
           "rudi",
           "operator",
-          "github"
+          "github",
+          "capability:manage",
+          "provider:github"
         ]
       }
     },
@@ -2035,11 +2138,11 @@
       "id": "skill:google-ai",
       "kind": "skill",
       "name": "Google AI Suite Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/google-ai.md"
+        "path": "catalog/skills/google-ai"
       },
       "requires": {
         "stacks": [
@@ -2047,12 +2150,14 @@
         ]
       },
       "meta": {
-        "description": "Operate Google AI Suite through RUDI's stack tools when a user asks for work supported by stack:google-ai. Generate images (Gemini, Imagen 4) and videos (Veo 3.1) using Google AI",
-        "category": "ai-generation",
+        "description": "Generate images and videos using the supported Google AI models selected for the requested media task",
+        "category": "media",
         "tags": [
           "rudi",
           "operator",
-          "google-ai"
+          "google-ai",
+          "capability:generate",
+          "provider:google"
         ]
       }
     },
@@ -2060,11 +2165,11 @@
       "id": "skill:google-workspace",
       "kind": "skill",
       "name": "Google Workspace Tools Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/google-workspace.md"
+        "path": "catalog/skills/google-workspace"
       },
       "requires": {
         "stacks": [
@@ -2072,12 +2177,14 @@
         ]
       },
       "meta": {
-        "description": "Operate Google Workspace Tools through RUDI's stack tools when a user asks for work supported by stack:google-workspace. Workflow-focused tools for Gmail, Google Sheets, Docs, Slides, Drive, Calendar, and Tasks",
-        "category": "api-integrations",
+        "description": "Workflow-focused tools for Gmail, Google Sheets, Docs, Slides, Drive, Calendar, and Tasks",
+        "category": "communication",
         "tags": [
           "rudi",
           "operator",
-          "google-workspace"
+          "google-workspace",
+          "capability:manage",
+          "provider:google"
         ]
       }
     },
@@ -2085,22 +2192,23 @@
       "id": "skill:grill-with-docs",
       "kind": "skill",
       "name": "Grill With Docs",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/grill-with-docs.md"
+        "path": "catalog/skills/grill-with-docs"
       },
       "meta": {
         "description": "Stress-test a plan against the existing domain model, sharpen terminology, and update CONTEXT.md or ADRs as decisions crystallize",
-        "category": "coding",
+        "category": "code",
         "tags": [
           "architecture",
           "domain-modeling",
           "glossary",
           "adr",
           "documentation",
-          "grill-me"
+          "grill-me",
+          "capability:review"
         ]
       }
     },
@@ -2108,15 +2216,15 @@
       "id": "skill:grill-with-docs-loop",
       "kind": "skill",
       "name": "Grill With Docs Loop",
-      "version": "2.2.0",
+      "version": "2.2.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/grill-with-docs-loop.md"
+        "path": "catalog/skills/grill-with-docs-loop"
       },
       "meta": {
         "description": "Resolve repo domain questions with isolated agents, update CONTEXT.md and ADRs, and preserve reviewable audit trails",
-        "category": "coding",
+        "category": "code",
         "tags": [
           "architecture",
           "domain-modeling",
@@ -2124,7 +2232,8 @@
           "adr",
           "documentation",
           "multi-agent",
-          "repo-analysis"
+          "repo-analysis",
+          "capability:review"
         ]
       }
     },
@@ -2132,11 +2241,11 @@
       "id": "skill:hamilton-county-auditor",
       "kind": "skill",
       "name": "Hamilton County Auditor Public Data Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/hamilton-county-auditor.md"
+        "path": "catalog/skills/hamilton-county-auditor"
       },
       "requires": {
         "stacks": [
@@ -2144,20 +2253,22 @@
         ]
       },
       "meta": {
-        "description": "Operate Hamilton County Auditor Public Data through RUDI's stack tools when a user asks for work supported by stack:hamilton-county-auditor. Read-only authoritative parcel ownership, assessed value, characteristics, and sales facts through the configured public-data API.",
-        "category": "government-data",
+        "description": "Read-only authoritative parcel ownership, assessed value, characteristics, and sales facts through the configured public-data API.",
+        "category": "data",
         "tags": [
           "rudi",
           "operator",
-          "hamilton-county-auditor"
+          "hamilton-county-auditor",
+          "capability:extract",
+          "domain:real-estate"
         ]
       }
     },
     "skill:horizontal-engineering-review": {
       "id": "skill:horizontal-engineering-review",
       "kind": "skill",
-      "name": "horizontal-engineering-review",
-      "version": "1.1.0",
+      "name": "Horizontal Engineering Review",
+      "version": "1.1.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -2170,13 +2281,14 @@
       },
       "meta": {
         "description": "Assess repository-wide architectural coherence across multiple changes, assign evidence-backed dispositions to semantic duplication and shared-contract drift, and plan or execute authorized consolidation. Use for horizontal architecture reviews, repeated mechanisms, consolidation obligations, or cross-module drift; do not use for ordinary single-change code review or Git worktree cleanup.",
-        "category": "development",
+        "category": "code",
         "tags": [
           "architecture",
           "consolidation",
           "codebase-stewardship",
           "technical-debt",
-          "engineering"
+          "engineering",
+          "capability:review"
         ]
       }
     },
@@ -2184,11 +2296,11 @@
       "id": "skill:image-generator",
       "kind": "skill",
       "name": "Image Generator Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/image-generator.md"
+        "path": "catalog/skills/image-generator"
       },
       "requires": {
         "stacks": [
@@ -2196,12 +2308,13 @@
         ]
       },
       "meta": {
-        "description": "Operate Image Generator through RUDI's stack tools when a user asks for work supported by stack:image-generator. Agent-safe API and bounded Midjourney browser image generation for content creation workflows.",
-        "category": "ai-generation",
+        "description": "Agent-safe API and bounded Midjourney browser image generation for content creation workflows.",
+        "category": "media",
         "tags": [
           "rudi",
           "operator",
-          "image-generator"
+          "image-generator",
+          "capability:generate"
         ]
       }
     },
@@ -2209,11 +2322,11 @@
       "id": "skill:inline-editorial-markup",
       "kind": "skill",
       "name": "Inline Editorial Markup",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/inline-editorial-markup.md"
+        "path": "catalog/skills/inline-editorial-markup"
       },
       "requires": {
         "stacks": [
@@ -2222,7 +2335,7 @@
       },
       "meta": {
         "description": "Create static or interactive editorial markup documents with visible deletions, insertions, notes, accept/reject review controls, and clean-copy export. Use when a user asks for track-changes-style editing in HTML, Word-like review markup, inline redline proposals, transcript cleanup review, or an interactive editor for accepting changes.",
-        "category": "writing",
+        "category": "documents",
         "tags": [
           "writing",
           "editing",
@@ -2230,7 +2343,8 @@
           "review",
           "redline",
           "html",
-          "transcripts"
+          "transcripts",
+          "capability:edit"
         ]
       }
     },
@@ -2238,11 +2352,11 @@
       "id": "skill:macos-automation",
       "kind": "skill",
       "name": "macOS Automation Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/macos-automation.md"
+        "path": "catalog/skills/macos-automation"
       },
       "requires": {
         "stacks": [
@@ -2250,12 +2364,14 @@
         ]
       },
       "meta": {
-        "description": "Operate macOS Automation through RUDI's stack tools when a user asks for work supported by stack:macos-automation. Guarded macOS automation tools for apps, Finder, Reminders, Shortcuts, notifications, and System Events permission checks.",
-        "category": "local-automation",
+        "description": "Guarded macOS automation tools for apps, Finder, Reminders, Shortcuts, notifications, and System Events permission checks.",
+        "category": "agents",
         "tags": [
           "rudi",
           "operator",
-          "macos-automation"
+          "macos-automation",
+          "capability:manage",
+          "provider:apple"
         ]
       }
     },
@@ -2263,11 +2379,11 @@
       "id": "skill:managed-ai",
       "kind": "skill",
       "name": "RUDI Managed AI Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/managed-ai.md"
+        "path": "catalog/skills/managed-ai"
       },
       "requires": {
         "stacks": [
@@ -2276,19 +2392,21 @@
       },
       "meta": {
         "description": "Operate the unified RUDI Managed AI platform through stack:managed-ai's authenticated, tenant-scoped API tools for bounded context, review candidates, approvals, and projection preparation.",
-        "category": "business",
+        "category": "agents",
         "tags": [
           "rudi",
           "operator",
-          "managed-ai"
+          "managed-ai",
+          "capability:manage",
+          "domain:client-services"
         ]
       }
     },
     "skill:map-change-impact": {
       "id": "skill:map-change-impact",
       "kind": "skill",
-      "name": "map-change-impact",
-      "version": "1.1.0",
+      "name": "Map Change Impact",
+      "version": "1.1.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -2296,14 +2414,15 @@
       },
       "meta": {
         "description": "Map the exact repository paths a proposed feature, fix, refactor, migration, or remediation will affect and print the ordered actions, risks, dependencies, and verification needed before implementation. Use when a user asks what file paths will be impacted, what needs to change, what has already been implemented, what remains to do, what the blast radius is, or wants an implementation-ready change map without starting the edits.",
-        "category": "development",
+        "category": "code",
         "tags": [
           "rudi",
           "impact-analysis",
           "scope",
           "repository",
           "planning",
-          "verification"
+          "verification",
+          "capability:review"
         ]
       }
     },
@@ -2311,11 +2430,11 @@
       "id": "skill:ms-office",
       "kind": "skill",
       "name": "MS Office Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/ms-office.md"
+        "path": "catalog/skills/ms-office"
       },
       "requires": {
         "stacks": [
@@ -2323,12 +2442,14 @@
         ]
       },
       "meta": {
-        "description": "Operate MS Office through RUDI's stack tools when a user asks for work supported by stack:ms-office. Read and extract content from Microsoft Word (.docx) and Excel (.xlsx) documents",
-        "category": "document-processing",
+        "description": "Read and extract content from Microsoft Word (.docx) and Excel (.xlsx) documents",
+        "category": "documents",
         "tags": [
           "rudi",
           "operator",
-          "ms-office"
+          "ms-office",
+          "capability:extract",
+          "provider:microsoft"
         ]
       }
     },
@@ -2336,11 +2457,11 @@
       "id": "skill:municode",
       "kind": "skill",
       "name": "Municode Public Codes Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/municode.md"
+        "path": "catalog/skills/municode"
       },
       "requires": {
         "stacks": [
@@ -2348,12 +2469,14 @@
         ]
       },
       "meta": {
-        "description": "Operate Municode Public Codes through RUDI's stack tools when a user asks for work supported by stack:municode. Read-only, fixed-job reviewed baseline zoning-code evidence bundles for Cincinnati from release-configured mappings and complete CAGIS zoning context.",
-        "category": "government-data",
+        "description": "Read-only, fixed-job reviewed baseline zoning-code evidence bundles for Cincinnati from release-configured mappings and complete CAGIS zoning context.",
+        "category": "data",
         "tags": [
           "rudi",
           "operator",
-          "municode"
+          "municode",
+          "capability:analyze",
+          "domain:real-estate"
         ]
       }
     },
@@ -2361,11 +2484,11 @@
       "id": "skill:neon",
       "kind": "skill",
       "name": "Neon Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/neon.md"
+        "path": "catalog/skills/neon"
       },
       "requires": {
         "stacks": [
@@ -2373,12 +2496,14 @@
         ]
       },
       "meta": {
-        "description": "Operate Neon through RUDI's stack tools when a user asks for work supported by stack:neon. Guarded Neon platform operations for projects, branches, connection URI retrieval, and MCP config generation.",
+        "description": "Guarded Neon platform operations for projects, branches, connection URI retrieval, and MCP config generation.",
         "category": "data",
         "tags": [
           "rudi",
           "operator",
-          "neon"
+          "neon",
+          "capability:manage",
+          "provider:neon"
         ]
       }
     },
@@ -2386,11 +2511,11 @@
       "id": "skill:newsletter-extractor",
       "kind": "skill",
       "name": "Newsletter Extractor Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/newsletter-extractor.md"
+        "path": "catalog/skills/newsletter-extractor"
       },
       "requires": {
         "stacks": [
@@ -2398,12 +2523,14 @@
         ]
       },
       "meta": {
-        "description": "Operate Newsletter Extractor through RUDI's stack tools when a user asks for work supported by stack:newsletter-extractor. Extract newsletter email bodies, normalize newsletter links, and read RSS/Atom feeds",
-        "category": "data-extraction",
+        "description": "Extract newsletter email bodies, normalize newsletter links, and read RSS/Atom feeds",
+        "category": "communication",
         "tags": [
           "rudi",
           "operator",
-          "newsletter-extractor"
+          "newsletter-extractor",
+          "capability:extract",
+          "domain:content-production"
         ]
       }
     },
@@ -2411,11 +2538,11 @@
       "id": "skill:notion-workspace",
       "kind": "skill",
       "name": "Notion Workspace Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/notion-workspace.md"
+        "path": "catalog/skills/notion-workspace"
       },
       "requires": {
         "stacks": [
@@ -2423,12 +2550,14 @@
         ]
       },
       "meta": {
-        "description": "Operate Notion Workspace through RUDI's stack tools when a user asks for work supported by stack:notion-workspace. Search, create, and manage Notion pages and databases",
-        "category": "productivity",
+        "description": "Search, create, and manage Notion pages and databases",
+        "category": "documents",
         "tags": [
           "rudi",
           "operator",
-          "notion-workspace"
+          "notion-workspace",
+          "capability:manage",
+          "provider:notion"
         ]
       }
     },
@@ -2436,11 +2565,11 @@
       "id": "skill:openai",
       "kind": "skill",
       "name": "OpenAI Suite Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/openai.md"
+        "path": "catalog/skills/openai"
       },
       "requires": {
         "stacks": [
@@ -2448,12 +2577,14 @@
         ]
       },
       "meta": {
-        "description": "Operate OpenAI Suite through RUDI's stack tools when a user asks for work supported by stack:openai. OpenAI tools: DALL-E images, Whisper transcription, TTS speech, Sora video",
-        "category": "ai-generation",
+        "description": "OpenAI tools: DALL-E images, Whisper transcription, TTS speech, Sora video",
+        "category": "media",
         "tags": [
           "rudi",
           "operator",
-          "openai"
+          "openai",
+          "capability:generate",
+          "provider:openai"
         ]
       }
     },
@@ -2461,11 +2592,11 @@
       "id": "skill:opencounter",
       "kind": "skill",
       "name": "OpenCounter Cincinnati Guidance Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/opencounter.md"
+        "path": "catalog/skills/opencounter"
       },
       "requires": {
         "stacks": [
@@ -2473,12 +2604,14 @@
         ]
       },
       "meta": {
-        "description": "Operate OpenCounter Cincinnati Guidance through RUDI's stack tools when a user asks for work supported by stack:opencounter. Guarded, headless browser guidance for Cincinnati zoning, business permits and fees, special events, and residential permitting.",
-        "category": "government-services",
+        "description": "Guarded, headless browser guidance for Cincinnati zoning, business permits and fees, special events, and residential permitting.",
+        "category": "data",
         "tags": [
           "rudi",
           "operator",
-          "opencounter"
+          "opencounter",
+          "capability:analyze",
+          "domain:real-estate"
         ]
       }
     },
@@ -2486,11 +2619,11 @@
       "id": "skill:otter-mcp",
       "kind": "skill",
       "name": "Otter MCP Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/otter-mcp.md"
+        "path": "catalog/skills/otter-mcp"
       },
       "requires": {
         "stacks": [
@@ -2498,12 +2631,14 @@
         ]
       },
       "meta": {
-        "description": "Operate Otter MCP through RUDI's stack tools when a user asks for work supported by stack:otter-mcp. Search and fetch Otter meeting transcripts through Otter's hosted OAuth MCP server.",
-        "category": "productivity",
+        "description": "Search and fetch Otter meeting transcripts through Otter's hosted OAuth MCP server.",
+        "category": "communication",
         "tags": [
           "rudi",
           "operator",
-          "otter-mcp"
+          "otter-mcp",
+          "capability:extract",
+          "provider:otter"
         ]
       }
     },
@@ -2511,11 +2646,11 @@
       "id": "skill:plaid",
       "kind": "skill",
       "name": "Plaid Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/plaid.md"
+        "path": "catalog/skills/plaid"
       },
       "requires": {
         "stacks": [
@@ -2523,12 +2658,15 @@
         ]
       },
       "meta": {
-        "description": "Operate Plaid through RUDI's stack tools when a user asks for work supported by stack:plaid. Connect bank accounts through Plaid, list accounts and balances, and sync transactions.",
-        "category": "finance",
+        "description": "Connect bank accounts through Plaid, list accounts and balances, and sync transactions.",
+        "category": "data",
         "tags": [
           "rudi",
           "operator",
-          "plaid"
+          "plaid",
+          "capability:analyze",
+          "domain:finance",
+          "provider:plaid"
         ]
       }
     },
@@ -2536,11 +2674,11 @@
       "id": "skill:postgres",
       "kind": "skill",
       "name": "PostgreSQL Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/postgres.md"
+        "path": "catalog/skills/postgres"
       },
       "requires": {
         "stacks": [
@@ -2548,38 +2686,61 @@
         ]
       },
       "meta": {
-        "description": "Operate PostgreSQL through RUDI's stack tools when a user asks for work supported by stack:postgres. Query and manage PostgreSQL databases. Works with Neon, Railway, Supabase, and any PostgreSQL connection.",
+        "description": "Query and manage PostgreSQL databases. Works with Neon, Railway, Supabase, and any PostgreSQL connection.",
         "category": "data",
         "tags": [
           "rudi",
           "operator",
-          "postgres"
+          "postgres",
+          "capability:manage"
+        ]
+      }
+    },
+    "skill:presentation-design": {
+      "id": "skill:presentation-design",
+      "kind": "skill",
+      "name": "Presentation Design",
+      "version": "1.0.1",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/presentation-design"
+      },
+      "meta": {
+        "description": "Plan, create, or refine editorial business presentations with varied layouts, source-grounded content, and a supplied brand profile. Use when a user wants stronger PowerPoint composition, a reusable presentation standard, or a less boxy generated deck.",
+        "category": "documents",
+        "tags": [
+          "capability:design"
         ]
       }
     },
     "skill:publish-task-changes": {
       "id": "skill:publish-task-changes",
       "kind": "skill",
-      "name": "publish-task-changes",
-      "version": "1.0.0",
+      "name": "Publish Task Changes",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
         "path": "catalog/skills/publish-task-changes"
       },
       "meta": {
-        "description": "Safely stage and commit only the current task's verified changes, with push and draft pull-request steps only when each endpoint is explicitly requested. Use when the user asks to commit, push, open a PR, or publish the current task from a cleanly attributable diff; do not use merely because implementation finished or when task-owned paths cannot be separated from unrelated work."
+        "description": "Safely stage and commit only the current task's verified changes, with push and draft pull-request steps only when each endpoint is explicitly requested. Use when the user asks to commit, push, open a PR, or publish the current task from a cleanly attributable diff; do not use merely because implementation finished or when task-owned paths cannot be separated from unrelated work.",
+        "category": "code",
+        "tags": [
+          "capability:publish"
+        ]
       }
     },
     "skill:reddit-saved-link-enrichment": {
       "id": "skill:reddit-saved-link-enrichment",
       "kind": "skill",
       "name": "Reddit Saved Link Enrichment",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/reddit-saved-link-enrichment.md"
+        "path": "catalog/skills/reddit-saved-link-enrichment"
       },
       "requires": {
         "stacks": [
@@ -2589,14 +2750,15 @@
       },
       "meta": {
         "description": "Enrich Reddit rows from a saved-links database by extracting posts and comment discussion, drafting a concise database note, and preparing a full page body before any explicit Notion write.",
-        "category": "research",
+        "category": "data",
         "tags": [
           "reddit",
           "notion",
           "saved-links",
           "enrichment",
           "research",
-          "comments"
+          "comments",
+          "capability:extract"
         ]
       }
     },
@@ -2604,15 +2766,15 @@
       "id": "skill:repo-red-team-review",
       "kind": "skill",
       "name": "RUDI Repo Red-Team Review",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/repo-red-team-review.md"
+        "path": "catalog/skills/repo-red-team-review"
       },
       "meta": {
         "description": "Run RUDI evidence-backed LLM-led red-team reviews of software repositories. Use when the user asks to red-team a repo, perform an adversarial security review, map attack surfaces, threat-model implementation risks, review auth/tenant isolation/webhooks/billing/LLM tools/MCP surfaces, or run a goal-driven security pass with checklist documentation and optional subagents.",
-        "category": "security",
+        "category": "code",
         "tags": [
           "rudi",
           "security",
@@ -2621,7 +2783,8 @@
           "code-review",
           "auth",
           "webhooks",
-          "llm-tools"
+          "llm-tools",
+          "capability:review"
         ]
       }
     },
@@ -2629,15 +2792,15 @@
       "id": "skill:rudi-ai-policy-assessor",
       "kind": "skill",
       "name": "RUDI AI Policy Assessor",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/rudi-ai-policy-assessor.md"
+        "path": "catalog/skills/rudi-ai-policy-assessor"
       },
       "meta": {
         "description": "Assess, score, and upgrade organizational AI acceptable-use policies using RUDI's completeness rubric. Use when reviewing a client AI policy, creating a gap report, comparing a draft against RUDI standards, advising on Claude/ChatGPT/Copilot connectors and data permissions, or turning current AI practices into a policy/training rollout.",
-        "category": "business",
+        "category": "documents",
         "tags": [
           "rudi",
           "ai-policy",
@@ -2645,43 +2808,53 @@
           "compliance",
           "risk",
           "training",
-          "connectors"
+          "connectors",
+          "capability:review",
+          "domain:governance"
         ]
       }
     },
     "skill:rudi-chief-of-staff": {
       "id": "skill:rudi-chief-of-staff",
       "kind": "skill",
-      "name": "rudi-chief-of-staff",
-      "version": "1.2.1",
+      "name": "RUDI Chief of Staff",
+      "version": "1.2.2",
       "delivery": "remote",
       "install": {
         "source": "catalog",
         "path": "catalog/skills/rudi-chief-of-staff"
       },
       "meta": {
-        "description": "Coordinate complex single- or multi-project objectives from the initiating agent through an acceptance-led task graph, exact provider/model routing, durable run lifecycle, resource and review limits, explicit handoffs, bounded workers, and evidence-backed integration with human oversight. Use when the user asks to delegate dependent work, run a crew, act as a chief of staff or first mate, coordinate multiple agents or desktop tasks, or keep a long-running project moving predictably across worktrees, projects, or hosts."
+        "description": "Coordinate complex single- or multi-project objectives from the initiating agent through an acceptance-led task graph, exact provider/model routing, durable run lifecycle, resource and review limits, explicit handoffs, bounded workers, and evidence-backed integration with human oversight. Use when the user asks to delegate dependent work, run a crew, act as a chief of staff or first mate, coordinate multiple agents or desktop tasks, or keep a long-running project moving predictably across worktrees, projects, or hosts.",
+        "category": "agents",
+        "tags": [
+          "capability:coordinate"
+        ]
       }
     },
     "skill:rudi-code-review": {
       "id": "skill:rudi-code-review",
       "kind": "skill",
-      "name": "rudi-code-review",
-      "version": "1.0.0",
+      "name": "RUDI Code Review",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
         "path": "catalog/skills/rudi-code-review"
       },
       "meta": {
-        "description": "Review a completed software change independently against three separate axes—engineering Standards, the approved Spec, and the claimed Proof—and return prioritized, evidence-backed findings without editing by default. Use for pre-merge, pre-release, or high-risk change review when a diff and task contract exist; do not use for initial implementation, generic architecture consolidation, or debugging an unknown cause."
+        "description": "Review a completed software change independently against three separate axes—engineering Standards, the approved Spec, and the claimed Proof—and return prioritized, evidence-backed findings without editing by default. Use for pre-merge, pre-release, or high-risk change review when a diff and task contract exist; do not use for initial implementation, generic architecture consolidation, or debugging an unknown cause.",
+        "category": "code",
+        "tags": [
+          "capability:review"
+        ]
       }
     },
     "skill:rudi-context-gardener": {
       "id": "skill:rudi-context-gardener",
       "kind": "skill",
-      "name": "rudi-context-gardener",
-      "version": "1.1.0",
+      "name": "RUDI Context Gardener",
+      "version": "1.1.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -2689,13 +2862,14 @@
       },
       "meta": {
         "description": "Audit and right-size durable agent instructions across AGENTS.md, CLAUDE.md, and other repository guidance. Use when instructions feel bloated, duplicated, contradictory, stale, host-specific, or poorly divided between global guidance, repository guidance, nested guidance, skills, configuration, and executable stacks.",
-        "category": "development",
+        "category": "agents",
         "tags": [
           "rudi",
           "agent-context",
           "instructions",
           "progressive-disclosure",
-          "maintenance"
+          "maintenance",
+          "capability:review"
         ]
       }
     },
@@ -2703,11 +2877,11 @@
       "id": "skill:rudi-crm",
       "kind": "skill",
       "name": "RUDI CRM Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/rudi-crm.md"
+        "path": "catalog/skills/rudi-crm"
       },
       "requires": {
         "stacks": [
@@ -2715,80 +2889,128 @@
         ]
       },
       "meta": {
-        "description": "Operate RUDI CRM through RUDI's stack tools when a user asks for work supported by stack:rudi-crm. Controlled MCP interface for RUDI CRM engagement memory, discovery, triage, validators, and correspondence context.",
-        "category": "business",
+        "description": "Controlled MCP interface for RUDI CRM engagement memory, discovery, triage, validators, and correspondence context.",
+        "category": "data",
         "tags": [
           "rudi",
           "operator",
-          "rudi-crm"
+          "rudi-crm",
+          "capability:manage",
+          "domain:client-services"
         ]
       }
     },
     "skill:rudi-decision-canvas": {
       "id": "skill:rudi-decision-canvas",
       "kind": "skill",
-      "name": "rudi-decision-canvas",
-      "version": "1.1.0",
+      "name": "RUDI Decision Canvas",
+      "version": "1.1.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
         "path": "catalog/skills/rudi-decision-canvas"
       },
       "meta": {
-        "description": "Turn an ambiguous product, architecture, workflow, or design question into a self-contained visual options artifact, collect structured feedback, and convert approved choices into a written task contract. Use when prose alone makes alternatives hard to compare or when stakeholders need to annotate and decide before implementation."
+        "description": "Turn an ambiguous product, architecture, workflow, or design question into a self-contained visual options artifact, collect structured feedback, and convert approved choices into a written task contract. Use when prose alone makes alternatives hard to compare or when stakeholders need to annotate and decide before implementation.",
+        "category": "documents",
+        "tags": [
+          "capability:design"
+        ]
       }
     },
     "skill:rudi-decision-frontier": {
       "id": "skill:rudi-decision-frontier",
       "kind": "skill",
-      "name": "rudi-decision-frontier",
-      "version": "1.0.0",
+      "name": "RUDI Decision Frontier",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
         "path": "catalog/skills/rudi-decision-frontier"
       },
       "meta": {
-        "description": "Resolve the exact product, architecture, workflow, or delivery decisions that separate an ambiguous initiative from execution-ready work, then promote an approved decision snapshot into proposed Chief-of-Staff plan nodes. Use when important choices, stakeholder knowledge, feasibility evidence, or scope boundaries are still unresolved; do not use for a small task whose contract is already stable or to dispatch implementation."
+        "description": "Resolve the exact product, architecture, workflow, or delivery decisions that separate an ambiguous initiative from execution-ready work, then promote an approved decision snapshot into proposed Chief-of-Staff plan nodes. Use when important choices, stakeholder knowledge, feasibility evidence, or scope boundaries are still unresolved; do not use for a small task whose contract is already stable or to dispatch implementation.",
+        "category": "agents",
+        "tags": [
+          "capability:coordinate"
+        ]
+      }
+    },
+    "skill:rudi-design-rulebook": {
+      "id": "skill:rudi-design-rulebook",
+      "kind": "skill",
+      "name": "RUDI Design Rulebook",
+      "version": "1.0.1",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/skills/rudi-design-rulebook"
+      },
+      "meta": {
+        "description": "Audit or build an interface, slide deck, or web page against a two-part rulebook. Part one is twenty visual and copy tells that mark a design as machine-generated, such as gradient hero text, Lucide icon sprinkles, glass cards, em dashes, and the Space Grotesk plus Instrument Serif pairing. Part two is twenty-one reconciled UX principles (Hick, Fitts, Jakob, Miller, Doherty, Von Restorff, peak-end, Zeigarnik, Tesler, Postel, and more) turned into checkable rules. Use when a user asks whether something looks AI-generated or vibe-coded, wants a design, deck, landing page, or app screen reviewed for generic patterns, asks which UX principles to apply, or wants a new build to avoid default AI aesthetics.",
+        "category": "web",
+        "tags": [
+          "design",
+          "ux",
+          "ui",
+          "audit",
+          "slides",
+          "landing-page",
+          "html",
+          "css",
+          "copy",
+          "anti-pattern",
+          "laws-of-ux",
+          "capability:review"
+        ],
+        "icon": "📐"
       }
     },
     "skill:rudi-diagnose": {
       "id": "skill:rudi-diagnose",
       "kind": "skill",
-      "name": "rudi-diagnose",
-      "version": "1.0.0",
+      "name": "RUDI Diagnose",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
         "path": "catalog/skills/rudi-diagnose"
       },
       "meta": {
-        "description": "Investigate a reproducible defect, failed check, degraded workflow, or unexplained system behavior by locating the first incorrect state through falsifiable hypotheses and tight feedback loops. Use when the cause is unknown and evidence must precede a fix; do not use for implementing a known change, broad architecture review, or speculative cleanup."
+        "description": "Investigate a reproducible defect, failed check, degraded workflow, or unexplained system behavior by locating the first incorrect state through falsifiable hypotheses and tight feedback loops. Use when the cause is unknown and evidence must precede a fix; do not use for implementing a known change, broad architecture review, or speculative cleanup.",
+        "category": "code",
+        "tags": [
+          "capability:diagnose"
+        ]
       }
     },
     "skill:rudi-human-runbook": {
       "id": "skill:rudi-human-runbook",
       "kind": "skill",
-      "name": "rudi-human-runbook",
-      "version": "1.0.0",
+      "name": "RUDI Human Runbook",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
         "path": "catalog/skills/rudi-human-runbook"
       },
       "meta": {
-        "description": "Produce a safe, copyable, checkpointed runbook for setup or recovery work that a person must perform because it depends on interactive consent, physical access, account ownership, hardware, or an unavailable automation boundary. Use for human-only OAuth, vendor-console, device, release, or recovery steps; do not use to disguise an automatable agent workflow or embed secret values."
+        "description": "Produce a safe, copyable, checkpointed runbook for setup or recovery work that a person must perform because it depends on interactive consent, physical access, account ownership, hardware, or an unavailable automation boundary. Use for human-only OAuth, vendor-console, device, release, or recovery steps; do not use to disguise an automatable agent workflow or embed secret values.",
+        "category": "documents",
+        "tags": [
+          "capability:write"
+        ]
       }
     },
     "skill:rudi-processor": {
       "id": "skill:rudi-processor",
       "kind": "skill",
       "name": "RUDI Processor Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/rudi-processor.md"
+        "path": "catalog/skills/rudi-processor"
       },
       "requires": {
         "stacks": [
@@ -2796,34 +3018,39 @@
         ]
       },
       "meta": {
-        "description": "Operate RUDI Processor through RUDI's stack tools when a user asks for work supported by stack:rudi-processor. Local file metadata extraction, workspace audit, and indexed content search.",
-        "category": "data-extraction",
+        "description": "Local file metadata extraction, workspace audit, and indexed content search.",
+        "category": "data",
         "tags": [
           "rudi",
           "operator",
-          "rudi-processor"
+          "rudi-processor",
+          "capability:extract"
         ]
       }
     },
     "skill:rudi-prototype": {
       "id": "skill:rudi-prototype",
       "kind": "skill",
-      "name": "rudi-prototype",
-      "version": "1.0.0",
+      "name": "RUDI Prototype",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
         "path": "catalog/skills/rudi-prototype"
       },
       "meta": {
-        "description": "Build a deliberately disposable logic, interaction, or integration prototype to answer one named uncertainty before committing to production architecture. Use when feasibility, workflow shape, UX behavior, or a provider boundary cannot be decided cheaply from existing evidence; do not use for production-ready implementation, migrations, or general feature delivery."
+        "description": "Build a deliberately disposable logic, interaction, or integration prototype to answer one named uncertainty before committing to production architecture. Use when feasibility, workflow shape, UX behavior, or a provider boundary cannot be decided cheaply from existing evidence; do not use for production-ready implementation, migrations, or general feature delivery.",
+        "category": "code",
+        "tags": [
+          "capability:prototype"
+        ]
       }
     },
     "skill:rudi-repo-steward": {
       "id": "skill:rudi-repo-steward",
       "kind": "skill",
-      "name": "rudi-repo-steward",
-      "version": "0.3.0",
+      "name": "RUDI Repo Steward",
+      "version": "0.3.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -2837,13 +3064,14 @@
       },
       "meta": {
         "description": "Enroll a user-provided folder, discover all nested Git worktrees, and coordinate continuous improvement across that dynamic repository fleet using safe status scans, bounded leases, targeted commits, and an evidence-backed action ledger. Use when a user asks to steward every repo below a path, catch repositories up, review agent work, plan targeted commits, monitor divergence, or maintain repositories continuously without blindly mutating them.",
-        "category": "development",
+        "category": "code",
         "tags": [
           "git",
           "github",
           "repositories",
           "continuous-improvement",
-          "maintenance"
+          "maintenance",
+          "capability:review"
         ]
       }
     },
@@ -2851,15 +3079,15 @@
       "id": "skill:rudi-rundown-writer",
       "kind": "skill",
       "name": "RUDI Rundown Writer",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/rudi-rundown-writer.md"
+        "path": "catalog/skills/rudi-rundown-writer"
       },
       "meta": {
         "description": "Write the editorial layer of a RUDI Rundown daily AI news page — the newsletter open, the query-phrased \"What People Are Asking\" Q&A, the dek, and card blurbs — grounded strictly in that day's story data. Use when writing, backfilling, or editing RUDI Rundown pages, a daily AI news roundup, or when reviewing rundown copy for voice, trust, or structure problems.",
-        "category": "writing",
+        "category": "documents",
         "tags": [
           "rudi",
           "writing",
@@ -2867,37 +3095,43 @@
           "editorial",
           "seo",
           "llm-optimization",
-          "daily-briefing"
+          "daily-briefing",
+          "capability:write",
+          "domain:content-production"
         ]
       }
     },
     "skill:rudi-stakeholder-questionnaire": {
       "id": "skill:rudi-stakeholder-questionnaire",
       "kind": "skill",
-      "name": "rudi-stakeholder-questionnaire",
-      "version": "1.0.0",
+      "name": "RUDI Stakeholder Questionnaire",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
         "path": "catalog/skills/rudi-stakeholder-questionnaire"
       },
       "meta": {
-        "description": "Create a concise, neutral questionnaire that obtains missing product, policy, workflow, domain, or acceptance knowledge from a named stakeholder and turns partial responses into explicit decision evidence. Use when another person holds information required to proceed; do not use to ask the stakeholder questions the agent can answer from available evidence or to fabricate answers."
+        "description": "Create a concise, neutral questionnaire that obtains missing product, policy, workflow, domain, or acceptance knowledge from a named stakeholder and turns partial responses into explicit decision evidence. Use when another person holds information required to proceed; do not use to ask the stakeholder questions the agent can answer from available evidence or to fabricate answers.",
+        "category": "documents",
+        "tags": [
+          "capability:write"
+        ]
       }
     },
     "skill:rudi-swe-issue-loop": {
       "id": "skill:rudi-swe-issue-loop",
       "kind": "skill",
       "name": "RUDI SWE Issue Loop",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/rudi-swe-issue-loop.md"
+        "path": "catalog/skills/rudi-swe-issue-loop"
       },
       "meta": {
         "description": "Create and execute an evidence-backed GitHub issue and PR ledger for engineering work across supported agent hosts using the SWE checklist skill, including task contracts, risk tiers, phase-gated tests, independent review, branches, commits, pull requests, CI verification, merges, and branch cleanup.",
-        "category": "coding",
+        "category": "code",
         "tags": [
           "rudi",
           "github",
@@ -2905,7 +3139,8 @@
           "issues",
           "pull-requests",
           "ci",
-          "checklist"
+          "checklist",
+          "capability:coordinate"
         ],
         "icon": "🔁"
       }
@@ -2914,11 +3149,11 @@
       "id": "skill:rudi-video-editor",
       "kind": "skill",
       "name": "RUDI Video Editor",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/rudi-video-editor.md"
+        "path": "catalog/skills/rudi-video-editor"
       },
       "requires": {
         "stacks": [
@@ -2927,7 +3162,7 @@
       },
       "meta": {
         "description": "Use RUDI video editing stack tools to inspect, trim, remove silence, caption, render, and verify edited video from a user prompt. Use when the user asks to edit a clip, tighten a video, add captions, create rough cuts, apply overlays, produce thumbnails, resize media, or run video QA through RUDI.",
-        "category": "creative",
+        "category": "media",
         "tags": [
           "rudi",
           "video",
@@ -2935,15 +3170,16 @@
           "captions",
           "ffmpeg",
           "rendering",
-          "qa"
+          "qa",
+          "capability:edit"
         ]
       }
     },
     "skill:rudi-worktree-closeout": {
       "id": "skill:rudi-worktree-closeout",
       "kind": "skill",
-      "name": "rudi-worktree-closeout",
-      "version": "1.0.0",
+      "name": "RUDI Worktree Closeout",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -2956,7 +3192,7 @@
       },
       "meta": {
         "description": "Classify an agent-development worktree at a delivery boundary and persist a non-mutating closeout receipt through Repo Steward. Use when accepted, superseded, retained, or archive-candidate work needs explicit lineage, preservation, disposition, and cleanup-approval evidence without changing Git state.",
-        "category": "development",
+        "category": "code",
         "tags": [
           "rudi",
           "git",
@@ -2964,15 +3200,16 @@
           "closeout",
           "receipts",
           "lineage",
-          "preservation"
+          "preservation",
+          "capability:review"
         ]
       }
     },
     "skill:set-goal-and-execute": {
       "id": "skill:set-goal-and-execute",
       "kind": "skill",
-      "name": "set-goal-and-execute",
-      "version": "1.0.0",
+      "name": "Set Goal And Execute",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
@@ -2980,14 +3217,15 @@
       },
       "meta": {
         "description": "Turn an explicitly approved brief into a durable active goal and execute it end to end through implementation and verification. Use when the user says \"set the goal and execute,\" invokes $set-goal-and-execute, or unmistakably requests this exact goal-driven execution mode; do not use for planning-only, review-only, or ordinary task requests.",
-        "category": "development",
+        "category": "agents",
         "tags": [
           "rudi",
           "goals",
           "execution",
           "verification",
           "authority",
-          "workflow"
+          "workflow",
+          "capability:coordinate"
         ]
       }
     },
@@ -2995,11 +3233,11 @@
       "id": "skill:share-web-app",
       "kind": "skill",
       "name": "Share Web App",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/share-web-app.md"
+        "path": "catalog/skills/share-web-app"
       },
       "requires": {
         "stacks": [
@@ -3008,14 +3246,15 @@
       },
       "meta": {
         "description": "Publish or privately preview a local vanilla, Vite, or React-Vite static app through RUDI Share when a user asks to share, publish, host, preview, or open an app on a tailnet-connected mobile device.",
-        "category": "deployment",
+        "category": "web",
         "tags": [
           "sharing",
           "hosting",
           "static-site",
           "vite",
           "react",
-          "deployment"
+          "deployment",
+          "capability:deploy"
         ]
       }
     },
@@ -3023,28 +3262,24 @@
       "id": "skill:shortform-publish-copy",
       "kind": "skill",
       "name": "Shortform Publish Copy",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/shortform-publish-copy.md"
-      },
-      "requires": {
-        "stacks": [
-          "stack:video-editor",
-          "stack:social-media-publisher"
-        ]
+        "path": "catalog/skills/shortform-publish-copy"
       },
       "meta": {
         "description": "Create platform-ready short-form video publish copy with a viewer-facing title, SEO title, conversational description, CTA, hashtags, and platform notes",
-        "category": "marketing",
+        "category": "communication",
         "tags": [
           "video",
           "shortform",
           "social-media",
           "seo",
           "captions",
-          "publishing"
+          "publishing",
+          "capability:write",
+          "domain:content-production"
         ]
       }
     },
@@ -3052,21 +3287,15 @@
       "id": "skill:shortform-social-publish-package",
       "kind": "skill",
       "name": "Shortform Social Publish Package",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/shortform-social-publish-package.md"
-      },
-      "requires": {
-        "stacks": [
-          "stack:cloudinary",
-          "stack:social-media-publisher"
-        ]
+        "path": "catalog/skills/shortform-social-publish-package"
       },
       "meta": {
         "description": "Generate platform-ready social publishing packages for short-form story folders, including Instagram Reels captions, Facebook captions, YouTube Shorts metadata, TikTok manual captions, media URL placeholders, and publish checklists before using social-media-publisher.",
-        "category": "marketing",
+        "category": "communication",
         "tags": [
           "video",
           "shortform",
@@ -3075,7 +3304,9 @@
           "captions",
           "youtube",
           "instagram",
-          "tiktok"
+          "tiktok",
+          "capability:write",
+          "domain:content-production"
         ]
       }
     },
@@ -3083,27 +3314,24 @@
       "id": "skill:shortform-your-words-script",
       "kind": "skill",
       "name": "Shortform Your-Words Script",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/shortform-your-words-script.md"
-      },
-      "requires": {
-        "stacks": [
-          "stack:video-editor"
-        ]
+        "path": "catalog/skills/shortform-your-words-script"
       },
       "meta": {
         "description": "Create short-form video scripts and teleprompter files from raw thoughts, voice memo transcripts, inbox notes, rough drafts, article reactions, or recorded takes while preserving the original author's voice and words",
-        "category": "creative",
+        "category": "documents",
         "tags": [
           "video",
           "shortform",
           "script",
           "teleprompter",
           "creator-voice",
-          "captions"
+          "captions",
+          "capability:write",
+          "domain:content-production"
         ],
         "icon": "🎬"
       }
@@ -3112,11 +3340,11 @@
       "id": "skill:site-planner",
       "kind": "skill",
       "name": "Site Planner Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/site-planner.md"
+        "path": "catalog/skills/site-planner"
       },
       "requires": {
         "stacks": [
@@ -3124,12 +3352,14 @@
         ]
       },
       "meta": {
-        "description": "Operate Site Planner through RUDI's stack tools when a user asks for work supported by stack:site-planner. Fixed-root MCP adapter for inspecting, generating, optimizing, previewing, forking, and applying changes to a pinned local Site Planner workspace.",
-        "category": "development",
+        "description": "Fixed-root MCP adapter for inspecting, generating, optimizing, previewing, forking, and applying changes to a pinned local Site Planner workspace.",
+        "category": "data",
         "tags": [
           "rudi",
           "operator",
-          "site-planner"
+          "site-planner",
+          "capability:analyze",
+          "domain:real-estate"
         ]
       }
     },
@@ -3137,22 +3367,24 @@
       "id": "skill:site-zoning-envelope-review",
       "kind": "skill",
       "name": "Site Zoning Envelope Review",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/site-zoning-envelope-review.md"
+        "path": "catalog/skills/site-zoning-envelope-review"
       },
       "meta": {
         "description": "Run the site-engine workflow through zoning and buildable-envelope review using either a local Pre Dev Intel checkout or the RUDI Dwellow MCP stack. Use when the user asks whether a parcel's zoning can be determined, how zoning feeds the site envelope, what the net buildable area or largest rectangle is, or when frontage review is needed before shell frontier, building type fit, or parking feasibility. Stop before building-type fit, shell frontier, parking feasibility, site-option-set, or concept generation unless the user explicitly asks to continue.",
-        "category": "real-estate",
+        "category": "data",
         "tags": [
           "zoning",
           "site-engine",
           "envelope",
           "frontage",
           "parcels",
-          "feasibility"
+          "feasibility",
+          "capability:analyze",
+          "domain:real-estate"
         ]
       }
     },
@@ -3160,11 +3392,11 @@
       "id": "skill:slack",
       "kind": "skill",
       "name": "Slack Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/slack.md"
+        "path": "catalog/skills/slack"
       },
       "requires": {
         "stacks": [
@@ -3172,12 +3404,14 @@
         ]
       },
       "meta": {
-        "description": "Operate Slack through RUDI's stack tools when a user asks for work supported by stack:slack. Send messages, search channels, upload files, and manage reactions in Slack",
+        "description": "Send messages, search channels, upload files, and manage reactions in Slack",
         "category": "communication",
         "tags": [
           "rudi",
           "operator",
-          "slack"
+          "slack",
+          "capability:communicate",
+          "provider:slack"
         ]
       }
     },
@@ -3185,11 +3419,11 @@
       "id": "skill:social-media-publisher",
       "kind": "skill",
       "name": "Social Media Publisher Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/social-media-publisher.md"
+        "path": "catalog/skills/social-media-publisher"
       },
       "requires": {
         "stacks": [
@@ -3197,12 +3431,14 @@
         ]
       },
       "meta": {
-        "description": "Operate Social Media Publisher through RUDI's stack tools when a user asks for work supported by stack:social-media-publisher. Post to Twitter, LinkedIn, Facebook, Instagram, TikTok, and YouTube with readiness checks and unified publisher validation",
-        "category": "social",
+        "description": "Post to Twitter, LinkedIn, Facebook, Instagram, TikTok, and YouTube with readiness checks and unified publisher validation",
+        "category": "communication",
         "tags": [
           "rudi",
           "operator",
-          "social-media-publisher"
+          "social-media-publisher",
+          "capability:publish",
+          "domain:content-production"
         ]
       }
     },
@@ -3210,11 +3446,11 @@
       "id": "skill:speech-generator",
       "kind": "skill",
       "name": "Speech Generator Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/speech-generator.md"
+        "path": "catalog/skills/speech-generator"
       },
       "requires": {
         "stacks": [
@@ -3222,12 +3458,13 @@
         ]
       },
       "meta": {
-        "description": "Operate Speech Generator through RUDI's stack tools when a user asks for work supported by stack:speech-generator. Validated multi-provider text-to-speech generation with OpenAI, ElevenLabs, and Gemini.",
-        "category": "ai-generation",
+        "description": "Validated multi-provider text-to-speech generation with OpenAI, ElevenLabs, and Gemini.",
+        "category": "media",
         "tags": [
           "rudi",
           "operator",
-          "speech-generator"
+          "speech-generator",
+          "capability:generate"
         ]
       }
     },
@@ -3235,11 +3472,11 @@
       "id": "skill:sports-stats",
       "kind": "skill",
       "name": "Sports Stats Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/sports-stats.md"
+        "path": "catalog/skills/sports-stats"
       },
       "requires": {
         "stacks": [
@@ -3247,12 +3484,14 @@
         ]
       },
       "meta": {
-        "description": "Operate Sports Stats through RUDI's stack tools when a user asks for work supported by stack:sports-stats. Extract and query sports statistics from Basketball Reference, ESPN, and other sports sites",
-        "category": "data-extraction",
+        "description": "Extract and query sports statistics from Basketball Reference, ESPN, and other sports sites",
+        "category": "data",
         "tags": [
           "rudi",
           "operator",
-          "sports-stats"
+          "sports-stats",
+          "capability:analyze",
+          "domain:sports"
         ]
       }
     },
@@ -3260,11 +3499,11 @@
       "id": "skill:sqlite",
       "kind": "skill",
       "name": "SQLite Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/sqlite.md"
+        "path": "catalog/skills/sqlite"
       },
       "requires": {
         "stacks": [
@@ -3272,12 +3511,13 @@
         ]
       },
       "meta": {
-        "description": "Operate SQLite through RUDI's stack tools when a user asks for work supported by stack:sqlite. Query and manage SQLite databases. Perfect for local databases, app data, and the RUDI session database.",
+        "description": "Query and manage the exact local SQLite database selected by the user, with schema inspection and verified results.",
         "category": "data",
         "tags": [
           "rudi",
           "operator",
-          "sqlite"
+          "sqlite",
+          "capability:manage"
         ]
       }
     },
@@ -3285,11 +3525,11 @@
       "id": "skill:stripe",
       "kind": "skill",
       "name": "Stripe Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/stripe.md"
+        "path": "catalog/skills/stripe"
       },
       "requires": {
         "stacks": [
@@ -3297,12 +3537,15 @@
         ]
       },
       "meta": {
-        "description": "Operate Stripe through RUDI's stack tools when a user asks for work supported by stack:stripe. Create and inspect Stripe products, one-time prices, and Payment Links through guarded RUDI MCP tools",
-        "category": "payments",
+        "description": "Create and inspect Stripe products, one-time prices, and Payment Links through guarded RUDI MCP tools",
+        "category": "data",
         "tags": [
           "rudi",
           "operator",
-          "stripe"
+          "stripe",
+          "capability:manage",
+          "domain:finance",
+          "provider:stripe"
         ]
       }
     },
@@ -3310,11 +3553,11 @@
       "id": "skill:supabase-mcp",
       "kind": "skill",
       "name": "Supabase MCP Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/supabase-mcp.md"
+        "path": "catalog/skills/supabase-mcp"
       },
       "requires": {
         "stacks": [
@@ -3322,12 +3565,14 @@
         ]
       },
       "meta": {
-        "description": "Operate Supabase MCP through RUDI's stack tools when a user asks for work supported by stack:supabase-mcp. Connect agents to Supabase's hosted OAuth MCP server for database, project, Edge Functions, docs, and development tools.",
+        "description": "Connect agents to Supabase's hosted OAuth MCP server for database, project, Edge Functions, docs, and development tools.",
         "category": "data",
         "tags": [
           "rudi",
           "operator",
-          "supabase-mcp"
+          "supabase-mcp",
+          "capability:manage",
+          "provider:supabase"
         ]
       }
     },
@@ -3335,11 +3580,11 @@
       "id": "skill:swe-compliance-checklist",
       "kind": "skill",
       "name": "RUDI SWE Compliance Checklist",
-      "version": "1.5.0",
+      "version": "1.5.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/swe-compliance-checklist.md"
+        "path": "catalog/skills/swe-compliance-checklist"
       },
       "requires": {
         "stacks": [
@@ -3348,7 +3593,7 @@
       },
       "meta": {
         "description": "Create and execute a RUDI phase-gated engineering checklist for software changes that must comply with the SWE Operating Manual, including scope, tests, proof commands, smoke checks, documentation gates, accepted debt, and Definition of Done",
-        "category": "coding",
+        "category": "code",
         "tags": [
           "rudi",
           "swe",
@@ -3356,7 +3601,8 @@
           "checklist",
           "testing",
           "verification",
-          "engineering"
+          "engineering",
+          "capability:review"
         ],
         "icon": "✅"
       }
@@ -3365,22 +3611,23 @@
       "id": "skill:synthetic-cadence-editor",
       "kind": "skill",
       "name": "Synthetic Cadence Editor",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/synthetic-cadence-editor.md"
+        "path": "catalog/skills/synthetic-cadence-editor"
       },
       "meta": {
         "description": "Write or revise analytical prose without the AI-coded thought-leadership voice that sounds insightful through contrast and abstraction but skips the mechanism. Use when generating, editing, or auditing essays, blog posts, newsletters, LinkedIn posts, op-eds, captions, scripts, or any analytical prose where the goal is to sound specific, grounded, and human.",
-        "category": "writing",
+        "category": "documents",
         "tags": [
           "writing",
           "editing",
           "prose",
           "style",
           "analysis",
-          "captions"
+          "captions",
+          "capability:edit"
         ]
       }
     },
@@ -3388,11 +3635,11 @@
       "id": "skill:tally",
       "kind": "skill",
       "name": "Tally Forms Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/tally.md"
+        "path": "catalog/skills/tally"
       },
       "requires": {
         "stacks": [
@@ -3400,12 +3647,14 @@
         ]
       },
       "meta": {
-        "description": "Operate Tally Forms through RUDI's stack tools when a user asks for work supported by stack:tally. Create, manage, and analyze Tally forms and submissions",
-        "category": "productivity",
+        "description": "Create, manage, and analyze Tally forms and submissions",
+        "category": "data",
         "tags": [
           "rudi",
           "operator",
-          "tally"
+          "tally",
+          "capability:analyze",
+          "provider:tally"
         ]
       }
     },
@@ -3413,22 +3662,23 @@
       "id": "skill:trace-feature-lineage",
       "kind": "skill",
       "name": "Trace Feature Lineage",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/trace-feature-lineage.md"
+        "path": "catalog/skills/trace-feature-lineage"
       },
       "meta": {
         "description": "Perform end-to-end feature and data-lineage traces across software repositories. Use when investigating where a user-visible page, command, API result, record, workflow, or behavior comes from; why data appears, is missing, stale, filtered, duplicated, or mismatched; or when planning refactors, onboarding, incident response, deprecation cleanup, architecture reviews, or test coverage for an existing feature.",
-        "category": "coding",
+        "category": "code",
         "tags": [
           "feature-trace",
           "data-lineage",
           "debugging",
           "architecture",
           "testing",
-          "repo-analysis"
+          "repo-analysis",
+          "capability:review"
         ]
       }
     },
@@ -3436,11 +3686,11 @@
       "id": "skill:twilio-sms",
       "kind": "skill",
       "name": "Twilio SMS Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/twilio-sms.md"
+        "path": "catalog/skills/twilio-sms"
       },
       "requires": {
         "stacks": [
@@ -3448,12 +3698,14 @@
         ]
       },
       "meta": {
-        "description": "Operate Twilio SMS through RUDI's stack tools when a user asks for work supported by stack:twilio-sms. Send SMS messages and inspect recent Twilio messages through a guarded MCP interface.",
+        "description": "Send SMS messages and inspect recent Twilio messages through a guarded MCP interface.",
         "category": "communication",
         "tags": [
           "rudi",
           "operator",
-          "twilio-sms"
+          "twilio-sms",
+          "capability:communicate",
+          "provider:twilio"
         ]
       }
     },
@@ -3461,11 +3713,11 @@
       "id": "skill:vercel",
       "kind": "skill",
       "name": "Vercel Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/vercel.md"
+        "path": "catalog/skills/vercel"
       },
       "requires": {
         "stacks": [
@@ -3473,12 +3725,14 @@
         ]
       },
       "meta": {
-        "description": "Operate Vercel through RUDI's stack tools when a user asks for work supported by stack:vercel. Deploy to Vercel, manage environment variables, and monitor deployments",
-        "category": "deployment",
+        "description": "Deploy to Vercel, manage environment variables, and monitor deployments",
+        "category": "web",
         "tags": [
           "rudi",
           "operator",
-          "vercel"
+          "vercel",
+          "capability:deploy",
+          "provider:vercel"
         ]
       }
     },
@@ -3486,11 +3740,11 @@
       "id": "skill:video-generator",
       "kind": "skill",
       "name": "Video Generator Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/video-generator.md"
+        "path": "catalog/skills/video-generator"
       },
       "requires": {
         "stacks": [
@@ -3498,12 +3752,13 @@
         ]
       },
       "meta": {
-        "description": "Operate Video Generator through RUDI's stack tools when a user asks for work supported by stack:video-generator. Agent-safe multi-provider video generation for content creation workflows.",
-        "category": "ai-generation",
+        "description": "Agent-safe multi-provider video generation for content creation workflows.",
+        "category": "media",
         "tags": [
           "rudi",
           "operator",
-          "video-generator"
+          "video-generator",
+          "capability:generate"
         ]
       }
     },
@@ -3511,11 +3766,11 @@
       "id": "skill:web-export",
       "kind": "skill",
       "name": "Web Export Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/web-export.md"
+        "path": "catalog/skills/web-export"
       },
       "requires": {
         "stacks": [
@@ -3523,12 +3778,13 @@
         ]
       },
       "meta": {
-        "description": "Operate Web Export through RUDI's stack tools when a user asks for work supported by stack:web-export. Export HTML to PDF/PNG with mode detection, artifact verification, and structured diagnostics.",
-        "category": "document-processing",
+        "description": "Export HTML to PDF/PNG with mode detection, artifact verification, and structured diagnostics.",
+        "category": "documents",
         "tags": [
           "rudi",
           "operator",
-          "web-export"
+          "web-export",
+          "capability:export"
         ]
       }
     },
@@ -3536,11 +3792,11 @@
       "id": "skill:whisper",
       "kind": "skill",
       "name": "Local Whisper Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/whisper.md"
+        "path": "catalog/skills/whisper"
       },
       "requires": {
         "stacks": [
@@ -3548,12 +3804,13 @@
         ]
       },
       "meta": {
-        "description": "Operate Local Whisper through RUDI's stack tools when a user asks for work supported by stack:whisper. Transcribe audio locally with faster-whisper. No API key needed - runs on your machine.",
-        "category": "ai-local",
+        "description": "Transcribe audio locally with faster-whisper. No API key needed - runs on your machine.",
+        "category": "media",
         "tags": [
           "rudi",
           "operator",
-          "whisper"
+          "whisper",
+          "capability:extract"
         ]
       }
     },
@@ -3561,11 +3818,11 @@
       "id": "skill:zoho-mail",
       "kind": "skill",
       "name": "Zoho Mail Operator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "delivery": "remote",
       "install": {
         "source": "catalog",
-        "path": "catalog/skills/zoho-mail.md"
+        "path": "catalog/skills/zoho-mail"
       },
       "requires": {
         "stacks": [
@@ -3573,12 +3830,14 @@
         ]
       },
       "meta": {
-        "description": "Operate Zoho Mail through RUDI's stack tools when a user asks for work supported by stack:zoho-mail. Zoho Mail tools for OAuth accounts, folder and message search, email send, draft, reply, deletion, threads, and attachments",
+        "description": "Zoho Mail tools for OAuth accounts, folder and message search, email send, draft, reply, deletion, threads, and attachments",
         "category": "communication",
         "tags": [
           "rudi",
           "operator",
-          "zoho-mail"
+          "zoho-mail",
+          "capability:communicate",
+          "provider:zoho"
         ]
       }
     },
@@ -3696,6 +3955,65 @@
         "operatorSkill": "skill:audio-tools",
         "skills": [
           "skill:audio-tools"
+        ]
+      }
+    },
+    "stack:brand-assets": {
+      "id": "stack:brand-assets",
+      "kind": "stack",
+      "name": "Brand Assets",
+      "version": "0.1.0",
+      "delivery": "remote",
+      "install": {
+        "source": "catalog",
+        "path": "catalog/stacks/brand-assets"
+      },
+      "runtime": "python",
+      "requires": {
+        "binaries": [
+          "binary:imagemagick",
+          "binary:potrace"
+        ],
+        "secrets": []
+      },
+      "provides": {
+        "tools": [
+          "inspect_brand_source",
+          "trace_brand_asset",
+          "compose_brand_variant",
+          "validate_brand_asset"
+        ]
+      },
+      "mcp": {
+        "transport": "stdio",
+        "command": "python",
+        "args": [
+          "src/server.py"
+        ],
+        "cwd": "."
+      },
+      "meta": {
+        "description": "Local-first, provenance-preserving normalization of generated raster logo candidates into validated SVG brand assets and editable descriptor variants.",
+        "author": "brandonz@heritagehill.co",
+        "license": "MIT",
+        "category": "content-and-brand",
+        "tags": [
+          "brand-assets",
+          "vectorization",
+          "svg",
+          "logo",
+          "potrace",
+          "image-processing",
+          "content-and-brand"
+        ],
+        "icon": "✳️",
+        "boundary": "Canonical post-generation brand-asset normalization stack. It accepts explicit local raster/SVG paths, performs deterministic local transforms, and returns provenance; it does not generate images, choose canonical geometry, install fonts, edit business repositories, or publish assets.",
+        "mcpSafety": "Source files must be regular non-symlink local files under 50 MB for raster intake and 10 MB for SVG input. Outputs are explicit .svg paths with a JSON provenance sidecar and are never overwritten unless overwrite=true. Subprocesses use argument arrays without a shell. SVG scripts, external references, data URLs, and unsafe embeds are rejected."
+      },
+      "related": {
+        "operatorSkill": "skill:brand-assets",
+        "skills": [
+          "skill:brand-assets"
         ]
       }
     },
